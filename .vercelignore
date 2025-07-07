@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+src/**/*.test.ts
+src/**/*.test.tsx
+src/**/*.spec.ts
+src/**/*.spec.tsx
+
+# Development
+.env.local
+.env.development.local
+.env.test.local
+
+# Build
+.next
+.vercel
+
+# Misc
+.DS_Store
+*.log
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation (optional - remove if you want docs deployed)
+README.md
+docs/
+*.md
+
+# Source maps (optional - keep them for debugging)
+# build/static/**/*.map
