@@ -1,10 +1,11 @@
-// src/components/layout/Header.tsx - FIXED MOBILE VERSION
+// src/components/layout/Header.tsx - FIXED VERSION
 import React, { useEffect } from 'react';
 import { Briefcase, Menu, Moon, Sun, X, Zap, TrendingUp } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 const Header: React.FC = () => {
-    const { ui, setTheme, toggleSidebar, applications, filteredApplications, progress } = useAppStore();
+    // 🔧 FIXED: Use goalProgress instead of progress
+    const { ui, setTheme, toggleSidebar, applications, filteredApplications, goalProgress } = useAppStore();
 
     useEffect(() => {
         const isDark = ui.theme === 'dark';

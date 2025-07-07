@@ -3,7 +3,7 @@ import { Award, Calendar, Target, TrendingUp, Star, Zap, Trophy } from 'lucide-r
 import { useAppStore } from '../../store/useAppStore';
 
 const GoalTracker: React.FC = () => {
-    const { goals, progress, goalProgress, openGoalModal, calculateProgress } = useAppStore();
+    const { goals, goalProgress, openGoalModal, calculateProgress } = useAppStore();
 
     // Force progress calculation on mount and when applications change
     useEffect(() => {
@@ -11,7 +11,7 @@ const GoalTracker: React.FC = () => {
     }, [calculateProgress]);
 
     // Use goalProgress as primary source, fallback to progress for compatibility
-    const currentProgress = goalProgress || progress;
+    const currentProgress = goalProgress;
 
     const progressItems = [
         {

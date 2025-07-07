@@ -3,7 +3,8 @@ import {Star, Target, TrendingUp, Trophy, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 
 const MilestoneModal: React.FC = () => {
-    const {modals, closeMilestone, progress} = useAppStore();
+    // 🔧 FIXED: Use goalProgress instead of progress
+    const {modals, closeMilestone, goalProgress} = useAppStore();
     const {milestone} = modals;
 
     // Trigger confetti when modal opens
@@ -74,7 +75,8 @@ const MilestoneModal: React.FC = () => {
     if (!milestone.isOpen) return null;
 
     const nextMilestone = getNextMilestone(milestone.message);
-    const currentCount = progress.totalApplications;
+    // 🔧 FIXED: Use goalProgress instead of progress
+    const currentCount = goalProgress.totalApplications;
     const progressToNext = nextMilestone ? Math.min((currentCount / nextMilestone) * 100, 100) : 100;
 
     return (
@@ -130,7 +132,7 @@ const MilestoneModal: React.FC = () => {
                             <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-500"/>
                             <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Success Rate</p>
                             <p className="text-2xl font-extrabold text-gradient-blue">
-                                {Math.round((progress.totalApplications > 0 ? progress.totalApplications / progress.totalApplications * 100 : 0))}%
+                                {Math.round((goalProgress.totalApplications > 0 ? goalProgress.totalApplications / goalProgress.totalApplications * 100 : 0))}%
                             </p>
                         </div>
 
@@ -138,7 +140,7 @@ const MilestoneModal: React.FC = () => {
                             <Target className="h-6 w-6 mx-auto mb-2 text-blue-500"/>
                             <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Goal Progress</p>
                             <p className="text-2xl font-extrabold text-gradient-purple">
-                                {progress.totalProgress}%
+                                {goalProgress.totalProgress}%
                             </p>
                         </div>
                     </div>

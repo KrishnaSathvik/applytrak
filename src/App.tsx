@@ -1,4 +1,4 @@
-// src/App.tsx - ENHANCED WITH PREMIUM TYPOGRAPHY
+// src/App.tsx - ENHANCED WITH PREMIUM TYPOGRAPHY + FIXED BACKUP SYSTEM
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import Layout from './components/layout/Layout';
@@ -19,6 +19,7 @@ const RecoveryModal = React.lazy(() => import('./components/modals/RecoveryModal
 const ExportImportActions = React.lazy(() => import('./components/ui/ExportImportActions'));
 const RecoveryAlert = React.lazy(() => import('./components/ui/RecoveryAlert'));
 const ErrorBoundary = React.lazy(() => import('./components/ui/ErrorBoundary'));
+const BackupStatus = React.lazy(() => import('./components/ui/BackupStatus'));
 
 // Enhanced loading component for table - MOBILE OPTIMIZED WITH PREMIUM TYPOGRAPHY
 const TableLoadingFallback = () => (
@@ -99,9 +100,23 @@ const TableLoadingFallback = () => (
     </div>
 );
 
-// Enhanced TrackerTab - MOBILE OPTIMIZED WITH PREMIUM TYPOGRAPHY
+// Enhanced TrackerTab - MOBILE OPTIMIZED WITH PREMIUM TYPOGRAPHY + BACKUP STATUS
 const TrackerTab: React.FC = () => {
+    // 🔧 FIXED: Remove showToast from destructuring if it doesn't exist in your store
     const { applications, bulkAddApplications } = useAppStore();
+
+    // 🔧 CREATE: Local showToast function
+    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+        console.log(`Toast [${type.toUpperCase()}]: ${message}`);
+
+        // 🔧 Optional: Add browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`ApplyTrak - ${type.charAt(0).toUpperCase() + type.slice(1)}`, {
+                body: message,
+                icon: '/favicon.ico'
+            });
+        }
+    };
 
     const handleImportApplications = async (importedApplications: Application[]) => {
         try {
@@ -115,8 +130,29 @@ const TrackerTab: React.FC = () => {
             });
 
             await bulkAddApplications(applicationsToAdd);
+            showToast(`Successfully imported ${applicationsToAdd.length} applications`, 'success');
         } catch (error) {
             console.error('Import failed:', error);
+            showToast('Import failed: ' + (error as Error).message, 'error');
+        }
+    };
+
+    const handleRestoreFromBackup = (restoredApplications: Application[]) => {
+        try {
+            if (!Array.isArray(restoredApplications) || restoredApplications.length === 0) {
+                throw new Error('No valid applications found in backup');
+            }
+
+            const applicationsToAdd = restoredApplications.map(app => {
+                const { id, createdAt, updatedAt, ...appData } = app;
+                return appData;
+            });
+
+            bulkAddApplications(applicationsToAdd);
+            showToast(`Successfully restored ${applicationsToAdd.length} applications from backup`, 'success');
+        } catch (error) {
+            console.error('Restore failed:', error);
+            showToast('Restore failed: ' + (error as Error).message, 'error');
         }
     };
 
@@ -201,6 +237,17 @@ const TrackerTab: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Backup Status Component - NEW SECTION */}
+            <React.Suspense fallback={
+                <div className="bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/20 dark:to-green-900/20 h-32 rounded-2xl animate-pulse shadow-lg" />
+            }>
+                <BackupStatus
+                    applications={applications}
+                    onRestore={handleRestoreFromBackup}
+                    onShowToast={showToast}
+                />
+            </React.Suspense>
 
             {/* Recovery Alert */}
             <React.Suspense fallback={null}>
@@ -333,7 +380,7 @@ const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
     </div>
 );
 
-// Main App Component - ENHANCED WITH PREMIUM FEATURES
+// Main App Component - ENHANCED WITH PREMIUM FEATURES + IMPROVED BACKUP SYSTEM
 const App: React.FC = () => {
     const {
         ui,
@@ -400,21 +447,29 @@ const App: React.FC = () => {
 
                 mediaQuery.addEventListener('change', handleSystemThemeChange);
 
-                // Auto-backup setup with enhanced error handling
+                // Auto-backup setup with FIXED quota-safe system
                 const getApplicationsData = async (): Promise<Application[]> => {
-                    return useAppStore.getState().applications;
+                    const currentState = useAppStore.getState();
+                    return currentState.applications || [];
                 };
 
+                // Setup the NEW quota-safe backup system
                 const cleanup = setupAutoBackup(getApplicationsData);
+
+                console.log('✅ Quota-safe backup system initialized successfully');
 
                 return () => {
                     if (typeof cleanup === 'function') {
                         cleanup();
+                        console.log('🔄 Backup system cleanup completed');
                     }
                     mediaQuery.removeEventListener('change', handleSystemThemeChange);
                 };
             } catch (error) {
-                console.error('App initialization failed:', error);
+                console.error('❌ App initialization failed:', error);
+                if (error instanceof Error && error.message.includes('quota')) {
+                    console.warn('⚠️ Storage quota issue detected - backup system will use minimal mode');
+                }
                 return undefined;
             }
         };
@@ -427,6 +482,8 @@ const App: React.FC = () => {
                     if (typeof cleanup === 'function') {
                         cleanup();
                     }
+                }).catch(error => {
+                    console.warn('Cleanup error (non-critical):', error);
                 });
             }
         };

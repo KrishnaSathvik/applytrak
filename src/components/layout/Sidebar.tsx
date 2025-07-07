@@ -1,10 +1,10 @@
-// src/components/layout/Sidebar.tsx - ENHANCED TYPOGRAPHY VERSION
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Briefcase, Target, TrendingUp, ChevronRight, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 const Sidebar: React.FC = () => {
-    const { ui, setSelectedTab, progress, toggleSidebar } = useAppStore();
+    // 🔧 FIXED: Use goalProgress instead of progress
+    const { ui, setSelectedTab, goalProgress, toggleSidebar } = useAppStore();
     const [isDesktop, setIsDesktop] = useState(false);
 
     // Handle responsive behavior
@@ -194,56 +194,56 @@ const Sidebar: React.FC = () => {
                                 </div>
 
                                 <div className="space-y-3">
-                                    {/* Total Progress */}
+                                    {/* Total Progress - 🔧 FIXED: Use goalProgress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
                                             <span className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
                                                 Total Goal
                                             </span>
                                             <span className="font-display font-extrabold text-lg text-gradient-blue">
-                                                {progress.totalProgress}%
+                                                {goalProgress.totalProgress}%
                                             </span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                             <div
                                                 className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500"
-                                                style={{ width: `${Math.min(progress.totalProgress, 100)}%` }}
+                                                style={{ width: `${Math.min(goalProgress.totalProgress, 100)}%` }}
                                             />
                                         </div>
                                         <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1 tracking-normal">
-                                            <span className="font-bold text-gradient-purple">{progress.totalApplications}</span> / <span className="font-bold text-gradient-blue">{useAppStore.getState().goals.totalGoal}</span> applications
+                                            <span className="font-bold text-gradient-purple">{goalProgress.totalApplications}</span> / <span className="font-bold text-gradient-blue">{useAppStore.getState().goals.totalGoal}</span> applications
                                         </div>
                                     </div>
 
-                                    {/* Weekly Progress */}
+                                    {/* Weekly Progress - 🔧 FIXED: Use goalProgress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
                                             <span className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
                                                 Weekly Goal
                                             </span>
                                             <span className="font-extrabold text-gradient-purple">
-                                                {progress.weeklyProgress}%
+                                                {goalProgress.weeklyProgress}%
                                             </span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                             <div
                                                 className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
-                                                style={{ width: `${Math.min(progress.weeklyProgress, 100)}%` }}
+                                                style={{ width: `${Math.min(goalProgress.weeklyProgress, 100)}%` }}
                                             />
                                         </div>
                                         <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1">
-                                            <span className="font-bold text-gradient-blue">{progress.weeklyApplications}</span> / <span className="font-bold text-gradient-purple">{useAppStore.getState().goals.weeklyGoal}</span> this week
+                                            <span className="font-bold text-gradient-blue">{goalProgress.weeklyApplications}</span> / <span className="font-bold text-gradient-purple">{useAppStore.getState().goals.weeklyGoal}</span> this week
                                         </div>
                                     </div>
 
-                                    {/* Weekly Streak */}
-                                    {progress.weeklyStreak > 0 && (
+                                    {/* Weekly Streak - 🔧 FIXED: Use goalProgress */}
+                                    {goalProgress.weeklyStreak > 0 && (
                                         <div className="flex items-center justify-center space-x-2 pt-2 border-t border-blue-200/30 dark:border-blue-700/30">
                                             <div className="flex items-center justify-center w-3 h-3">
                                                 <TrendingUp className="h-3 w-3 text-orange-500" strokeWidth={2} />
                                             </div>
                                             <span className="text-xs font-bold text-gradient-static tracking-wide">
-                                                {progress.weeklyStreak} week streak! 🔥
+                                                {goalProgress.weeklyStreak} week streak! 🔥
                                             </span>
                                         </div>
                                     )}
@@ -258,13 +258,13 @@ const Sidebar: React.FC = () => {
                             <div className="flex flex-col items-center space-y-2">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                                     <span className="font-display text-sm font-extrabold text-white">
-                                        {progress.totalApplications}
+                                        {goalProgress.totalApplications}
                                     </span>
                                 </div>
                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                                     <div
                                         className="bg-gradient-to-r from-green-500 to-emerald-600 h-1 rounded-full transition-all duration-500"
-                                        style={{ width: `${Math.min(progress.totalProgress, 100)}%` }}
+                                        style={{ width: `${Math.min(goalProgress.totalProgress, 100)}%` }}
                                     />
                                 </div>
                             </div>

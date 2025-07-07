@@ -1,7 +1,9 @@
-// src/store/useAppStore.ts - OPTIMIZED VERSION with performance fixes
+// src/store/useAppStore.ts - PERFORMANCE OPTIMIZED VERSION
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { startTransition } from 'react';
+import { debounce } from 'lodash';
 import { AnalyticsData, Application, ApplicationStatus, GoalProgress, SourceSuccessRate, Goals } from '../types';
 import { databaseService } from '../services/databaseService';
 
@@ -58,7 +60,6 @@ export interface AppState {
 
     // Goal Progress
     goalProgress: GoalProgress;
-    progress: GoalProgress; // Alias for compatibility
 
     // Analytics
     analytics: AnalyticsData;
@@ -110,23 +111,36 @@ export interface AppState {
     calculateAnalytics: () => void;
 }
 
-// Utility functions
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+// 🚀 OPTIMIZED: Better cache system
+const createOptimizedCache = () => {
+    let cache = new Map();
 
-// OPTIMIZATION 1: Memoize expensive calculations
-let calculationCache = {
-    goalProgressKey: '',
-    goalProgressResult: null as GoalProgress | null,
-    analyticsKey: '',
-    analyticsResult: null as AnalyticsData | null
+    return {
+        get: (key: string) => cache.get(key),
+        set: (key: string, value: any) => {
+            if (cache.size > 10) {
+                const firstKey = cache.keys().next().value;
+                cache.delete(firstKey);
+            }
+            cache.set(key, value);
+        },
+        clear: () => cache.clear(),
+        invalidatePattern: (pattern: string) => {
+            Array.from(cache.keys())
+                .filter(key => key.includes(pattern))
+                .forEach(key => cache.delete(key));
+        }
+    };
 };
 
+const optimizedCache = createOptimizedCache();
+
+// 🚀 OPTIMIZED: Memoized expensive calculations
 const calculateGoalProgress = (applications: Application[], goals: Goals): GoalProgress => {
-    // OPTIMIZATION: Cache goal progress calculation
-    const cacheKey = `${applications.length}-${goals.totalGoal}-${goals.weeklyGoal}-${goals.monthlyGoal}`;
-    if (calculationCache.goalProgressKey === cacheKey && calculationCache.goalProgressResult) {
-        return calculationCache.goalProgressResult;
-    }
+    const cacheKey = `goal-${applications.length}-${goals.totalGoal}-${goals.weeklyGoal}-${goals.monthlyGoal}-${applications.map(a => a.dateApplied).join(',')}`;
+
+    const cached = optimizedCache.get(cacheKey);
+    if (cached) return cached;
 
     const now = new Date();
     const totalApplications = applications.length;
@@ -185,19 +199,15 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
         monthlyApplications
     };
 
-    // Cache the result
-    calculationCache.goalProgressKey = cacheKey;
-    calculationCache.goalProgressResult = result;
-
+    optimizedCache.set(cacheKey, result);
     return result;
 };
 
 const calculateAnalytics = (applications: Application[]): AnalyticsData => {
-    // OPTIMIZATION: Cache analytics calculation
-    const cacheKey = `analytics-${applications.length}-${applications.map(a => `${a.id}-${a.status}`).join(',')}`;
-    if (calculationCache.analyticsKey === cacheKey && calculationCache.analyticsResult) {
-        return calculationCache.analyticsResult;
-    }
+    const cacheKey = `analytics-${applications.length}-${applications.map(a => `${a.id}-${a.status}`).slice(0, 50).join(',')}`;
+
+    const cached = optimizedCache.get(cacheKey);
+    if (cached) return cached;
 
     const statusDistribution = applications.reduce((acc, app) => {
         acc[app.status] = (acc[app.status] || 0) + 1;
@@ -282,10 +292,7 @@ const calculateAnalytics = (applications: Application[]): AnalyticsData => {
         monthlyTrend: monthlyTrend.sort((a, b) => a.month.localeCompare(b.month))
     };
 
-    // Cache the result
-    calculationCache.analyticsKey = cacheKey;
-    calculationCache.analyticsResult = result;
-
+    optimizedCache.set(cacheKey, result);
     return result;
 };
 
@@ -317,554 +324,652 @@ const checkMilestones = (applicationCount: number, showToast: (toast: Omit<Toast
     }
 };
 
-// OPTIMIZATION 2: Use subscribeWithSelector for better performance
+// 🚀 OPTIMIZED: Debounced search function
+const createDebouncedSearch = (setState: any) => {
+    return debounce((query: string, applications: Application[]) => {
+        let filtered = applications;
+
+        if (query.trim()) {
+            const searchTerm = query.toLowerCase();
+
+            // 🚀 OPTIMIZED: More efficient search
+            filtered = applications.filter(app => {
+                const searchFields = [
+                    app.company,
+                    app.position,
+                    app.location,
+                    app.jobSource,
+                    app.notes
+                ].filter(Boolean).join(' ').toLowerCase();
+
+                return searchFields.includes(searchTerm);
+            });
+        }
+
+        setState((state: AppState) => ({
+            filteredApplications: filtered,
+            ui: { ...state.ui, currentPage: 1 }
+        }));
+    }, 300);
+};
+
+// Utility function
+const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+
+// 🚀 OPTIMIZED: Main store with performance fixes
 export const useAppStore = create<AppState>()(
     subscribeWithSelector(
         persist(
-            (set, get) => ({
-                // Initial state
-                applications: [],
-                filteredApplications: [],
-                goals: {totalGoal: 100, weeklyGoal: 5, monthlyGoal: 20},
-                toasts: [],
+            (set, get) => {
+                // Create debounced search function with access to set
+                const debouncedSearch = createDebouncedSearch(set);
 
-                ui: {
-                    theme: 'light',
-                    sidebarOpen: false,
-                    currentPage: 1,
-                    itemsPerPage: 10,
-                    searchQuery: '',
-                    selectedApplicationIds: [],
-                    isLoading: false,
-                    error: null,
-                    selectedTab: 'tracker'
-                },
+                return {
+                    // Initial state
+                    applications: [],
+                    filteredApplications: [],
+                    goals: {totalGoal: 100, weeklyGoal: 5, monthlyGoal: 20},
+                    toasts: [],
 
-                modals: {
-                    editApplication: {isOpen: false},
-                    goalSetting: {isOpen: false},
-                    milestone: {isOpen: false},
-                    recovery: {isOpen: false}
-                },
+                    ui: {
+                        theme: 'light',
+                        sidebarOpen: false,
+                        currentPage: 1,
+                        itemsPerPage: 10,
+                        searchQuery: '',
+                        selectedApplicationIds: [],
+                        isLoading: false,
+                        error: null,
+                        selectedTab: 'tracker'
+                    },
 
-                goalProgress: {
-                    totalGoal: 100,
-                    weeklyGoal: 5,
-                    monthlyGoal: 20,
-                    totalProgress: 0,
-                    weeklyProgress: 0,
-                    monthlyProgress: 0,
-                    weeklyStreak: 0,
-                    totalApplications: 0,
-                    weeklyApplications: 0,
-                    monthlyApplications: 0
-                },
+                    modals: {
+                        editApplication: {isOpen: false},
+                        goalSetting: {isOpen: false},
+                        milestone: {isOpen: false},
+                        recovery: {isOpen: false}
+                    },
 
-                get progress() {
-                    return get().goalProgress;
-                },
+                    goalProgress: {
+                        totalGoal: 100,
+                        weeklyGoal: 5,
+                        monthlyGoal: 20,
+                        totalProgress: 0,
+                        weeklyProgress: 0,
+                        monthlyProgress: 0,
+                        weeklyStreak: 0,
+                        totalApplications: 0,
+                        weeklyApplications: 0,
+                        monthlyApplications: 0
+                    },
 
-                analytics: {
-                    statusDistribution: {Applied: 0, Interview: 0, Offer: 0, Rejected: 0},
-                    typeDistribution: {Onsite: 0, Remote: 0, Hybrid: 0},
-                    sourceDistribution: {},
-                    sourceSuccessRates: [],
-                    successRate: 0,
-                    averageResponseTime: 0,
-                    totalApplications: 0,
-                    monthlyTrend: []
-                },
+                    analytics: {
+                        statusDistribution: {Applied: 0, Interview: 0, Offer: 0, Rejected: 0},
+                        typeDistribution: {Onsite: 0, Remote: 0, Hybrid: 0},
+                        sourceDistribution: {},
+                        sourceSuccessRates: [],
+                        successRate: 0,
+                        averageResponseTime: 0,
+                        totalApplications: 0,
+                        monthlyTrend: []
+                    },
 
-                // OPTIMIZATION 3: Batch state updates to reduce re-renders
-                loadApplications: async () => {
-                    set(state => ({ ui: { ...state.ui, isLoading: true, error: null } }));
-                    try {
-                        const applications = await databaseService.getApplications();
+                    // 🚀 OPTIMIZED: Batched state updates
+                    loadApplications: async () => {
+                        set(state => ({ ui: { ...state.ui, isLoading: true, error: null } }));
 
-                        // OPTIMIZATION: Single state update instead of multiple
-                        const newState = {
-                            applications,
-                            filteredApplications: applications,
-                            ui: { ...get().ui, isLoading: false }
-                        };
+                        try {
+                            const applications = await databaseService.getApplications();
 
-                        set(newState);
+                            // 🚀 SINGLE state update
+                            set({
+                                applications,
+                                filteredApplications: applications,
+                                ui: { ...get().ui, isLoading: false }
+                            });
 
-                        // OPTIMIZATION: Defer expensive calculations
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                        }, 0);
-                    } catch (error) {
-                        set(state => ({
-                            ui: {
-                                ...state.ui,
-                                isLoading: false,
-                                error: (error as Error).message
-                            }
-                        }));
-                    }
-                },
+                            // 🚀 DEFERRED: Expensive calculations
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                            });
+                        } catch (error) {
+                            set(state => ({
+                                ui: {
+                                    ...state.ui,
+                                    isLoading: false,
+                                    error: (error as Error).message
+                                }
+                            }));
+                        }
+                    },
 
-                addApplication: async (applicationData) => {
-                    try {
-                        const newApplication = await databaseService.addApplication(applicationData);
+                    // 🚀 OPTIMIZED: Single state update + startTransition
+                    addApplication: async (applicationData) => {
+                        try {
+                            const newApplication = await databaseService.addApplication(applicationData);
 
-                        // OPTIMIZATION: Batch all updates in single set call
-                        set(state => {
-                            const updatedApplications = [newApplication, ...state.applications];
-                            return {
-                                applications: updatedApplications,
-                                filteredApplications: updatedApplications
-                            };
-                        });
+                            // 🚀 IMMEDIATE: Essential state update only
+                            set(state => {
+                                const updatedApplications = [newApplication, ...state.applications];
 
-                        // OPTIMIZATION: Defer expensive operations to next tick
-                        setTimeout(() => {
-                            const state = get();
-                            state.calculateAnalytics();
-                            state.calculateProgress();
-                            state.checkMilestones();
+                                // Apply current search filter if needed
+                                const filteredApplications = state.ui.searchQuery
+                                    ? updatedApplications.filter(app => {
+                                        const searchFields = [
+                                            app.company,
+                                            app.position,
+                                            app.location,
+                                            app.jobSource
+                                        ].filter(Boolean).join(' ').toLowerCase();
+                                        return searchFields.includes(state.ui.searchQuery.toLowerCase());
+                                    })
+                                    : updatedApplications;
 
-                            // Only show ONE toast for single additions
-                            state.showToast({
+                                return {
+                                    applications: updatedApplications,
+                                    filteredApplications
+                                };
+                            });
+
+                            // 🚀 Show toast immediately
+                            get().showToast({
                                 type: 'success',
                                 message: 'Application added successfully!',
                                 duration: 3000
                             });
-                        }, 0);
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to add application: ' + (error as Error).message
-                        });
-                    }
-                },
 
-                updateApplication: async (id, updates) => {
-                    try {
-                        await databaseService.updateApplication(id, updates);
-
-                        // OPTIMIZATION: Batch state updates
-                        set(state => {
-                            const applications = state.applications.map(app =>
-                                app.id === id ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
-                            );
-                            return {
-                                applications,
-                                filteredApplications: applications
-                            };
-                        });
-
-                        // Defer expensive calculations
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                        }, 0);
-
-                        get().showToast({
-                            type: 'success',
-                            message: 'Application updated successfully!'
-                        });
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to update application: ' + (error as Error).message
-                        });
-                    }
-                },
-
-                deleteApplication: async (id) => {
-                    try {
-                        await databaseService.deleteApplication(id);
-
-                        // OPTIMIZATION: Batch state updates
-                        set(state => {
-                            const applications = state.applications.filter(app => app.id !== id);
-                            return {
-                                applications,
-                                filteredApplications: applications
-                            };
-                        });
-
-                        // Defer expensive calculations
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                        }, 0);
-
-                        get().showToast({
-                            type: 'success',
-                            message: 'Application deleted successfully!'
-                        });
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to delete application: ' + (error as Error).message
-                        });
-                    }
-                },
-
-                // OPTIMIZATION 4: Improved bulk operations
-                deleteApplications: async (ids) => {
-                    try {
-                        await databaseService.deleteApplications(ids);
-
-                        set(state => {
-                            const applications = state.applications.filter(app => !ids.includes(app.id));
-                            return {
-                                applications,
-                                filteredApplications: applications,
-                                ui: { ...state.ui, selectedApplicationIds: [] }
-                            };
-                        });
-
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                        }, 0);
-
-                        get().showToast({
-                            type: 'success',
-                            message: `${ids.length} applications deleted successfully!`
-                        });
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to delete applications: ' + (error as Error).message
-                        });
-                    }
-                },
-
-                updateApplicationStatus: async (ids, status) => {
-                    try {
-                        const updates = { status };
-                        await databaseService.bulkUpdateApplications(ids, updates);
-
-                        set(state => {
-                            const applications = state.applications.map(app =>
-                                ids.includes(app.id) ? {...app, status, updatedAt: new Date().toISOString()} : app
-                            );
-                            return {
-                                applications,
-                                filteredApplications: applications,
-                                ui: { ...state.ui, selectedApplicationIds: [] }
-                            };
-                        });
-
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                        }, 0);
-
-                        get().showToast({
-                            type: 'success',
-                            message: `${ids.length} applications updated to ${status}!`
-                        });
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to update application status: ' + (error as Error).message
-                        });
-                    }
-                },
-
-                bulkDeleteApplications: async (ids) => {
-                    return get().deleteApplications(ids);
-                },
-
-                bulkUpdateApplications: async (ids, updates) => {
-                    try {
-                        await databaseService.bulkUpdateApplications(ids, updates);
-
-                        set(state => {
-                            const applications = state.applications.map(app =>
-                                ids.includes(app.id) ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
-                            );
-                            return {
-                                applications,
-                                filteredApplications: applications,
-                                ui: { ...state.ui, selectedApplicationIds: [] }
-                            };
-                        });
-
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                        }, 0);
-
-                        get().showToast({
-                            type: 'success',
-                            message: `${ids.length} applications updated successfully!`
-                        });
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to update applications: ' + (error as Error).message
-                        });
-                    }
-                },
-
-                bulkAddApplications: async (applications) => {
-                    try {
-                        let successCount = 0;
-                        let errorCount = 0;
-
-                        for (const appData of applications) {
-                            try {
-                                const newApplication = await databaseService.addApplication(appData);
-
-                                // OPTIMIZATION: Accumulate changes and update once
-                                set(state => ({
-                                    applications: [newApplication, ...state.applications],
-                                    filteredApplications: [newApplication, ...state.filteredApplications]
-                                }));
-
-                                successCount++;
-                            } catch (error) {
-                                errorCount++;
-                                console.error('Failed to add application:', error);
-                            }
-                        }
-
-                        // Single expensive calculation after all adds
-                        setTimeout(() => {
-                            get().calculateAnalytics();
-                            get().calculateProgress();
-                            get().checkMilestones();
-                        }, 0);
-
-                        if (successCount > 0) {
-                            get().showToast({
-                                type: 'success',
-                                message: `Successfully imported ${successCount} applications!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
-                                duration: 5000
+                            // 🚀 DEFERRED: Expensive calculations in transition
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                                get().checkMilestones();
                             });
-                        } else {
+                        } catch (error) {
                             get().showToast({
                                 type: 'error',
-                                message: 'Failed to import applications. Please check the file format.'
+                                message: 'Failed to add application: ' + (error as Error).message
                             });
                         }
+                    },
 
-                        return { successCount, errorCount };
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Import failed: ' + (error as Error).message
+                    // 🚀 OPTIMIZED: Batched updates
+                    updateApplication: async (id, updates) => {
+                        try {
+                            await databaseService.updateApplication(id, updates);
+
+                            // 🚀 SINGLE batched state update
+                            set(state => {
+                                const applications = state.applications.map(app =>
+                                    app.id === id ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
+                                );
+
+                                // Apply search filter if needed
+                                const filteredApplications = state.ui.searchQuery
+                                    ? applications.filter(app => {
+                                        const searchFields = [
+                                            app.company,
+                                            app.position,
+                                            app.location,
+                                            app.jobSource
+                                        ].filter(Boolean).join(' ').toLowerCase();
+                                        return searchFields.includes(state.ui.searchQuery.toLowerCase());
+                                    })
+                                    : applications;
+
+                                return {
+                                    applications,
+                                    filteredApplications
+                                };
+                            });
+
+                            get().showToast({
+                                type: 'success',
+                                message: 'Application updated successfully!'
+                            });
+
+                            // 🚀 DEFERRED: Expensive calculations
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                            });
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to update application: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    // 🚀 OPTIMIZED: Batched deletion
+                    deleteApplication: async (id) => {
+                        try {
+                            await databaseService.deleteApplication(id);
+
+                            // 🚀 SINGLE state update
+                            set(state => {
+                                const applications = state.applications.filter(app => app.id !== id);
+                                const filteredApplications = state.filteredApplications.filter(app => app.id !== id);
+
+                                return {
+                                    applications,
+                                    filteredApplications,
+                                    ui: {
+                                        ...state.ui,
+                                        selectedApplicationIds: state.ui.selectedApplicationIds.filter(selectedId => selectedId !== id)
+                                    }
+                                };
+                            });
+
+                            get().showToast({
+                                type: 'success',
+                                message: 'Application deleted successfully!'
+                            });
+
+                            // 🚀 DEFERRED: Expensive calculations
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                            });
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to delete application: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    // Bulk operations - optimized similarly
+                    deleteApplications: async (ids) => {
+                        try {
+                            await databaseService.deleteApplications(ids);
+
+                            set(state => {
+                                const applications = state.applications.filter(app => !ids.includes(app.id));
+                                const filteredApplications = state.filteredApplications.filter(app => !ids.includes(app.id));
+
+                                return {
+                                    applications,
+                                    filteredApplications,
+                                    ui: { ...state.ui, selectedApplicationIds: [] }
+                                };
+                            });
+
+                            get().showToast({
+                                type: 'success',
+                                message: `${ids.length} applications deleted successfully!`
+                            });
+
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                            });
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to delete applications: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    updateApplicationStatus: async (ids, status) => {
+                        try {
+                            const updates = { status };
+                            await databaseService.bulkUpdateApplications(ids, updates);
+
+                            set(state => {
+                                const applications = state.applications.map(app =>
+                                    ids.includes(app.id) ? {...app, status, updatedAt: new Date().toISOString()} : app
+                                );
+
+                                // Apply search filter
+                                const filteredApplications = state.ui.searchQuery
+                                    ? applications.filter(app => {
+                                        const searchFields = [
+                                            app.company,
+                                            app.position,
+                                            app.location,
+                                            app.jobSource
+                                        ].filter(Boolean).join(' ').toLowerCase();
+                                        return searchFields.includes(state.ui.searchQuery.toLowerCase());
+                                    })
+                                    : applications;
+
+                                return {
+                                    applications,
+                                    filteredApplications,
+                                    ui: { ...state.ui, selectedApplicationIds: [] }
+                                };
+                            });
+
+                            get().showToast({
+                                type: 'success',
+                                message: `${ids.length} applications updated to ${status}!`
+                            });
+
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                            });
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to update application status: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    bulkDeleteApplications: async (ids) => {
+                        return get().deleteApplications(ids);
+                    },
+
+                    bulkUpdateApplications: async (ids, updates) => {
+                        try {
+                            await databaseService.bulkUpdateApplications(ids, updates);
+
+                            set(state => {
+                                const applications = state.applications.map(app =>
+                                    ids.includes(app.id) ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
+                                );
+
+                                const filteredApplications = state.ui.searchQuery
+                                    ? applications.filter(app => {
+                                        const searchFields = [
+                                            app.company,
+                                            app.position,
+                                            app.location,
+                                            app.jobSource
+                                        ].filter(Boolean).join(' ').toLowerCase();
+                                        return searchFields.includes(state.ui.searchQuery.toLowerCase());
+                                    })
+                                    : applications;
+
+                                return {
+                                    applications,
+                                    filteredApplications,
+                                    ui: { ...state.ui, selectedApplicationIds: [] }
+                                };
+                            });
+
+                            get().showToast({
+                                type: 'success',
+                                message: `${ids.length} applications updated successfully!`
+                            });
+
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                            });
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to update applications: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    bulkAddApplications: async (applications) => {
+                        try {
+                            let successCount = 0;
+                            let errorCount = 0;
+                            const addedApplications: Application[] = [];
+
+                            for (const appData of applications) {
+                                try {
+                                    const newApplication = await databaseService.addApplication(appData);
+                                    addedApplications.push(newApplication);
+                                    successCount++;
+                                } catch (error) {
+                                    errorCount++;
+                                    console.error('Failed to add application:', error);
+                                }
+                            }
+
+                            // 🚀 SINGLE batch update after all additions
+                            if (addedApplications.length > 0) {
+                                set(state => ({
+                                    applications: [...addedApplications, ...state.applications],
+                                    filteredApplications: [...addedApplications, ...state.filteredApplications]
+                                }));
+                            }
+
+                            if (successCount > 0) {
+                                get().showToast({
+                                    type: 'success',
+                                    message: `Successfully imported ${successCount} applications!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+                                    duration: 5000
+                                });
+                            } else {
+                                get().showToast({
+                                    type: 'error',
+                                    message: 'Failed to import applications. Please check the file format.'
+                                });
+                            }
+
+                            // 🚀 Single expensive calculation after all adds
+                            startTransition(() => {
+                                get().calculateAnalytics();
+                                get().calculateProgress();
+                                get().checkMilestones();
+                            });
+
+                            return { successCount, errorCount };
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Import failed: ' + (error as Error).message
+                            });
+                            return { successCount: 0, errorCount: applications.length };
+                        }
+                    },
+
+                    // 🚀 OPTIMIZED: Debounced search
+                    searchApplications: (query) => {
+                        // 🚀 Update UI immediately for responsiveness
+                        set(state => ({
+                            ui: { ...state.ui, searchQuery: query }
+                        }));
+
+                        // 🚀 Debounce the expensive filtering
+                        const { applications } = get();
+                        debouncedSearch(query, applications);
+                    },
+
+                    handleImport: async (importedApplications) => {
+                        const applicationsToAdd = importedApplications.map(app => {
+                            const { id, createdAt, updatedAt, ...appData } = app;
+                            return appData;
                         });
-                        return { successCount: 0, errorCount: applications.length };
-                    }
-                },
 
-                // OPTIMIZATION 5: Debounced search
-                searchApplications: (query) => {
-                    const {applications} = get();
-                    let filtered = applications;
+                        return await get().bulkAddApplications(applicationsToAdd);
+                    },
 
-                    if (query.trim()) {
-                        const searchTerm = query.toLowerCase();
-                        filtered = applications.filter(app =>
-                            app.company?.toLowerCase().includes(searchTerm) ||
-                            app.position?.toLowerCase().includes(searchTerm) ||
-                            app.location?.toLowerCase().includes(searchTerm) ||
-                            app.notes?.toLowerCase().includes(searchTerm) ||
-                            app.jobSource?.toLowerCase().includes(searchTerm)
+                    // Goals actions
+                    loadGoals: async () => {
+                        try {
+                            const goals = await databaseService.getGoals();
+                            set({goals});
+                            get().calculateProgress();
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to load goals: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    updateGoals: async (newGoals) => {
+                        try {
+                            await databaseService.updateGoals(newGoals);
+                            set({goals: newGoals});
+
+                            // Clear cache since goals changed
+                            optimizedCache.invalidatePattern('goal-');
+
+                            get().calculateProgress();
+
+                            get().showToast({
+                                type: 'success',
+                                message: 'Goals updated successfully!'
+                            });
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to update goals: ' + (error as Error).message
+                            });
+                        }
+                    },
+
+                    calculateProgress: () => {
+                        const { applications, goals } = get();
+                        const goalProgress = calculateGoalProgress(applications, goals);
+                        set({ goalProgress });
+                    },
+
+                    checkMilestones: () => {
+                        const {applications, showToast} = get();
+                        checkMilestones(applications.length, showToast);
+                    },
+
+                    // UI actions - minimal state updates
+                    setTheme: (theme) => {
+                        set(state => ({ ui: { ...state.ui, theme } }));
+                        document.documentElement.classList.toggle('dark', theme === 'dark');
+                    },
+
+                    toggleSidebar: () => {
+                        set(state => ({ ui: { ...state.ui, sidebarOpen: !state.ui.sidebarOpen } }));
+                    },
+
+                    setCurrentPage: (page) => {
+                        set(state => ({ ui: { ...state.ui, currentPage: page } }));
+                    },
+
+                    setSearchQuery: (query) => {
+                        get().searchApplications(query);
+                    },
+
+                    setSelectedApplicationIds: (ids) => {
+                        set(state => ({ ui: { ...state.ui, selectedApplicationIds: ids } }));
+                    },
+
+                    clearSelection: () => {
+                        set(state => ({ ui: { ...state.ui, selectedApplicationIds: [] } }));
+                    },
+
+                    setLoading: (loading) => {
+                        set(state => ({ ui: { ...state.ui, isLoading: loading } }));
+                    },
+
+                    setError: (error) => {
+                        set(state => ({ ui: { ...state.ui, error } }));
+                    },
+
+                    setSelectedTab: (tab) => {
+                        set(state => ({ ui: { ...state.ui, selectedTab: tab } }));
+                    },
+
+                    // Modal actions
+                    openEditModal: (application) => {
+                        set(state => ({
+                            modals: {
+                                ...state.modals,
+                                editApplication: {isOpen: true, application}
+                            }
+                        }));
+                    },
+
+                    closeEditModal: () => {
+                        set(state => ({
+                            modals: {
+                                ...state.modals,
+                                editApplication: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    openGoalModal: () => {
+                        set(state => ({
+                            modals: {
+                                ...state.modals,
+                                goalSetting: {isOpen: true}
+                            }
+                        }));
+                    },
+
+                    closeGoalModal: () => {
+                        set(state => ({
+                            modals: {
+                                ...state.modals,
+                                goalSetting: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    openMilestone: (message) => {
+                        set(state => ({
+                            modals: {
+                                ...state.modals,
+                                milestone: {isOpen: true, message}
+                            }
+                        }));
+                    },
+
+                    closeMilestone: () => {
+                        set(state => ({
+                            modals: {
+                                ...state.modals,
+                                milestone: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    // 🚀 OPTIMIZED: Better toast management
+                    showToast: (toast) => {
+                        const currentToasts = get().toasts;
+
+                        // 🚀 Prevent duplicate messages within 1 second
+                        const isDuplicate = currentToasts.some(t =>
+                            t.message === toast.message &&
+                            t.type === toast.type &&
+                            Date.now() - parseInt(t.id.split('-')[0], 36) < 1000
                         );
-                    }
 
-                    set(state => ({
-                        filteredApplications: filtered,
-                        ui: {...state.ui, searchQuery: query, currentPage: 1}
-                    }));
-                },
+                        if (isDuplicate) return;
 
-                handleImport: async (importedApplications) => {
-                    const applicationsToAdd = importedApplications.map(app => {
-                        const { id, createdAt, updatedAt, ...appData } = app;
-                        return appData;
-                    });
+                        const id = generateId();
+                        const newToast = { ...toast, id };
 
-                    return await get().bulkAddApplications(applicationsToAdd);
-                },
+                        // 🚀 Limit toasts and clean up old ones
+                        set(state => {
+                            const filteredToasts = state.toasts.filter(t => {
+                                const toastTime = parseInt(t.id.split('-')[0], 36);
+                                return Date.now() - toastTime < 30000; // Remove toasts older than 30s
+                            });
 
-                // Goals actions
-                loadGoals: async () => {
-                    try {
-                        const goals = await databaseService.getGoals();
-                        set({goals});
-                        get().calculateProgress();
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to load goals: ' + (error as Error).message
+                            return {
+                                toasts: [newToast, ...filteredToasts.slice(0, 2)]
+                            };
                         });
+
+                        const duration = toast.duration || 5000;
+                        setTimeout(() => {
+                            get().removeToast(id);
+                        }, duration);
+                    },
+
+                    removeToast: (id) => {
+                        set(state => ({ toasts: state.toasts.filter(toast => toast.id !== id) }));
+                    },
+
+                    // Analytics - with caching
+                    calculateAnalytics: () => {
+                        const {applications} = get();
+                        const analytics = calculateAnalytics(applications);
+                        set({analytics});
                     }
-                },
-
-                updateGoals: async (newGoals) => {
-                    try {
-                        await databaseService.updateGoals(newGoals);
-                        set({goals: newGoals});
-                        get().calculateProgress();
-
-                        get().showToast({
-                            type: 'success',
-                            message: 'Goals updated successfully!'
-                        });
-                    } catch (error) {
-                        get().showToast({
-                            type: 'error',
-                            message: 'Failed to update goals: ' + (error as Error).message
-                        });
-                    }
-                },
-
-                calculateProgress: () => {
-                    const { applications, goals } = get();
-                    const goalProgress = calculateGoalProgress(applications, goals);
-
-                    set({
-                        goalProgress,
-                        progress: goalProgress // Compatibility alias
-                    });
-                },
-
-                checkMilestones: () => {
-                    const {applications, showToast} = get();
-                    checkMilestones(applications.length, showToast);
-                },
-
-                // UI actions - OPTIMIZATION: Minimal state updates
-                setTheme: (theme) => {
-                    set(state => ({ ui: { ...state.ui, theme } }));
-                    document.documentElement.classList.toggle('dark', theme === 'dark');
-                },
-
-                toggleSidebar: () => {
-                    set(state => ({ ui: { ...state.ui, sidebarOpen: !state.ui.sidebarOpen } }));
-                },
-
-                setCurrentPage: (page) => {
-                    set(state => ({ ui: { ...state.ui, currentPage: page } }));
-                },
-
-                setSearchQuery: (query) => {
-                    set(state => ({ ui: { ...state.ui, searchQuery: query, currentPage: 1 } }));
-                    get().searchApplications(query);
-                },
-
-                setSelectedApplicationIds: (ids) => {
-                    set(state => ({ ui: { ...state.ui, selectedApplicationIds: ids } }));
-                },
-
-                clearSelection: () => {
-                    set(state => ({ ui: { ...state.ui, selectedApplicationIds: [] } }));
-                },
-
-                setLoading: (loading) => {
-                    set(state => ({ ui: { ...state.ui, isLoading: loading } }));
-                },
-
-                setError: (error) => {
-                    set(state => ({ ui: { ...state.ui, error } }));
-                },
-
-                setSelectedTab: (tab) => {
-                    set(state => ({ ui: { ...state.ui, selectedTab: tab } }));
-                },
-
-                // Modal actions
-                openEditModal: (application) => {
-                    set(state => ({
-                        modals: {
-                            ...state.modals,
-                            editApplication: {isOpen: true, application}
-                        }
-                    }));
-                },
-
-                closeEditModal: () => {
-                    set(state => ({
-                        modals: {
-                            ...state.modals,
-                            editApplication: {isOpen: false}
-                        }
-                    }));
-                },
-
-                openGoalModal: () => {
-                    set(state => ({
-                        modals: {
-                            ...state.modals,
-                            goalSetting: {isOpen: true}
-                        }
-                    }));
-                },
-
-                closeGoalModal: () => {
-                    set(state => ({
-                        modals: {
-                            ...state.modals,
-                            goalSetting: {isOpen: false}
-                        }
-                    }));
-                },
-
-                openMilestone: (message) => {
-                    set(state => ({
-                        modals: {
-                            ...state.modals,
-                            milestone: {isOpen: true, message}
-                        }
-                    }));
-                },
-
-                closeMilestone: () => {
-                    set(state => ({
-                        modals: {
-                            ...state.modals,
-                            milestone: {isOpen: false}
-                        }
-                    }));
-                },
-
-                // OPTIMIZATION 6: Improved toast management
-                showToast: (toast) => {
-                    const currentToasts = get().toasts;
-
-                    // Prevent duplicate messages
-                    const isDuplicate = currentToasts.some(t =>
-                        t.message === toast.message && t.type === toast.type
-                    );
-
-                    if (isDuplicate) return;
-
-                    const id = generateId();
-                    const newToast = { ...toast, id };
-
-                    // Limit to 3 toasts maximum
-                    set(state => ({
-                        toasts: [newToast, ...state.toasts.slice(0, 2)]
-                    }));
-
-                    const duration = toast.duration || 5000;
-                    setTimeout(() => {
-                        get().removeToast(id);
-                    }, duration);
-                },
-
-                removeToast: (id) => {
-                    set(state => ({ toasts: state.toasts.filter(toast => toast.id !== id) }));
-                },
-
-                // Analytics - with caching
-                calculateAnalytics: () => {
-                    const {applications} = get();
-                    const analytics = calculateAnalytics(applications);
-                    set({analytics});
-                }
-            }),
+                };
+            },
             {
                 name: 'applytrak-store',
                 partialize: (state) => ({
