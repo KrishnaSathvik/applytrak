@@ -1,4 +1,4 @@
-// src/components/ui/ExportImportActions.tsx - ENHANCED VERSION
+// src/components/ui/ExportImportActions.tsx - ENHANCED WITH PREMIUM TYPOGRAPHY
 import React, { useRef, useState } from 'react';
 import {
     AlertCircle,
@@ -369,30 +369,30 @@ End of Report`;
                     variant="outline"
                     size="sm"
                     onClick={() => setShowExportModal(true)}
-                    className="btn btn-secondary btn-sm hover:shadow-md transition-all duration-200"
+                    className="btn btn-secondary btn-sm hover:shadow-md transition-all duration-200 font-bold tracking-wide"
                 >
                     <Download className="h-4 w-4 mr-2" />
-                    Export
+                    <span className="font-bold tracking-wide">Export</span>
                 </Button>
 
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowImportModal(true)}
-                    className="btn btn-secondary btn-sm hover:shadow-md transition-all duration-200"
+                    className="btn btn-secondary btn-sm hover:shadow-md transition-all duration-200 font-bold tracking-wide"
                 >
                     <Upload className="h-4 w-4 mr-2" />
-                    Import
+                    <span className="font-bold tracking-wide">Import</span>
                 </Button>
 
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={createBackup}
-                    className="btn btn-secondary btn-sm hover:shadow-md transition-all duration-200"
+                    className="btn btn-secondary btn-sm hover:shadow-md transition-all duration-200 font-bold tracking-wide"
                 >
                     <Save className="h-4 w-4 mr-2" />
-                    Backup
+                    <span className="font-bold tracking-wide">Backup</span>
                 </Button>
             </div>
 
@@ -407,27 +407,27 @@ End of Report`;
                     {/* Export Stats */}
                     <div className="grid grid-cols-3 gap-4">
                         <div className="glass-subtle rounded-lg p-3 text-center">
-                            <div className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                            <div className="text-xl font-extrabold text-gradient-static">
                                 {applications.length}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Total</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Total</div>
                         </div>
                         <div className="glass-subtle rounded-lg p-3 text-center">
-                            <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                            <div className="text-xl font-extrabold text-gradient-blue">
                                 {applications.filter(app => app.status === 'Offer').length}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Offers</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Offers</div>
                         </div>
                         <div className="glass-subtle rounded-lg p-3 text-center">
-                            <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                            <div className="text-xl font-extrabold text-gradient-purple">
                                 {applications.filter(app => app.status === 'Interview').length}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Interviews</div>
+                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Interviews</div>
                         </div>
                     </div>
 
                     <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 text-gradient-static tracking-wide">
                             Choose Export Format
                         </h3>
 
@@ -453,14 +453,14 @@ End of Report`;
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between">
-                                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 tracking-wide text-gradient-static">
                                                         {option.name}
                                                     </h4>
                                                     {isSelected && (
                                                         <CheckCircle className="h-5 w-5 text-green-500" />
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium leading-relaxed">
                                                     {option.description}
                                                 </p>
                                             </div>
@@ -476,23 +476,24 @@ End of Report`;
                             variant="outline"
                             onClick={() => setShowExportModal(false)}
                             disabled={isExporting}
+                            className="font-bold tracking-wide"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleExport}
                             disabled={isExporting || applications.length === 0}
-                            className="btn btn-primary btn-md"
+                            className="btn btn-primary btn-md font-bold tracking-wide"
                         >
                             {isExporting ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Exporting...
+                                    <span className="font-bold tracking-wide">Exporting...</span>
                                 </>
                             ) : (
                                 <>
                                     <Download className="h-4 w-4 mr-2" />
-                                    Export {exportFormat.toUpperCase()}
+                                    <span className="font-bold tracking-wide">Export {exportFormat.toUpperCase()}</span>
                                 </>
                             )}
                         </Button>
@@ -519,14 +520,14 @@ End of Report`;
                     {importStatus === 'idle' && (
                         <>
                             <div>
-                                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                                    Upload a JSON or CSV file containing your job applications.
+                                <p className="text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                                    Upload a <span className="font-bold text-gradient-blue">JSON</span> or <span className="font-bold text-gradient-purple">CSV</span> file containing your job applications.
                                 </p>
                                 <div className="glass-subtle rounded-lg p-4 space-y-2">
-                                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Supported formats:</h4>
-                                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                        <li>• <strong>JSON:</strong> Exported from this application or backup files</li>
-                                        <li>• <strong>CSV:</strong> With columns for Company, Position, Date Applied, etc.</li>
+                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-gradient-static tracking-wide">Supported formats:</h4>
+                                    <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 font-medium leading-relaxed">
+                                        <li>• <strong className="text-gradient-blue">JSON:</strong> Exported from this application or backup files</li>
+                                        <li>• <strong className="text-gradient-purple">CSV:</strong> With columns for Company, Position, Date Applied, etc.</li>
                                     </ul>
                                 </div>
                             </div>
@@ -545,10 +546,10 @@ End of Report`;
                             >
                                 <div className="text-center">
                                     <Upload className="h-12 w-12 mx-auto text-gray-400 group-hover:text-primary-500 transition-colors mb-4" />
-                                    <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100 text-gradient-static tracking-wide">
                                         Choose File to Import
                                     </p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium tracking-wider">
                                         JSON or CSV files accepted
                                     </p>
                                 </div>
@@ -559,8 +560,8 @@ End of Report`;
                     {importStatus === 'loading' && (
                         <div className="text-center py-12">
                             <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary-500 mb-4" />
-                            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Processing file...</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <p className="text-lg font-bold text-gray-900 dark:text-gray-100 text-gradient-static tracking-wide">Processing file...</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium tracking-wider">
                                 This may take a few moments
                             </p>
                         </div>
@@ -571,13 +572,13 @@ End of Report`;
                             <div className="flex items-start space-x-3">
                                 <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                                 <div>
-                                    <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
+                                    <h4 className="font-bold text-red-800 dark:text-red-200 mb-1 tracking-wide">
                                         Import Failed
                                     </h4>
-                                    <p className="text-red-600 dark:text-red-400">{importError}</p>
+                                    <p className="text-red-600 dark:text-red-400 font-medium leading-relaxed">{importError}</p>
                                     <button
                                         onClick={() => setImportStatus('idle')}
-                                        className="mt-3 text-sm text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100 underline"
+                                        className="mt-3 text-sm text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100 underline font-bold tracking-wide"
                                     >
                                         Try Again
                                     </button>
@@ -592,11 +593,11 @@ End of Report`;
                                 <div className="flex items-start space-x-3">
                                     <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
                                     <div>
-                                        <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">
+                                        <h4 className="font-bold text-green-800 dark:text-green-200 mb-1 tracking-wide">
                                             Import Preview
                                         </h4>
-                                        <p className="text-green-600 dark:text-green-400">
-                                            Found {importPreview.length} valid applications ready to import
+                                        <p className="text-green-600 dark:text-green-400 font-medium leading-relaxed">
+                                            Found <span className="font-extrabold text-gradient-blue">{importPreview.length}</span> valid applications ready to import
                                         </p>
                                     </div>
                                 </div>
@@ -606,20 +607,20 @@ End of Report`;
                                 <table className="w-full text-sm">
                                     <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
                                     <tr>
-                                        <th className="px-4 py-3 text-left font-medium">Company</th>
-                                        <th className="px-4 py-3 text-left font-medium">Position</th>
-                                        <th className="px-4 py-3 text-left font-medium">Date</th>
-                                        <th className="px-4 py-3 text-left font-medium">Status</th>
+                                        <th className="px-4 py-3 text-left font-bold tracking-wider uppercase">Company</th>
+                                        <th className="px-4 py-3 text-left font-bold tracking-wider uppercase">Position</th>
+                                        <th className="px-4 py-3 text-left font-bold tracking-wider uppercase">Date</th>
+                                        <th className="px-4 py-3 text-left font-bold tracking-wider uppercase">Status</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     {importPreview.map((app, index) => (
                                         <tr key={index} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                            <td className="px-4 py-3 font-medium">{app.company}</td>
-                                            <td className="px-4 py-3">{app.position}</td>
-                                            <td className="px-4 py-3">{formatDate(app.dateApplied)}</td>
+                                            <td className="px-4 py-3 font-bold text-gradient-static">{app.company}</td>
+                                            <td className="px-4 py-3 font-semibold tracking-tight">{app.position}</td>
+                                            <td className="px-4 py-3 font-medium tracking-wider">{formatDate(app.dateApplied)}</td>
                                             <td className="px-4 py-3">
-                                                    <span className={`status-badge status-${app.status.toLowerCase()}`}>
+                                                    <span className={`status-badge status-${app.status.toLowerCase()} font-bold tracking-wider uppercase`}>
                                                         {app.status}
                                                     </span>
                                             </td>
@@ -636,15 +637,16 @@ End of Report`;
                                         setImportStatus('idle');
                                         setImportPreview([]);
                                     }}
+                                    className="font-bold tracking-wide"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     onClick={confirmImport}
-                                    className="btn btn-primary btn-md"
+                                    className="btn btn-primary btn-md font-bold tracking-wide"
                                 >
                                     <Upload className="h-4 w-4 mr-2" />
-                                    Import {importPreview.length} Applications
+                                    <span className="font-bold tracking-wide">Import {importPreview.length} Applications</span>
                                 </Button>
                             </div>
                         </div>

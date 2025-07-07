@@ -1,4 +1,4 @@
-// src/components/ui/ExportImport.tsx - FIXED VERSION
+// src/components/ui/ExportImport.tsx - ENHANCED WITH PREMIUM TYPOGRAPHY
 import React, {useRef, useState} from 'react';
 import {AlertCircle, CheckCircle, Download, FileSpreadsheet, FileText, Save, Upload} from 'lucide-react';
 import {Button} from './Button';
@@ -229,30 +229,30 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowExportModal(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 font-bold tracking-wide"
             >
                 <Download className="h-4 w-4"/>
-                Export
+                <span className="font-bold tracking-wide">Export</span>
             </Button>
 
             <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 font-bold tracking-wide"
             >
                 <Upload className="h-4 w-4"/>
-                Import
+                <span className="font-bold tracking-wide">Import</span>
             </Button>
 
             <Button
                 variant="outline"
                 size="sm"
                 onClick={onBackup}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 font-bold tracking-wide"
             >
                 <Save className="h-4 w-4"/>
-                Backup
+                <span className="font-bold tracking-wide">Backup</span>
             </Button>
 
             {/* Export Modal */}
@@ -264,13 +264,13 @@ export const ExportImport: React.FC<ExportImportProps> = ({
             >
                 <div className="space-y-6">
                     <div>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                            Export {applications.length} applications in your preferred format.
+                        <p className="text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Export <span className="font-bold text-gradient-blue">{applications.length}</span> applications in your preferred format.
                         </p>
 
                         <div className="space-y-3">
                             <label
-                                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
                                 <input
                                     type="radio"
                                     name="exportFormat"
@@ -281,13 +281,13 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                                 />
                                 <FileText className="h-5 w-5 text-blue-500 mr-3"/>
                                 <div>
-                                    <div className="font-medium">JSON</div>
-                                    <div className="text-sm text-gray-500">Complete data with all fields</div>
+                                    <div className="font-bold tracking-wide text-gradient-static">JSON</div>
+                                    <div className="text-sm text-gray-500 font-medium tracking-tight">Complete data with all fields</div>
                                 </div>
                             </label>
 
                             <label
-                                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
                                 <input
                                     type="radio"
                                     name="exportFormat"
@@ -298,13 +298,13 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                                 />
                                 <FileSpreadsheet className="h-5 w-5 text-green-500 mr-3"/>
                                 <div>
-                                    <div className="font-medium">CSV</div>
-                                    <div className="text-sm text-gray-500">Spreadsheet compatible format</div>
+                                    <div className="font-bold tracking-wide text-gradient-static">CSV</div>
+                                    <div className="text-sm text-gray-500 font-medium tracking-tight">Spreadsheet compatible format</div>
                                 </div>
                             </label>
 
                             <label
-                                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+                                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
                                 <input
                                     type="radio"
                                     name="exportFormat"
@@ -315,8 +315,8 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                                 />
                                 <FileText className="h-5 w-5 text-red-500 mr-3"/>
                                 <div>
-                                    <div className="font-medium">Text/PDF</div>
-                                    <div className="text-sm text-gray-500">Human-readable format</div>
+                                    <div className="font-bold tracking-wide text-gradient-static">Text/PDF</div>
+                                    <div className="text-sm text-gray-500 font-medium tracking-tight">Human-readable format</div>
                                 </div>
                             </label>
                         </div>
@@ -327,24 +327,25 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                             variant="outline"
                             onClick={() => setShowExportModal(false)}
                             disabled={isExporting}
+                            className="font-bold tracking-wide"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleExport}
                             disabled={isExporting}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 font-bold tracking-wide"
                         >
                             {isExporting ? (
                                 <>
                                     <div
                                         className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Exporting...
+                                    <span className="font-bold tracking-wide">Exporting...</span>
                                 </>
                             ) : (
                                 <>
                                     <Download className="h-4 w-4"/>
-                                    Export {exportFormat.toUpperCase()}
+                                    <span className="font-bold tracking-wide">Export {exportFormat.toUpperCase()}</span>
                                 </>
                             )}
                         </Button>
@@ -361,17 +362,17 @@ export const ExportImport: React.FC<ExportImportProps> = ({
             >
                 <div className="space-y-6">
                     <div>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">
-                            Import applications from a JSON or CSV file. Supported formats:
+                        <p className="text-gray-600 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Import applications from a <span className="font-bold text-gradient-blue">JSON</span> or <span className="font-bold text-gradient-purple">CSV</span> file. Supported formats:
                         </p>
-                        <ul className="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1 mb-4">
-                            <li>JSON: Exported from this application</li>
-                            <li>CSV: With columns for Company, Position, Date Applied, etc.</li>
+                        <ul className="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1 mb-4 font-medium leading-relaxed">
+                            <li><span className="font-bold text-gradient-blue">JSON:</span> Exported from this application</li>
+                            <li><span className="font-bold text-gradient-purple">CSV:</span> With columns for Company, Position, Date Applied, etc.</li>
                         </ul>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 tracking-wide uppercase">
                             Select File
                         </label>
                         <input
@@ -381,7 +382,8 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                             onChange={handleFileSelect}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
                        bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                       font-medium tracking-tight"
                         />
                     </div>
 
@@ -389,7 +391,7 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                         <div
                             className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                             <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5"/>
-                            <div className="text-sm text-yellow-800 dark:text-yellow-200">
+                            <div className="text-sm text-yellow-800 dark:text-yellow-200 font-medium leading-relaxed">
                                 {importError}
                             </div>
                         </div>
@@ -397,22 +399,26 @@ export const ExportImport: React.FC<ExportImportProps> = ({
 
                     {importPreview.length > 0 && (
                         <div>
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2 tracking-wide">
                                 <CheckCircle className="h-4 w-4 text-green-500"/>
-                                Preview ({importPreview.length} applications)
+                                <span className="text-gradient-static">Preview</span>
+                                (<span className="font-extrabold text-gradient-blue">{importPreview.length}</span> applications)
                             </h4>
                             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-64 overflow-y-auto">
                                 <div className="space-y-2">
                                     {importPreview.slice(0, 5).map((app, index) => (
-                                        <div key={index} className="text-sm">
-                                            <span className="font-medium">{app.company}</span> - {app.position}
+                                        <div key={index} className="text-sm font-medium tracking-tight">
+                                            <span className="font-bold text-gradient-static">{app.company}</span> -
+                                            <span className="font-semibold">{app.position}</span>
                                             {/* FIXED: Pass app.dateApplied string directly to formatDate */}
-                                            <span className="text-gray-500 ml-2">({formatDate(app.dateApplied)})</span>
+                                            <span className="text-gray-500 ml-2 font-medium tracking-wider">
+                                                ({formatDate(app.dateApplied)})
+                                            </span>
                                         </div>
                                     ))}
                                     {importPreview.length > 5 && (
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                                            ... and {importPreview.length - 5} more
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 font-medium tracking-wide">
+                                            ... and <span className="font-bold text-gradient-purple">{importPreview.length - 5}</span> more
                                         </div>
                                     )}
                                 </div>
@@ -425,24 +431,27 @@ export const ExportImport: React.FC<ExportImportProps> = ({
                             variant="outline"
                             onClick={() => setShowImportModal(false)}
                             disabled={isImporting}
+                            className="font-bold tracking-wide"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleImport}
                             disabled={isImporting || importPreview.length === 0}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 font-bold tracking-wide"
                         >
                             {isImporting ? (
                                 <>
                                     <div
                                         className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Importing...
+                                    <span className="font-bold tracking-wide">Importing...</span>
                                 </>
                             ) : (
                                 <>
                                     <Upload className="h-4 w-4"/>
-                                    Import {importPreview.length} Application{importPreview.length !== 1 ? 's' : ''}
+                                    <span className="font-bold tracking-wide">
+                                        Import {importPreview.length} Application{importPreview.length !== 1 ? 's' : ''}
+                                    </span>
                                 </>
                             )}
                         </Button>

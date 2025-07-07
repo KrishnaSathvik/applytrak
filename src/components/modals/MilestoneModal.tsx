@@ -77,16 +77,15 @@ const MilestoneModal: React.FC = () => {
     const currentCount = progress.totalApplications;
     const progressToNext = nextMilestone ? Math.min((currentCount / nextMilestone) * 100, 100) : 100;
 
-
     return (
         <div className="modal-overlay" onClick={closeMilestone}>
             <div className="modal-content max-w-md animate-bounce-subtle" onClick={(e) => e.stopPropagation()}>
-                {/* Celebration Header */}
+                {/* Enhanced Celebration Header */}
                 <div
                     className={`bg-gradient-to-r ${getMilestoneColor(milestone.message)} text-white rounded-t-xl p-6 text-center relative overflow-hidden`}>
                     <button
                         onClick={closeMilestone}
-                        className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                        className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors p-1 rounded-full hover:bg-white/20"
                         aria-label="Close celebration"
                     >
                         <X className="h-5 w-5"/>
@@ -98,7 +97,7 @@ const MilestoneModal: React.FC = () => {
 
                     <Trophy className="h-8 w-8 mx-auto mb-2 animate-pulse"/>
 
-                    <h2 className="text-2xl font-bold mb-2">
+                    <h2 className="text-3xl font-extrabold mb-2 tracking-tight">
                         Milestone Achieved!
                     </h2>
 
@@ -113,47 +112,47 @@ const MilestoneModal: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* Enhanced Content */}
                 <div className="p-6 space-y-6">
-                    {/* Main Message */}
+                    {/* Enhanced Main Message */}
                     <div className="text-center">
-                        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        <p className="text-xl font-bold text-gradient-static mb-2 tracking-wide">
                             {milestone.message || "Milestone Achieved!"}
                         </p>
-                        <p className="text-gray-600 dark:text-gray-400">
+                        <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
                             {getEncouragementMessage(milestone.message)}
                         </p>
                     </div>
 
-                    {/* Stats Cards */}
+                    {/* Enhanced Stats Cards */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="glass rounded-lg p-4 text-center">
                             <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-500"/>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Success Rate</p>
-                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Success Rate</p>
+                            <p className="text-2xl font-extrabold text-gradient-blue">
                                 {Math.round((progress.totalApplications > 0 ? progress.totalApplications / progress.totalApplications * 100 : 0))}%
                             </p>
                         </div>
 
                         <div className="glass rounded-lg p-4 text-center">
                             <Target className="h-6 w-6 mx-auto mb-2 text-blue-500"/>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Goal Progress</p>
-                            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Goal Progress</p>
+                            <p className="text-2xl font-extrabold text-gradient-purple">
                                 {progress.totalProgress}%
                             </p>
                         </div>
                     </div>
 
-                    {/* Next Milestone */}
+                    {/* Enhanced Next Milestone */}
                     {nextMilestone && (
                         <div className="glass rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Next Milestone
-                </span>
-                                <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                  {nextMilestone} applications
-                </span>
+                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wide">
+                                    Next Milestone
+                                </span>
+                                <span className="text-sm font-extrabold text-gradient-static">
+                                    {nextMilestone} applications
+                                </span>
                             </div>
 
                             <div className="progress-container">
@@ -163,28 +162,28 @@ const MilestoneModal: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div className="flex justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1">
                                 <span>{currentCount} applications</span>
-                                <span>{nextMilestone - currentCount} to go</span>
+                                <span className="font-bold">{nextMilestone - currentCount} to go</span>
                             </div>
                         </div>
                     )}
 
-                    {/* Motivational Quote */}
+                    {/* Enhanced Motivational Quote */}
                     <div
-                        className="text-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg">
-                        <p className="text-sm italic text-gray-700 dark:text-gray-300">
+                        className="text-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg border border-primary-200 dark:border-primary-800">
+                        <p className="text-sm font-semibold italic text-gray-700 dark:text-gray-300 leading-relaxed">
                             "Success is the sum of small efforts repeated day in and day out."
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 tracking-wide">
                             — Robert Collier
                         </p>
                     </div>
 
-                    {/* Action Button */}
+                    {/* Enhanced Action Button */}
                     <button
                         onClick={closeMilestone}
-                        className="w-full btn btn-primary btn-lg"
+                        className="w-full btn btn-primary btn-lg font-bold tracking-wide"
                     >
                         <Trophy className="h-4 w-4 mr-2"/>
                         Keep Going Strong!

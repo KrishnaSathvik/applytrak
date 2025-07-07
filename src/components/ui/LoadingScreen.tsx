@@ -1,4 +1,4 @@
-// src/components/ui/LoadingScreen.tsx
+// src/components/ui/LoadingScreen.tsx - Enhanced Typography Version
 import React from 'react';
 import {Briefcase, Loader2} from 'lucide-react';
 
@@ -31,22 +31,22 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                        <h2 className="text-3xl font-extrabold text-gradient-static tracking-tight">
                             ApplyTrak
                         </h2>
-                        <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+                        <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto font-medium leading-relaxed">
                             {message}
                         </p>
                     </div>
                 </div>
 
-                {/* Loading dots animation */}
+                {/* Enhanced Loading dots animation */}
                 <div className="flex justify-center space-x-2">
-                    <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"
+                    <div className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
                          style={{animationDelay: '0ms'}}></div>
-                    <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"
+                    <div className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
                          style={{animationDelay: '150ms'}}></div>
-                    <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"
+                    <div className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
                          style={{animationDelay: '300ms'}}></div>
                 </div>
             </div>

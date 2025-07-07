@@ -113,7 +113,7 @@ const ToastContainer: React.FC = () => {
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide leading-relaxed">
                                         {toast.message}
                                     </p>
 
@@ -121,7 +121,7 @@ const ToastContainer: React.FC = () => {
                                     {toast.action && (
                                         <button
                                             onClick={toast.action.onClick}
-                                            className="mt-2 inline-flex items-center text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+                                            className="mt-2 inline-flex items-center text-xs font-bold text-gradient-blue hover:text-gradient-purple transition-colors tracking-wider"
                                         >
                                             {toast.action.label}
                                             <ExternalLink className="h-3 w-3 ml-1" />
@@ -157,7 +157,7 @@ const ToastContainer: React.FC = () => {
                 {/* Toast Counter */}
                 {toasts.length > 3 && (
                     <div className="glass-subtle rounded-lg p-3 text-center">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-widest uppercase">
                             +{toasts.length - 3} more notifications
                         </span>
                     </div>

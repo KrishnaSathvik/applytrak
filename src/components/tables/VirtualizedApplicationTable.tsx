@@ -6,7 +6,6 @@ import { Edit, ExternalLink, Paperclip, Search, StickyNote, Trash2, X } from 'lu
 import { useAppStore } from '../../store/useAppStore';
 import { Application } from '../../types';
 import SearchHighlight from '../ui/SearchHighlight';
-
 const ITEM_HEIGHT = 64; // Height of each row in pixels
 const VISIBLE_ITEMS = 10; // Number of items visible at once
 

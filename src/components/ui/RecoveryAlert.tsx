@@ -65,11 +65,11 @@ const RecoveryAlert: React.FC = () => {
                     <div className="flex items-start space-x-3">
                         <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5"/>
                         <div className="flex-1">
-                            <h3 className="font-medium text-yellow-800 dark:text-yellow-200">
+                            <h3 className="font-bold text-lg text-yellow-800 dark:text-yellow-200 tracking-wide">
                                 Data Recovery Available
                             </h3>
-                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                                We found {recoveryOptions} backup{recoveryOptions !== 1 ? 's' : ''} that can restore
+                            <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300 mt-1 leading-relaxed">
+                                We found <span className="font-bold">{recoveryOptions}</span> backup{recoveryOptions !== 1 ? 's' : ''} that can restore
                                 your previous applications.
                                 Would you like to recover your data?
                             </p>
@@ -77,7 +77,7 @@ const RecoveryAlert: React.FC = () => {
                             <div className="flex items-center space-x-3 mt-3">
                                 <button
                                     onClick={openRecoveryModal}
-                                    className="btn btn-sm bg-yellow-600 hover:bg-yellow-700 text-white"
+                                    className="btn btn-sm bg-yellow-600 hover:bg-yellow-700 text-white font-bold tracking-wide"
                                 >
                                     <Download className="h-3 w-3 mr-1"/>
                                     Recover Data
@@ -85,14 +85,14 @@ const RecoveryAlert: React.FC = () => {
 
                                 <button
                                     onClick={dismissAlert}
-                                    className="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 underline"
+                                    className="text-xs font-semibold text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 underline tracking-wide"
                                 >
                                     Dismiss
                                 </button>
                             </div>
 
                             <div
-                                className="flex items-center space-x-1 mt-2 text-xs text-yellow-600 dark:text-yellow-400">
+                                className="flex items-center space-x-1 mt-2 text-xs font-medium text-yellow-600 dark:text-yellow-400">
                                 <Clock className="h-3 w-3"/>
                                 <span>This alert will disappear once you add applications or dismiss it</span>
                             </div>
@@ -101,7 +101,7 @@ const RecoveryAlert: React.FC = () => {
 
                     <button
                         onClick={dismissAlert}
-                        className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200"
+                        className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 p-1 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/20 transition-colors"
                         aria-label="Dismiss recovery alert"
                     >
                         <X className="h-4 w-4"/>

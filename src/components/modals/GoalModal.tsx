@@ -1,4 +1,4 @@
-// src/components/modals/GoalModal.tsx - Simplified to match main UI
+// src/components/modals/GoalModal.tsx - FIXED HEADER TEXT VISIBILITY
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -85,34 +85,43 @@ const GoalModal: React.FC = () => {
     return (
         <div className="modal-overlay" onClick={closeGoalModal}>
             <div className="modal-content max-w-3xl" onClick={(e) => e.stopPropagation()}>
-                {/* Simple Header - matches main app style */}
-                <div className="card-header">
-                    <div className="flex items-center justify-between">
+                {/* FIXED Header - Enhanced Visibility */}
+                <div className="card-header relative overflow-hidden">
+                    {/* Background overlay for better contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary-600/90 via-primary-500/90 to-secondary-600/90 backdrop-blur-sm"></div>
+
+                    {/* Content with enhanced visibility */}
+                    <div className="relative z-10 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Target className="h-6 w-6" />
+                            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30">
+                                <Target className="h-6 w-6 text-white drop-shadow-lg" />
+                            </div>
                             <div>
-                                <h2 className="text-xl font-semibold">Set Application Goals</h2>
-                                <p className="text-sm opacity-90 mt-1">
+                                {/* FIXED: Perfect text visibility with multiple contrast methods */}
+                                <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight drop-shadow-lg">
+                                    Set Application Goals
+                                </h2>
+                                <p className="text-white/95 font-semibold mt-1 leading-relaxed drop-shadow-md text-shadow-lg tracking-wide">
                                     Define your job search targets and track your progress
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={closeGoalModal}
-                            className="btn btn-secondary btn-sm"
+                            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold tracking-wide transition-all duration-200 hover:scale-105"
                             aria-label="Close modal"
                         >
-                            <X className="h-4 w-4" />
+                            <X className="h-4 w-4 drop-shadow-lg" />
                         </button>
                     </div>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Simple Goal Inputs - matches your form styling */}
+                    {/* Enhanced Goal Inputs */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Total Goal */}
                         <div className="space-y-3">
-                            <label className="form-label">
+                            <label className="form-label-enhanced">
                                 Total Application Goal
                             </label>
                             <input
@@ -120,28 +129,32 @@ const GoalModal: React.FC = () => {
                                 type="number"
                                 min="1"
                                 max="10000"
-                                className={`form-input ${
+                                className={`form-input-enhanced ${
                                     errors.totalGoal ? 'border-red-500' : ''
                                 }`}
                                 placeholder="100"
                             />
                             {errors.totalGoal && (
-                                <p className="text-sm text-red-500">
+                                <p className="form-error">
                                     {errors.totalGoal.message}
                                 </p>
                             )}
 
                             {timelines.weeksToTotal > 0 && (
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                    <p>≈ {timelines.weeksToTotal} weeks</p>
-                                    <p>≈ {timelines.monthsToTotal} months</p>
+                                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 space-y-1">
+                                    <p className="flex items-center justify-between">
+                                        <span>≈ <span className="font-bold text-gradient-blue">{timelines.weeksToTotal}</span> weeks</span>
+                                    </p>
+                                    <p className="flex items-center justify-between">
+                                        <span>≈ <span className="font-bold text-gradient-purple">{timelines.monthsToTotal}</span> months</span>
+                                    </p>
                                 </div>
                             )}
                         </div>
 
                         {/* Weekly Goal */}
                         <div className="space-y-3">
-                            <label className="form-label">
+                            <label className="form-label-enhanced">
                                 Weekly Goal
                             </label>
                             <input
@@ -149,27 +162,27 @@ const GoalModal: React.FC = () => {
                                 type="number"
                                 min="1"
                                 max="500"
-                                className={`form-input ${
+                                className={`form-input-enhanced ${
                                     errors.weeklyGoal ? 'border-red-500' : ''
                                 }`}
                                 placeholder="5"
                             />
                             {errors.weeklyGoal && (
-                                <p className="text-sm text-red-500">
+                                <p className="form-error">
                                     {errors.weeklyGoal.message}
                                 </p>
                             )}
 
                             {watchedValues.weeklyGoal && (
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                    <p>≈ {timelines.daysToWeekly} per day</p>
+                                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                                    <p>≈ <span className="font-bold text-gradient-blue">{timelines.daysToWeekly}</span> per day</p>
                                 </div>
                             )}
                         </div>
 
                         {/* Monthly Goal */}
                         <div className="space-y-3">
-                            <label className="form-label">
+                            <label className="form-label-enhanced">
                                 Monthly Goal
                             </label>
                             <input
@@ -177,63 +190,75 @@ const GoalModal: React.FC = () => {
                                 type="number"
                                 min="1"
                                 max="2000"
-                                className={`form-input ${
+                                className={`form-input-enhanced ${
                                     errors.monthlyGoal ? 'border-red-500' : ''
                                 }`}
                                 placeholder="20"
                             />
                             {errors.monthlyGoal && (
-                                <p className="text-sm text-red-500">
+                                <p className="form-error">
                                     {errors.monthlyGoal.message}
                                 </p>
                             )}
 
                             {timelines.weeksToMonthly > 0 && (
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                    <p>≈ {timelines.weeksToMonthly} weeks to reach</p>
+                                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                                    <p>≈ <span className="font-bold text-gradient-purple">{timelines.weeksToMonthly}</span> weeks to reach</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Simple Goal Tips - matches card style */}
-                    <div className="card">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                            Goal Setting Tips
+                    {/* Enhanced Goal Tips */}
+                    <div className="glass-card">
+                        <h4 className="font-bold text-gradient-static text-lg mb-3 tracking-wide">
+                            💡 Goal Setting Tips
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-                                <li>• Set realistic goals based on your availability</li>
-                                <li>• Weekly goals help maintain consistent momentum</li>
+                            <ul className="text-sm font-medium text-gray-600 dark:text-gray-400 space-y-2">
+                                <li className="flex items-start space-x-2">
+                                    <span className="font-bold text-primary-500">•</span>
+                                    <span className="leading-relaxed">Set realistic goals based on your availability</span>
+                                </li>
+                                <li className="flex items-start space-x-2">
+                                    <span className="font-bold text-primary-500">•</span>
+                                    <span className="leading-relaxed">Weekly goals help maintain consistent momentum</span>
+                                </li>
                             </ul>
-                            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-                                <li>• Monthly goals provide broader accountability</li>
-                                <li>• Adjust goals as you learn your optimal pace</li>
+                            <ul className="text-sm font-medium text-gray-600 dark:text-gray-400 space-y-2">
+                                <li className="flex items-start space-x-2">
+                                    <span className="font-bold text-primary-500">•</span>
+                                    <span className="leading-relaxed">Monthly goals provide broader accountability</span>
+                                </li>
+                                <li className="flex items-start space-x-2">
+                                    <span className="font-bold text-primary-500">•</span>
+                                    <span className="leading-relaxed">Adjust goals as you learn your optimal pace</span>
+                                </li>
                             </ul>
                         </div>
                     </div>
 
-                    {/* Simple Validation Summary */}
+                    {/* Enhanced Validation Summary */}
                     {watchedValues.weeklyGoal && watchedValues.monthlyGoal && (
-                        <div className="card">
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                                Goal Validation
+                        <div className="glass-card">
+                            <h4 className="font-bold text-gradient-static text-lg mb-3 tracking-wide">
+                                📊 Goal Validation
                             </h4>
                             {watchedValues.weeklyGoal * 4 > watchedValues.monthlyGoal ? (
-                                <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                                    <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200 mb-1 tracking-wide">
                                         ⚠️ Weekly goal may exceed monthly goal
                                     </p>
-                                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                                        {watchedValues.weeklyGoal * 4} weekly vs {watchedValues.monthlyGoal} monthly
+                                    <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 leading-relaxed">
+                                        <span className="font-bold text-gradient-blue">{watchedValues.weeklyGoal * 4}</span> weekly vs <span className="font-bold text-gradient-purple">{watchedValues.monthlyGoal}</span> monthly
                                     </p>
                                 </div>
                             ) : (
-                                <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                    <p className="text-sm font-bold text-green-800 dark:text-green-200 mb-1 tracking-wide">
                                         ✓ Goals are well balanced
                                     </p>
-                                    <p className="text-sm text-green-600 dark:text-green-400">
+                                    <p className="text-sm font-semibold text-green-600 dark:text-green-400 leading-relaxed">
                                         Your weekly and monthly targets align well
                                     </p>
                                 </div>
@@ -241,29 +266,29 @@ const GoalModal: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Simple Action Buttons - matches your button style */}
+                    {/* Enhanced Action Buttons */}
                     <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button
                             type="button"
                             onClick={closeGoalModal}
-                            className="btn btn-secondary"
+                            className="btn btn-secondary font-bold tracking-wide"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting || ui.isLoading}
-                            className="btn btn-primary"
+                            className="btn btn-primary font-bold tracking-wide"
                         >
                             {isSubmitting || ui.isLoading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                    Saving...
+                                    <span className="font-bold tracking-wide">Saving...</span>
                                 </>
                             ) : (
                                 <>
                                     <Save className="h-4 w-4 mr-2" />
-                                    Save Goals
+                                    <span className="font-bold tracking-wide">Save Goals</span>
                                 </>
                             )}
                         </button>

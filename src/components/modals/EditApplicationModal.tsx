@@ -1,4 +1,4 @@
-// src/components/modals/EditApplicationModal.tsx - FIXED VERSION
+// src/components/modals/EditApplicationModal.tsx - Enhanced Typography Version
 import React, { useState, useCallback, useEffect } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -209,97 +209,97 @@ const EditApplicationModal: React.FC = () => {
                     onClick={handleClose}
                 />
 
-                {/* Modal */}
+                {/* Modal with Enhanced Typography */}
                 <div className="inline-block w-full max-w-4xl px-6 py-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-2xl">
-                    {/* Header */}
+                    {/* Header with Enhanced Typography */}
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <Edit className="h-5 w-5" />
+                        <h3 className="text-xl font-bold text-gradient-static flex items-center gap-2 tracking-tight">
+                            <Edit className="h-6 w-6" />
                             Edit Application
                         </h3>
                         <button
                             onClick={handleClose}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                             <X className="h-6 w-6" />
                         </button>
                     </div>
 
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        {/* Row 1: Basic Information */}
+                        {/* Row 1: Basic Information with Enhanced Typography */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Company *
                                 </label>
                                 <input
                                     type="text"
                                     {...register('company')}
-                                    className={`form-input ${errors.company ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.company ? 'border-red-500' : ''}`}
                                     placeholder="e.g. Google"
                                 />
                                 {errors.company && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.company.message}</p>
+                                    <p className="form-error">{errors.company.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Position *
                                 </label>
                                 <input
                                     type="text"
                                     {...register('position')}
-                                    className={`form-input ${errors.position ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.position ? 'border-red-500' : ''}`}
                                     placeholder="e.g. Software Engineer"
                                 />
                                 {errors.position && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.position.message}</p>
+                                    <p className="form-error">{errors.position.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Date Applied *
                                 </label>
                                 <input
                                     type="date"
                                     {...register('dateApplied')}
-                                    className={`form-input ${errors.dateApplied ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.dateApplied ? 'border-red-500' : ''}`}
                                     max={new Date().toISOString().split('T')[0]}
                                 />
                                 {errors.dateApplied && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.dateApplied.message}</p>
+                                    <p className="form-error">{errors.dateApplied.message}</p>
                                 )}
                             </div>
                         </div>
 
-                        {/* Row 2: Job Details and Status */}
+                        {/* Row 2: Job Details and Status with Enhanced Typography */}
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Job Type *
                                 </label>
                                 <select
                                     {...register('type')}
-                                    className={`form-select ${errors.type ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.type ? 'border-red-500' : ''}`}
                                 >
                                     <option value="Remote">Remote</option>
                                     <option value="Hybrid">Hybrid</option>
                                     <option value="Onsite">Onsite</option>
                                 </select>
                                 {errors.type && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.type.message}</p>
+                                    <p className="form-error">{errors.type.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Status *
                                 </label>
                                 <select
                                     {...register('status')}
-                                    className={`form-select ${errors.status ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.status ? 'border-red-500' : ''}`}
                                 >
                                     <option value="Applied">Applied</option>
                                     <option value="Interview">Interview</option>
@@ -307,49 +307,49 @@ const EditApplicationModal: React.FC = () => {
                                     <option value="Rejected">Rejected</option>
                                 </select>
                                 {errors.status && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>
+                                    <p className="form-error">{errors.status.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Location
                                 </label>
                                 <input
                                     type="text"
                                     {...register('location')}
-                                    className={`form-input ${errors.location ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.location ? 'border-red-500' : ''}`}
                                     placeholder="e.g. San Francisco, CA"
                                 />
                                 {errors.location && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.location.message}</p>
+                                    <p className="form-error">{errors.location.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Salary
                                 </label>
                                 <input
                                     type="text"
                                     {...register('salary')}
-                                    className={`form-input ${errors.salary ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.salary ? 'border-red-500' : ''}`}
                                     placeholder="e.g. $120,000/year"
                                 />
                                 {errors.salary && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.salary.message}</p>
+                                    <p className="form-error">{errors.salary.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="form-label">
+                                <label className="form-label-enhanced">
                                     Job Source
                                 </label>
                                 <input
                                     type="text"
                                     {...register('jobSource')}
                                     list="editJobSources"
-                                    className={`form-input ${errors.jobSource ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced ${errors.jobSource ? 'border-red-500' : ''}`}
                                     placeholder="e.g. LinkedIn"
                                 />
                                 <datalist id="editJobSources">
@@ -362,28 +362,28 @@ const EditApplicationModal: React.FC = () => {
                                     <option value="Referral" />
                                 </datalist>
                                 {errors.jobSource && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.jobSource.message}</p>
+                                    <p className="form-error">{errors.jobSource.message}</p>
                                 )}
                             </div>
                         </div>
 
-                        {/* Row 3: Job URL */}
+                        {/* Row 3: Job URL with Enhanced Typography */}
                         <div>
-                            <label className="form-label">
+                            <label className="form-label-enhanced">
                                 Job Posting URL
                             </label>
                             <div className="flex gap-2">
                                 <input
                                     type="url"
                                     {...register('jobUrl')}
-                                    className={`form-input flex-1 ${errors.jobUrl ? 'border-red-500' : ''}`}
+                                    className={`form-input-enhanced flex-1 ${errors.jobUrl ? 'border-red-500' : ''}`}
                                     placeholder="https://company.com/jobs/position"
                                 />
                                 {jobUrl && jobUrl.trim() !== '' && (
                                     <button
                                         type="button"
                                         onClick={() => window.open(jobUrl, '_blank')}
-                                        className="btn btn-outline"
+                                        className="btn btn-outline font-bold tracking-wide"
                                         title="Open job posting"
                                     >
                                         <ExternalLink className="h-4 w-4" />
@@ -391,47 +391,47 @@ const EditApplicationModal: React.FC = () => {
                                 )}
                             </div>
                             {errors.jobUrl && (
-                                <p className="text-red-500 text-sm mt-1">{errors.jobUrl.message}</p>
+                                <p className="form-error">{errors.jobUrl.message}</p>
                             )}
                         </div>
 
-                        {/* Row 4: Notes */}
+                        {/* Row 4: Notes with Enhanced Typography */}
                         <div>
-                            <label className="form-label">
+                            <label className="form-label-enhanced">
                                 Notes
                             </label>
                             <textarea
                                 {...register('notes')}
                                 rows={4}
-                                className={`form-textarea ${errors.notes ? 'border-red-500' : ''}`}
+                                className={`form-input-enhanced ${errors.notes ? 'border-red-500' : ''}`}
                                 placeholder="Add any additional notes about this application..."
                             />
                             {errors.notes && (
-                                <p className="text-red-500 text-sm mt-1">{errors.notes.message}</p>
+                                <p className="form-error">{errors.notes.message}</p>
                             )}
                         </div>
 
-                        {/* Row 5: Attachments */}
+                        {/* Row 5: Attachments with Enhanced Typography */}
                         <div>
-                            <label className="form-label">
+                            <label className="form-label-enhanced">
                                 Attachments
                             </label>
 
-                            {/* Existing attachments */}
+                            {/* Existing attachments with Enhanced Typography */}
                             {attachments.length > 0 && (
                                 <div className="mb-4 space-y-2">
                                     {attachments.map((attachment, index) => (
                                         <div
                                             key={attachment.id || index}
-                                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Upload className="h-4 w-4 text-gray-500" />
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                                         {attachment.name}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                                         {(attachment.size / 1024 / 1024).toFixed(2)} MB
                                                     </p>
                                                 </div>
@@ -440,7 +440,7 @@ const EditApplicationModal: React.FC = () => {
                                                 <a
                                                     href={attachment.data}
                                                     download={attachment.name}
-                                                    className="text-primary-600 hover:text-primary-700"
+                                                    className="text-primary-600 hover:text-primary-700 p-1 rounded hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                                                     title="Download"
                                                 >
                                                     <ExternalLink className="h-4 w-4" />
@@ -448,7 +448,7 @@ const EditApplicationModal: React.FC = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeAttachment(index)}
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                                     title="Remove attachment"
                                                 >
                                                     <X className="h-4 w-4" />
@@ -459,7 +459,7 @@ const EditApplicationModal: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Drop zone */}
+                            {/* Drop zone with Enhanced Typography */}
                             <div
                                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                                     isDragOver
@@ -471,9 +471,9 @@ const EditApplicationModal: React.FC = () => {
                                 onDrop={handleDrop}
                             >
                                 <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
                                     Drag and drop files here, or{' '}
-                                    <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-medium">
+                                    <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-bold">
                                         browse
                                         <input
                                             type="file"
@@ -484,31 +484,31 @@ const EditApplicationModal: React.FC = () => {
                                         />
                                     </label>
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                     Supports PDF, DOC, DOCX, TXT, JPG, PNG (max 10MB each)
                                 </p>
                             </div>
                         </div>
 
-                        {/* Footer */}
+                        {/* Footer with Enhanced Typography */}
                         <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                             <button
                                 type="button"
                                 onClick={handleClose}
                                 disabled={isSubmitting}
-                                className="btn btn-secondary"
+                                className="btn btn-secondary font-bold tracking-wide"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="btn btn-primary"
+                                className="btn btn-primary font-bold tracking-wide"
                             >
                                 {isSubmitting ? (
                                     <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Updating...
+                                        <span className="font-medium">Updating...</span>
                                     </>
                                 ) : (
                                     <>

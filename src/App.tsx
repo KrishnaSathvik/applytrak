@@ -1,16 +1,15 @@
-// src/App.tsx - MOBILE RESPONSIVE FIXED
+// src/App.tsx - ENHANCED WITH PREMIUM TYPOGRAPHY
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import Layout from './components/layout/Layout';
 import LoadingScreen from './components/ui/LoadingScreen';
 import { setupAutoBackup } from './utils/backup';
-import { useJobTrackerShortcuts } from './hooks/useKeyboardShortcuts';
 import { Application } from './types';
 import './styles/globals.css';
 
 // Lazy load components for better performance
 const ApplicationForm = React.lazy(() => import('./components/forms/ApplicationForm'));
-const PaginatedApplicationTable = React.lazy(() => import('./components/tables/PaginatedApplicationTable'));
+const MobileResponsiveApplicationTable = React.lazy(() => import('./components/tables/MobileResponsiveApplicationTable'));
 const GoalTracker = React.lazy(() => import('./components/ui/GoalTracker'));
 const AnalyticsDashboard = React.lazy(() => import('./components/charts/AnalyticsDashboard'));
 const EditApplicationModal = React.lazy(() => import('./components/modals/EditApplicationModal'));
@@ -21,42 +20,46 @@ const ExportImportActions = React.lazy(() => import('./components/ui/ExportImpor
 const RecoveryAlert = React.lazy(() => import('./components/ui/RecoveryAlert'));
 const ErrorBoundary = React.lazy(() => import('./components/ui/ErrorBoundary'));
 
-// Enhanced loading component for paginated table - MOBILE OPTIMIZED
-const PaginatedTableLoadingFallback = () => (
+// Enhanced loading component for table - MOBILE OPTIMIZED WITH PREMIUM TYPOGRAPHY
+const TableLoadingFallback = () => (
     <div className="glass-card">
         <div className="space-y-4 animate-pulse">
             {/* Search and tabs skeleton - MOBILE STACK */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full sm:w-64"></div>
+                <div className="h-12 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl w-full sm:w-64 animate-shimmer"></div>
                 <div className="flex gap-2">
-                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded flex-1 sm:w-32"></div>
-                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded flex-1 sm:w-32"></div>
+                    <div className="h-12 bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600 rounded-xl flex-1 sm:w-32 animate-shimmer"></div>
+                    <div className="h-12 bg-gradient-to-r from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600 rounded-xl flex-1 sm:w-32 animate-shimmer"></div>
                 </div>
             </div>
 
-            {/* Results summary skeleton */}
+            {/* Results summary skeleton - ENHANCED */}
             <div className="flex flex-col sm:flex-row justify-between gap-2">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full sm:w-48"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 sm:w-32"></div>
+                <div className="h-5 bg-gradient-to-r from-indigo-200 to-indigo-300 dark:from-indigo-700 dark:to-indigo-600 rounded-lg w-full sm:w-48 animate-shimmer"></div>
+                <div className="h-5 bg-gradient-to-r from-green-200 to-green-300 dark:from-green-700 dark:to-green-600 rounded-lg w-24 sm:w-32 animate-shimmer"></div>
             </div>
 
-            {/* Mobile vs Desktop Table skeleton */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            {/* Mobile vs Desktop Table skeleton - ENHANCED GRADIENTS */}
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-lg">
                 {/* Desktop table view */}
                 <div className="hidden sm:block">
-                    <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                    <div className="bg-gradient-to-r from-primary-500 to-secondary-500 px-6 py-4 shadow-inner">
                         <div className="flex gap-4">
                             {[...Array(7)].map((_, i) => (
-                                <div key={i} className="h-4 bg-gray-300 dark:bg-gray-600 rounded flex-1"></div>
+                                <div key={i} className="h-4 bg-white/40 rounded flex-1 animate-pulse"></div>
                             ))}
                         </div>
                     </div>
                     <div className="space-y-0">
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="border-b border-gray-200 dark:border-gray-700 px-4 py-4">
+                            <div key={i} className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                 <div className="flex gap-4 items-center">
                                     {[...Array(7)].map((_, j) => (
-                                        <div key={j} className="h-4 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
+                                        <div key={j} className={`h-4 rounded flex-1 animate-pulse ${
+                                            j === 0 ? 'bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600' :
+                                                j === 2 ? 'bg-gradient-to-r from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600' :
+                                                    'bg-gray-200 dark:bg-gray-700'
+                                        }`}></div>
                                     ))}
                                 </div>
                             </div>
@@ -64,29 +67,31 @@ const PaginatedTableLoadingFallback = () => (
                     </div>
                 </div>
 
-                {/* Mobile card view */}
-                <div className="sm:hidden space-y-3 p-3">
+                {/* Mobile card view - ENHANCED */}
+                <div className="sm:hidden space-y-4 p-4">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
+                        <div key={i} className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 space-y-3 shadow-sm">
                             <div className="flex justify-between items-start">
-                                <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-2/3"></div>
-                                <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-16"></div>
+                                <div className="h-6 bg-gradient-to-r from-blue-300 to-purple-300 dark:from-blue-600 dark:to-purple-600 rounded-lg w-2/3 animate-pulse"></div>
+                                <div className="h-7 bg-gradient-to-r from-green-300 to-emerald-300 dark:from-green-600 dark:to-emerald-600 rounded-full w-20 animate-pulse"></div>
                             </div>
                             <div className="space-y-2">
-                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/2 animate-pulse"></div>
+                                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 animate-pulse"></div>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* Pagination skeleton - MOBILE RESPONSIVE */}
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700 gap-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full sm:w-48"></div>
+            {/* Pagination skeleton - MOBILE RESPONSIVE WITH GRADIENTS */}
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700 gap-4">
+                <div className="h-5 bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-700 dark:to-purple-700 rounded-lg w-full sm:w-48 animate-pulse"></div>
                 <div className="flex gap-2">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                        <div key={i} className={`h-10 w-10 rounded-lg animate-pulse ${
+                            i === 2 ? 'bg-gradient-to-br from-blue-400 to-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+                        }`}></div>
                     ))}
                 </div>
             </div>
@@ -94,7 +99,7 @@ const PaginatedTableLoadingFallback = () => (
     </div>
 );
 
-// Enhanced TrackerTab - MOBILE OPTIMIZED
+// Enhanced TrackerTab - MOBILE OPTIMIZED WITH PREMIUM TYPOGRAPHY
 const TrackerTab: React.FC = () => {
     const { applications, bulkAddApplications } = useAppStore();
 
@@ -116,39 +121,77 @@ const TrackerTab: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6 sm:space-y-8">
-            {/* Hero Section - MOBILE RESPONSIVE */}
-            <div className="glass-card bg-gradient-to-br from-primary-500/10 via-secondary-500/10 to-primary-600/10 border-2 border-primary-200/30 dark:border-primary-700/30">
-                <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="space-y-2 sm:space-y-3">
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gradient">
+        <div className="space-y-8 sm:space-y-10">
+            {/* Hero Section - ENHANCED TYPOGRAPHY */}
+            <div className="glass-card bg-gradient-to-br from-primary-500/10 via-secondary-500/10 to-primary-600/10 border-2 border-primary-200/30 dark:border-primary-700/30 shadow-xl">
+                <div className="flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="space-y-4 sm:space-y-6">
+                        {/* Hero title - ENHANCED WITH PREMIUM TYPOGRAPHY */}
+                        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-static tracking-tight leading-none text-shadow-lg animate-text-shimmer">
                             🚀 Application Tracker
                         </h1>
-                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-                            Keep your job search on track with ApplyTrak
+
+                        {/* Subtitle - ENHANCED WITH RICH TYPOGRAPHY */}
+                        <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 font-medium leading-relaxed max-w-2xl">
+                            Keep your job search on track with <span className="font-display font-bold text-gradient-blue tracking-wide">ApplyTrak</span>
                         </p>
 
-                        {/* Stats - MOBILE GRID */}
-                        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 pt-2">
-                            <span className="flex items-center gap-1">
-                                📊 {applications.length} Apps
-                            </span>
-                            <span className="flex items-center gap-1">
-                                📄 15/Page
-                            </span>
-                            <span className="flex items-center gap-1">
-                                ⚡ Fast Nav
-                            </span>
-                            <span className="flex items-center gap-1">
-                                🎯 Goals
-                            </span>
+                        {/* Stats - ENHANCED MOBILE GRID WITH PREMIUM TYPOGRAPHY */}
+                        <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:gap-6 pt-4">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+                                <span className="text-2xl animate-bounce-gentle">📊</span>
+                                <div className="text-left">
+                                    <div className="text-lg font-extrabold text-gradient-static">
+                                        {applications.length}
+                                    </div>
+                                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
+                                        Apps
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+                                <span className="text-2xl">📄</span>
+                                <div className="text-left">
+                                    <div className="text-lg font-extrabold text-gradient-blue">
+                                        15
+                                    </div>
+                                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
+                                        Per Page
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+                                <span className="text-2xl animate-ping-light">⚡</span>
+                                <div className="text-left">
+                                    <div className="text-lg font-extrabold text-gradient-purple">
+                                        Fast
+                                    </div>
+                                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
+                                        Navigation
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+                                <span className="text-2xl animate-spin-slow">🎯</span>s
+                                <div className="text-left">
+                                    <div className="text-lg font-extrabold text-gradient-static">
+                                        Smart
+                                    </div>
+                                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
+                                        Goals
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Export/Import Actions - MOBILE RESPONSIVE */}
+                    {/* Export/Import Actions - ENHANCED */}
                     <div className="flex-shrink-0">
                         <React.Suspense
-                            fallback={<div className="h-10 sm:h-12 w-full sm:w-48 skeleton rounded-xl" />}
+                            fallback={<div className="h-12 sm:h-14 w-full sm:w-52 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl animate-pulse" />}
                         >
                             <ExportImportActions
                                 applications={applications}
@@ -164,87 +207,133 @@ const TrackerTab: React.FC = () => {
                 <RecoveryAlert />
             </React.Suspense>
 
-            {/* Goal Tracking - MOBILE RESPONSIVE */}
-            <React.Suspense fallback={<div className="skeleton h-40 sm:h-48 rounded-2xl" />}>
+            {/* Goal Tracking - ENHANCED */}
+            <React.Suspense fallback={
+                <div className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 h-48 sm:h-56 rounded-2xl animate-pulse shadow-lg" />
+            }>
                 <GoalTracker />
             </React.Suspense>
 
-            {/* Application Form - MOBILE RESPONSIVE */}
-            <React.Suspense fallback={<div className="skeleton h-80 sm:h-96 rounded-2xl" />}>
+            {/* Application Form - ENHANCED */}
+            <React.Suspense fallback={
+                <div className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 h-96 sm:h-[28rem] rounded-2xl animate-pulse shadow-lg" />
+            }>
                 <ApplicationForm />
             </React.Suspense>
 
-            <React.Suspense fallback={<PaginatedTableLoadingFallback />}>
+            {/* Mobile Responsive Application Table - ENHANCED */}
+            <React.Suspense fallback={<TableLoadingFallback />}>
                 <div className="responsive-table">
-                    <PaginatedApplicationTable />
+                    <MobileResponsiveApplicationTable />
                 </div>
             </React.Suspense>
         </div>
     );
 };
 
-// Enhanced AnalyticsTab - MOBILE OPTIMIZED
+// Enhanced AnalyticsTab - PREMIUM TYPOGRAPHY
 const AnalyticsTab: React.FC = () => {
     return (
-        <div className="space-y-6 sm:space-y-8">
-            {/* Hero Section for Analytics - MOBILE RESPONSIVE */}
-            <div className="glass-card bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-600/10 border-2 border-blue-200/30 dark:border-blue-700/30">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-2 sm:space-y-3">
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gradient">
+        <div className="space-y-8 sm:space-y-10">
+            {/* Hero Section for Analytics - ENHANCED WITH PREMIUM TYPOGRAPHY */}
+            <div className="glass-card bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-600/10 border-2 border-blue-200/30 dark:border-blue-700/30 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div className="space-y-4 sm:space-y-6">
+                        {/* Analytics Title - ENHANCED WITH PREMIUM TYPOGRAPHY */}
+                        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-blue tracking-tight leading-none text-shadow-lg animate-text-shimmer">
                             📊 Analytics
                         </h1>
-                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-                            Insights about your job search journey
+
+                        {/* Analytics Subtitle - ENHANCED WITH RICH TYPOGRAPHY */}
+                        <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 font-medium leading-relaxed max-w-2xl">
+                            Insights about your <span className="font-display font-bold text-gradient-purple tracking-wide">job search journey</span>
                         </p>
 
-                        {/* Analytics Features - MOBILE GRID */}
-                        <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 pt-2">
-                            <span className="flex items-center gap-1">
-                                📈 Success Metrics
-                            </span>
-                            <span className="flex items-center gap-1">
-                                🎯 Performance
-                            </span>
-                            <span className="flex items-center gap-1">
-                                📅 Timeline
-                            </span>
+                        {/* Analytics Features - ENHANCED GRID WITH PREMIUM TYPOGRAPHY */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                            <div className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
+                                <span className="text-2xl animate-bounce-gentle">📈</span>
+                                <div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100 text-gradient-static tracking-wide">
+                                        Success Metrics
+                                    </div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 font-medium tracking-wider">
+                                        Track your progress
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
+                                <span className="text-2xl animate-pulse">🎯</span>
+                                <div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100 text-gradient-purple tracking-wide">
+                                        Performance
+                                    </div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 font-medium tracking-wider">
+                                        Analyze trends
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
+                                <span className="text-2xl animate-spin-slow">📅</span>
+                                <div>
+                                    <div className="text-sm font-bold text-gray-900 dark:text-gray-100 text-gradient-blue tracking-wide">
+                                        Timeline
+                                    </div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400 font-medium tracking-wider">
+                                        View history
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="glass rounded-full p-3 sm:p-4 self-center sm:self-auto">
-                        <span className="text-2xl sm:text-4xl">📊</span>
+                    {/* Analytics Icon - ENHANCED */}
+                    <div className="glass rounded-2xl p-6 sm:p-8 self-center sm:self-auto shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/30 dark:border-blue-700/30">
+                        <span className="text-4xl sm:text-6xl animate-float filter drop-shadow-lg">📊</span>
                     </div>
                 </div>
             </div>
 
-            <React.Suspense fallback={<div className="skeleton h-80 sm:h-96 rounded-2xl" />}>
+            {/* Analytics Dashboard - ENHANCED */}
+            <React.Suspense fallback={
+                <div className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 h-96 sm:h-[32rem] rounded-2xl animate-pulse shadow-lg" />
+            }>
                 <AnalyticsDashboard />
             </React.Suspense>
         </div>
     );
 };
 
-// Error Screen Component - MOBILE RESPONSIVE
+// Error Screen Component - ENHANCED WITH PREMIUM TYPOGRAPHY
 const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 p-4">
-        <div className="text-center max-w-sm sm:max-w-md glass-card w-full">
-            <div className="text-red-500 text-4xl sm:text-6xl mb-4 sm:mb-6">⚠️</div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
+        <div className="text-center max-w-sm sm:max-w-md glass-card w-full shadow-2xl bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-red-900/20">
+            <div className="text-red-500 text-6xl sm:text-8xl mb-6 sm:mb-8 animate-bounce-gentle filter drop-shadow-lg">⚠️</div>
+
+            {/* Error Title - ENHANCED WITH PREMIUM TYPOGRAPHY */}
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6 text-shadow tracking-tight text-gradient-static">
                 Something went wrong
             </h2>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">{error}</p>
+
+            {/* Error Message - ENHANCED WITH RICH TYPOGRAPHY */}
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 leading-relaxed font-medium tracking-normal">
+                {error}
+            </p>
+
+            {/* Error Button - ENHANCED WITH PREMIUM STYLING */}
             <button
                 onClick={() => window.location.reload()}
-                className="btn btn-primary w-full sm:w-auto"
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold tracking-wide px-8 py-4 rounded-xl text-lg shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-200 w-full sm:w-auto border-2 border-red-400/20"
             >
-                Reload Application
+                <span className="font-bold tracking-wide">Reload Application</span>
             </button>
         </div>
     </div>
 );
 
-// Main App Component - MOBILE RESPONSIVE
+// Main App Component - ENHANCED WITH PREMIUM FEATURES
 const App: React.FC = () => {
     const {
         ui,
@@ -256,30 +345,33 @@ const App: React.FC = () => {
         calculateAnalytics
     } = useAppStore();
 
-    // Use keyboard shortcuts
-    useJobTrackerShortcuts();
-
     useEffect(() => {
         const initializeApp = async () => {
             try {
-                // Theme initialization
+                // Theme initialization with enhanced system detection
                 const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
                 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 const initialTheme = savedTheme || systemTheme;
 
                 setTheme(initialTheme);
 
-                // Apply to DOM immediately
+                // Apply to DOM immediately with enhanced styling
                 const isDark = initialTheme === 'dark';
                 document.documentElement.classList.toggle('dark', isDark);
                 document.body.classList.toggle('dark', isDark);
                 document.documentElement.style.colorScheme = initialTheme;
 
+                // Add enhanced meta theme color
+                const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+                if (metaThemeColor) {
+                    metaThemeColor.setAttribute('content', isDark ? '#1f2937' : '#ffffff');
+                }
+
                 if (!savedTheme) {
                     localStorage.setItem('theme', initialTheme);
                 }
 
-                // Load data
+                // Load data with enhanced error handling
                 await Promise.all([
                     loadApplications(),
                     loadGoals()
@@ -288,7 +380,7 @@ const App: React.FC = () => {
                 calculateProgress();
                 calculateAnalytics();
 
-                // System theme change listener
+                // System theme change listener with enhanced handling
                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
                 const handleSystemThemeChange = (e: MediaQueryListEvent) => {
                     if (!localStorage.getItem('theme')) {
@@ -297,12 +389,18 @@ const App: React.FC = () => {
                         document.documentElement.classList.toggle('dark', e.matches);
                         document.body.classList.toggle('dark', e.matches);
                         document.documentElement.style.colorScheme = newTheme;
+
+                        // Update meta theme color
+                        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+                        if (metaThemeColor) {
+                            metaThemeColor.setAttribute('content', e.matches ? '#1f2937' : '#ffffff');
+                        }
                     }
                 };
 
                 mediaQuery.addEventListener('change', handleSystemThemeChange);
 
-                // Auto-backup setup
+                // Auto-backup setup with enhanced error handling
                 const getApplicationsData = async (): Promise<Application[]> => {
                     return useAppStore.getState().applications;
                 };
@@ -334,12 +432,12 @@ const App: React.FC = () => {
         };
     }, [loadApplications, loadGoals, setTheme, calculateProgress, calculateAnalytics]);
 
-    // Loading state
+    // Loading state with enhanced loading screen
     if (ui.isLoading && applications.length === 0) {
         return <LoadingScreen />;
     }
 
-    // Error state
+    // Error state with premium error screen
     if (ui.error) {
         return <ErrorScreen error={ui.error} />;
     }

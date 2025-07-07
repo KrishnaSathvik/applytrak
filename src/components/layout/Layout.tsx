@@ -1,5 +1,6 @@
-// src/components/layout/Layout.tsx - FIXED RESPONSIVE VERSION
-import React, { useEffect } from 'react';
+// src/components/layout/Layout.tsx - Enhanced Typography Version
+import React, { useEffect, useState } from 'react';
+import { ChevronUp } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -10,6 +11,17 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     const { ui } = useAppStore();
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    // Handle scroll visibility for FAB
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowScrollTop(window.scrollY > 400);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     // Handle responsive behavior
     useEffect(() => {
@@ -26,9 +38,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, [ui.sidebarOpen]);
 
+    const getMainContentMargin = () => {
+        if (typeof window === 'undefined') return 'ml-0';
+
+        if (window.innerWidth >= 1024) {
+            return ui.sidebarOpen ? 'ml-64' : 'ml-16';
+        }
+        return 'ml-0';
+    };
+
     return (
         <div className="min-h-screen relative overflow-x-hidden">
-            {/* Background */}
+            {/* Enhanced Background */}
             <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" />
 
             {/* Background Grid Pattern */}
@@ -36,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="absolute inset-0 bg-grid dark:bg-grid-dark" />
             </div>
 
-            {/* Background Decorative Elements */}
+            {/* Enhanced Background Decorative Elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-float" />
                 <div className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-bl from-indigo-400/8 to-cyan-400/8 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
@@ -55,22 +76,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className={`
                     min-h-[calc(100vh-4rem)] 
                     transition-all duration-300 ease-out
-                    ${
-                    // Desktop margins based on sidebar state
-                    window.innerWidth >= 1024
-                        ? (ui.sidebarOpen ? 'ml-64' : 'ml-16')
-                        : 'ml-0' // No margin on mobile
-                }
+                    ${getMainContentMargin()}
                 `}>
                     {/* Inner content wrapper */}
                     <div className="p-4 sm:p-6 lg:p-8">
-                        {/* Content area with glass effect */}
+                        {/* Content area with enhanced glass effect */}
                         <div className="relative">
-                            {/* Subtle content background */}
-                            <div className="absolute inset-0 bg-white/20 dark:bg-black/20 rounded-2xl backdrop-blur-sm" />
+                            {/* Enhanced content background with better blur */}
+                            <div className="absolute inset-0 bg-white/30 dark:bg-black/30 rounded-2xl backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg" />
 
-                            {/* Main content */}
-                            <div className="relative z-10">
+                            {/* Main content with enhanced spacing */}
+                            <div className="relative z-10 p-2 sm:p-4 lg:p-6">
                                 {children}
                             </div>
                         </div>
@@ -78,21 +94,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
             </main>
 
-            {/* Scroll to top FAB */}
-            <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="fab fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-                aria-label="Scroll to top"
-            >
-                <svg
-                    className="w-6 h-6 group-hover:scale-110 transition-transform duration-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+            {/* Enhanced Scroll to top FAB with typography */}
+            {showScrollTop && (
+                <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="fab fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group hover:scale-110 animate-fade-in"
+                    aria-label="Scroll to top"
                 >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-            </button>
+                    <ChevronUp className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
+                </button>
+            )}
+
+            {/* Enhanced Loading State Overlay */}
+            {ui.isLoading && (
+                <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 flex items-center space-x-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">Loading...</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

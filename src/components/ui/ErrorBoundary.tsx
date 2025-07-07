@@ -96,11 +96,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                         }`}/>
                                     </div>
                                     <div>
-                                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                                        <h1 className="text-xl font-extrabold text-gradient-static tracking-tight">
                                             Oops! Something went wrong
                                         </h1>
-                                        <p className="text-gray-600 dark:text-gray-400">
-                                            Error ID: {this.state.errorId}
+                                        <p className="text-gray-600 dark:text-gray-400 font-medium tracking-wide">
+                                            Error ID: <span className="font-bold text-gradient-purple">{this.state.errorId}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -110,10 +110,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                             <div className="p-6 space-y-6">
                                 {/* Error Message */}
                                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                                    <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                    <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-wide">
                                         Error Details
                                     </h3>
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 font-mono break-words">
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 font-mono break-words tracking-tight leading-relaxed">
                                         {this.state.error.message}
                                     </p>
                                 </div>
@@ -121,13 +121,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                 {/* Suggestions */}
                                 {suggestions.length > 0 && (
                                     <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                                        <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                                        <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-2 tracking-wide">
                                             💡 Suggested Solutions
                                         </h3>
-                                        <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                                        <ul className="text-sm font-medium text-blue-800 dark:text-blue-200 space-y-1">
                                             {suggestions.map((suggestion, index) => (
-                                                <li key={index} className="flex items-start">
-                                                    <span className="mr-2">•</span>
+                                                <li key={index} className="flex items-start tracking-normal leading-relaxed">
+                                                    <span className="mr-2 font-bold">•</span>
                                                     {suggestion}
                                                 </li>
                                             ))}
@@ -140,7 +140,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                     {canRetry && (
                                         <button
                                             onClick={this.handleRetry}
-                                            className="btn btn-primary btn-md"
+                                            className="btn btn-primary btn-md font-bold tracking-wide"
                                         >
                                             <RefreshCw className="h-4 w-4 mr-2"/>
                                             Try Again
@@ -149,7 +149,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
                                     <button
                                         onClick={this.handleReload}
-                                        className="btn btn-secondary btn-md"
+                                        className="btn btn-secondary btn-md font-bold tracking-wide"
                                     >
                                         <RefreshCw className="h-4 w-4 mr-2"/>
                                         Reload Page
@@ -157,7 +157,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
                                     <button
                                         onClick={this.handleGoHome}
-                                        className="btn btn-secondary btn-md"
+                                        className="btn btn-secondary btn-md font-bold tracking-wide"
                                     >
                                         <Home className="h-4 w-4 mr-2"/>
                                         Go Home
@@ -165,7 +165,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
                                     <button
                                         onClick={this.downloadErrorReport}
-                                        className="btn btn-secondary btn-md"
+                                        className="btn btn-secondary btn-md font-bold tracking-wide"
                                     >
                                         <Download className="h-4 w-4 mr-2"/>
                                         Download Report
@@ -175,7 +175,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                 {/* Advanced Actions */}
                                 <details className="bg-gray-50 dark:bg-gray-800 rounded-lg">
                                     <summary
-                                        className="p-4 cursor-pointer font-medium text-gray-900 dark:text-gray-100">
+                                        className="p-4 cursor-pointer font-bold text-gray-900 dark:text-gray-100 tracking-wide">
                                         <Bug className="h-4 w-4 inline mr-2"/>
                                         Advanced Options
                                     </summary>
@@ -184,7 +184,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                             <button
                                                 id="copy-error-btn"
                                                 onClick={this.copyErrorDetails}
-                                                className="btn btn-sm btn-secondary"
+                                                className="btn btn-sm btn-secondary font-bold tracking-wide"
                                             >
                                                 <Clipboard className="h-3 w-3 mr-1"/>
                                                 Copy Error Details
@@ -194,7 +194,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                                 <button
                                                     onClick={this.reportError}
                                                     disabled={this.state.isReporting || this.state.reportSent}
-                                                    className="btn btn-sm btn-secondary disabled:opacity-50"
+                                                    className="btn btn-sm btn-secondary disabled:opacity-50 font-bold tracking-wide"
                                                 >
                                                     {this.state.isReporting ? (
                                                         <>
@@ -202,7 +202,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                                             Reporting...
                                                         </>
                                                     ) : this.state.reportSent ? (
-                                                        '✓ Reported'
+                                                        <span className="text-gradient-blue">✓ Reported</span>
                                                     ) : (
                                                         <>
                                                             <Bug className="h-3 w-3 mr-1"/>
@@ -214,8 +214,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                         </div>
 
                                         {this.retryCount > 0 && (
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                Retry attempts: {this.retryCount}/{this.maxRetries}
+                                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
+                                                Retry attempts: <span className="font-bold text-gradient-purple">{this.retryCount}</span>/<span className="font-bold text-gradient-blue">{this.maxRetries}</span>
                                             </p>
                                         )}
                                     </div>
