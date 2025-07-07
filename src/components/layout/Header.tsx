@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx - PERFECT POSITIONING FIXED
+// src/components/layout/Header.tsx - MATCHES YOUR CSS SYSTEM
 import React, { useEffect } from 'react';
 import { Briefcase, Menu, Moon, Sun, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -24,7 +24,7 @@ const Header: React.FC = () => {
     };
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 glass-card border-b border-white/10 dark:border-black/10 backdrop-blur-md bg-white/95 dark:bg-gray-900/95">
+        <header className="sticky top-0 z-50 h-16 glass-card border-b border-white/10 dark:border-black/10">
             <div className="h-full px-4 lg:px-6">
                 <div className="flex items-center justify-between h-full">
                     {/* Left Section */}
@@ -32,7 +32,7 @@ const Header: React.FC = () => {
                         {/* Mobile Sidebar Toggle */}
                         <button
                             onClick={toggleSidebar}
-                            className="lg:hidden btn btn-secondary p-2 hover:scale-105 transition-transform duration-200"
+                            className="lg:hidden btn btn-secondary btn-sm"
                             aria-label="Toggle sidebar"
                         >
                             {ui.sidebarOpen ? (
@@ -44,11 +44,11 @@ const Header: React.FC = () => {
 
                         {/* Logo and Title */}
                         <div className="flex items-center space-x-3 flex-1">
-                            <div className="glass rounded-xl p-3 bg-gradient-to-br from-primary-500/20 to-secondary-500/20 hover:scale-110 transition-transform duration-300">
-                                <Briefcase className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                            <div className="glass rounded-xl p-3 hover:scale-110 transition-transform duration-300">
+                                <Briefcase className="h-6 w-6 text-gradient" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <h1 className="text-xl font-bold text-gradient bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent truncate">
+                                <h1 className="text-xl font-bold text-gradient truncate">
                                     ApplyTrak
                                 </h1>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block truncate">
@@ -88,9 +88,6 @@ const Header: React.FC = () => {
                                 )}
                             </div>
 
-                            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/0 to-blue-400/0 group-hover:from-yellow-400/20 group-hover:to-blue-400/20 transition-all duration-300 rounded-xl"></div>
-                            <div className="absolute inset-0 bg-white/20 dark:bg-black/20 rounded-xl scale-0 group-active:scale-100 transition-transform duration-200"></div>
-
                             <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full transition-all duration-300 ${
                                 ui.theme === 'dark'
                                     ? 'bg-yellow-400 shadow-yellow-400/50'
@@ -120,11 +117,6 @@ const Header: React.FC = () => {
                         <span>{useAppStore.getState().filteredApplications.length} Showing</span>
                     </div>
                 </div>
-
-                {/* Loading Progress */}
-                {ui.isLoading && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-400 to-secondary-400 animate-pulse"></div>
-                )}
             </div>
         </header>
     );

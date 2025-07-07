@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx - PERFECT ALIGNMENT FIXED
+// src/components/layout/Sidebar.tsx - MATCHES YOUR CSS SYSTEM
 import React from 'react';
 import { BarChart3, Briefcase, Target, TrendingUp, ChevronRight, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -35,27 +35,24 @@ const Sidebar: React.FC = () => {
             {/* Mobile Overlay */}
             {ui.sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/60 z-40 lg:hidden"
                     onClick={toggleSidebar}
                 />
             )}
 
-            {/* Sidebar - PERFECTLY ALIGNED */}
+            {/* Sidebar */}
             <aside className={`
                 fixed top-16 left-0 z-50 h-[calc(100vh-4rem)]
-                bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
-                border-r border-gray-200/50 dark:border-gray-700/50
-                transition-all duration-300 ease-in-out
-                shadow-xl
+                glass-card border-r border-gray-200/50 dark:border-gray-700/50
+                sidebar-transition
                 ${ui.sidebarOpen
                 ? 'w-80 translate-x-0'
                 : 'w-80 -translate-x-full'
             }
-                lg:relative lg:top-0 lg:h-[calc(100vh-4rem)] lg:translate-x-0
                 lg:${ui.sidebarOpen ? 'w-64' : 'w-16'}
-                lg:shadow-lg
+                lg:translate-x-0
             `}>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full sidebar-content">
                     {/* Mobile Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50 lg:hidden">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -63,10 +60,10 @@ const Sidebar: React.FC = () => {
                         </h2>
                         <button
                             onClick={toggleSidebar}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            className="btn btn-secondary btn-sm"
                             aria-label="Close sidebar"
                         >
-                            <X className="h-5 w-5 text-gray-500" />
+                            <X className="h-4 w-4" />
                         </button>
                     </div>
 
@@ -80,7 +77,7 @@ const Sidebar: React.FC = () => {
                             )}
                             <button
                                 onClick={toggleSidebar}
-                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="btn btn-secondary btn-sm"
                                 aria-label="Toggle sidebar"
                             >
                                 <ChevronRight
@@ -103,14 +100,14 @@ const Sidebar: React.FC = () => {
                                     key={item.id}
                                     onClick={() => handleNavClick(item.id)}
                                     className={`
-                                        w-full flex items-center rounded-lg transition-all duration-200
+                                        w-full flex items-center rounded-lg transition-all duration-200 interactive
                                         ${ui.sidebarOpen
                                         ? 'px-4 py-3 space-x-3'
                                         : 'p-3 justify-center'
                                     }
                                         ${isActive
-                                        ? 'bg-primary-600 text-white shadow-lg'
-                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                        ? 'btn-primary'
+                                        : 'btn-secondary hover:bg-gray-100 dark:hover:bg-gray-800'
                                     }
                                     `}
                                     title={!ui.sidebarOpen ? item.label : undefined}
@@ -124,7 +121,7 @@ const Sidebar: React.FC = () => {
                                                     {item.label}
                                                 </div>
                                                 <div className={`text-xs ${
-                                                    isActive ? 'text-primary-100' : 'text-gray-500 dark:text-gray-400'
+                                                    isActive ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
                                                 }`}>
                                                     {item.description}
                                                 </div>
@@ -151,7 +148,7 @@ const Sidebar: React.FC = () => {
                     {/* Goal Progress Section */}
                     {ui.sidebarOpen && (
                         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200/30 dark:border-blue-700/30">
+                            <div className="glass rounded-lg p-4 border border-blue-200/30 dark:border-blue-700/30">
                                 <div className="flex items-center space-x-2 mb-3">
                                     <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -168,9 +165,9 @@ const Sidebar: React.FC = () => {
                                                 {progress.totalProgress}%
                                             </span>
                                         </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div className="progress-container">
                                             <div
-                                                className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-500"
+                                                className="progress-bar"
                                                 style={{ width: `${progress.totalProgress}%` }}
                                             />
                                         </div>
@@ -187,9 +184,9 @@ const Sidebar: React.FC = () => {
                                                 {progress.weeklyProgress}%
                                             </span>
                                         </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                        <div className="progress-container">
                                             <div
-                                                className="bg-gradient-to-r from-blue-500 to-cyan-600 h-2 rounded-full transition-all duration-500"
+                                                className="progress-bar"
                                                 style={{ width: `${progress.weeklyProgress}%` }}
                                             />
                                         </div>
@@ -221,9 +218,9 @@ const Sidebar: React.FC = () => {
                                         {progress.totalApplications}
                                     </span>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                                <div className="progress-container h-1">
                                     <div
-                                        className="bg-gradient-to-r from-green-500 to-emerald-600 h-1 rounded-full transition-all duration-500"
+                                        className="progress-bar h-1"
                                         style={{ width: `${progress.totalProgress}%` }}
                                     />
                                 </div>
