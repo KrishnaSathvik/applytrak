@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx - CLEAN REWRITE
+// src/components/layout/Sidebar.tsx - PERFECT ALIGNMENT FIXED
 import React from 'react';
 import { BarChart3, Briefcase, Target, TrendingUp, ChevronRight, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -25,7 +25,6 @@ const Sidebar: React.FC = () => {
 
     const handleNavClick = (itemId: 'tracker' | 'analytics') => {
         setSelectedTab(itemId);
-        // Close sidebar on mobile after selection
         if (typeof window !== 'undefined' && window.innerWidth < 1024) {
             toggleSidebar();
         }
@@ -41,7 +40,7 @@ const Sidebar: React.FC = () => {
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Sidebar - PERFECTLY ALIGNED */}
             <aside className={`
                 fixed top-16 left-0 z-50 h-[calc(100vh-4rem)]
                 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
@@ -52,7 +51,7 @@ const Sidebar: React.FC = () => {
                 ? 'w-80 translate-x-0'
                 : 'w-80 -translate-x-full'
             }
-                lg:relative lg:top-0 lg:h-auto lg:translate-x-0
+                lg:relative lg:top-0 lg:h-[calc(100vh-4rem)] lg:translate-x-0
                 lg:${ui.sidebarOpen ? 'w-64' : 'w-16'}
                 lg:shadow-lg
             `}>
@@ -60,7 +59,7 @@ const Sidebar: React.FC = () => {
                     {/* Mobile Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50 lg:hidden">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                            Job Tracker
+                            Navigation
                         </h2>
                         <button
                             onClick={toggleSidebar}
@@ -213,7 +212,7 @@ const Sidebar: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Collapsed State Progress Indicator (Desktop only) */}
+                    {/* Collapsed State Progress Indicator */}
                     {!ui.sidebarOpen && (
                         <div className="hidden lg:block p-2 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div className="flex flex-col items-center space-y-2">
