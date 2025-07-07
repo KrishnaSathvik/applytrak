@@ -1,0 +1,617 @@
+/* desktop.css - Desktop enhancement styles */
+
+/* Desktop: Enhanced breakpoints and features */
+@media (min-width: 768px) {
+    @layer base {
+        html {
+            /* Desktop: Larger base font for better readability */
+            font-size: 14px;
+        }
+
+        body {
+            /* Desktop: More complex gradient for visual appeal */
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #e0e7ff 100%);
+            /* Desktop: Enable smooth scrolling effects */
+            scroll-behavior: smooth;
+        }
+
+        html.dark body,
+        body.dark {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e1b4b 100%);
+        }
+
+        /* Desktop: Enhanced scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a67d8;
+        }
+
+        /* Desktop: More precise focus states */
+        *:focus-visible {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+    }
+
+    @layer components {
+        /* Desktop: Enhanced glass effects */
+        .glass-card {
+            padding: 24px; /* Desktop: Larger padding */
+            border-radius: 16px; /* Desktop: Larger radius */
+            backdrop-filter: blur(10px); /* Desktop: Add blur effect */
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .glass-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Desktop: Enhanced status badges with hover effects */
+        .status-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Desktop: Enhanced form elements */
+        .form-input, .form-select, .form-textarea {
+            font-size: 14px; /* Desktop: Smaller, denser text */
+            border-width: 1px; /* Desktop: Thinner borders */
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            box-shadow: 0 0 0 3px rgba(103, 126, 234, 0.1);
+        }
+
+        .form-label {
+            font-size: 14px;
+        }
+
+        /* Desktop: Enhanced buttons with hover effects */
+        .btn {
+            font-size: 14px; /* Desktop: Smaller text */
+            padding: 12px 20px; /* Desktop: Standard padding */
+            min-height: auto; /* Desktop: Remove mobile constraints */
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a67d8, #6a4190);
+            box-shadow: 0 4px 12px rgba(103, 126, 234, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        body.dark .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-outline:hover {
+            background: currentColor;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 12px;
+            min-height: auto;
+        }
+
+        .btn-lg {
+            padding: 16px 24px;
+            font-size: 16px;
+        }
+
+        /* DESKTOP: Traditional table layout */
+        .table thead {
+            display: table-header-group; /* Desktop: Show table headers */
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .table thead th {
+            padding: 16px 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Desktop: Traditional table rows */
+        .table tbody tr {
+            display: table-row; /* Desktop: Traditional table layout */
+            border: none;
+            border-radius: 0;
+            margin-bottom: 0;
+            padding: 0;
+            background: transparent;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(103, 126, 234, 0.05);
+        }
+
+        /* Desktop: Traditional table cells */
+        .table tbody td {
+            display: table-cell;
+            text-align: left;
+            border: none;
+            border-bottom: 1px solid rgba(203, 213, 225, 0.5);
+            padding: 12px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        body.dark .table tbody td {
+            border-bottom-color: rgba(51, 65, 85, 0.5);
+        }
+
+        /* Desktop: Remove mobile card styling */
+        .table tbody td::before {
+            display: none;
+        }
+
+        /* Desktop: Fixed width table implementation */
+        .table {
+            table-layout: fixed;
+        }
+
+        /* Desktop: Enhanced cards */
+        .card {
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            margin: -24px -24px 24px -24px;
+        }
+
+        /* Desktop: Enhanced modal */
+        .modal-overlay {
+            align-items: center; /* Desktop: Center modal */
+            padding: 20px;
+        }
+
+        .modal-content {
+            border-radius: 16px; /* Desktop: Round all corners */
+            max-width: 800px;
+            width: auto; /* Desktop: Auto width */
+            animation: scaleInDesktop 0.3s ease-out; /* Desktop: Scale animation */
+        }
+
+        /* Desktop: Enhanced toast positioning */
+        .toast {
+            width: auto;
+            max-width: 384px;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        /* Desktop: Enhanced pagination */
+        .pagination-centered {
+            flex-direction: row; /* Desktop: Horizontal layout */
+            justify-content: space-between;
+            padding: 24px;
+        }
+
+        .pagination-controls {
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            order: 1; /* Desktop: Info on left */
+        }
+
+        /* Desktop: Enhanced FAB with hover effects */
+        .fab:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(103, 126, 234, 0.4);
+        }
+
+        .fab:active {
+            transform: translateY(0) scale(0.95);
+        }
+
+        /* Desktop: Show optional columns */
+        .mobile-only {
+            display: none;
+        }
+
+        .desktop-only {
+            display: block;
+        }
+
+        /* Desktop: Action buttons in line */
+        .mobile-action-row {
+            display: none; /* Desktop: Hide mobile action row */
+        }
+
+        /* Desktop: Enhanced search */
+        .mobile-search-container {
+            margin-bottom: 24px;
+        }
+
+        .mobile-search-input {
+            padding: 12px 16px 12px 48px;
+            font-size: 14px;
+            border-radius: 8px;
+            border-width: 1px;
+        }
+
+        .mobile-search-input:focus {
+            box-shadow: 0 0 0 3px rgba(103, 126, 234, 0.1);
+        }
+
+        /* Desktop: Enhanced status tabs */
+        .mobile-status-tabs {
+            margin-bottom: 24px;
+            max-width: 400px;
+        }
+
+        .mobile-status-tab {
+            font-size: 14px;
+        }
+
+        /* Desktop: Show hidden columns */
+        .optional-column,
+        .salary-column,
+        .lg-hidden,
+        .xl-hidden {
+            display: table-cell !important;
+        }
+
+        /* Desktop: Enhanced utilities */
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        /* Desktop: Theme toggle enhancement */
+        .theme-toggle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: conic-gradient(from 0deg, transparent, rgba(103, 126, 234, 0.3), transparent);
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .theme-toggle:hover::before {
+            opacity: 1;
+            animation: rotate 2s linear infinite;
+        }
+
+        /* Desktop: Interactive elements enhancement */
+        .interactive:hover {
+            transform: translateY(-1px);
+        }
+
+        .interactive:active {
+            transform: translateY(0);
+        }
+
+        /* Desktop: Sidebar transitions */
+        .sidebar-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Desktop: Better spacing */
+        .mobile-spacing-xs { margin: 8px 0; }
+        .mobile-spacing-sm { margin: 16px 0; }
+        .mobile-spacing-md { margin: 24px 0; }
+        .mobile-spacing-lg { margin: 32px 0; }
+        .mobile-spacing-xl { margin: 48px 0; }
+
+        .mobile-padding-xs { padding: 8px; }
+        .mobile-padding-sm { padding: 16px; }
+        .mobile-padding-md { padding: 24px; }
+        .mobile-padding-lg { padding: 32px; }
+        .mobile-padding-xl { padding: 48px; }
+    }
+
+    @layer utilities {
+        /* Desktop: Enhanced animations */
+        .animate-fade-in {
+            animation: fadeInDesktop 0.2s ease-out;
+        }
+
+        .animate-slide-in {
+            animation: slideInDesktop 0.3s ease-out;
+        }
+
+        /* Desktop: Enhanced background utilities */
+        .bg-grid {
+            background-image:
+                    linear-gradient(rgba(103, 126, 234, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(103, 126, 234, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .bg-grid-dark {
+            background-image:
+                    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* Desktop: GPU acceleration for smooth animations */
+        .gpu-accelerated {
+            transform: translateZ(0);
+            will-change: transform;
+        }
+    }
+
+    /* Desktop: Enhanced keyframes */
+    @keyframes fadeInDesktop {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideInDesktop {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes scaleInDesktop {
+        from {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+        }
+        50% {
+            transform: translateY(-10px) rotate(1deg);
+        }
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+}
+
+/* Large Desktop: Further enhancements */
+@media (min-width: 1024px) {
+    @layer components {
+        /* Large desktop: Show all columns */
+        .lg-hidden {
+            display: table-cell !important;
+        }
+
+        /* Large desktop: Enhanced spacing */
+        .glass-card {
+            padding: 32px;
+        }
+
+        .card {
+            padding: 32px;
+        }
+
+        .modal-content {
+            max-width: 1000px;
+        }
+
+        /* Large desktop: Enhanced table */
+        .table thead th {
+            padding: 20px 16px;
+            font-size: 13px;
+        }
+
+        .table tbody td {
+            padding: 16px;
+            font-size: 15px;
+        }
+    }
+}
+
+/* Extra Large Desktop: Maximum enhancements */
+@media (min-width: 1280px) {
+    @layer components {
+        /* XL desktop: Show all columns including extras */
+        .xl-hidden {
+            display: table-cell !important;
+        }
+
+        /* XL desktop: Maximum spacing and sizing */
+        .glass-card {
+            padding: 40px;
+        }
+
+        .card {
+            padding: 40px;
+        }
+
+        .modal-content {
+            max-width: 1200px;
+        }
+    }
+}
+
+/* Desktop: High resolution display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+    .icon {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+
+    /* High DPI: Enhance shadows and borders */
+    .glass-card {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Desktop: Mouse/trackpad specific enhancements */
+@media (hover: hover) and (pointer: fine) {
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+
+    .interactive:hover {
+        transform: translateY(-1px);
+    }
+
+    .status-badge:hover {
+        transform: translateY(-1px);
+    }
+
+    /* Desktop: Enhanced hover states for links */
+    a:hover {
+        transition: color 0.2s ease;
+    }
+
+    /* Desktop: Enhanced hover for form elements */
+    .form-input:hover,
+    .form-select:hover,
+    .form-textarea:hover {
+        border-color: #9ca3af;
+    }
+}
+
+/* Desktop: Print optimizations */
+@media print {
+    .desktop-only {
+        display: block !important;
+    }
+
+    .mobile-only {
+        display: none !important;
+    }
+
+    /* Desktop: Table print layout */
+    .table {
+        table-layout: auto;
+    }
+
+    .table thead {
+        display: table-header-group;
+    }
+
+    .table tbody tr {
+        display: table-row;
+        break-inside: avoid;
+    }
+
+    .table tbody td {
+        display: table-cell;
+        padding: 8px;
+        font-size: 12px;
+        border: 1px solid #000;
+    }
+
+    /* Desktop: Print page breaks */
+    .glass-card,
+    .card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* Desktop: Remove interactive elements for print */
+    .btn,
+    .fab,
+    .interactive {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Desktop: Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .gpu-accelerated {
+        will-change: auto;
+    }
+
+    .animate-float {
+        animation: none;
+    }
+
+    .theme-toggle:hover::before {
+        animation: none;
+    }
+}
+
+/* Desktop: Performance optimizations */
+.table tbody tr {
+    contain: layout style;
+}
+
+.table-container {
+    contain: layout;
+}
+
+/* Desktop: Smooth scrolling for large content */
+.modal-content {
+    scroll-behavior: smooth;
+}
+
+/* Desktop: Enhanced focus management */
+.modal-overlay:focus-within .modal-content {
+    outline: 2px solid #667eea;
+    outline-offset: 4px;
+}

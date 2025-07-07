@@ -24,9 +24,9 @@ const Header: React.FC = () => {
     };
 
     return (
-        <header className="sticky top-0 z-50 h-16 glass-card border-b border-white/10 dark:border-black/10">
-            <div className="h-full px-4 lg:px-6">
-                <div className="flex items-center justify-between h-full">
+        <header className="sticky top-0 z-50 h-16 glass-card border-b border-white/10 dark:border-black/10 w-full">
+            <div className="h-full px-4 lg:px-6 w-full">
+                <div className="flex items-center justify-between h-full w-full">
                     {/* Left Section */}
                     <div className="flex items-center space-x-4 flex-1">
                         {/* Mobile Sidebar Toggle */}
