@@ -1,4 +1,4 @@
-// src/components/forms/ApplicationForm.tsx - COMPLETELY FIXED NO DOUBLE HEADERS
+// src/components/forms/ApplicationForm.tsx - MOBILE RESPONSIVE FIXED
 import React, { useState, useCallback } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -37,7 +37,6 @@ const ApplicationForm: React.FC = () => {
 
     const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
         try {
-            // FIXED: Add the missing status field and clean up data
             await addApplication({
                 company: data.company,
                 position: data.position,
@@ -158,31 +157,28 @@ const ApplicationForm: React.FC = () => {
 
     return (
         <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
-            {/* FIXED: Single header with enhanced design */}
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="glass rounded-xl p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20">
-                        <Plus className="h-6 w-6 text-green-600 dark:text-green-400" />
+            {/* Header - MOBILE RESPONSIVE */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+                <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
+                        <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-gradient flex items-center gap-2">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gradient flex items-center gap-2">
                             Add New Application
-                            <Sparkles className="h-5 w-5 text-yellow-500" />
+                            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">
-                            Fill out the details for your new job application
+                            <span className="hidden sm:inline">Fill out the details for your new job application</span>
+                            <span className="sm:hidden">Add job application details</span>
                         </p>
                     </div>
                 </div>
-
-                {/* Quick Stats */}
-                <div className="hidden md:flex items-center gap-3 text-sm">
-                </div>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-                {/* Row 1: Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
+                {/* Row 1: Basic Information - MOBILE STACK */}
+                <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
                     <div className="space-y-2">
                         <label className="form-label text-gray-700 dark:text-gray-300 font-semibold">
                             Company *
@@ -190,7 +186,7 @@ const ApplicationForm: React.FC = () => {
                         <input
                             type="text"
                             {...register('company')}
-                            className={`form-input transition-all duration-300 ${
+                            className={`form-input h-12 sm:h-auto text-base transition-all duration-300 ${
                                 errors.company
                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                                     : 'focus:border-green-500 focus:ring-green-500/20'
@@ -212,7 +208,7 @@ const ApplicationForm: React.FC = () => {
                         <input
                             type="text"
                             {...register('position')}
-                            className={`form-input transition-all duration-300 ${
+                            className={`form-input h-12 sm:h-auto text-base transition-all duration-300 ${
                                 errors.position
                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                                     : 'focus:border-blue-500 focus:ring-blue-500/20'
@@ -227,14 +223,14 @@ const ApplicationForm: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                         <label className="form-label text-gray-700 dark:text-gray-300 font-semibold">
                             Date Applied *
                         </label>
                         <input
                             type="date"
                             {...register('dateApplied')}
-                            className={`form-input transition-all duration-300 ${
+                            className={`form-input h-12 sm:h-auto text-base transition-all duration-300 ${
                                 errors.dateApplied
                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                                     : 'focus:border-purple-500 focus:ring-purple-500/20'
@@ -249,15 +245,15 @@ const ApplicationForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Row 2: Job Details with Enhanced Design */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {/* Row 2: Job Details - MOBILE RESPONSIVE GRID */}
+                <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
                     <div className="space-y-2">
                         <label className="form-label text-gray-700 dark:text-gray-300 font-semibold">
                             Job Type *
                         </label>
                         <select
                             {...register('type')}
-                            className={`form-input transition-all duration-300 ${
+                            className={`form-input h-12 sm:h-auto text-base transition-all duration-300 ${
                                 errors.type
                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                                     : 'focus:border-indigo-500 focus:ring-indigo-500/20'
@@ -281,7 +277,7 @@ const ApplicationForm: React.FC = () => {
                         <input
                             type="text"
                             {...register('location')}
-                            className="form-input focus:border-teal-500 focus:ring-teal-500/20 transition-all duration-300"
+                            className="form-input h-12 sm:h-auto text-base focus:border-teal-500 focus:ring-teal-500/20 transition-all duration-300"
                             placeholder="e.g. San Francisco, CA"
                         />
                         {errors.location && (
@@ -298,8 +294,9 @@ const ApplicationForm: React.FC = () => {
                         <input
                             type="text"
                             {...register('salary')}
-                            className="form-input focus:border-green-500 focus:ring-green-500/20 transition-all duration-300"
+                            className="form-input h-12 sm:h-auto text-base focus:border-green-500 focus:ring-green-500/20 transition-all duration-300"
                             placeholder="e.g. $120,000/year"
+                            inputMode="numeric"
                         />
                         {errors.salary && (
                             <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
@@ -316,7 +313,7 @@ const ApplicationForm: React.FC = () => {
                             type="text"
                             {...register('jobSource')}
                             list="jobSources"
-                            className="form-input focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
+                            className="form-input h-12 sm:h-auto text-base focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300"
                             placeholder="e.g. LinkedIn"
                         />
                         <datalist id="jobSources">
@@ -336,26 +333,28 @@ const ApplicationForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Row 3: Job URL with Enhanced Design */}
+                {/* Row 3: Job URL - MOBILE RESPONSIVE */}
                 <div className="space-y-2">
                     <label className="form-label text-gray-700 dark:text-gray-300 font-semibold">
                         Job Posting URL
                     </label>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <input
                             type="url"
                             {...register('jobUrl')}
-                            className="form-input flex-1 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300"
+                            className="form-input h-12 sm:h-auto text-base flex-1 focus:border-purple-500 focus:ring-purple-500/20 transition-all duration-300"
                             placeholder="https://company.com/jobs/position"
+                            inputMode="url"
                         />
                         {jobUrl && jobUrl.trim() !== '' && (
                             <button
                                 type="button"
                                 onClick={() => window.open(jobUrl, '_blank')}
-                                className="btn btn-secondary px-4 hover:scale-105 transition-all duration-200"
+                                className="btn btn-secondary w-full sm:w-auto h-12 sm:h-auto px-4 hover:scale-105 transition-all duration-200"
                                 title="Open job posting"
                             >
-                                <ExternalLink className="h-4 w-4" />
+                                <ExternalLink className="h-4 w-4 mr-2 sm:mr-0" />
+                                <span className="sm:hidden">Open Link</span>
                             </button>
                         )}
                     </div>
@@ -366,7 +365,7 @@ const ApplicationForm: React.FC = () => {
                     )}
                 </div>
 
-                {/* Row 4: Notes with Enhanced Design */}
+                {/* Row 4: Notes - MOBILE OPTIMIZED */}
                 <div className="space-y-2">
                     <label className="form-label text-gray-700 dark:text-gray-300 font-semibold">
                         Notes
@@ -374,7 +373,7 @@ const ApplicationForm: React.FC = () => {
                     <textarea
                         {...register('notes')}
                         rows={4}
-                        className="form-input focus:border-indigo-500 focus:ring-indigo-500/20 transition-all duration-300 resize-none"
+                        className="form-input text-base focus:border-indigo-500 focus:ring-indigo-500/20 transition-all duration-300 resize-none"
                         placeholder="Add any additional notes about this application..."
                     />
                     {errors.notes && (
@@ -384,27 +383,27 @@ const ApplicationForm: React.FC = () => {
                     )}
                 </div>
 
-                {/* Row 5: Enhanced Attachments */}
+                {/* Row 5: Attachments - MOBILE RESPONSIVE */}
                 <div className="space-y-4">
                     <label className="form-label text-gray-700 dark:text-gray-300 font-semibold">
                         Attachments
                     </label>
 
-                    {/* Existing attachments with enhanced design */}
+                    {/* Existing attachments - MOBILE STACK */}
                     {attachments.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-4 mb-4">
                             {attachments.map((attachment, index) => (
                                 <div
                                     key={attachment.id || index}
                                     className="glass rounded-xl p-4 hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 group"
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="glass rounded-lg p-2">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="glass rounded-lg p-2 flex-shrink-0">
                                                 <Upload className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                                                     {attachment.name}
                                                 </p>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -415,7 +414,7 @@ const ApplicationForm: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => removeAttachment(index)}
-                                            className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:scale-110 transition-all duration-200 p-1"
+                                            className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:scale-110 transition-all duration-200 p-2 flex-shrink-0"
                                             title="Remove attachment"
                                         >
                                             <X className="h-4 w-4" />
@@ -426,9 +425,9 @@ const ApplicationForm: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Enhanced Drop zone */}
+                    {/* Drop zone - MOBILE OPTIMIZED */}
                     <div
-                        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                        className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all duration-300 ${
                             isDragOver
                                 ? 'border-primary-500 bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 scale-105'
                                 : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 dark:hover:from-gray-800/50 dark:hover:to-blue-900/20'
@@ -437,18 +436,18 @@ const ApplicationForm: React.FC = () => {
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                     >
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                             <div className="flex justify-center">
-                                <div className="glass rounded-full p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                                    <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                                <div className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
                                 </div>
                             </div>
 
                             <div>
-                                <p className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                                    Drop files here, or{' '}
+                                <p className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                                    <span className="hidden sm:inline">Drop files here, or </span>
                                     <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-semibold underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200">
-                                        browse
+                                        <span className="sm:hidden">Tap to </span>browse
                                         <input
                                             type="file"
                                             multiple
@@ -458,30 +457,33 @@ const ApplicationForm: React.FC = () => {
                                         />
                                     </label>
                                 </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Supports PDF, DOC, DOCX, TXT, JPG, PNG (max 10MB each)
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                    <span className="hidden sm:inline">Supports PDF, DOC, DOCX, TXT, JPG, PNG (max 10MB each)</span>
+                                    <span className="sm:hidden">PDF, DOC, JPG, PNG • Max 10MB</span>
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Enhanced Submit Button */}
-                <div className="flex justify-end pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                {/* Submit Button - MOBILE RESPONSIVE */}
+                <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="btn btn-primary btn-lg group relative overflow-hidden"
+                        className="btn btn-primary w-full sm:w-auto h-12 sm:h-auto group relative overflow-hidden"
                     >
                         {isSubmitting ? (
                             <>
                                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                Adding Application...
+                                <span className="hidden sm:inline">Adding Application...</span>
+                                <span className="sm:hidden">Adding...</span>
                             </>
                         ) : (
                             <>
                                 <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
-                                Add Application
+                                <span className="hidden sm:inline">Add Application</span>
+                                <span className="sm:hidden">Add Application</span>
                                 <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300" />
                             </>
                         )}
