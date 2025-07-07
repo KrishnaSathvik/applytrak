@@ -24,13 +24,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Header />
 
             {/* Main Layout Container - NO GAPS */}
-            <div className="flex pt-16">
+            <div className="flex">
                 {/* Sidebar - Perfectly aligned */}
                 <Sidebar />
 
                 {/* Main Content Area - Seamless connection */}
                 <main className={`
-                    flex-1 min-h-[calc(100vh-4rem)]
+                    flex-1 min-h-screen
                     transition-all duration-300 ease-out
                     ${ui.sidebarOpen
                     ? 'lg:ml-0'
