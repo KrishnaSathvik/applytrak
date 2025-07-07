@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx - ENHANCED TYPOGRAPHY VERSION
+// src/components/layout/Header.tsx - FIXED MOBILE VERSION
 import React, { useEffect } from 'react';
 import { Briefcase, Menu, Moon, Sun, X, Zap, TrendingUp } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -49,19 +49,19 @@ const Header: React.FC = () => {
                         </button>
 
                         {/* Logo and Title - Enhanced */}
-                        <div className="flex items-center space-x-4 flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
                             {/* Enhanced Logo */}
                             <div className="relative">
-                                <div className="p-3 rounded-2xl bg-gradient-to-br from-primary-500 via-secondary-500 to-primary-600 shadow-lg shadow-primary-500/25 group-hover:shadow-xl group-hover:shadow-primary-500/30 transition-all duration-300 group">
-                                    <Briefcase className="h-7 w-7 text-white group-hover:scale-110 transition-transform duration-300" />
+                                <div className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-500 via-secondary-500 to-primary-600 shadow-lg shadow-primary-500/25 group-hover:shadow-xl group-hover:shadow-primary-500/30 transition-all duration-300 group">
+                                    <Briefcase className="h-5 w-5 sm:h-7 sm:w-7 text-white group-hover:scale-110 transition-transform duration-300" />
                                 </div>
                                 {/* Pulse indicator */}
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                                <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
                             </div>
 
                             {/* Enhanced Title Section */}
                             <div className="min-w-0 flex-1">
-                                <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-gradient-static tracking-tight">
+                                <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-gradient-static tracking-tight">
                                     ApplyTrak
                                 </h1>
                                 <p className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400 hidden sm:block truncate leading-tight">
@@ -123,23 +123,21 @@ const Header: React.FC = () => {
                     </div>
 
                     {/* Right Section - Enhanced */}
-                    <div className="flex items-center space-x-4">
-                        {/* Application Stats - Desktop (Hidden on XL+ due to center stats) */}
-                        <div className="hidden sm:flex xl:hidden items-center space-x-3 text-sm">
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                        {/* Application Stats - Tablet/Small Desktop Only */}
+                        <div className="hidden md:flex xl:hidden items-center space-x-3 text-sm">
                             <div className="flex items-center space-x-2.5 px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
                                 <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50"></div>
                                 <span className="font-bold text-green-700 dark:text-green-300">
-                                    <span className="hidden lg:inline font-extrabold text-gradient-blue">{applications.length}</span>
-                                    <span className="lg:hidden font-extrabold text-gradient-blue">{applications.length}</span>
-                                    <span className="hidden lg:inline text-xs font-bold uppercase tracking-wider ml-1">Apps</span>
+                                    <span className="font-extrabold text-gradient-blue">{applications.length}</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider ml-1">Apps</span>
                                 </span>
                             </div>
                             <div className="flex items-center space-x-2.5 px-3 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
                                 <div className="w-2.5 h-2.5 bg-blue-500 rounded-full shadow-sm shadow-blue-500/50"></div>
                                 <span className="font-bold text-blue-700 dark:text-blue-300">
-                                    <span className="hidden lg:inline font-extrabold text-gradient-purple">{filteredApplications.length}</span>
-                                    <span className="lg:hidden font-extrabold text-gradient-purple">{filteredApplications.length}</span>
-                                    <span className="hidden lg:inline text-xs font-bold uppercase tracking-wider ml-1">Shown</span>
+                                    <span className="font-extrabold text-gradient-purple">{filteredApplications.length}</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider ml-1">Shown</span>
                                 </span>
                             </div>
                         </div>
@@ -147,26 +145,26 @@ const Header: React.FC = () => {
                         {/* Enhanced Theme Toggle */}
                         <button
                             onClick={handleThemeToggle}
-                            className="relative p-3.5 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-300 group shadow-lg hover:shadow-xl"
+                            className="relative p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-300 group shadow-lg hover:shadow-xl"
                             aria-label={`Switch to ${ui.theme === 'dark' ? 'light' : 'dark'} mode`}
                         >
                             <div className="relative z-10 flex items-center justify-center">
                                 {ui.theme === 'dark' ? (
-                                    <Sun className="h-5 w-5 text-yellow-500 group-hover:rotate-180 group-hover:scale-110 transition-transform duration-500 drop-shadow-sm" />
+                                    <Sun className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 group-hover:rotate-180 group-hover:scale-110 transition-transform duration-500 drop-shadow-sm" />
                                 ) : (
-                                    <Moon className="h-5 w-5 text-blue-600 group-hover:-rotate-12 group-hover:scale-110 transition-transform duration-500 drop-shadow-sm" />
+                                    <Moon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 group-hover:-rotate-12 group-hover:scale-110 transition-transform duration-500 drop-shadow-sm" />
                                 )}
                             </div>
 
                             {/* Enhanced Status indicator */}
-                            <div className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full transition-all duration-300 ${
+                            <div className={`absolute -top-1 -right-1 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full transition-all duration-300 ${
                                 ui.theme === 'dark'
                                     ? 'bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-400/50'
                                     : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/50'
                             }`}></div>
 
                             {/* Hover glow effect */}
-                            <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                            <div className={`absolute inset-0 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
                                 ui.theme === 'dark'
                                     ? 'bg-gradient-to-br from-yellow-400/10 to-orange-500/10'
                                     : 'bg-gradient-to-br from-blue-500/10 to-indigo-600/10'
@@ -190,36 +188,6 @@ const Header: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Enhanced Mobile App Stats - Below main header */}
-                <div className="flex sm:hidden items-center justify-center space-x-3 pb-3 pt-2">
-                    <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-sm shadow-green-500/50"></div>
-                        <Briefcase className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                        <span className="font-bold text-green-700 dark:text-green-300 text-sm">
-                            <span className="font-extrabold text-gradient-blue">{applications.length}</span>
-                            <span className="text-xs font-bold uppercase tracking-wider ml-1">Apps</span>
-                        </span>
-                    </div>
-                    <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full shadow-sm shadow-blue-500/50"></div>
-                        <Zap className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                        <span className="font-bold text-blue-700 dark:text-blue-300 text-sm">
-                            <span className="font-extrabold text-gradient-purple">{filteredApplications.length}</span>
-                            <span className="text-xs font-bold uppercase tracking-wider ml-1">Shown</span>
-                        </span>
-                    </div>
-                    {applications.length > 0 && (
-                        <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl border border-purple-200/50 dark:border-purple-800/50 shadow-sm">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full shadow-sm shadow-purple-500/50"></div>
-                            <TrendingUp className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                            <span className="font-bold text-purple-700 dark:text-purple-300 text-sm">
-                                <span className="font-extrabold text-gradient-static">{successRate}</span>
-                                <span className="text-xs font-bold uppercase tracking-wider">%</span>
-                            </span>
-                        </div>
-                    )}
                 </div>
             </div>
         </header>

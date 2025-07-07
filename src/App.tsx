@@ -175,7 +175,7 @@ const TrackerTab: React.FC = () => {
                             </div>
 
                             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-                                <span className="text-2xl animate-spin-slow">🎯</span>s
+                                <span className="text-2xl animate-spin-slow">🎯</span>
                                 <div className="text-left">
                                     <div className="text-lg font-extrabold text-gradient-static">
                                         Smart
