@@ -1,4 +1,4 @@
-// src/components/layout/Sidebar.tsx - MOBILE-OPTIMIZED VERSION
+// src/components/layout/Sidebar.tsx - CLEAN REWRITE
 import React from 'react';
 import { BarChart3, Briefcase, Target, TrendingUp, ChevronRight, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -23,9 +23,17 @@ const Sidebar: React.FC = () => {
         }
     ];
 
+    const handleNavClick = (itemId: 'tracker' | 'analytics') => {
+        setSelectedTab(itemId);
+        // Close sidebar on mobile after selection
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            toggleSidebar();
+        }
+    };
+
     return (
         <>
-            {/* MOBILE: Full-screen overlay */}
+            {/* Mobile Overlay */}
             {ui.sidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
@@ -33,27 +41,23 @@ const Sidebar: React.FC = () => {
                 />
             )}
 
-            {/* MOBILE & DESKTOP: Sidebar */}
+            {/* Sidebar */}
             <aside className={`
-                fixed top-0 left-0 z-50 h-full
+                fixed top-16 left-0 z-50 h-[calc(100vh-4rem)]
                 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
                 border-r border-gray-200/50 dark:border-gray-700/50
                 transition-all duration-300 ease-in-out
-                shadow-xl lg:shadow-lg
-                
-                /* Mobile: Full overlay or hidden */
+                shadow-xl
                 ${ui.sidebarOpen
                 ? 'w-80 translate-x-0'
                 : 'w-80 -translate-x-full'
             }
-                
-                /* Desktop: Fixed sidebar */
-                lg:relative lg:top-0 lg:h-[calc(100vh-4rem)]
+                lg:relative lg:top-0 lg:h-auto lg:translate-x-0
                 lg:${ui.sidebarOpen ? 'w-64' : 'w-16'}
-                lg:translate-x-0
+                lg:shadow-lg
             `}>
                 <div className="flex flex-col h-full">
-                    {/* MOBILE: Header with close button */}
+                    {/* Mobile Header */}
                     <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50 lg:hidden">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                             Job Tracker
@@ -67,9 +71,9 @@ const Sidebar: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* DESKTOP: Header with toggle */}
+                    {/* Desktop Header */}
                     <div className="hidden lg:flex p-4 border-b border-gray-200/50 dark:border-gray-700/50">
-                        <div className={`flex items-center ${ui.sidebarOpen ? 'justify-between' : 'justify-center'}`}>
+                        <div className={`flex items-center w-full ${ui.sidebarOpen ? 'justify-between' : 'justify-center'}`}>
                             {ui.sidebarOpen && (
                                 <h2 className="font-semibold text-gray-900 dark:text-gray-100">
                                     Navigation
@@ -98,16 +102,10 @@ const Sidebar: React.FC = () => {
                             return (
                                 <button
                                     key={item.id}
-                                    onClick={() => {
-                                        setSelectedTab(item.id);
-                                        // Close sidebar on mobile after selection
-                                        if (window.innerWidth < 1024) {
-                                            toggleSidebar();
-                                        }
-                                    }}
+                                    onClick={() => handleNavClick(item.id)}
                                     className={`
                                         w-full flex items-center rounded-lg transition-all duration-200
-                                        ${ui.sidebarOpen || window.innerWidth < 1024
+                                        ${ui.sidebarOpen
                                         ? 'px-4 py-3 space-x-3'
                                         : 'p-3 justify-center'
                                     }
@@ -116,11 +114,11 @@ const Sidebar: React.FC = () => {
                                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                                     }
                                     `}
-                                    title={!ui.sidebarOpen && window.innerWidth >= 1024 ? item.label : undefined}
+                                    title={!ui.sidebarOpen ? item.label : undefined}
                                 >
                                     <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
 
-                                    {(ui.sidebarOpen || window.innerWidth < 1024) && (
+                                    {ui.sidebarOpen && (
                                         <>
                                             <div className="flex-1 text-left">
                                                 <div className={`font-medium ${isActive ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
@@ -152,7 +150,7 @@ const Sidebar: React.FC = () => {
                     </nav>
 
                     {/* Goal Progress Section */}
-                    {(ui.sidebarOpen || window.innerWidth < 1024) && (
+                    {ui.sidebarOpen && (
                         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200/30 dark:border-blue-700/30">
                                 <div className="flex items-center space-x-2 mb-3">
@@ -216,7 +214,7 @@ const Sidebar: React.FC = () => {
                     )}
 
                     {/* Collapsed State Progress Indicator (Desktop only) */}
-                    {!ui.sidebarOpen && window.innerWidth >= 1024 && (
+                    {!ui.sidebarOpen && (
                         <div className="hidden lg:block p-2 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div className="flex flex-col items-center space-y-2">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
