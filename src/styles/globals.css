@@ -339,3 +339,380 @@ input, select, textarea {
 html {
     box-sizing: border-box;
 }
+/* additional-fixes.css - Add these to your globals.css */
+
+/* CRITICAL: Layout and positioning fixes */
+.layout-container {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* FIXED: Header positioning and styling */
+.header-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 4rem; /* 64px */
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+body.dark .header-fixed {
+    background: rgba(17, 24, 39, 0.9);
+    border-bottom-color: rgba(75, 85, 99, 0.5);
+}
+
+/* FIXED: Sidebar positioning and responsive behavior */
+.sidebar-fixed {
+    position: fixed;
+    top: 4rem; /* Below header */
+    left: 0;
+    height: calc(100vh - 4rem);
+    z-index: 500;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+body.dark .sidebar-fixed {
+    background: rgba(17, 24, 39, 0.95);
+    border-right-color: rgba(75, 85, 99, 0.5);
+}
+
+/* Mobile: Sidebar hidden by default */
+@media (max-width: 1023px) {
+    .sidebar-fixed {
+        transform: translateX(-100%);
+        width: 320px;
+    }
+
+    .sidebar-fixed.open {
+        transform: translateX(0);
+    }
+
+    /* Mobile overlay */
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 400;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+}
+
+/* Desktop: Sidebar visible and resizable */
+@media (min-width: 1024px) {
+    .sidebar-fixed {
+        transform: translateX(0);
+    }
+
+    .sidebar-fixed.collapsed {
+        width: 4rem; /* 64px */
+    }
+
+    .sidebar-fixed.expanded {
+        width: 16rem; /* 256px */
+    }
+}
+
+/* FIXED: Main content area margins */
+.main-content {
+    padding-top: 4rem; /* Account for fixed header */
+    min-height: 100vh;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile: No sidebar margin */
+@media (max-width: 1023px) {
+    .main-content {
+        margin-left: 0 !important;
+    }
+}
+
+/* Desktop: Dynamic margins based on sidebar state */
+@media (min-width: 1024px) {
+    .main-content.sidebar-collapsed {
+        margin-left: 4rem; /* 64px */
+    }
+
+    .main-content.sidebar-expanded {
+        margin-left: 16rem; /* 256px */
+    }
+}
+
+/* ENHANCED: Glass effects for components */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+body.dark .glass-effect {
+    background: rgba(17, 24, 39, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ENHANCED: Button styles */
+.btn-modern {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary-modern {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary-modern:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary-modern {
+    background: rgba(243, 244, 246, 0.8);
+    color: #374151;
+    border: 1px solid rgba(209, 213, 219, 0.5);
+}
+
+body.dark .btn-secondary-modern {
+    background: rgba(55, 65, 81, 0.8);
+    color: #d1d5db;
+    border-color: rgba(75, 85, 99, 0.5);
+}
+
+.btn-secondary-modern:hover {
+    background: rgba(229, 231, 235, 0.9);
+    transform: translateY(-1px);
+}
+
+body.dark .btn-secondary-modern:hover {
+    background: rgba(75, 85, 99, 0.9);
+}
+
+/* FIXED: Mobile responsive table */
+@media (max-width: 767px) {
+    /* Force card layout on mobile */
+    .responsive-table .table thead {
+        display: none !important;
+    }
+
+    .responsive-table .table tbody tr {
+        display: block !important;
+        border: 2px solid #e5e7eb;
+        border-radius: 1rem;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    body.dark .responsive-table .table tbody tr {
+        border-color: #374151;
+        background: rgba(31, 41, 55, 0.9);
+    }
+
+    .responsive-table .table tbody td {
+        display: block !important;
+        text-align: left !important;
+        border: none !important;
+        padding: 0.5rem 0 !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+    }
+
+    .responsive-table .table tbody td::before {
+        content: attr(data-label) ': ';
+        font-weight: 600;
+        color: #6b7280;
+        display: inline-block;
+        min-width: 80px;
+        margin-right: 8px;
+    }
+
+    body.dark .responsive-table .table tbody td::before {
+        color: #9ca3af;
+    }
+}
+
+/* ENHANCED: Animation utilities */
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.4s ease-out;
+}
+
+.animate-bounce-subtle {
+    animation: bounceSubtle 2s ease-in-out infinite;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes bounceSubtle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+/* ENHANCED: Status badges */
+.status-badge-modern {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+}
+
+.status-applied-modern {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
+.status-interview-modern {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706;
+    border-color: #fbbf24;
+}
+
+.status-offer-modern {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #059669;
+    border-color: #86efac;
+}
+
+.status-rejected-modern {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+/* PERFORMANCE: Optimize rendering */
+.gpu-optimized {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* ACCESSIBILITY: Focus improvements */
+.focus-ring {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-ring:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+}
+
+/* MOBILE: Touch improvements */
+@media (hover: none) and (pointer: coarse) {
+    .touch-friendly {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Remove hover effects on touch devices */
+    .hover-lift:hover {
+        transform: none !important;
+    }
+}
+
+/* RESPONSIVE: Hide/show elements */
+.mobile-hidden {
+    display: none;
+}
+
+.desktop-hidden {
+    display: block;
+}
+
+@media (min-width: 768px) {
+    .mobile-hidden {
+        display: block;
+    }
+
+    .desktop-hidden {
+        display: none;
+    }
+}
+
+/* SCROLLBAR: Custom styling */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(243, 244, 246, 0.5);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.8);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.9);
+}
+
+body.dark .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(55, 65, 81, 0.5);
+}
+
+body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.6);
+}
+
+body.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.8);
+}

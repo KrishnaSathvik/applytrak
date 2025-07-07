@@ -174,9 +174,10 @@ const TrackerTab: React.FC = () => {
                 <ApplicationForm />
             </React.Suspense>
 
-            {/* Paginated Application Table - MOBILE RESPONSIVE */}
             <React.Suspense fallback={<PaginatedTableLoadingFallback />}>
-                <PaginatedApplicationTable />
+                <div className="responsive-table">
+                    <PaginatedApplicationTable />
+                </div>
             </React.Suspense>
         </div>
     );
