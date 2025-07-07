@@ -1,6 +1,29 @@
 {
-  "name": "job-tracker",
+  "name": "applytrak",
   "version": "0.1.0",
+  "description": "Track your job search journey with ApplyTrak - Analytics, goals, and smart organization",
+  "homepage": "https://applytrak.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KrishnaSathvik/applytrak.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KrishnaSathvik/applytrak/issues"
+  },
+  "keywords": [
+    "job-tracker",
+    "job-application",
+    "career",
+    "react",
+    "typescript",
+    "analytics",
+    "applytrak"
+  ],
+  "author": {
+    "name": "KrishnaSathvik",
+    "url": "https://github.com/KrishnaSathvik"
+  },
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -34,7 +57,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "serve": "serve -s build",
+    "deploy": "npm run build && npx vercel --prod"
   },
   "eslintConfig": {
     "extends": [
@@ -61,5 +86,9 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

@@ -22,7 +22,7 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
 
         // Title
         doc.setFontSize(20);
-        doc.text('Job Application Tracker', 105, 15, {align: 'center'});
+        doc.text('ApplyTrak', 105, 15, {align: 'center'});
 
         // Subtitle
         doc.setFontSize(12);

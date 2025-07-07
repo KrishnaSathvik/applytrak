@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "ApplyTrak",
+  "name": "ApplyTrak - Job Application Tracker",
+  "description": "Track your job search journey with style, analytics, and smart organization",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,94 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#4A5E54",
+  "background_color": "#F5F5F0",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "ApplyTrak Dashboard - Desktop View"
+    },
+    {
+      "src": "screenshot-narrow.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ApplyTrak Mobile View"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Application",
+      "short_name": "Add Job",
+      "description": "Quickly add a new job application",
+      "url": "/?action=add",
+      "icons": [
+        {
+          "src": "shortcut-add.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "View Analytics",
+      "short_name": "Analytics",
+      "description": "View your job search analytics",
+      "url": "/?tab=analytics",
+      "icons": [
+        {
+          "src": "shortcut-analytics.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Set Goals",
+      "short_name": "Goals",
+      "description": "Set and track your application goals",
+      "url": "/?action=goals",
+      "icons": [
+        {
+          "src": "shortcut-goals.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

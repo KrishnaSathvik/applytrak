@@ -54,7 +54,7 @@ const Header: React.FC = () => {
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-gradient bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                                    Job Application Tracker
+                                    ApplyTrak
                                 </h1>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
                                     Manage your career journey with style

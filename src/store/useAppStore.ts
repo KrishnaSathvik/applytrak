@@ -866,7 +866,7 @@ export const useAppStore = create<AppState>()(
                 }
             }),
             {
-                name: 'job-tracker-store',
+                name: 'applytrak-store',
                 partialize: (state) => ({
                     ui: {
                         theme: state.ui.theme,

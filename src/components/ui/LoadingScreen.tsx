@@ -32,7 +32,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 
                     <div className="space-y-2">
                         <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                            Job Application Tracker
+                            ApplyTrak
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
                             {message}

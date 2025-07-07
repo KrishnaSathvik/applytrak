@@ -343,7 +343,7 @@ End of Report`;
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `job-tracker-backup-${formatDate(new Date().toISOString())}.json`;
+            link.download = `applytrak-backup-${formatDate(new Date().toISOString())}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
