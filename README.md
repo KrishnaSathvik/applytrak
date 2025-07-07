@@ -1,8 +1,10 @@
-# 🚀 Job Application Tracker
+# 🚀 ApplyTrak
 
 A modern, feature-rich job application tracking system built with React, TypeScript, and Tailwind CSS. Track your job search journey with style, analytics, and smart organization.
 
-![Job Application Tracker](https://img.shields.io/badge/React-18+-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue) ![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3+-blue) ![IndexedDB](https://img.shields.io/badge/Storage-IndexedDB-green)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-applytrak.com-4A5E54?style=for-the-badge)](https://applytrak.com)
+
+![React](https://img.shields.io/badge/React-19+-61DAFB?logo=react) ![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?logo=typescript) ![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3+-06B6D4?logo=tailwindcss) ![IndexedDB](https://img.shields.io/badge/Storage-IndexedDB-FF6B35)
 
 ## ✨ Features
 
@@ -40,7 +42,7 @@ A modern, feature-rich job application tracking system built with React, TypeScr
 
 | Technology | Purpose | Version |
 |------------|---------|---------|
-| **React** | UI Framework | 18+ |
+| **React** | UI Framework | 19+ |
 | **TypeScript** | Type Safety | 5+ |
 | **Tailwind CSS** | Styling | 3+ |
 | **Zustand** | State Management | Latest |
@@ -59,8 +61,8 @@ A modern, feature-rich job application tracking system built with React, TypeScr
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/job-application-tracker.git
-cd job-application-tracker
+git clone https://github.com/KrishnaSathvik/applytrak.git
+cd applytrak
 
 # Install dependencies
 npm install
@@ -79,6 +81,9 @@ npm run build
 
 # Serve production build locally
 npm run serve
+
+# Deploy to Vercel (optional)
+npm run deploy
 ```
 
 ## 📱 Usage
@@ -106,6 +111,8 @@ npm run serve
 2. **Import**: Upload a JSON file to restore or migrate data
 3. **Backup**: Automatic backups are created hourly
 4. **Recovery**: Access recovery options if data is lost
+
+## 📸 Screenshots
 
 ### Dashboard View
 *Beautiful overview with goal tracking and recent applications*
@@ -137,10 +144,20 @@ Modify colors in `src/styles/globals.css`:
 
 ```css
 :root {
-    --primary-color: #667eea;
-    --secondary-color: #764ba2;
+    --primary-color: #4A5E54;
+    --secondary-color: #E5E5E5;
+    --accent-color: #F5F5F0;
     /* Add your custom colors */
 }
+```
+
+### Environment Variables
+Create a `.env.local` file:
+
+```bash
+REACT_APP_NAME=ApplyTrak
+REACT_APP_DESCRIPTION="Track your job search journey"
+REACT_APP_URL=https://applytrak.com
 ```
 
 ## 📂 Project Structure
@@ -162,6 +179,40 @@ src/
 └── utils/                # Helper functions
 ```
 
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+1. **Fork this repository**
+2. **Connect to Vercel**: [vercel.com/new](https://vercel.com/new)
+3. **Import your repository**
+4. **Add custom domain**: `applytrak.com` (optional)
+5. **Deploy**: Automatic deployments on every push
+
+### Deploy to Netlify
+
+```bash
+# Build the project
+npm run build
+
+# Deploy to Netlify
+npx netlify deploy --prod --dir=build
+```
+
+### Deploy to GitHub Pages
+
+```bash
+# Install gh-pages
+npm install --save-dev gh-pages
+
+# Add to package.json scripts:
+"predeploy": "npm run build",
+"deploy": "gh-pages -d build"
+
+# Deploy
+npm run deploy
+```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
@@ -175,35 +226,68 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
+### Code Style
+- Use TypeScript for all new code
+- Follow existing component patterns
+- Use Tailwind CSS for styling
+- Write meaningful commit messages
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - **Original Inspiration**: Based on a successful vanilla JavaScript job tracker
 - **Design System**: Inspired by modern glassmorphism and neumorphism trends
 - **Icons**: [Lucide React](https://lucide.dev/) for beautiful, consistent icons
 - **Charts**: [Recharts](https://recharts.org/) for responsive data visualization
+- **UI Framework**: [Tailwind CSS](https://tailwindcss.com/) for rapid UI development
 
 ## 📞 Support
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/YOUR_USERNAME/job-tracker/issues) page
-2. Create a new issue with detailed information
-3. Include browser version, steps to reproduce, and screenshots if applicable
+1. **Check the [Issues](https://github.com/KrishnaSathvik/applytrak/issues) page**
+2. **Create a new issue** with detailed information
+3. **Include**: Browser version, steps to reproduce, and screenshots if applicable
+
+For feature requests, please open an issue with the "enhancement" label.
 
 ## 🗺️ Roadmap
 
-### Upcoming Features
-- [ ] **Backend Integration** - Optional cloud sync and backup
+### Phase 2: Backend Integration
+- [ ] **Cloud Sync** - Optional cloud backup and sync
+- [ ] **User Authentication** - Secure user accounts
+- [ ] **Team Collaboration** - Multi-user workspaces
+
+### Phase 3: Advanced Features
 - [ ] **Mobile App** - React Native implementation
 - [ ] **AI Features** - Resume optimization and job matching
-- [ ] **Team Collaboration** - Multi-user workspaces
 - [ ] **Advanced Analytics** - Machine learning insights
 - [ ] **Integration APIs** - LinkedIn, Indeed, Glassdoor connections
 
+### Phase 4: Enterprise Features
+- [ ] **SSO Integration** - Enterprise authentication
+- [ ] **Advanced Reporting** - Custom reports and dashboards
+- [ ] **API Access** - REST API for integrations
+- [ ] **White-label Solutions** - Customizable branding
+
+## 📊 Project Stats
+
+![GitHub stars](https://img.shields.io/github/stars/KrishnaSathvik/applytrak?style=social)
+![GitHub forks](https://img.shields.io/github/forks/KrishnaSathvik/applytrak?style=social)
+![GitHub issues](https://img.shields.io/github/issues/KrishnaSathvik/applytrak)
+![GitHub license](https://img.shields.io/github/license/KrishnaSathvik/applytrak)
+
 ---
 
-Made with ❤ for job seekers everywhere. Good luck with your applications! 🍀
+<div align="center">
+
+**[🌐 Live Demo](https://applytrak.com)** • **[📝 Documentation](https://github.com/KrishnaSathvik/applytrak/wiki)** • **[🐛 Report Bug](https://github.com/KrishnaSathvik/applytrak/issues)** • **[✨ Request Feature](https://github.com/KrishnaSathvik/applytrak/issues)**
+
+Made with ❤️ for job seekers everywhere. Good luck with your applications! 🍀
+
+**⭐ Star this repo if ApplyTrak helped you land your dream job!**
+
+</div>
