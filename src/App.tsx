@@ -122,10 +122,10 @@ const TrackerTab: React.FC = () => {
                 <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div className="space-y-2 sm:space-y-3">
                         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gradient">
-                            🚀 ApplyTrak
+                            🚀 Application Tracker
                         </h1>
                         <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300">
-                            Track your job search journey with style
+                            Keep your job search on track with ApplyTrak
                         </p>
 
                         {/* Stats - MOBILE GRID */}

@@ -59,7 +59,7 @@ const Header: React.FC = () => {
                                 </h1>
                                 {/* MOBILE: Hide subtitle on very small screens */}
                                 <p className="text-xs text-gray-500 dark:text-gray-400 hidden xs:block sm:block truncate">
-                                    Track your job search journey
+                                    Your Personal Career Dashboard
                                 </p>
                             </div>
                         </div>

@@ -1,6 +1,6 @@
-// src/components/layout/Sidebar.tsx - COMPLETELY FIXED
+// src/components/layout/Sidebar.tsx - MOBILE-OPTIMIZED VERSION
 import React from 'react';
-import { BarChart3, Briefcase, Target, TrendingUp, ChevronRight } from 'lucide-react';
+import { BarChart3, Briefcase, Target, TrendingUp, ChevronRight, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 const Sidebar: React.FC = () => {
@@ -25,40 +25,59 @@ const Sidebar: React.FC = () => {
 
     return (
         <>
-            {/* Mobile Overlay */}
+            {/* MOBILE: Full-screen overlay */}
             {ui.sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
                     onClick={toggleSidebar}
                 />
             )}
 
-            {/* FIXED: Sidebar with proper width and positioning */}
+            {/* MOBILE & DESKTOP: Sidebar */}
             <aside className={`
-                fixed top-16 left-0 z-40 h-[calc(100vh-4rem)]
+                fixed top-0 left-0 z-50 h-full
                 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
                 border-r border-gray-200/50 dark:border-gray-700/50
                 transition-all duration-300 ease-in-out
+                shadow-xl lg:shadow-lg
+                
+                /* Mobile: Full overlay or hidden */
                 ${ui.sidebarOpen
-                ? 'w-64 translate-x-0'
-                : 'w-16 -translate-x-full lg:translate-x-0'
+                ? 'w-80 translate-x-0'
+                : 'w-80 -translate-x-full'
             }
+                
+                /* Desktop: Fixed sidebar */
                 lg:relative lg:top-0 lg:h-[calc(100vh-4rem)]
-                shadow-lg
+                lg:${ui.sidebarOpen ? 'w-64' : 'w-16'}
+                lg:translate-x-0
             `}>
                 <div className="flex flex-col h-full">
-                    {/* Sidebar Header */}
-                    <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+                    {/* MOBILE: Header with close button */}
+                    <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50 lg:hidden">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                            Job Tracker
+                        </h2>
+                        <button
+                            onClick={toggleSidebar}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            aria-label="Close sidebar"
+                        >
+                            <X className="h-5 w-5 text-gray-500" />
+                        </button>
+                    </div>
+
+                    {/* DESKTOP: Header with toggle */}
+                    <div className="hidden lg:flex p-4 border-b border-gray-200/50 dark:border-gray-700/50">
                         <div className={`flex items-center ${ui.sidebarOpen ? 'justify-between' : 'justify-center'}`}>
                             {ui.sidebarOpen && (
                                 <h2 className="font-semibold text-gray-900 dark:text-gray-100">
                                     Navigation
                                 </h2>
                             )}
-                            {/* Toggle button for large screens */}
                             <button
                                 onClick={toggleSidebar}
-                                className="hidden lg:flex p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                 aria-label="Toggle sidebar"
                             >
                                 <ChevronRight
@@ -79,20 +98,29 @@ const Sidebar: React.FC = () => {
                             return (
                                 <button
                                     key={item.id}
-                                    onClick={() => setSelectedTab(item.id)}
+                                    onClick={() => {
+                                        setSelectedTab(item.id);
+                                        // Close sidebar on mobile after selection
+                                        if (window.innerWidth < 1024) {
+                                            toggleSidebar();
+                                        }
+                                    }}
                                     className={`
                                         w-full flex items-center rounded-lg transition-all duration-200
-                                        ${ui.sidebarOpen ? 'px-3 py-3 space-x-3' : 'p-3 justify-center'}
+                                        ${ui.sidebarOpen || window.innerWidth < 1024
+                                        ? 'px-4 py-3 space-x-3'
+                                        : 'p-3 justify-center'
+                                    }
                                         ${isActive
                                         ? 'bg-primary-600 text-white shadow-lg'
                                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                                     }
                                     `}
-                                    title={!ui.sidebarOpen ? item.label : undefined}
+                                    title={!ui.sidebarOpen && window.innerWidth >= 1024 ? item.label : undefined}
                                 >
                                     <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
 
-                                    {ui.sidebarOpen && (
+                                    {(ui.sidebarOpen || window.innerWidth < 1024) && (
                                         <>
                                             <div className="flex-1 text-left">
                                                 <div className={`font-medium ${isActive ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
@@ -123,8 +151,8 @@ const Sidebar: React.FC = () => {
                         })}
                     </nav>
 
-                    {/* Goal Progress Section - Only when sidebar is open */}
-                    {ui.sidebarOpen && (
+                    {/* Goal Progress Section */}
+                    {(ui.sidebarOpen || window.innerWidth < 1024) && (
                         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200/30 dark:border-blue-700/30">
                                 <div className="flex items-center space-x-2 mb-3">
@@ -187,9 +215,9 @@ const Sidebar: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Collapsed State Progress Indicator */}
-                    {!ui.sidebarOpen && (
-                        <div className="p-2 border-t border-gray-200/50 dark:border-gray-700/50">
+                    {/* Collapsed State Progress Indicator (Desktop only) */}
+                    {!ui.sidebarOpen && window.innerWidth >= 1024 && (
+                        <div className="hidden lg:block p-2 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div className="flex flex-col items-center space-y-2">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                                     <span className="text-xs font-bold text-white">
