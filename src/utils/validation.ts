@@ -47,22 +47,17 @@ export const applicationFormSchema = yup.object({
     location: yup
         .string()
         .notRequired()
-        .max(255, 'Location must be less than 255 characters'),
+        .max(255, 'Location'),
 
     salary: yup
         .string()
         .notRequired()
-        .max(100, 'Salary must be less than 100 characters')
-        .test('valid-salary', 'Please enter a valid salary format', (value) => {
-            if (!value || value === '') return true;
-            const salaryRegex = /^[\$]?[\d,]+(\.\d{2})?(\s*\/?\s*(year|yr|annual|month|mo|hour|hr|h))?$/i;
-            return salaryRegex.test(value);
-        }),
+        .max(100, 'Salary'),
 
     jobSource: yup
         .string()
         .notRequired()
-        .max(100, 'Job source must be less than 100 characters'),
+        .max(100, 'Job source'),
 
     jobUrl: yup
         .string()
@@ -76,12 +71,12 @@ export const applicationFormSchema = yup.object({
                 return false;
             }
         })
-        .max(500, 'URL must be less than 500 characters'),
+        .max(500, 'URL'),
 
     notes: yup
         .string()
         .notRequired()
-        .max(2000, 'Notes must be less than 2000 characters')
+        .max(2000, 'Notes')
 });
 
 // Edit application form schema
@@ -105,14 +100,14 @@ export const goalsFormSchema = yup.object({
         .number()
         .required('Weekly goal is required')
         .min(1, 'Weekly goal must be at least 1')
-        .max(100, 'Weekly goal must be less than 100')
+        .max(200, 'Weekly goal must be less than 200')
         .integer('Weekly goal must be a whole number'),
 
     monthlyGoal: yup
         .number()
         .required('Monthly goal is required')
         .min(1, 'Monthly goal must be at least 1')
-        .max(500, 'Monthly goal must be less than 500')
+        .max(1000, 'Monthly goal must be less than 1000')
         .integer('Monthly goal must be a whole number')
         .test('monthly-weekly-consistency', 'Monthly goal should be reasonable compared to weekly goal', function (value) {
             const weeklyGoal = this.parent.weeklyGoal;
