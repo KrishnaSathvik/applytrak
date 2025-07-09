@@ -1,7 +1,6 @@
 /* =============================================================================
-   DESKTOP.CSS - OPTIMIZED Desktop Enhancement Styles
-   Cleaned, deduplicated, and performance-optimized for larger screens
-   Removed duplicates with globals.css and mobile.css
+   DESKTOP.CSS - OPTIMIZED Desktop Enhancement with Geist Font
+   Clean, minimal design for larger screens with consistent typography
    ============================================================================= */
 
 /* =============================================================================
@@ -9,21 +8,23 @@
    ============================================================================= */
 
 @media (min-width: 768px) {
-    /* Desktop base font size optimization */
+    /* Desktop font size optimization */
     html {
         font-size: 14px;
+        font-family: var(--font-geist);
     }
 
-    /* Enhanced desktop background - KEEP (not duplicated) */
+    /* Enhanced desktop background */
     body {
         background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 30%, #e0e7ff 70%, #fdf4ff 100%);
+        font-family: var(--font-geist);
     }
 
     body.dark {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 30%, #1e1b4b 70%, #312e81 100%);
     }
 
-    /* Desktop sidebar behavior - KEEP (mobile specific) */
+    /* Desktop sidebar behavior */
     .sidebar-fixed {
         transform: translateX(0);
     }
@@ -36,7 +37,7 @@
         width: 16rem;
     }
 
-    /* Desktop main content margins - KEEP (mobile specific) */
+    /* Desktop main content margins */
     .main-content.sidebar-collapsed {
         margin-left: 4rem;
     }
@@ -47,22 +48,22 @@
 }
 
 /* =============================================================================
-   DESKTOP SCROLLBAR STYLING
+   DESKTOP SCROLLBAR STYLING - Geist design
    ============================================================================= */
 
 @media (min-width: 768px) {
     ::-webkit-scrollbar {
-        width: 12px;
+        width: 8px;
     }
 
     ::-webkit-scrollbar-track {
         background: #e2e8f0;
-        border-radius: 6px;
+        border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb {
         background: #667eea;
-        border-radius: 6px;
+        border-radius: 4px;
         transition: background-color 0.2s ease;
     }
 
@@ -88,15 +89,13 @@
    ============================================================================= */
 
 @media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-    /* Enhanced card hover effects - REMOVED DUPLICATE: Basic card:hover in globals.css */
+    /* Enhanced card hover effects */
     .card:hover {
-        transform: translateY(-4px); /* Enhanced for desktop */
+        transform: translateY(-4px);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     }
 
-    /* REMOVED DUPLICATE: .btn:hover already defined in globals.css */
-
-    /* Enhanced button hover effects - Desktop specific enhancements only */
+    /* Enhanced button hover effects */
     .btn-primary:hover {
         background: linear-gradient(135deg, #5a67d8, #6a4190);
         box-shadow: 0 6px 16px rgba(103, 126, 234, 0.4);
@@ -112,22 +111,20 @@
         border-color: #6b7280;
     }
 
-    /* Enhanced status badge hover - KEEP (desktop only) */
+    /* Enhanced status badge hover */
     .status-badge:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
 
-    /* REMOVED DUPLICATE: Form element hover states already in globals.css */
-
-    /* Enhanced table row hover - KEEP (desktop enhancement) */
+    /* Enhanced table row hover */
     .table tbody tr:hover {
         background-color: rgba(103, 126, 234, 0.08);
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    /* Enhanced interactive element hover - KEEP (desktop only) */
+    /* Enhanced interactive element hover */
     .interactive:hover {
         transform: translateY(-1px);
         transition: transform 0.2s ease;
@@ -139,16 +136,14 @@
 }
 
 /* =============================================================================
-   DESKTOP TABLE SYSTEM - Traditional table layout
+   DESKTOP TABLE SYSTEM - Traditional layout with Geist
    ============================================================================= */
 
 @media (min-width: 768px) {
-    /* REMOVED DUPLICATES: Basic table styles already in globals.css */
-
-    /* Desktop-specific table layout only */
     .table {
         table-layout: fixed;
         width: 100%;
+        font-family: var(--font-geist);
     }
 
     .table thead {
@@ -161,8 +156,9 @@
         display: table-cell;
         padding: 1rem 0.75rem;
         text-align: left;
+        font-family: var(--font-geist);
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         white-space: nowrap;
@@ -180,7 +176,6 @@
         padding: 0;
         background: transparent;
         transition: all 0.2s ease;
-        /* PERFORMANCE: Add containment */
         contain: layout style;
     }
 
@@ -191,7 +186,10 @@
         border: none;
         border-bottom: 1px solid rgba(203, 213, 225, 0.5);
         padding: 0.75rem;
+        font-family: var(--font-geist);
         font-size: 0.875rem;
+        font-weight: 400;
+        letter-spacing: -0.01em;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -214,45 +212,34 @@
     }
 
     /* Desktop column widths */
-    .table th:nth-child(1),
-    .table td:nth-child(1) { width: 5%; }      /* # */
-    .table th:nth-child(2),
-    .table td:nth-child(2) { width: 10%; }     /* Date */
-    .table th:nth-child(3),
-    .table td:nth-child(3) { width: 15%; }     /* Company */
-    .table th:nth-child(4),
-    .table td:nth-child(4) { width: 15%; }     /* Position */
-    .table th:nth-child(5),
-    .table td:nth-child(5) { width: 8%; }      /* Type */
-    .table th:nth-child(6),
-    .table td:nth-child(6) { width: 12%; }     /* Location */
-    .table th:nth-child(7),
-    .table td:nth-child(7) { width: 10%; }     /* Salary */
-    .table th:nth-child(8),
-    .table td:nth-child(8) { width: 8%; }      /* Source */
-    .table th:nth-child(9),
-    .table td:nth-child(9) { width: 8%; }      /* Status */
-    .table th:nth-child(10),
-    .table td:nth-child(10) { width: 5%; }     /* URL */
-    .table th:nth-child(11),
-    .table td:nth-child(11) { width: 12%; }    /* Actions */
+    .table th:nth-child(1), .table td:nth-child(1) { width: 5%; }
+    .table th:nth-child(2), .table td:nth-child(2) { width: 10%; }
+    .table th:nth-child(3), .table td:nth-child(3) { width: 15%; }
+    .table th:nth-child(4), .table td:nth-child(4) { width: 15%; }
+    .table th:nth-child(5), .table td:nth-child(5) { width: 8%; }
+    .table th:nth-child(6), .table td:nth-child(6) { width: 12%; }
+    .table th:nth-child(7), .table td:nth-child(7) { width: 10%; }
+    .table th:nth-child(8), .table td:nth-child(8) { width: 8%; }
+    .table th:nth-child(9), .table td:nth-child(9) { width: 8%; }
+    .table th:nth-child(10), .table td:nth-child(10) { width: 5%; }
+    .table th:nth-child(11), .table td:nth-child(11) { width: 12%; }
 }
 
 /* =============================================================================
-   DESKTOP FORM ENHANCEMENTS
+   DESKTOP FORM ENHANCEMENTS - Geist font optimization
    ============================================================================= */
 
 @media (min-width: 768px) {
-    /* REMOVED DUPLICATES: Basic form styles already in globals.css */
-
-    /* Desktop form optimizations - size adjustments only */
     .form-input,
     .form-select,
     .form-textarea {
-        font-size: 0.875rem; /* Smaller on desktop */
-        padding: 0.75rem 1rem; /* More compact */
-        border-width: 1px; /* Thinner borders on desktop */
-        min-height: auto; /* Remove mobile touch target requirement */
+        font-family: var(--font-geist);
+        font-size: 0.875rem;
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        padding: 0.75rem 1rem;
+        border-width: 1px;
+        min-height: auto;
     }
 
     .form-input:focus,
@@ -262,15 +249,20 @@
     }
 
     .form-label {
+        font-family: var(--font-geist);
         font-size: 0.875rem;
+        font-weight: 500;
         margin-bottom: 0.375rem;
     }
 
     /* Desktop button sizing */
     .btn {
+        font-family: var(--font-geist);
         font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
         padding: 0.75rem 1.25rem;
-        min-height: auto; /* Remove mobile touch target requirement */
+        min-height: auto;
     }
 
     .btn-sm {
@@ -286,34 +278,32 @@
 }
 
 /* =============================================================================
-   DESKTOP MODAL ENHANCEMENTS - FIXED DUPLICATES
+   DESKTOP MODAL ENHANCEMENTS - Geist font
    ============================================================================= */
 
 @media (min-width: 768px) {
-    /* REMOVED DUPLICATE: Basic modal styles already in globals.css */
-
-    /* Desktop modal positioning - desktop-specific only */
     .modal-overlay {
         align-items: center;
         padding: 1.25rem;
     }
 
-    /* REMOVED DUPLICATE: modal-content max-width conflict resolved in globals.css */
-
     .modal-content {
         animation: modalScaleDesktop 0.3s ease-out;
         margin: auto;
+        font-family: var(--font-geist);
     }
 
     .modal-header {
-        padding: 2rem; /* Increased from mobile */
+        padding: 2rem;
+        font-family: var(--font-geist);
+        font-weight: 500;
     }
 
     .modal-header::before {
-        display: none; /* Remove mobile pull indicator */
+        display: none;
     }
 
-    /* Enhanced modal sizes - desktop specific */
+    /* Enhanced modal sizes */
     .modal-sm { max-width: 600px; }
     .modal-md { max-width: 1000px; }
     .modal-lg { max-width: 1400px; }
@@ -321,7 +311,7 @@
 }
 
 /* =============================================================================
-   DESKTOP PAGINATION ENHANCEMENTS
+   DESKTOP PAGINATION ENHANCEMENTS - Geist font
    ============================================================================= */
 
 @media (min-width: 768px) {
@@ -339,22 +329,27 @@
     }
 
     .pagination-info {
+        font-family: var(--font-geist);
         font-size: 0.875rem;
+        font-weight: 400;
         order: 1;
         text-align: left;
     }
 
     .pagination-btn {
-        min-height: auto; /* Remove mobile touch target */
+        font-family: var(--font-geist);
+        min-height: auto;
         min-width: auto;
         padding: 0.5rem 0.75rem;
         border-radius: 0.375rem;
         font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
     }
 }
 
 /* =============================================================================
-   DESKTOP TOAST ENHANCEMENTS
+   DESKTOP TOAST ENHANCEMENTS - Geist font
    ============================================================================= */
 
 @media (min-width: 768px) {
@@ -368,21 +363,23 @@
     }
 
     .toast {
+        font-family: var(--font-geist);
         width: auto;
         max-width: 24rem;
         margin: 0 0 0.75rem 0;
         font-size: 0.875rem;
+        font-weight: 400;
+        letter-spacing: -0.01em;
         padding: 1rem 1.25rem;
         animation: slideInRight 0.3s ease-out;
     }
 }
 
 /* =============================================================================
-   DESKTOP ENHANCED EFFECTS
+   DESKTOP ENHANCED EFFECTS - Geist font
    ============================================================================= */
 
 @media (min-width: 768px) {
-    /* Enhanced glass effects - desktop specific */
     .glass-card {
         padding: 1.5rem;
         border-radius: 1rem;
@@ -441,12 +438,10 @@
    ============================================================================= */
 
 @media (min-width: 1024px) {
-    /* Show additional table columns */
     .lg-hidden {
         display: table-cell !important;
     }
 
-    /* Enhanced spacing for large screens */
     .glass-card {
         padding: 2rem;
     }
@@ -456,18 +451,18 @@
         margin-bottom: 2rem;
     }
 
-    /* Enhanced table spacing */
     .table thead th {
         padding: 1.25rem 1rem;
         font-size: 0.8125rem;
+        font-family: var(--font-geist);
     }
 
     .table tbody td {
         padding: 1rem;
         font-size: 0.9375rem;
+        font-family: var(--font-geist);
     }
 
-    /* Desktop sidebar transitions */
     .sidebar-transition {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -478,12 +473,10 @@
    ============================================================================= */
 
 @media (min-width: 1280px) {
-    /* Show all optional columns */
     .xl-hidden {
         display: table-cell !important;
     }
 
-    /* Maximum spacing for very large screens */
     .glass-card {
         padding: 2.5rem;
     }
@@ -492,7 +485,6 @@
         padding: 2.5rem;
     }
 
-    /* Enhanced container max-width */
     .container-desktop {
         max-width: 1400px;
         margin: 0 auto;
@@ -500,176 +492,10 @@
 }
 
 /* =============================================================================
-   HIGH DPI DISPLAY OPTIMIZATIONS
-   ============================================================================= */
-
-@media (min-width: 768px) and (-webkit-min-device-pixel-ratio: 2),
-(min-width: 768px) and (min-resolution: 2dppx) {
-
-    .icon {
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
-    }
-
-    .glass-card {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .btn {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .status-badge {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    }
-}
-
-/* =============================================================================
-   DESKTOP PERFORMANCE OPTIMIZATIONS
+   DESKTOP UTILITY CLASSES - Geist font
    ============================================================================= */
 
 @media (min-width: 768px) {
-    /* GPU acceleration for smooth animations */
-    .gpu-accelerated,
-    .modal-overlay,
-    .fab,
-    .glass-card:hover,
-    .card:hover,
-    .btn:hover {
-        transform: translateZ(0);
-        will-change: transform;
-        backface-visibility: hidden;
-    }
-
-    /* Optimize table rendering */
-    .table tbody tr {
-        contain: layout style;
-    }
-
-    .table-container {
-        contain: layout;
-    }
-
-    /* Smooth scroll behavior */
-    .modal-content {
-        scroll-behavior: smooth;
-    }
-
-    /* Optimize focus management */
-    .modal-overlay:focus-within .modal-content {
-        outline: 2px solid #667eea;
-        outline-offset: 4px;
-    }
-}
-
-/* =============================================================================
-   DESKTOP PRINT OPTIMIZATIONS
-   ============================================================================= */
-
-@media print and (min-width: 768px) {
-    .desktop-only {
-        display: block !important;
-    }
-
-    .mobile-only {
-        display: none !important;
-    }
-
-    /* Print table layout */
-    .table {
-        table-layout: auto;
-    }
-
-    .table thead {
-        display: table-header-group;
-    }
-
-    .table tbody tr {
-        display: table-row;
-        break-inside: avoid;
-        page-break-inside: avoid;
-    }
-
-    .table tbody td {
-        display: table-cell;
-        padding: 0.5rem;
-        font-size: 0.75rem;
-        border: 1px solid #000;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: unset;
-    }
-
-    /* Print layout adjustments */
-    .glass-card,
-    .card {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 1rem;
-    }
-
-    /* Remove interactive effects for print */
-    .btn,
-    .fab,
-    .interactive,
-    .glass-card,
-    .card {
-        transform: none !important;
-        box-shadow: none !important;
-        animation: none !important;
-        transition: none !important;
-    }
-
-    /* Print-specific spacing */
-    .modal-content {
-        box-shadow: none !important;
-        border: 1px solid #000 !important;
-    }
-}
-
-/* =============================================================================
-   DESKTOP REDUCED MOTION SUPPORT
-   ============================================================================= */
-
-@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
-    /* Disable animations for accessibility */
-    .gpu-accelerated {
-        will-change: auto;
-    }
-
-    .animate-float {
-        animation: none;
-    }
-
-    .theme-toggle:hover::before {
-        animation: none;
-    }
-
-    .glass-card:hover,
-    .card:hover,
-    .btn:hover,
-    .interactive:hover {
-        transform: none;
-        transition: none;
-    }
-
-    .modal-content {
-        animation: none;
-    }
-
-    .toast {
-        animation: none;
-    }
-}
-
-/* =============================================================================
-   DESKTOP UTILITY CLASSES - CLEANED UP
-   ============================================================================= */
-
-@media (min-width: 768px) {
-    /* REMOVED DUPLICATES: Many utility classes removed that were duplicated */
-
-    /* Desktop-specific utilities only */
     .desktop-container {
         max-width: 1200px;
         margin: 0 auto;
@@ -694,7 +520,6 @@
         gap: 1.5rem;
     }
 
-    /* Desktop visibility utilities */
     .desktop-hidden {
         display: none;
     }
@@ -705,7 +530,7 @@
 }
 
 /* =============================================================================
-   DESKTOP KEYFRAME ANIMATIONS - CLEANED UP
+   DESKTOP KEYFRAME ANIMATIONS - Minimal set
    ============================================================================= */
 
 @media (min-width: 768px) {
@@ -748,11 +573,6 @@
             transform: rotate(360deg);
         }
     }
-
-    /* REMOVED UNUSED ANIMATIONS:
-       - fadeInDesktop, slideInDesktop, scaleInDesktop, shimmer
-       - gradientShift and 8+ other unused desktop animations
-    */
 }
 
 /* =============================================================================
@@ -799,7 +619,6 @@
         display: none;
     }
 
-    /* Ultra-wide optimizations */
     .ultra-wide-container {
         max-width: 1600px;
         margin: 0 auto;
@@ -807,7 +626,7 @@
 }
 
 /* =============================================================================
-   DESKTOP DARK MODE ENHANCEMENTS
+   DESKTOP DARK MODE ENHANCEMENTS - Geist font
    ============================================================================= */
 
 @media (min-width: 768px) {
@@ -835,5 +654,73 @@
 
     body.dark .status-badge {
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* =============================================================================
+   DESKTOP PERFORMANCE OPTIMIZATIONS
+   ============================================================================= */
+
+@media (min-width: 768px) {
+    .gpu-accelerated,
+    .modal-overlay,
+    .fab,
+    .glass-card:hover,
+    .card:hover,
+    .btn:hover {
+        transform: translateZ(0);
+        will-change: transform;
+        backface-visibility: hidden;
+    }
+
+    .table tbody tr {
+        contain: layout style;
+    }
+
+    .table-container {
+        contain: layout;
+    }
+
+    .modal-content {
+        scroll-behavior: smooth;
+    }
+
+    .modal-overlay:focus-within .modal-content {
+        outline: 2px solid #667eea;
+        outline-offset: 4px;
+    }
+}
+
+/* =============================================================================
+   DESKTOP REDUCED MOTION SUPPORT
+   ============================================================================= */
+
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+    .gpu-accelerated {
+        will-change: auto;
+    }
+
+    .animate-float {
+        animation: none;
+    }
+
+    .theme-toggle:hover::before {
+        animation: none;
+    }
+
+    .glass-card:hover,
+    .card:hover,
+    .btn:hover,
+    .interactive:hover {
+        transform: none;
+        transition: none;
+    }
+
+    .modal-content {
+        animation: none;
+    }
+
+    .toast {
+        animation: none;
     }
 }

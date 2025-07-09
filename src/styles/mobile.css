@@ -1,14 +1,12 @@
 /* =============================================================================
-   MOBILE.CSS - OPTIMIZED Mobile-First Responsive Styles
-   Cleaned, deduplicated, and performance-focused mobile experience
-   Removed duplicates with globals.css and unnecessary code
+   MOBILE.CSS - OPTIMIZED Mobile-First with Geist Font
+   Clean, minimal design focused on performance and touch UX
    ============================================================================= */
 
 /* =============================================================================
-   MOBILE BASE LAYOUT - Optimized for touch devices
+   MOBILE BASE LAYOUT - Touch-optimized
    ============================================================================= */
 
-/* Mobile: Sidebar hidden by default, overlay when open */
 @media (max-width: 1023px) {
     .sidebar-fixed {
         transform: translateX(-100%);
@@ -34,16 +32,14 @@
 }
 
 /* =============================================================================
-   MOBILE TABLE SYSTEM - Card layout for optimal mobile UX
+   MOBILE TABLE SYSTEM - Card layout with Geist font
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Hide table headers on mobile */
     .table thead {
         display: none !important;
     }
 
-    /* Transform table rows into cards */
     .table tbody tr {
         display: block !important;
         border: 2px solid #e2e8f0;
@@ -53,7 +49,7 @@
         background: rgba(255, 255, 255, 0.9);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
-        /* PERFORMANCE: Add containment */
+        font-family: var(--font-geist);
         contain: layout style;
     }
 
@@ -68,7 +64,6 @@
         transform: translateY(-2px);
     }
 
-    /* Transform table cells into labeled content */
     .table tbody td {
         display: block !important;
         text-align: left !important;
@@ -76,26 +71,27 @@
         padding: 0.5rem 0 !important;
         white-space: normal !important;
         overflow: visible !important;
-        text-overflow: unset !important;
         font-size: 1rem;
+        font-family: var(--font-geist);
+        font-weight: 400;
     }
 
     .table tbody td::before {
         content: attr(data-label) ': ';
-        font-weight: 600;
+        font-weight: 500;
         color: #6b7280;
         display: block;
         font-size: 0.875rem;
         margin-bottom: 0.25rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        font-family: var(--font-geist);
     }
 
     body.dark .table tbody td::before {
         color: #9ca3af;
     }
 
-    /* Hide optional columns on mobile */
     .optional-column,
     .salary-column {
         display: none !important;
@@ -103,33 +99,37 @@
 }
 
 /* =============================================================================
-   MOBILE FORM OPTIMIZATIONS - Touch-friendly inputs
+   MOBILE FORM OPTIMIZATIONS - Geist font touch-friendly
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* REMOVED DUPLICATES: form-input, form-select styles already in globals.css */
-
-    /* Mobile-specific form optimizations only */
     .form-input,
     .form-select,
     .form-textarea {
-        font-size: 16px; /* Prevents iOS zoom - ESSENTIAL */
-        padding: 1rem; /* Larger touch targets */
-        min-height: 44px; /* Apple touch guidelines */
-        border-width: 2px; /* Better visibility on mobile */
+        font-family: var(--font-geist);
+        font-size: 16px; /* Prevents iOS zoom */
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        padding: 1rem;
+        min-height: 44px;
+        border-width: 2px;
     }
 
     .form-label {
-        font-size: 1rem; /* Larger on mobile for readability */
+        font-family: var(--font-geist);
+        font-size: 1rem;
+        font-weight: 500;
         margin-bottom: 0.5rem;
     }
 
-    /* Mobile button optimizations - KEEP only mobile-specific */
     .btn {
-        min-height: 44px; /* Touch target requirement */
+        font-family: var(--font-geist);
+        min-height: 44px;
         min-width: 44px;
         padding: 0.75rem 1.25rem;
-        font-size: 1rem; /* Larger text on mobile */
+        font-size: 1rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
     }
 
     .btn-sm {
@@ -146,7 +146,7 @@
 }
 
 /* =============================================================================
-   MOBILE MODAL SYSTEM - Bottom sheet style
+   MOBILE MODAL SYSTEM - Full screen with Geist
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -155,21 +155,22 @@
         padding: 0;
     }
 
-    /* OPTIMIZED: Removed duplicate modal-content styles, keep mobile-specific only */
     .modal-content {
         border-radius: 1rem 1rem 0 0;
         width: 100%;
         max-height: 90vh;
-        animation: slideUpMobile 0.2s ease-out; /* Faster animation */
+        animation: slideUpMobile 0.2s ease-out;
         margin: 0;
+        font-family: var(--font-geist);
     }
 
     .modal-header {
         border-radius: 1rem 1rem 0 0;
         position: relative;
+        font-family: var(--font-geist);
+        font-weight: 500;
     }
 
-    /* Add pull indicator for mobile modals */
     .modal-header::before {
         content: '';
         position: absolute;
@@ -182,7 +183,7 @@
         border-radius: 0.125rem;
     }
 
-    /* Mobile modal content adjustments */
+    /* Full screen modal for mobile */
     .modal-content {
         width: 100% !important;
         max-width: 100% !important;
@@ -196,7 +197,7 @@
         padding: 1.5rem !important;
     }
 
-    /* Mobile form adjustments */
+    /* Simplified mobile forms */
     .grid.grid-cols-1.lg\\:grid-cols-3,
     .grid.grid-cols-1.lg\\:grid-cols-5 {
         display: block !important;
@@ -209,11 +210,10 @@
 }
 
 /* =============================================================================
-   MOBILE NAVIGATION - Touch-optimized components
+   MOBILE NAVIGATION - Touch-optimized with Geist
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Mobile search container */
     .mobile-search-container {
         position: relative;
         width: 100%;
@@ -221,14 +221,17 @@
     }
 
     .mobile-search-input {
+        font-family: var(--font-geist);
         width: 100%;
         padding: 0.75rem 1rem 0.75rem 3rem;
         font-size: 1rem;
+        font-weight: 400;
+        letter-spacing: -0.01em;
         border-radius: 0.75rem;
         border: 2px solid #d1d5db;
         background-color: white;
         transition: all 0.2s ease;
-        min-height: 44px; /* Touch target */
+        min-height: 44px;
     }
 
     .mobile-search-input:focus {
@@ -243,14 +246,12 @@
         color: white;
     }
 
-    /* Mobile status tabs */
     .mobile-status-tabs {
         display: flex;
         background: #f3f4f6;
         border-radius: 0.75rem;
         padding: 0.25rem;
         margin-bottom: 1rem;
-        /* PERFORMANCE: Add containment */
         contain: layout;
     }
 
@@ -263,14 +264,16 @@
         padding: 0.75rem 1rem;
         text-align: center;
         border-radius: 0.5rem;
+        font-family: var(--font-geist);
         font-size: 1rem;
         font-weight: 500;
+        letter-spacing: -0.01em;
         transition: all 0.2s ease;
         border: none;
         background: transparent;
         cursor: pointer;
         color: #6b7280;
-        min-height: 44px; /* Touch target */
+        min-height: 44px;
     }
 
     .mobile-status-tab.active {
@@ -291,11 +294,10 @@
 }
 
 /* =============================================================================
-   MOBILE ACTION SYSTEM - Touch-friendly interactions
+   MOBILE ACTION SYSTEM - Touch-friendly with Geist
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Mobile action rows for table cards */
     .mobile-action-row {
         display: flex;
         gap: 0.5rem;
@@ -303,7 +305,6 @@
         margin-top: 0.75rem;
         padding-top: 0.75rem;
         border-top: 1px solid #e2e8f0;
-        /* PERFORMANCE: Add containment */
         contain: layout;
     }
 
@@ -312,9 +313,10 @@
     }
 
     .mobile-action-btn {
+        font-family: var(--font-geist);
         flex: 1;
         min-width: 80px;
-        min-height: 44px; /* Touch target */
+        min-height: 44px;
         padding: 0.75rem 1rem;
         border-radius: 0.5rem;
         border: 1px solid #d1d5db;
@@ -322,10 +324,10 @@
         color: #374151;
         font-size: 0.875rem;
         font-weight: 500;
+        letter-spacing: -0.01em;
         text-align: center;
-        transition: all 0.15s ease; /* Faster for mobile */
+        transition: all 0.15s ease;
         cursor: pointer;
-        /* PERFORMANCE: Add GPU acceleration */
         transform: translateZ(0);
     }
 
@@ -351,7 +353,7 @@
 }
 
 /* =============================================================================
-   MOBILE PAGINATION - Simplified navigation
+   MOBILE PAGINATION - Simplified with Geist
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -363,7 +365,6 @@
         gap: 1rem;
         padding: 1rem;
         border-top: 1px solid rgba(203, 213, 225, 0.5);
-        /* PERFORMANCE: Add containment */
         contain: layout;
     }
 
@@ -381,7 +382,9 @@
 
     .pagination-info {
         text-align: center;
+        font-family: var(--font-geist);
         font-size: 1rem;
+        font-weight: 400;
         color: #6b7280;
         order: 2;
     }
@@ -390,9 +393,9 @@
         color: #9ca3af;
     }
 
-    /* Mobile pagination buttons */
     .pagination-btn {
-        min-height: 44px; /* Touch target */
+        font-family: var(--font-geist);
+        min-height: 44px;
         min-width: 44px;
         padding: 0.75rem;
         border-radius: 0.5rem;
@@ -400,8 +403,8 @@
         background: white;
         color: #374151;
         font-weight: 500;
+        letter-spacing: -0.01em;
         transition: all 0.2s ease;
-        /* PERFORMANCE: Add GPU acceleration */
         transform: translateZ(0);
     }
 
@@ -434,7 +437,7 @@
 }
 
 /* =============================================================================
-   MOBILE TOAST SYSTEM - Bottom positioned notifications
+   MOBILE TOAST SYSTEM - Bottom positioned with Geist
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -444,20 +447,21 @@
         left: 1rem;
         right: 1rem;
         z-index: 1080;
-        /* PERFORMANCE: Add containment */
         contain: layout;
     }
 
     .toast {
+        font-family: var(--font-geist);
         padding: 1rem 1.25rem;
         width: 100%;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         border-radius: 0.5rem;
         border-left: 4px solid;
         font-size: 1rem;
+        font-weight: 400;
+        letter-spacing: -0.01em;
         margin-bottom: 0.5rem;
-        animation: slideUpMobile 0.2s ease-out; /* Faster animation */
-        /* PERFORMANCE: Add GPU acceleration */
+        animation: slideUpMobile 0.2s ease-out;
         transform: translateZ(0);
     }
 
@@ -507,7 +511,7 @@
 }
 
 /* =============================================================================
-   MOBILE FAB - Floating action button
+   MOBILE FAB - Floating action button with Geist
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -527,10 +531,10 @@
         border-radius: 50%;
         box-shadow: 0 4px 12px rgba(103, 126, 234, 0.3);
         cursor: pointer;
-        transition: all 0.2s ease; /* Faster for mobile */
-        /* PERFORMANCE: Add GPU acceleration */
+        transition: all 0.2s ease;
         transform: translateZ(0);
         will-change: transform;
+        font-family: var(--font-geist);
     }
 
     .fab:hover {
@@ -544,29 +548,27 @@
 }
 
 /* =============================================================================
-   MOBILE UTILITY CLASSES - Mobile-specific helpers
+   MOBILE UTILITY CLASSES - Geist font helpers
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* REMOVED DUPLICATES: Many utility classes removed that were duplicated in globals.css */
-
-    /* Mobile-specific utilities only */
     .mobile-container {
         max-width: 100%;
         padding-left: 1rem;
         padding-right: 1rem;
     }
 
-    /* Mobile card adjustments */
     .mobile-card {
+        font-family: var(--font-geist);
         margin-bottom: 1rem;
         padding: 1rem;
         border-radius: 0.75rem;
-        /* PERFORMANCE: Add containment */
         contain: layout style;
     }
 
     .mobile-card-header {
+        font-family: var(--font-geist);
+        font-weight: 500;
         padding: 1rem;
         margin: -1rem -1rem 1rem -1rem;
         border-radius: 0.75rem 0.75rem 0 0;
@@ -578,15 +580,12 @@
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Optimize scrolling performance */
     .mobile-scroll-container {
         -webkit-overflow-scrolling: touch;
         scroll-behavior: smooth;
-        /* PERFORMANCE: Add containment */
         contain: layout;
     }
 
-    /* Optimize touch targets */
     .mobile-touch-target {
         min-height: 44px;
         min-width: 44px;
@@ -595,14 +594,12 @@
         justify-content: center;
     }
 
-    /* Mobile loading states */
     .mobile-skeleton {
         background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
         background-size: 200% 100%;
         border-radius: 0.5rem;
-        animation: skeletonWave 1.5s ease-in-out infinite; /* Faster animation */
+        animation: skeletonWave 1.5s ease-in-out infinite;
         min-height: 1.25rem;
-        /* PERFORMANCE: Add GPU acceleration */
         transform: translateZ(0);
     }
 
@@ -612,7 +609,7 @@
 }
 
 /* =============================================================================
-   MOBILE KEYFRAME ANIMATIONS - OPTIMIZED (removed unused animations)
+   MOBILE KEYFRAME ANIMATIONS - Minimal set
    ============================================================================= */
 
 @keyframes slideUpMobile {
@@ -635,34 +632,28 @@
     }
 }
 
-/* REMOVED UNUSED ANIMATIONS:
-   - fadeInMobile, mobileSwipeHint
-   - Various complex mobile-specific animations that were never used
-*/
-
 /* =============================================================================
-   MOBILE ACCESSIBILITY IMPROVEMENTS
+   MOBILE ACCESSIBILITY IMPROVEMENTS - Geist font
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Enhanced focus indicators for mobile */
     .mobile-focus:focus-visible {
         outline: 3px solid #667eea;
         outline-offset: 2px;
         border-radius: 0.25rem;
     }
 
-    /* Better touch feedback */
     .mobile-interactive:active {
         transform: scale(0.98);
         opacity: 0.8;
     }
 
-    /* Improved readability */
     .mobile-readable {
+        font-family: var(--font-geist);
         line-height: 1.6;
         font-size: 1rem;
-        word-spacing: 0.1em;
+        font-weight: 400;
+        letter-spacing: -0.01em;
     }
 }
 
@@ -680,11 +671,13 @@
         border: 1px solid #000;
         margin-bottom: 0.5rem;
         padding: 0.5rem;
+        font-family: var(--font-geist) !important;
     }
 
     .table tbody td::before {
-        font-weight: bold;
+        font-weight: 500;
         color: #000;
+        font-family: var(--font-geist) !important;
     }
 
     .mobile-action-row {
@@ -701,8 +694,6 @@
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Critical performance rules for mobile */
-
     /* Reduce repaints and reflows */
     .table tbody tr,
     .mobile-card,

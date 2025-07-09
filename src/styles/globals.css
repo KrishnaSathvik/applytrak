@@ -1,7 +1,7 @@
 /* =============================================================================
-   JOB APPLICATION TRACKER - OPTIMIZED GLOBALS CSS
-   Cleaned, deduplicated, and performance-optimized master CSS file
-   Removed duplicates, unused variables, and optimized for better performance
+   JOB APPLICATION TRACKER - OPTIMIZED GLOBALS CSS WITH GEIST FONT
+   Modern, minimal design with single font family
+   Reduced bundle size and simplified typography
    ============================================================================= */
 
 /* Tailwind CSS imports */
@@ -14,23 +14,18 @@
 @import './desktop.css';
 
 /* =============================================================================
-   TYPOGRAPHY SYSTEM - Optimized font loading (40% size reduction)
+   GEIST FONT SYSTEM - Single font family for modern minimalism
    ============================================================================= */
 
-/* OPTIMIZED: Removed unused font weights (300, 800, 900) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap&subset=latin');
+/* OPTIMIZED: Only Geist font with essential weights */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap&subset=latin');
 
-/* CSS Variables for consistent design system - CLEANED UP */
+/* Simplified CSS Variables - Geist only */
 :root {
-    /* Typography Variables - ESSENTIAL ONLY */
-    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-display: 'Poppins', 'Inter', sans-serif;
+    /* Single Font Family - Geist */
+    --font-geist: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 
-    /* REMOVED UNUSED: --text-xs, --text-sm, --text-base, etc. (15+ unused clamp values) */
-    /* REMOVED UNUSED: --leading-tight, --leading-snug, etc. (8+ unused line heights) */
-    /* REMOVED UNUSED: --weight-normal, --weight-medium, etc. (6+ unused font weights) */
-
-    /* Design System Variables - ESSENTIAL ONLY */
+    /* Minimal Design System Variables */
     --border-radius-sm: 0.375rem;
     --border-radius-md: 0.5rem;
     --border-radius-lg: 0.75rem;
@@ -41,19 +36,14 @@
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
 
-    /* Z-index scale - ESSENTIAL ONLY */
+    /* Essential Z-index scale */
     --z-dropdown: 1000;
-    --z-sticky: 1020;
-    --z-fixed: 1030;
-    --z-modal-backdrop: 1040;
     --z-modal: 1050;
-    --z-popover: 1060;
-    --z-tooltip: 1070;
     --z-toast: 1080;
 }
 
 /* =============================================================================
-   BASE STYLES - Universal optimizations and resets
+   BASE STYLES - Geist font foundation
    ============================================================================= */
 
 *,
@@ -65,13 +55,12 @@
 }
 
 html {
-    font-family: var(--font-primary);
+    font-family: var(--font-geist);
     font-size: 16px;
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
     scroll-behavior: smooth;
     color-scheme: light;
 }
@@ -81,17 +70,16 @@ html.dark {
 }
 
 body {
-    font-family: inherit;
+    font-family: var(--font-geist);
     font-size: 1rem;
-    line-height: 1.625;
+    line-height: 1.5;
     font-weight: 400;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.01em;
     background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #e0e7ff 100%);
     color: #0f172a;
     transition: background-color 0.3s ease, color 0.3s ease;
     min-height: 100vh;
     -webkit-overflow-scrolling: touch;
-    overflow-x: hidden;
 }
 
 body.dark {
@@ -105,16 +93,15 @@ body.dark {
 }
 
 /* =============================================================================
-   TYPOGRAPHY SYSTEM - Enhanced heading and text styles
+   SIMPLIFIED TYPOGRAPHY SYSTEM - Geist font hierarchy
    ============================================================================= */
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: -0.025em;
+    font-family: var(--font-geist);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
     color: #0f172a;
-    text-wrap: balance;
     margin: 0;
 }
 
@@ -127,67 +114,48 @@ body.dark h6 {
     color: #f8fafc;
 }
 
-h1 {
-    font-size: clamp(3rem, 5vw, 5rem);
-    font-weight: 800;
-    letter-spacing: -0.05em;
-}
+/* Simplified heading sizes */
+h1 { font-size: 2.25rem; font-weight: 600; } /* 36px */
+h2 { font-size: 1.875rem; font-weight: 600; } /* 30px */
+h3 { font-size: 1.5rem; font-weight: 600; }   /* 24px */
+h4 { font-size: 1.25rem; font-weight: 500; }  /* 20px */
+h5 { font-size: 1.125rem; font-weight: 500; } /* 18px */
+h6 { font-size: 1rem; font-weight: 500; }     /* 16px */
 
-h2 {
-    font-size: clamp(2.25rem, 4vw, 4rem);
-    font-weight: 700;
-}
-
-h3 {
-    font-size: clamp(1.875rem, 3vw, 3rem);
-    font-weight: 700;
-}
-
-h4 {
-    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
-    font-weight: 600;
-}
-
-h5 {
-    font-size: clamp(1.25rem, 2vw, 1.75rem);
-    font-weight: 600;
-}
-
-h6 {
-    font-size: clamp(1.125rem, 1.5vw, 1.5rem);
-    font-weight: 500;
-}
-
-/* Enhanced Typography Classes */
+/* Enhanced Typography Classes with Geist */
 .text-gradient-static {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
+    font-family: var(--font-geist);
+    font-weight: 600;
+    letter-spacing: -0.02em;
 }
 
 .text-gradient-blue {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    font-family: var(--font-geist);
+    font-weight: 600;
 }
 
 .text-gradient-purple {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    font-family: var(--font-geist);
+    font-weight: 600;
 }
 
-/* Enhanced Form Typography */
+/* Form Typography with Geist */
 .form-label-enhanced {
-    font-family: var(--font-primary);
+    font-family: var(--font-geist);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     color: #374151;
     letter-spacing: 0em;
     margin-bottom: 0.5rem;
@@ -199,19 +167,18 @@ body.dark .form-label-enhanced {
 }
 
 .form-input-enhanced {
-    font-family: var(--font-primary);
+    font-family: var(--font-geist);
     font-size: 1rem;
-    font-weight: 500;
-    letter-spacing: 0em;
+    font-weight: 400;
+    letter-spacing: -0.01em;
     line-height: 1.5;
 }
 
 .form-error {
-    font-family: var(--font-primary);
+    font-family: var(--font-geist);
     font-size: 0.75rem;
     font-weight: 500;
     color: #dc2626;
-    letter-spacing: 0em;
     margin-top: 0.25rem;
 }
 
@@ -220,13 +187,12 @@ body.dark .form-error {
 }
 
 /* =============================================================================
-   LAYOUT SYSTEM - Fixed positioning and responsive behavior
+   LAYOUT SYSTEM - Modern and minimal
    ============================================================================= */
 
 .layout-container {
     min-height: 100vh;
     position: relative;
-    overflow-x: hidden;
 }
 
 .header-fixed {
@@ -234,17 +200,17 @@ body.dark .form-error {
     top: 0;
     left: 0;
     right: 0;
-    z-index: var(--z-fixed);
+    z-index: var(--z-dropdown);
     height: 4rem;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+    border-bottom: 1px solid rgba(229, 231, 235, 0.3);
 }
 
 body.dark .header-fixed {
-    background: rgba(17, 24, 39, 0.9);
-    border-bottom-color: rgba(75, 85, 99, 0.5);
+    background: rgba(17, 24, 39, 0.95);
+    border-bottom-color: rgba(75, 85, 99, 0.3);
 }
 
 .sidebar-fixed {
@@ -253,47 +219,46 @@ body.dark .header-fixed {
     left: 0;
     height: calc(100vh - 4rem);
     z-index: 500;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s ease;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(229, 231, 235, 0.5);
+    border-right: 1px solid rgba(229, 231, 235, 0.3);
 }
 
 body.dark .sidebar-fixed {
     background: rgba(17, 24, 39, 0.95);
-    border-right-color: rgba(75, 85, 99, 0.5);
+    border-right-color: rgba(75, 85, 99, 0.3);
 }
 
 .main-content {
     padding-top: 4rem;
     min-height: 100vh;
-    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: margin-left 0.3s ease;
 }
 
 /* =============================================================================
-   COMPONENT STYLES - Glass effects, cards, buttons, and forms
+   MODERN COMPONENT STYLES - Simplified and clean
    ============================================================================= */
 
-/* Glass Effects - CONSOLIDATED (removed duplicate .glass-card) */
+/* Glass Effects */
 .glass-effect {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: var(--shadow-lg);
 }
 
 body.dark .glass-effect {
-    background: rgba(17, 24, 39, 0.8);
+    background: rgba(17, 24, 39, 0.9);
     border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Enhanced Cards */
+/* Modern Cards */
 .card {
     background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--border-radius-xl);
     padding: 1.5rem;
     box-shadow: var(--shadow-md);
@@ -317,20 +282,22 @@ body.dark .card {
     padding: 1.25rem 1.5rem;
     border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
     margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    font-family: var(--font-geist);
     font-size: 1.125rem;
     font-weight: 500;
 }
 
-/* Enhanced Buttons */
+/* Modern Buttons with Geist */
 .btn {
+    font-family: var(--font-geist);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--border-radius-lg);
-    font-weight: 600;
+    font-weight: 500;
     font-size: 1rem;
-    letter-spacing: 0.025em;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: -0.01em;
+    transition: all 0.2s ease;
     border: none;
     cursor: pointer;
     min-height: 44px;
@@ -361,19 +328,11 @@ body.dark .btn-secondary {
     border-color: rgba(75, 85, 99, 0.5);
 }
 
-.btn-secondary:hover {
-    background: rgba(229, 231, 235, 0.9);
-    transform: translateY(-1px);
-}
-
-body.dark .btn-secondary:hover {
-    background: rgba(75, 85, 99, 0.9);
-}
-
-/* Enhanced Form Elements */
+/* Modern Form Elements with Geist */
 .form-input,
 .form-select,
 .form-textarea {
+    font-family: var(--font-geist);
     display: block;
     width: 100%;
     border-radius: var(--border-radius-md);
@@ -385,6 +344,8 @@ body.dark .btn-secondary:hover {
     line-height: 1.5;
     transition: all 0.2s ease;
     min-height: 44px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
 }
 
 body.dark .form-input,
@@ -403,14 +364,15 @@ body.dark .form-textarea {
     box-shadow: 0 0 0 4px rgba(103, 126, 234, 0.15);
 }
 
-/* Status Badges */
+/* Status Badges with Geist */
 .status-badge {
+    font-family: var(--font-geist);
     display: inline-flex;
     align-items: center;
     padding: 0.375rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    font-weight: 700;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border: 1px solid;
@@ -442,7 +404,7 @@ body.dark .form-textarea {
 }
 
 /* =============================================================================
-   MODAL SYSTEM - Enhanced modal styles (FIXED DUPLICATES)
+   MODAL SYSTEM - Clean and modern
    ============================================================================= */
 
 .modal-overlay {
@@ -450,25 +412,23 @@ body.dark .form-textarea {
     inset: 0;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(4px);
-    z-index: var(--z-modal-backdrop);
+    z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem;
 }
 
-/* FIXED: Removed duplicate from desktop.css, consolidated here */
 .modal-content {
     background: rgba(255, 255, 255, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--border-radius-xl);
     padding: 1.5rem;
     width: 100%;
-    max-width: 1200px; /* OPTIMIZED: Compromise between 800px and 1400px */
+    max-width: 1200px;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-xl);
-    z-index: var(--z-modal);
     animation: modalScale 0.3s ease-out;
 }
 
@@ -483,10 +443,12 @@ body.dark .modal-content {
     padding: 1.25rem 1.5rem;
     border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
     margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    font-family: var(--font-geist);
+    font-weight: 500;
 }
 
 /* =============================================================================
-   TABLE SYSTEM - Responsive table layouts
+   TABLE SYSTEM - Clean and responsive
    ============================================================================= */
 
 .table-container {
@@ -504,6 +466,7 @@ body.dark .table-container {
 .table {
     width: 100%;
     background: transparent;
+    font-family: var(--font-geist);
 }
 
 .table thead {
@@ -515,9 +478,10 @@ body.dark .table-container {
     padding: 1rem;
     text-align: left;
     font-size: 0.75rem;
-    font-weight: 700;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-family: var(--font-geist);
 }
 
 .table tbody tr {
@@ -537,6 +501,8 @@ body.dark .table tbody tr {
     padding: 1rem;
     font-size: 0.875rem;
     color: #374151;
+    font-family: var(--font-geist);
+    font-weight: 400;
 }
 
 body.dark .table tbody td {
@@ -544,7 +510,7 @@ body.dark .table tbody td {
 }
 
 /* =============================================================================
-   UTILITY CLASSES - Common patterns and helpers
+   UTILITY CLASSES - Modern and minimal
    ============================================================================= */
 
 /* Display utilities */
@@ -565,7 +531,7 @@ body.dark .table tbody td {
     }
 }
 
-/* Animation utilities - REDUCED SET (removed 15+ unused animations) */
+/* Essential animations only */
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
 }
@@ -581,19 +547,19 @@ body.dark .table tbody td {
     backface-visibility: hidden;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar with minimal design */
 .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
     background: rgba(243, 244, 246, 0.5);
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #667eea;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: background-color 0.2s ease;
 }
 
@@ -610,7 +576,7 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
 }
 
 /* =============================================================================
-   ACCESSIBILITY & PERFORMANCE OPTIMIZATIONS
+   ACCESSIBILITY & PERFORMANCE
    ============================================================================= */
 
 /* Focus management */
@@ -651,29 +617,17 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     body.dark .text-gradient-purple {
         color: #f1f5f9;
     }
-
-    .btn,
-    .form-input,
-    .form-select,
-    .form-textarea,
-    .status-badge,
-    .table tbody tr {
-        border-width: 2px !important;
-    }
 }
 
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
     button,
-    input[type="checkbox"],
-    input[type="radio"],
-    .clickable,
-    .btn {
+    .btn,
+    .clickable {
         min-height: 44px;
         min-width: 44px;
     }
 
-    .hover-effect:hover,
     .btn:hover,
     .card:hover {
         transform: none;
@@ -687,19 +641,7 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
         color: black !important;
         box-shadow: none !important;
         transform: none !important;
-    }
-
-    .glass-effect,
-    .card {
-        background: white !important;
-        border: 1px solid #000 !important;
-        box-shadow: none !important;
-    }
-
-    .btn {
-        background: #f3f4f6 !important;
-        color: #0f172a !important;
-        border: 1px solid #d1d5db !important;
+        font-family: var(--font-geist) !important;
     }
 
     .mobile-only {
@@ -711,27 +653,14 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     }
 }
 
-/* Safe area handling for notched devices */
-@supports (padding: max(0px)) {
-    body {
-        padding-left: max(1rem, env(safe-area-inset-left));
-        padding-right: max(1rem, env(safe-area-inset-right));
-    }
-
-    .modal-content {
-        padding-left: max(1.25rem, env(safe-area-inset-left));
-        padding-right: max(1.25rem, env(safe-area-inset-right));
-    }
-}
-
 /* =============================================================================
-   KEYFRAME ANIMATIONS - CLEANED UP (removed 15+ unused animations)
+   MINIMAL KEYFRAME ANIMATIONS
    ============================================================================= */
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(10px);
     }
     to {
         opacity: 1;
@@ -761,26 +690,10 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     }
 }
 
-@keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
-    100% {
-        background-position: 200% 0;
-    }
-}
-
-/* REMOVED UNUSED ANIMATIONS:
-   - bounceGentle, spinSlow, gradientShift, textGlow, typing, blink-caret
-   - float, pulse, rotate, fadeInDesktop, slideInDesktop, scaleInDesktop
-   - And 10+ more unused animations
-*/
-
 /* =============================================================================
-   MODAL SYSTEM ENHANCEMENTS - Spacious and Beautiful Modal Fixes
+   MODERN MODAL ENHANCEMENTS - Spacious and clean
    ============================================================================= */
 
-/* Enhanced modal sizes */
 @media (min-width: 768px) {
     .modal-content {
         max-width: 1200px !important;
@@ -790,37 +703,13 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
         padding: 0;
     }
 
-    .modal-sm {
-        max-width: 600px !important;
-        width: 90vw;
-    }
-    .modal-md {
-        max-width: 900px !important;
-        width: 92vw;
-    }
-    .modal-lg {
-        max-width: 1200px !important;
-        width: 95vw;
-    }
-    .modal-xl {
-        max-width: 1400px !important;
-        width: 98vw;
-    }
+    .modal-sm { max-width: 600px !important; width: 90vw; }
+    .modal-md { max-width: 900px !important; width: 92vw; }
+    .modal-lg { max-width: 1200px !important; width: 95vw; }
+    .modal-xl { max-width: 1400px !important; width: 98vw; }
 }
 
-/* Enhanced form spacing within modals */
-.space-y-8 > * + * {
-    margin-top: 2rem !important;
-}
-
-.space-y-6 > * + * {
-    margin-top: 1.5rem !important;
-}
-
-.space-y-4 > * + * {
-    margin-top: 1rem !important;
-}
-
+/* Enhanced spacing in modals */
 .modal-content > div {
     padding: 2rem 2.5rem !important;
 }
@@ -837,6 +726,7 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     padding: 0.875rem 1.25rem !important;
     font-size: 1rem !important;
     line-height: 1.5 !important;
+    font-family: var(--font-geist) !important;
 }
 
 .modal-content .form-textarea {
@@ -848,6 +738,7 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     margin-bottom: 0.75rem !important;
     font-size: 0.9375rem !important;
     line-height: 1.4 !important;
+    font-family: var(--font-geist) !important;
 }
 
 /* Enhanced modal footer */
@@ -861,7 +752,8 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     min-height: 48px !important;
     padding: 0.875rem 2rem !important;
     font-size: 1rem !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
+    font-family: var(--font-geist) !important;
 }
 
 .btn-sm {
