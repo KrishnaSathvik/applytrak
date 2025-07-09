@@ -100,7 +100,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                             Oops! Something went wrong
                                         </h1>
                                         <p className="text-gray-600 dark:text-gray-400 font-medium tracking-wide">
-                                            Error ID: <span className="font-bold text-gradient-purple">{this.state.errorId}</span>
+                                            Error ID: <span
+                                            className="font-bold text-gradient-purple">{this.state.errorId}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -126,7 +127,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                                         </h3>
                                         <ul className="text-sm font-medium text-blue-800 dark:text-blue-200 space-y-1">
                                             {suggestions.map((suggestion, index) => (
-                                                <li key={index} className="flex items-start tracking-normal leading-relaxed">
+                                                <li key={index}
+                                                    className="flex items-start tracking-normal leading-relaxed">
                                                     <span className="mr-2 font-bold">•</span>
                                                     {suggestion}
                                                 </li>
@@ -215,7 +217,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
                                         {this.retryCount > 0 && (
                                             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
-                                                Retry attempts: <span className="font-bold text-gradient-purple">{this.retryCount}</span>/<span className="font-bold text-gradient-blue">{this.maxRetries}</span>
+                                                Retry attempts: <span
+                                                className="font-bold text-gradient-purple">{this.retryCount}</span>/<span
+                                                className="font-bold text-gradient-blue">{this.maxRetries}</span>
                                             </p>
                                         )}
                                     </div>

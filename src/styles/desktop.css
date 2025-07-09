@@ -249,17 +249,49 @@
     }
 
     /* Desktop column widths */
-    .table th:nth-child(1), .table td:nth-child(1) { width: 5%; }
-    .table th:nth-child(2), .table td:nth-child(2) { width: 10%; }
-    .table th:nth-child(3), .table td:nth-child(3) { width: 15%; }
-    .table th:nth-child(4), .table td:nth-child(4) { width: 15%; }
-    .table th:nth-child(5), .table td:nth-child(5) { width: 8%; }
-    .table th:nth-child(6), .table td:nth-child(6) { width: 12%; }
-    .table th:nth-child(7), .table td:nth-child(7) { width: 10%; }
-    .table th:nth-child(8), .table td:nth-child(8) { width: 8%; }
-    .table th:nth-child(9), .table td:nth-child(9) { width: 8%; }
-    .table th:nth-child(10), .table td:nth-child(10) { width: 5%; }
-    .table th:nth-child(11), .table td:nth-child(11) { width: 12%; }
+    .table th:nth-child(1), .table td:nth-child(1) {
+        width: 5%;
+    }
+
+    .table th:nth-child(2), .table td:nth-child(2) {
+        width: 10%;
+    }
+
+    .table th:nth-child(3), .table td:nth-child(3) {
+        width: 15%;
+    }
+
+    .table th:nth-child(4), .table td:nth-child(4) {
+        width: 15%;
+    }
+
+    .table th:nth-child(5), .table td:nth-child(5) {
+        width: 8%;
+    }
+
+    .table th:nth-child(6), .table td:nth-child(6) {
+        width: 12%;
+    }
+
+    .table th:nth-child(7), .table td:nth-child(7) {
+        width: 10%;
+    }
+
+    .table th:nth-child(8), .table td:nth-child(8) {
+        width: 8%;
+    }
+
+    .table th:nth-child(9), .table td:nth-child(9) {
+        width: 8%;
+    }
+
+    .table th:nth-child(10), .table td:nth-child(10) {
+        width: 5%;
+    }
+
+    .table th:nth-child(11), .table td:nth-child(11) {
+        width: 12%;
+    }
 }
 
 /* =============================================================================
@@ -359,10 +391,21 @@
     }
 
     /* Enhanced modal sizes */
-    .modal-sm { max-width: 600px; }
-    .modal-md { max-width: 1000px; }
-    .modal-lg { max-width: 1400px; }
-    .modal-xl { max-width: 1600px; }
+    .modal-sm {
+        max-width: 600px;
+    }
+
+    .modal-md {
+        max-width: 1000px;
+    }
+
+    .modal-lg {
+        max-width: 1400px;
+    }
+
+    .modal-xl {
+        max-width: 1600px;
+    }
 }
 
 /* =============================================================================
@@ -501,16 +544,14 @@
 
     /* Desktop grid background */
     .bg-grid {
-        background-image:
-                linear-gradient(rgba(103, 126, 234, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(103, 126, 234, 0.03) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(103, 126, 234, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(103, 126, 234, 0.03) 1px, transparent 1px);
         background-size: 24px 24px;
     }
 
     body.dark .bg-grid {
-        background-image:
-                linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
     }
 
     /* 🔧 OPTIMIZED: Desktop floating animations with performance focus */

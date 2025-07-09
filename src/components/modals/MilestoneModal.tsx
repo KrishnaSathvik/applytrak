@@ -130,7 +130,8 @@ const MilestoneModal: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="glass rounded-lg p-4 text-center">
                             <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-500"/>
-                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Success Rate</p>
+                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Success
+                                Rate</p>
                             <p className="text-2xl font-extrabold text-gradient-blue">
                                 {Math.round((goalProgress.totalApplications > 0 ? goalProgress.totalApplications / goalProgress.totalApplications * 100 : 0))}%
                             </p>
@@ -138,7 +139,8 @@ const MilestoneModal: React.FC = () => {
 
                         <div className="glass rounded-lg p-4 text-center">
                             <Target className="h-6 w-6 mx-auto mb-2 text-blue-500"/>
-                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Goal Progress</p>
+                            <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide uppercase">Goal
+                                Progress</p>
                             <p className="text-2xl font-extrabold text-gradient-purple">
                                 {goalProgress.totalProgress}%
                             </p>
@@ -164,7 +166,8 @@ const MilestoneModal: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1">
+                            <div
+                                className="flex justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1">
                                 <span>{currentCount} applications</span>
                                 <span className="font-bold">{nextMilestone - currentCount} to go</span>
                             </div>

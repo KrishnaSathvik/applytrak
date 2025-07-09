@@ -1,24 +1,23 @@
 // src/components/modals/GoalModal.tsx - ENTERPRISE ENHANCED WITH FIXES
-import React, { useEffect, useCallback, useMemo, forwardRef } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
+import React, {forwardRef, useCallback, useEffect, useMemo} from 'react';
+import {useForm} from 'react-hook-form';
+import {yupResolver} from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import {
-    Save,
-    Target,
-    X,
-    TrendingUp,
-    Calendar,
-    Award,
     AlertTriangle,
+    Award,
+    BarChart3,
+    Calendar,
     CheckCircle,
     Info,
-    Calculator,
-    Zap,
-    BarChart3
+    Save,
+    Target,
+    TrendingUp,
+    X,
+    Zap
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { cn } from '../../utils/helpers';
+import {useAppStore} from '../../store/useAppStore';
+import {cn} from '../../utils/helpers';
 
 // ==========================================
 // ENHANCED TYPES & INTERFACES
@@ -74,7 +73,7 @@ const createGoalValidationSchema = () => {
             .min(1, 'Total goal must be at least 1')
             .max(10000, 'Total goal must be less than 10,000')
             .integer('Total goal must be a whole number')
-            .test('realistic-total', 'This goal seems very ambitious. Are you sure?', function(value) {
+            .test('realistic-total', 'This goal seems very ambitious. Are you sure?', function (value) {
                 return !value || value <= 1000; // Warning for very high goals
             }),
 
@@ -87,7 +86,7 @@ const createGoalValidationSchema = () => {
             .min(1, 'Weekly goal must be at least 1')
             .max(200, 'Weekly goal must be less than 200')
             .integer('Weekly goal must be a whole number')
-            .test('realistic-weekly', 'This weekly goal seems very high', function(value) {
+            .test('realistic-weekly', 'This weekly goal seems very high', function (value) {
                 return !value || value <= 100; // Warning for very high weekly goals
             }),
 
@@ -103,8 +102,8 @@ const createGoalValidationSchema = () => {
             .test(
                 'monthly-weekly-balance',
                 'Monthly goal should align with your weekly goal',
-                function(value) {
-                    const { weeklyGoal } = this.parent;
+                function (value) {
+                    const {weeklyGoal} = this.parent;
                     if (!value || !weeklyGoal) return true;
 
                     // 🔧 FIXED: Better logic for weekly vs monthly validation
@@ -147,7 +146,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
         showToast
     } = useAppStore();
 
-    const { goalSetting } = modals;
+    const {goalSetting} = modals;
 
     // 🔧 ENHANCED: Form with better default handling
     const {
@@ -157,7 +156,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
         reset,
         setValue,
         watch,
-        formState: { errors, isSubmitting, isDirty },
+        formState: {errors, isSubmitting, isDirty},
         trigger,
         clearErrors
     } = useForm<GoalFormData>({
@@ -171,7 +170,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
     });
 
     const watchedValues = watch();
-    const { totalGoal, weeklyGoal, monthlyGoal } = watchedValues;
+    const {totalGoal, weeklyGoal, monthlyGoal} = watchedValues;
 
     // ==========================================
     // ENHANCED CALCULATIONS
@@ -402,13 +401,16 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Enhanced Header */}
-                    <div className="relative overflow-hidden border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-pink-600/90 backdrop-blur-sm"></div>
+                    <div
+                        className="relative overflow-hidden border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl">
+                        <div
+                            className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-pink-600/90 backdrop-blur-sm"></div>
 
                         <div className="relative z-10 flex items-center justify-between p-6">
                             <div className="flex items-center gap-4">
-                                <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg">
-                                    <Target className="h-7 w-7 text-white drop-shadow-lg" />
+                                <div
+                                    className="p-3 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-lg">
+                                    <Target className="h-7 w-7 text-white drop-shadow-lg"/>
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight drop-shadow-lg">
@@ -424,7 +426,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                 className="p-2 rounded-lg bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold tracking-wide transition-all duration-200 hover:scale-105"
                                 aria-label="Close modal"
                             >
-                                <X className="h-5 w-5 drop-shadow-lg" />
+                                <X className="h-5 w-5 drop-shadow-lg"/>
                             </button>
                         </div>
                     </div>
@@ -435,8 +437,9 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {/* Total Goal */}
                             <div className="space-y-3">
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
-                                    <Target className="h-4 w-4 mr-2 inline" />
+                                <label
+                                    className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
+                                    <Target className="h-4 w-4 mr-2 inline"/>
                                     Total Application Goal
                                 </label>
                                 <div className="relative">
@@ -455,12 +458,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                         placeholder="100"
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <Award className="h-5 w-5 text-gray-400" />
+                                        <Award className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.totalGoal && (
                                     <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
-                                        <AlertTriangle className="h-4 w-4 mr-1" />
+                                        <AlertTriangle className="h-4 w-4 mr-1"/>
                                         {errors.totalGoal.message}
                                     </p>
                                 )}
@@ -468,14 +471,17 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                 {/* Timeline Display */}
                                 {totalGoal && weeklyGoal && (
                                     <div className="space-y-2 text-sm">
-                                        <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                        <div
+                                            className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                             <span className="font-medium text-blue-800 dark:text-blue-200">Estimated Time:</span>
                                             <span className="font-bold text-blue-900 dark:text-blue-100">
                                                 {timelineCalculations.weeksToTotal} weeks
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                            <span className="font-medium text-purple-800 dark:text-purple-200">≈ Months:</span>
+                                        <div
+                                            className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                            <span
+                                                className="font-medium text-purple-800 dark:text-purple-200">≈ Months:</span>
                                             <span className="font-bold text-purple-900 dark:text-purple-100">
                                                 {timelineCalculations.monthsToTotal} months
                                             </span>
@@ -486,8 +492,9 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
 
                             {/* Weekly Goal */}
                             <div className="space-y-3">
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
-                                    <Calendar className="h-4 w-4 mr-2 inline" />
+                                <label
+                                    className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
+                                    <Calendar className="h-4 w-4 mr-2 inline"/>
                                     Weekly Goal
                                 </label>
                                 <div className="relative">
@@ -506,12 +513,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                         placeholder="5"
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <TrendingUp className="h-5 w-5 text-gray-400" />
+                                        <TrendingUp className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.weeklyGoal && (
                                     <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
-                                        <AlertTriangle className="h-4 w-4 mr-1" />
+                                        <AlertTriangle className="h-4 w-4 mr-1"/>
                                         {errors.weeklyGoal.message}
                                     </p>
                                 )}
@@ -533,8 +540,9 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
 
                             {/* Monthly Goal */}
                             <div className="space-y-3">
-                                <label className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
-                                    <BarChart3 className="h-4 w-4 mr-2 inline" />
+                                <label
+                                    className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
+                                    <BarChart3 className="h-4 w-4 mr-2 inline"/>
                                     Monthly Goal
                                 </label>
                                 <div className="relative">
@@ -553,12 +561,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                         placeholder="20"
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <Calendar className="h-5 w-5 text-gray-400" />
+                                        <Calendar className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.monthlyGoal && (
                                     <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
-                                        <AlertTriangle className="h-4 w-4 mr-1" />
+                                        <AlertTriangle className="h-4 w-4 mr-1"/>
                                         {errors.monthlyGoal.message}
                                     </p>
                                 )}
@@ -594,11 +602,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                     <div className="flex items-start space-x-3">
                                         <div className="flex-shrink-0">
                                             {validationState.weeklyMonthlyRatio.isValid ? (
-                                                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400"/>
                                             ) : validationState.weeklyMonthlyRatio.severity === 'warning' ? (
-                                                <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                                <AlertTriangle
+                                                    className="h-5 w-5 text-yellow-600 dark:text-yellow-400"/>
                                             ) : (
-                                                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400"/>
                                             )}
                                         </div>
                                         <div className="flex-1">
@@ -635,7 +644,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                 {smartSuggestions.length > 0 && (
                                     <div className="space-y-2">
                                         <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center">
-                                            <Zap className="h-4 w-4 mr-2" />
+                                            <Zap className="h-4 w-4 mr-2"/>
                                             Smart Suggestions
                                         </h4>
                                         {smartSuggestions.map((suggestion, index) => (
@@ -657,9 +666,10 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                         )}
 
                         {/* Goal Setting Tips */}
-                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div
+                            className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-3 flex items-center">
-                                <Info className="h-4 w-4 mr-2" />
+                                <Info className="h-4 w-4 mr-2"/>
                                 Goal Setting Tips
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -680,7 +690,8 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                     </li>
                                     <li className="flex items-start space-x-2">
                                         <span className="font-bold text-blue-500">•</span>
-                                        <span className="text-gray-600 dark:text-gray-400">Adjust as you learn your pace</span>
+                                        <span
+                                            className="text-gray-600 dark:text-gray-400">Adjust as you learn your pace</span>
                                     </li>
                                 </ul>
                             </div>
@@ -707,12 +718,13 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                             >
                                 {isSubmitting || ui.isLoading ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                        <div
+                                            className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"/>
                                         Saving...
                                     </>
                                 ) : (
                                     <>
-                                        <Save className="h-4 w-4 mr-2" />
+                                        <Save className="h-4 w-4 mr-2"/>
                                         Save Goals
                                     </>
                                 )}

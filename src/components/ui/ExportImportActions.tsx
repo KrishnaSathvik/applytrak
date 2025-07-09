@@ -1,30 +1,23 @@
 // src/components/ui/ExportImportActions.tsx - FINAL INTEGRATED VERSION
-import React, { useRef, useState } from 'react';
+import React, {useRef, useState} from 'react';
 import {
     AlertCircle,
-    CheckCircle,
-    Download,
-    FileSpreadsheet,
-    FileText,
-    Save,
-    Upload,
-    Loader2,
-    Database,
-    FileImage,
     BarChart3,
-    Shield
+    CheckCircle,
+    Database,
+    Download,
+    FileImage,
+    FileSpreadsheet,
+    Loader2,
+    Shield,
+    Upload
 } from 'lucide-react';
-import { Button } from './Button';
-import { Modal } from './Modal';
-import { Application } from '../../types/application.types';
-import { formatDate } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
-import {
-    exportToPDF,
-    exportToCSV,
-    exportToJSON,
-    importApplications
-} from '../../utils/exportImport';
+import {Button} from './Button';
+import {Modal} from './Modal';
+import {Application} from '../../types/application.types';
+import {formatDate} from '../../utils/formatters';
+import {useAppStore} from '../../store/useAppStore';
+import {exportToCSV, exportToJSON, exportToPDF, importApplications} from '../../utils/exportImport';
 
 interface ExportImportActionsProps {
     applications: Application[];
@@ -43,7 +36,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
     const [isExporting, setIsExporting] = useState(false);
     const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'pdf'>('json');
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { showToast, handleImport: storeHandleImport } = useAppStore();
+    const {showToast, handleImport: storeHandleImport} = useAppStore();
 
     // Enhanced export options with beautiful descriptions
     const exportOptions = [
@@ -202,7 +195,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
             };
 
             const jsonString = JSON.stringify(backup, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
+            const blob = new Blob([jsonString], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -236,7 +229,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
         const applied = applications.filter(app => app.status === 'Applied').length;
         const rejected = applications.filter(app => app.status === 'Rejected').length;
 
-        return { total, offers, interviews, applied, rejected };
+        return {total, offers, interviews, applied, rejected};
     };
 
     const stats = getExportStats();
@@ -251,7 +244,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     onClick={() => setShowExportModal(true)}
                     className="btn btn-secondary btn-sm hover:shadow-lg hover:scale-105 transition-all duration-200 font-bold tracking-wide"
                 >
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download className="h-4 w-4 mr-2"/>
                     <span className="font-bold tracking-wide">Export</span>
                 </Button>
 
@@ -261,7 +254,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     onClick={() => setShowImportModal(true)}
                     className="btn btn-secondary btn-sm hover:shadow-lg hover:scale-105 transition-all duration-200 font-bold tracking-wide"
                 >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="h-4 w-4 mr-2"/>
                     <span className="font-bold tracking-wide">Import</span>
                 </Button>
 
@@ -271,7 +264,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     onClick={createBackup}
                     className="btn btn-secondary btn-sm hover:shadow-lg hover:scale-105 transition-all duration-200 font-bold tracking-wide"
                 >
-                    <Shield className="h-4 w-4 mr-2" />
+                    <Shield className="h-4 w-4 mr-2"/>
                     <span className="font-bold tracking-wide">Backup</span>
                 </Button>
             </div>
@@ -286,36 +279,48 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                 <div className="space-y-8">
                     {/* EXPORT STATS DASHBOARD */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="glass-subtle rounded-xl p-4 text-center border border-gray-200/50 dark:border-gray-700/50">
+                        <div
+                            className="glass-subtle rounded-xl p-4 text-center border border-gray-200/50 dark:border-gray-700/50">
                             <div className="text-2xl font-extrabold text-gradient-static mb-1">
                                 {stats.total}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Total</div>
+                            <div
+                                className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Total
+                            </div>
                         </div>
-                        <div className="glass-subtle rounded-xl p-4 text-center border border-green-200/50 dark:border-green-700/50">
+                        <div
+                            className="glass-subtle rounded-xl p-4 text-center border border-green-200/50 dark:border-green-700/50">
                             <div className="text-2xl font-extrabold text-gradient-blue mb-1">
                                 {stats.offers}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Offers</div>
+                            <div
+                                className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Offers
+                            </div>
                         </div>
-                        <div className="glass-subtle rounded-xl p-4 text-center border border-blue-200/50 dark:border-blue-700/50">
+                        <div
+                            className="glass-subtle rounded-xl p-4 text-center border border-blue-200/50 dark:border-blue-700/50">
                             <div className="text-2xl font-extrabold text-gradient-purple mb-1">
                                 {stats.interviews}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Interviews</div>
+                            <div
+                                className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Interviews
+                            </div>
                         </div>
-                        <div className="glass-subtle rounded-xl p-4 text-center border border-orange-200/50 dark:border-orange-700/50">
+                        <div
+                            className="glass-subtle rounded-xl p-4 text-center border border-orange-200/50 dark:border-orange-700/50">
                             <div className="text-2xl font-extrabold text-gradient-static mb-1">
                                 {stats.applied}
                             </div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Pending</div>
+                            <div
+                                className="text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest">Pending
+                            </div>
                         </div>
                     </div>
 
                     {/* EXPORT FORMAT SELECTION */}
                     <div>
                         <h3 className="text-lg font-bold text-gradient-static mb-6 flex items-center gap-3 tracking-wide">
-                            <BarChart3 className="h-5 w-5" />
+                            <BarChart3 className="h-5 w-5"/>
                             Choose Export Format
                         </h3>
 
@@ -337,7 +342,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                     >
                                         <div className="flex items-start space-x-5">
                                             <div className={`p-3 rounded-xl ${option.bgColor} border border-white/20`}>
-                                                <Icon className={`h-7 w-7 ${option.color}`} />
+                                                <Icon className={`h-7 w-7 ${option.color}`}/>
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between mb-2">
@@ -345,7 +350,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                                         {option.name}
                                                     </h4>
                                                     {isSelected && (
-                                                        <CheckCircle className="h-6 w-6 text-green-500" />
+                                                        <CheckCircle className="h-6 w-6 text-green-500"/>
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium leading-relaxed">
@@ -386,12 +391,12 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                         >
                             {isExporting ? (
                                 <>
-                                    <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                                    <Loader2 className="h-5 w-5 mr-3 animate-spin"/>
                                     <span className="font-bold tracking-wide">Exporting...</span>
                                 </>
                             ) : (
                                 <>
-                                    <Download className="h-5 w-5 mr-3" />
+                                    <Download className="h-5 w-5 mr-3"/>
                                     <span className="font-bold tracking-wide">Export {exportFormat.toUpperCase()}</span>
                                 </>
                             )}
@@ -418,24 +423,32 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                 <div className="space-y-8">
                     {importStatus === 'idle' && (
                         <>
-                            <div className="glass-subtle rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/50">
+                            <div
+                                className="glass-subtle rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/50">
                                 <h4 className="font-bold text-gradient-static mb-3 flex items-center gap-3 tracking-wide">
-                                    <Upload className="h-5 w-5" />
+                                    <Upload className="h-5 w-5"/>
                                     Supported Import Formats
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="flex items-center gap-3">
-                                        <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        <Database className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                                         <div>
                                             <div className="font-bold text-gradient-blue tracking-wide">JSON Files</div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Exported from ApplyTrak or backup files</div>
+                                            <div
+                                                className="text-sm text-gray-600 dark:text-gray-400 font-medium">Exported
+                                                from ApplyTrak or backup files
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <FileSpreadsheet className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                                        <FileSpreadsheet className="h-5 w-5 text-emerald-600 dark:text-emerald-400"/>
                                         <div>
-                                            <div className="font-bold text-gradient-static tracking-wide">CSV Files</div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Spreadsheet exports with proper columns</div>
+                                            <div className="font-bold text-gradient-static tracking-wide">CSV Files
+                                            </div>
+                                            <div
+                                                className="text-sm text-gray-600 dark:text-gray-400 font-medium">Spreadsheet
+                                                exports with proper columns
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -454,8 +467,9 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                 className="w-full p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl hover:border-primary-500 dark:hover:border-primary-400 transition-all duration-300 group hover:bg-gradient-to-br hover:from-blue-50/30 hover:to-purple-50/30 dark:hover:from-blue-900/10 dark:hover:to-purple-900/10 hover:scale-[1.02] transform"
                             >
                                 <div className="text-center">
-                                    <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 w-fit mx-auto mb-6 group-hover:scale-110 transition-transform">
-                                        <Upload className="h-10 w-10 text-white" />
+                                    <div
+                                        className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 w-fit mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                        <Upload className="h-10 w-10 text-white"/>
                                     </div>
                                     <p className="text-xl font-bold text-gradient-static mb-2 tracking-wide">
                                         Choose File to Import
@@ -470,8 +484,9 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
                     {importStatus === 'loading' && (
                         <div className="text-center py-16">
-                            <Loader2 className="h-16 w-16 animate-spin mx-auto text-primary-500 mb-6" />
-                            <p className="text-xl font-bold text-gradient-static mb-2 tracking-wide">Processing your file...</p>
+                            <Loader2 className="h-16 w-16 animate-spin mx-auto text-primary-500 mb-6"/>
+                            <p className="text-xl font-bold text-gradient-static mb-2 tracking-wide">Processing your
+                                file...</p>
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium tracking-wider">
                                 Validating data and preparing import preview
                             </p>
@@ -479,9 +494,10 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     )}
 
                     {importStatus === 'error' && (
-                        <div className="glass rounded-xl p-8 border-l-4 border-l-red-500 bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-900/20 dark:to-pink-900/20">
+                        <div
+                            className="glass rounded-xl p-8 border-l-4 border-l-red-500 bg-gradient-to-r from-red-50/50 to-pink-50/50 dark:from-red-900/20 dark:to-pink-900/20">
                             <div className="flex items-start space-x-4">
-                                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400 mt-1 flex-shrink-0" />
+                                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400 mt-1 flex-shrink-0"/>
                                 <div>
                                     <h4 className="text-lg font-bold text-red-800 dark:text-red-200 mb-2 tracking-wide">
                                         Import Failed
@@ -500,21 +516,26 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
                     {importStatus === 'success' && (
                         <div className="space-y-6">
-                            <div className="glass rounded-xl p-6 border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/20">
+                            <div
+                                className="glass rounded-xl p-6 border-l-4 border-l-green-500 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/20">
                                 <div className="flex items-start space-x-4">
-                                    <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400 mt-1 flex-shrink-0" />
+                                    <CheckCircle
+                                        className="h-8 w-8 text-green-600 dark:text-green-400 mt-1 flex-shrink-0"/>
                                     <div>
                                         <h4 className="text-lg font-bold text-green-800 dark:text-green-200 mb-2 tracking-wide">
                                             Import Preview Ready
                                         </h4>
                                         <p className="text-green-600 dark:text-green-400 font-medium leading-relaxed">
-                                            Found <span className="font-extrabold text-gradient-blue">{importPreview.length}</span> valid applications ready to import
+                                            Found <span
+                                            className="font-extrabold text-gradient-blue">{importPreview.length}</span> valid
+                                            applications ready to import
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="max-h-80 overflow-y-auto glass rounded-xl border border-gray-200/50 dark:border-gray-700/50">
+                            <div
+                                className="max-h-80 overflow-y-auto glass rounded-xl border border-gray-200/50 dark:border-gray-700/50">
                                 <table className="w-full text-sm">
                                     <thead className="sticky top-0 bg-gray-50/90 dark:bg-gray-800/90 backdrop-blur-sm">
                                     <tr>
@@ -526,12 +547,14 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                     </thead>
                                     <tbody>
                                     {importPreview.map((app, index) => (
-                                        <tr key={index} className="border-t border-gray-200/50 dark:border-gray-700/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
+                                        <tr key={index}
+                                            className="border-t border-gray-200/50 dark:border-gray-700/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                                             <td className="px-6 py-4 font-bold text-gradient-static">{app.company}</td>
                                             <td className="px-6 py-4 font-semibold tracking-tight">{app.position}</td>
                                             <td className="px-6 py-4 font-medium tracking-wider">{formatDate(app.dateApplied)}</td>
                                             <td className="px-6 py-4">
-                                                    <span className={`status-badge status-${app.status.toLowerCase()} font-bold tracking-wider uppercase`}>
+                                                    <span
+                                                        className={`status-badge status-${app.status.toLowerCase()} font-bold tracking-wider uppercase`}>
                                                         {app.status}
                                                     </span>
                                             </td>
@@ -541,7 +564,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                 </table>
                             </div>
 
-                            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                            <div
+                                className="flex justify-end gap-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                                 <Button
                                     variant="outline"
                                     onClick={() => {
@@ -556,8 +580,9 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                     onClick={confirmImport}
                                     className="btn btn-primary btn-lg font-bold tracking-wide px-8 py-3 hover:scale-105 transition-transform"
                                 >
-                                    <Upload className="h-5 w-5 mr-3" />
-                                    <span className="font-bold tracking-wide">Import {importPreview.length} Applications</span>
+                                    <Upload className="h-5 w-5 mr-3"/>
+                                    <span
+                                        className="font-bold tracking-wide">Import {importPreview.length} Applications</span>
                                 </Button>
                             </div>
                         </div>

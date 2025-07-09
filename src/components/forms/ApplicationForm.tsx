@@ -1,14 +1,14 @@
 // src/components/forms/ApplicationForm.tsx - ENHANCED TYPOGRAPHY VERSION
-import React, { useState, useCallback } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { Plus, Upload, X, ExternalLink, Sparkles } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { ApplicationFormData, Attachment } from '../../types';
-import { applicationFormSchema } from '../../utils/validation';
+import React, {useCallback, useState} from 'react';
+import {SubmitHandler, useForm} from 'react-hook-form';
+import {yupResolver} from '@hookform/resolvers/yup';
+import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
+import {useAppStore} from '../../store/useAppStore';
+import {ApplicationFormData, Attachment} from '../../types';
+import {applicationFormSchema} from '../../utils/validation';
 
 const ApplicationForm: React.FC = () => {
-    const { addApplication, showToast } = useAppStore();
+    const {addApplication, showToast} = useAppStore();
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [isDragOver, setIsDragOver] = useState(false);
 
@@ -17,7 +17,7 @@ const ApplicationForm: React.FC = () => {
         handleSubmit,
         reset,
         watch,
-        formState: { errors, isSubmitting }
+        formState: {errors, isSubmitting}
     } = useForm<ApplicationFormData>({
         resolver: yupResolver(applicationFormSchema) as any,
         defaultValues: {
@@ -156,17 +156,19 @@ const ApplicationForm: React.FC = () => {
     };
 
     return (
-        <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
+        <div
+            className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
             {/* Header - MOBILE RESPONSIVE */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
-                        <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+                    <div
+                        className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
+                        <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400"/>
                     </div>
                     <div>
                         <h2 className="text-2xl sm:text-3xl font-extrabold text-gradient-static tracking-tight flex items-center gap-2">
                             Add New Application
-                            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+                            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500"/>
                         </h2>
                         <p className="text-gray-600 dark:text-gray-300 text-base font-medium leading-relaxed">
                             <span className="hidden sm:inline">Fill out the details for your new job application</span>
@@ -317,15 +319,15 @@ const ApplicationForm: React.FC = () => {
                             placeholder="e.g. LinkedIn"
                         />
                         <datalist id="jobSources">
-                            <option value="LinkedIn" />
-                            <option value="Company Website" />
-                            <option value="Indeed" />
-                            <option value="Glassdoor" />
-                            <option value="Dice" />
-                            <option value="ZipRecruiter" />
-                            <option value="AngelList" />
-                            <option value="Stack Overflow Jobs" />
-                            <option value="Referral" />
+                            <option value="LinkedIn"/>
+                            <option value="Company Website"/>
+                            <option value="Indeed"/>
+                            <option value="Glassdoor"/>
+                            <option value="Dice"/>
+                            <option value="ZipRecruiter"/>
+                            <option value="AngelList"/>
+                            <option value="Stack Overflow Jobs"/>
+                            <option value="Referral"/>
                         </datalist>
                         {errors.jobSource && (
                             <p className="form-error flex items-center gap-1">
@@ -355,7 +357,7 @@ const ApplicationForm: React.FC = () => {
                                 className="btn btn-secondary w-full sm:w-auto h-12 sm:h-auto px-4 hover:scale-105 transition-all duration-200 font-bold tracking-wide"
                                 title="Open job posting"
                             >
-                                <ExternalLink className="h-4 w-4 mr-2 sm:mr-0" />
+                                <ExternalLink className="h-4 w-4 mr-2 sm:mr-0"/>
                                 <span className="sm:hidden">Open Link</span>
                             </button>
                         )}
@@ -402,7 +404,7 @@ const ApplicationForm: React.FC = () => {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className="glass rounded-lg p-2 flex-shrink-0">
-                                                <Upload className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                <Upload className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate tracking-tight">
@@ -419,7 +421,7 @@ const ApplicationForm: React.FC = () => {
                                             className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:scale-110 transition-all duration-200 p-2 flex-shrink-0"
                                             title="Remove attachment"
                                         >
-                                            <X className="h-4 w-4" />
+                                            <X className="h-4 w-4"/>
                                         </button>
                                     </div>
                                 </div>
@@ -440,15 +442,17 @@ const ApplicationForm: React.FC = () => {
                     >
                         <div className="space-y-3 sm:space-y-4">
                             <div className="flex justify-center">
-                                <div className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
+                                <div
+                                    className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400"/>
                                 </div>
                             </div>
 
                             <div>
                                 <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
                                     <span className="hidden sm:inline">Drop files here, or </span>
-                                    <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
+                                    <label
+                                        className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
                                         <span className="sm:hidden">Tap to </span>browse
                                         <input
                                             type="file"
@@ -483,10 +487,11 @@ const ApplicationForm: React.FC = () => {
                             </>
                         ) : (
                             <>
-                                <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                                <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300"/>
                                 <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
                                 <span className="sm:hidden font-bold">Add Application</span>
-                                <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300" />
+                                <Sparkles
+                                    className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
                             </>
                         )}
                     </button>

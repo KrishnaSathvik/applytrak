@@ -500,24 +500,66 @@
 
 @media (max-width: 767px) {
     /* Mobile spacing utilities */
-    .mobile-spacing-xs { margin: 0.25rem 0; }
-    .mobile-spacing-sm { margin: 0.5rem 0; }
-    .mobile-spacing-md { margin: 1rem 0; }
-    .mobile-spacing-lg { margin: 1.5rem 0; }
-    .mobile-spacing-xl { margin: 2rem 0; }
+    .mobile-spacing-xs {
+        margin: 0.25rem 0;
+    }
 
-    .mobile-padding-xs { padding: 0.25rem; }
-    .mobile-padding-sm { padding: 0.5rem; }
-    .mobile-padding-md { padding: 1rem; }
-    .mobile-padding-lg { padding: 1.5rem; }
-    .mobile-padding-xl { padding: 2rem; }
+    .mobile-spacing-sm {
+        margin: 0.5rem 0;
+    }
+
+    .mobile-spacing-md {
+        margin: 1rem 0;
+    }
+
+    .mobile-spacing-lg {
+        margin: 1.5rem 0;
+    }
+
+    .mobile-spacing-xl {
+        margin: 2rem 0;
+    }
+
+    .mobile-padding-xs {
+        padding: 0.25rem;
+    }
+
+    .mobile-padding-sm {
+        padding: 0.5rem;
+    }
+
+    .mobile-padding-md {
+        padding: 1rem;
+    }
+
+    .mobile-padding-lg {
+        padding: 1.5rem;
+    }
+
+    .mobile-padding-xl {
+        padding: 2rem;
+    }
 
     /* Mobile text sizing */
-    .mobile-text-xs { font-size: 0.75rem; }
-    .mobile-text-sm { font-size: 0.875rem; }
-    .mobile-text-base { font-size: 1rem; }
-    .mobile-text-lg { font-size: 1.125rem; }
-    .mobile-text-xl { font-size: 1.25rem; }
+    .mobile-text-xs {
+        font-size: 0.75rem;
+    }
+
+    .mobile-text-sm {
+        font-size: 0.875rem;
+    }
+
+    .mobile-text-base {
+        font-size: 1rem;
+    }
+
+    .mobile-text-lg {
+        font-size: 1.125rem;
+    }
+
+    .mobile-text-xl {
+        font-size: 1.25rem;
+    }
 
     /* Mobile container sizing */
     .mobile-container {

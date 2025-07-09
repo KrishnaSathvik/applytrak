@@ -138,15 +138,15 @@ module.exports = {
 
         // REDUCED font sizes - removed excessive responsive scaling
         fontSize: {
-            xs: ['0.75rem', { lineHeight: '1.25' }],
-            sm: ['0.875rem', { lineHeight: '1.375' }],
-            base: ['1rem', { lineHeight: '1.5' }],
-            lg: ['1.125rem', { lineHeight: '1.375' }],
-            xl: ['1.25rem', { lineHeight: '1.25' }],
-            '2xl': ['1.5rem', { lineHeight: '1.25' }],
-            '3xl': ['1.875rem', { lineHeight: '1.25' }],
-            '4xl': ['2.25rem', { lineHeight: '1.125' }],
-            '5xl': ['3rem', { lineHeight: '1' }],
+            xs: ['0.75rem', {lineHeight: '1.25'}],
+            sm: ['0.875rem', {lineHeight: '1.375'}],
+            base: ['1rem', {lineHeight: '1.5'}],
+            lg: ['1.125rem', {lineHeight: '1.375'}],
+            xl: ['1.25rem', {lineHeight: '1.25'}],
+            '2xl': ['1.5rem', {lineHeight: '1.25'}],
+            '3xl': ['1.875rem', {lineHeight: '1.25'}],
+            '4xl': ['2.25rem', {lineHeight: '1.125'}],
+            '5xl': ['3rem', {lineHeight: '1'}],
             // REMOVED: 6xl, 7xl, 8xl, 9xl (rarely used)
         },
 
@@ -244,24 +244,24 @@ module.exports = {
         keyframes: {
             // REDUCED from 25+ keyframes to 5 essential ones
             fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
+                '0%': {opacity: '0'},
+                '100%': {opacity: '1'},
             },
             slideUp: {
-                '0%': { transform: 'translateY(100%)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
+                '0%': {transform: 'translateY(100%)', opacity: '0'},
+                '100%': {transform: 'translateY(0)', opacity: '1'},
             },
             scaleIn: {
-                '0%': { transform: 'scale(0.95)', opacity: '0' },
-                '100%': { transform: 'scale(1)', opacity: '1' },
+                '0%': {transform: 'scale(0.95)', opacity: '0'},
+                '100%': {transform: 'scale(1)', opacity: '1'},
             },
             pulse: {
-                '0%, 100%': { opacity: '1' },
-                '50%': { opacity: '0.5' },
+                '0%, 100%': {opacity: '1'},
+                '50%': {opacity: '0.5'},
             },
             spin: {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' },
+                '0%': {transform: 'rotate(0deg)'},
+                '100%': {transform: 'rotate(360deg)'},
             },
         },
 
@@ -346,7 +346,7 @@ module.exports = {
         // REMOVED: @tailwindcss/typography (not used in your app)
 
         // Custom plugin for performance optimizations - STREAMLINED
-        function({ addUtilities, addComponents, theme }) {
+        function ({addUtilities, addComponents, theme}) {
             // ==========================================================
             // ESSENTIAL UTILITIES ONLY
             // ==========================================================

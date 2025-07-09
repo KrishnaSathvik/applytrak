@@ -1,11 +1,11 @@
 // src/components/modals/EditApplicationModal.tsx - Enhanced Spacious Version
-import React, { useState, useCallback, useEffect } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { Edit, Upload, X, ExternalLink, FileText, Trash2 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { EditFormData, Attachment } from '../../types';
-import { editApplicationFormSchema } from '../../utils/validation';
+import React, {useCallback, useEffect, useState} from 'react';
+import {SubmitHandler, useForm} from 'react-hook-form';
+import {yupResolver} from '@hookform/resolvers/yup';
+import {Edit, ExternalLink, FileText, Trash2, Upload, X} from 'lucide-react';
+import {useAppStore} from '../../store/useAppStore';
+import {Attachment, EditFormData} from '../../types';
+import {editApplicationFormSchema} from '../../utils/validation';
 
 const EditApplicationModal: React.FC = () => {
     const {
@@ -26,7 +26,7 @@ const EditApplicationModal: React.FC = () => {
         handleSubmit,
         reset,
         watch,
-        formState: { errors, isSubmitting }
+        formState: {errors, isSubmitting}
     } = useForm<EditFormData>({
         resolver: yupResolver(editApplicationFormSchema) as any,
     });
@@ -209,13 +209,15 @@ const EditApplicationModal: React.FC = () => {
                 />
 
                 {/* ENHANCED SPACIOUS MODAL */}
-                <div className="inline-block w-full max-w-6xl px-8 py-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20">
+                <div
+                    className="inline-block w-full max-w-6xl px-8 py-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/20">
 
                     {/* SPACIOUS HEADER */}
-                    <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
+                    <div
+                        className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200/50 dark:border-gray-700/50">
                         <div className="flex items-center gap-4">
                             <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600">
-                                <Edit className="h-6 w-6 text-white" />
+                                <Edit className="h-6 w-6 text-white"/>
                             </div>
                             <div>
                                 <h3 className="text-2xl font-extrabold text-gradient-static tracking-tight">
@@ -230,7 +232,7 @@ const EditApplicationModal: React.FC = () => {
                             onClick={handleClose}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-700/80 transition-all duration-200 hover:scale-105"
                         >
-                            <X className="h-6 w-6" />
+                            <X className="h-6 w-6"/>
                         </button>
                     </div>
 
@@ -239,8 +241,10 @@ const EditApplicationModal: React.FC = () => {
                         {/* SECTION 1: BASIC INFORMATION */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
-                                <h4 className="text-lg font-bold text-gradient-blue tracking-wide">Basic Information</h4>
+                                <div
+                                    className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+                                <h4 className="text-lg font-bold text-gradient-blue tracking-wide">Basic
+                                    Information</h4>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -294,8 +298,10 @@ const EditApplicationModal: React.FC = () => {
                         {/* SECTION 2: JOB DETAILS */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-2 h-8 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full"></div>
-                                <h4 className="text-lg font-bold text-gradient-purple tracking-wide">Job Details & Status</h4>
+                                <div
+                                    className="w-2 h-8 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full"></div>
+                                <h4 className="text-lg font-bold text-gradient-purple tracking-wide">Job Details &
+                                    Status</h4>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -376,14 +382,14 @@ const EditApplicationModal: React.FC = () => {
                                         placeholder="e.g. LinkedIn"
                                     />
                                     <datalist id="editJobSources">
-                                        <option value="LinkedIn" />
-                                        <option value="Indeed" />
-                                        <option value="Glassdoor" />
-                                        <option value="Company Website" />
-                                        <option value="AngelList" />
-                                        <option value="Stack Overflow Jobs" />
-                                        <option value="Referral" />
-                                        <option value="Recruiter" />
+                                        <option value="LinkedIn"/>
+                                        <option value="Indeed"/>
+                                        <option value="Glassdoor"/>
+                                        <option value="Company Website"/>
+                                        <option value="AngelList"/>
+                                        <option value="Stack Overflow Jobs"/>
+                                        <option value="Referral"/>
+                                        <option value="Recruiter"/>
                                     </datalist>
                                     {errors.jobSource && (
                                         <p className="form-error">{errors.jobSource.message}</p>
@@ -395,7 +401,8 @@ const EditApplicationModal: React.FC = () => {
                         {/* SECTION 3: JOB URL */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-2 h-8 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full"></div>
+                                <div
+                                    className="w-2 h-8 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full"></div>
                                 <h4 className="text-lg font-bold text-gradient-static tracking-wide">Job Posting</h4>
                             </div>
 
@@ -417,7 +424,7 @@ const EditApplicationModal: React.FC = () => {
                                             className="btn btn-outline h-12 px-4 font-bold tracking-wide hover:scale-105 transition-transform"
                                             title="Open job posting"
                                         >
-                                            <ExternalLink className="h-5 w-5" />
+                                            <ExternalLink className="h-5 w-5"/>
                                         </button>
                                     )}
                                 </div>
@@ -430,9 +437,12 @@ const EditApplicationModal: React.FC = () => {
                         {/* SECTION 4: NOTES - UNLIMITED CHARACTER COUNT */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-2 h-8 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
-                                <h4 className="text-lg font-bold text-gradient-static tracking-wide">Additional Notes</h4>
-                                <span className="text-sm font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full">
+                                <div
+                                    className="w-2 h-8 bg-gradient-to-b from-amber-500 to-orange-600 rounded-full"></div>
+                                <h4 className="text-lg font-bold text-gradient-static tracking-wide">Additional
+                                    Notes</h4>
+                                <span
+                                    className="text-sm font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full">
                                     ∞ Unlimited
                                 </span>
                             </div>
@@ -465,7 +475,8 @@ Write as much as you need - no character limits!"
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-2 h-8 bg-gradient-to-b from-red-500 to-rose-600 rounded-full"></div>
-                                <h4 className="text-lg font-bold text-gradient-static tracking-wide">File Attachments</h4>
+                                <h4 className="text-lg font-bold text-gradient-static tracking-wide">File
+                                    Attachments</h4>
                             </div>
 
                             {/* Existing attachments */}
@@ -478,7 +489,7 @@ Write as much as you need - no character limits!"
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
-                                                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-gray-900 dark:text-gray-100 tracking-tight">
@@ -496,7 +507,7 @@ Write as much as you need - no character limits!"
                                                     className="p-2 text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-105"
                                                     title="Download"
                                                 >
-                                                    <ExternalLink className="h-4 w-4" />
+                                                    <ExternalLink className="h-4 w-4"/>
                                                 </a>
                                                 <button
                                                     type="button"
@@ -504,7 +515,7 @@ Write as much as you need - no character limits!"
                                                     className="p-2 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 hover:scale-105"
                                                     title="Remove attachment"
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Trash2 className="h-4 w-4"/>
                                                 </button>
                                             </div>
                                         </div>
@@ -523,12 +534,14 @@ Write as much as you need - no character limits!"
                                 onDragLeave={handleDragLeave}
                                 onDrop={handleDrop}
                             >
-                                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 w-fit mx-auto mb-4">
-                                    <Upload className="h-8 w-8 text-white" />
+                                <div
+                                    className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 w-fit mx-auto mb-4">
+                                    <Upload className="h-8 w-8 text-white"/>
                                 </div>
                                 <p className="text-base font-bold text-gray-700 dark:text-gray-300 mb-2">
                                     Drag and drop files here, or{' '}
-                                    <label className="text-blue-600 hover:text-blue-700 cursor-pointer font-extrabold text-gradient-blue">
+                                    <label
+                                        className="text-blue-600 hover:text-blue-700 cursor-pointer font-extrabold text-gradient-blue">
                                         browse files
                                         <input
                                             type="file"
@@ -546,7 +559,8 @@ Write as much as you need - no character limits!"
                         </div>
 
                         {/* SPACIOUS FOOTER */}
-                        <div className="flex justify-end gap-4 pt-8 border-t border-gray-200/50 dark:border-gray-700/50">
+                        <div
+                            className="flex justify-end gap-4 pt-8 border-t border-gray-200/50 dark:border-gray-700/50">
                             <button
                                 type="button"
                                 onClick={handleClose}
@@ -562,12 +576,13 @@ Write as much as you need - no character limits!"
                             >
                                 {isSubmitting ? (
                                     <>
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                                        <div
+                                            className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                                         <span className="font-medium">Updating...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Edit className="h-5 w-5 mr-3" />
+                                        <Edit className="h-5 w-5 mr-3"/>
                                         Update Application
                                     </>
                                 )}

@@ -1,11 +1,10 @@
 // src/store/useAppStore.ts - PERFORMANCE OPTIMIZED VERSION
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { subscribeWithSelector } from 'zustand/middleware';
-import { startTransition } from 'react';
-import { debounce } from 'lodash';
-import { AnalyticsData, Application, ApplicationStatus, GoalProgress, SourceSuccessRate, Goals } from '../types';
-import { databaseService } from '../services/databaseService';
+import {create} from 'zustand';
+import {persist, subscribeWithSelector} from 'zustand/middleware';
+import {startTransition} from 'react';
+import {debounce} from 'lodash';
+import {AnalyticsData, Application, ApplicationStatus, GoalProgress, Goals, SourceSuccessRate} from '../types';
+import {databaseService} from '../services/databaseService';
 
 export interface Toast {
     id: string;
@@ -75,7 +74,10 @@ export interface AppState {
     bulkDeleteApplications: (ids: string[]) => Promise<void>;
     bulkUpdateApplications: (ids: string[], updates: Partial<Application>) => Promise<void>;
     searchApplications: (query: string) => void;
-    bulkAddApplications: (applications: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{ successCount: number; errorCount: number }>;
+    bulkAddApplications: (applications: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{
+        successCount: number;
+        errorCount: number
+    }>;
     handleImport: (importedApplications: Application[]) => Promise<{ successCount: number; errorCount: number }>;
 
     // Goals
@@ -348,7 +350,7 @@ const createDebouncedSearch = (setState: any) => {
 
         setState((state: AppState) => ({
             filteredApplications: filtered,
-            ui: { ...state.ui, currentPage: 1 }
+            ui: {...state.ui, currentPage: 1}
         }));
     }, 300);
 };
@@ -416,7 +418,7 @@ export const useAppStore = create<AppState>()(
 
                     // 🚀 OPTIMIZED: Batched state updates
                     loadApplications: async () => {
-                        set(state => ({ ui: { ...state.ui, isLoading: true, error: null } }));
+                        set(state => ({ui: {...state.ui, isLoading: true, error: null}}));
 
                         try {
                             const applications = await databaseService.getApplications();
@@ -425,7 +427,7 @@ export const useAppStore = create<AppState>()(
                             set({
                                 applications,
                                 filteredApplications: applications,
-                                ui: { ...get().ui, isLoading: false }
+                                ui: {...get().ui, isLoading: false}
                             });
 
                             // 🚀 DEFERRED: Expensive calculations
@@ -565,7 +567,7 @@ export const useAppStore = create<AppState>()(
                                         filtered: state.filteredApplications?.length || 0,
                                         filteredExists: !!state.filteredApplications
                                     },
-                                    after: { total: applications.length, filtered: filteredApplications.length }
+                                    after: {total: applications.length, filtered: filteredApplications.length}
                                 });
 
                                 return {
@@ -610,7 +612,7 @@ export const useAppStore = create<AppState>()(
                                 return {
                                     applications,
                                     filteredApplications,
-                                    ui: { ...state.ui, selectedApplicationIds: [] }
+                                    ui: {...state.ui, selectedApplicationIds: []}
                                 };
                             });
 
@@ -633,7 +635,7 @@ export const useAppStore = create<AppState>()(
 
                     updateApplicationStatus: async (ids, status) => {
                         try {
-                            const updates = { status };
+                            const updates = {status};
                             await databaseService.bulkUpdateApplications(ids, updates);
 
                             set(state => {
@@ -657,7 +659,7 @@ export const useAppStore = create<AppState>()(
                                 return {
                                     applications,
                                     filteredApplications,
-                                    ui: { ...state.ui, selectedApplicationIds: [] }
+                                    ui: {...state.ui, selectedApplicationIds: []}
                                 };
                             });
 
@@ -688,7 +690,10 @@ export const useAppStore = create<AppState>()(
 
                             set(state => {
                                 const applications = state.applications.map(app =>
-                                    ids.includes(app.id) ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
+                                    ids.includes(app.id) ? {
+                                        ...app, ...updates,
+                                        updatedAt: new Date().toISOString()
+                                    } : app
                                 );
 
                                 const filteredApplications = state.ui.searchQuery
@@ -706,7 +711,7 @@ export const useAppStore = create<AppState>()(
                                 return {
                                     applications,
                                     filteredApplications,
-                                    ui: { ...state.ui, selectedApplicationIds: [] }
+                                    ui: {...state.ui, selectedApplicationIds: []}
                                 };
                             });
 
@@ -772,13 +777,13 @@ export const useAppStore = create<AppState>()(
                                 get().checkMilestones();
                             });
 
-                            return { successCount, errorCount };
+                            return {successCount, errorCount};
                         } catch (error) {
                             get().showToast({
                                 type: 'error',
                                 message: 'Import failed: ' + (error as Error).message
                             });
-                            return { successCount: 0, errorCount: applications.length };
+                            return {successCount: 0, errorCount: applications.length};
                         }
                     },
 
@@ -786,17 +791,17 @@ export const useAppStore = create<AppState>()(
                     searchApplications: (query) => {
                         // 🚀 Update UI immediately for responsiveness
                         set(state => ({
-                            ui: { ...state.ui, searchQuery: query }
+                            ui: {...state.ui, searchQuery: query}
                         }));
 
                         // 🚀 Debounce the expensive filtering
-                        const { applications } = get();
+                        const {applications} = get();
                         debouncedSearch(query, applications);
                     },
 
                     handleImport: async (importedApplications) => {
                         const applicationsToAdd = importedApplications.map(app => {
-                            const { id, createdAt, updatedAt, ...appData } = app;
+                            const {id, createdAt, updatedAt, ...appData} = app;
                             return appData;
                         });
 
@@ -840,9 +845,9 @@ export const useAppStore = create<AppState>()(
                     },
 
                     calculateProgress: () => {
-                        const { applications, goals } = get();
+                        const {applications, goals} = get();
                         const goalProgress = calculateGoalProgress(applications, goals);
-                        set({ goalProgress });
+                        set({goalProgress});
                     },
 
                     checkMilestones: () => {
@@ -852,16 +857,16 @@ export const useAppStore = create<AppState>()(
 
                     // UI actions - minimal state updates
                     setTheme: (theme) => {
-                        set(state => ({ ui: { ...state.ui, theme } }));
+                        set(state => ({ui: {...state.ui, theme}}));
                         document.documentElement.classList.toggle('dark', theme === 'dark');
                     },
 
                     toggleSidebar: () => {
-                        set(state => ({ ui: { ...state.ui, sidebarOpen: !state.ui.sidebarOpen } }));
+                        set(state => ({ui: {...state.ui, sidebarOpen: !state.ui.sidebarOpen}}));
                     },
 
                     setCurrentPage: (page) => {
-                        set(state => ({ ui: { ...state.ui, currentPage: page } }));
+                        set(state => ({ui: {...state.ui, currentPage: page}}));
                     },
 
                     setSearchQuery: (query) => {
@@ -869,23 +874,23 @@ export const useAppStore = create<AppState>()(
                     },
 
                     setSelectedApplicationIds: (ids) => {
-                        set(state => ({ ui: { ...state.ui, selectedApplicationIds: ids } }));
+                        set(state => ({ui: {...state.ui, selectedApplicationIds: ids}}));
                     },
 
                     clearSelection: () => {
-                        set(state => ({ ui: { ...state.ui, selectedApplicationIds: [] } }));
+                        set(state => ({ui: {...state.ui, selectedApplicationIds: []}}));
                     },
 
                     setLoading: (loading) => {
-                        set(state => ({ ui: { ...state.ui, isLoading: loading } }));
+                        set(state => ({ui: {...state.ui, isLoading: loading}}));
                     },
 
                     setError: (error) => {
-                        set(state => ({ ui: { ...state.ui, error } }));
+                        set(state => ({ui: {...state.ui, error}}));
                     },
 
                     setSelectedTab: (tab) => {
-                        set(state => ({ ui: { ...state.ui, selectedTab: tab } }));
+                        set(state => ({ui: {...state.ui, selectedTab: tab}}));
                     },
 
                     // Modal actions
@@ -957,7 +962,7 @@ export const useAppStore = create<AppState>()(
                         if (isDuplicate) return;
 
                         const id = generateId();
-                        const newToast = { ...toast, id };
+                        const newToast = {...toast, id};
 
                         // 🚀 Limit toasts and clean up old ones
                         set(state => {
@@ -978,7 +983,7 @@ export const useAppStore = create<AppState>()(
                     },
 
                     removeToast: (id) => {
-                        set(state => ({ toasts: state.toasts.filter(toast => toast.id !== id) }));
+                        set(state => ({toasts: state.toasts.filter(toast => toast.id !== id)}));
                     },
 
                     // Analytics - with caching

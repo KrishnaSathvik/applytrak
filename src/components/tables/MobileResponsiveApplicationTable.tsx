@@ -1,8 +1,22 @@
 // src/components/tables/MobileResponsiveApplicationTable.tsx - OPTIMIZED VERSION
-import React, { useState, memo, useCallback, useMemo } from 'react';
-import { Edit, ExternalLink, Paperclip, Search, StickyNote, Trash2, X, ChevronLeft, ChevronRight, Calendar, MapPin, DollarSign, Building2, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { Application } from '../../types';
+import React, {memo, useCallback, useMemo, useState} from 'react';
+import {
+    Calendar,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronUp,
+    DollarSign,
+    Edit,
+    ExternalLink,
+    MapPin,
+    Paperclip,
+    Search,
+    Trash2,
+    X
+} from 'lucide-react';
+import {useAppStore} from '../../store/useAppStore';
+import {Application} from '../../types';
 import BulkOperations from './BulkOperations';
 
 const ITEMS_PER_PAGE = 15;
@@ -31,7 +45,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
             }, 100);
         };
 
-        window.addEventListener('resize', handleResize, { passive: true });
+        window.addEventListener('resize', handleResize, {passive: true});
         return () => {
             clearTimeout(timeoutId);
             window.removeEventListener('resize', handleResize);
@@ -39,7 +53,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
     }, []);
 
     // 🔧 OPTIMIZED: Memoize filtered data with better dependency array
-    const { activeApplications, rejectedApplications } = useMemo(() => ({
+    const {activeApplications, rejectedApplications} = useMemo(() => ({
         activeApplications: filteredApplications.filter(app => app.status !== 'Rejected'),
         rejectedApplications: filteredApplications.filter(app => app.status === 'Rejected')
     }), [filteredApplications]);
@@ -111,11 +125,16 @@ const MobileResponsiveApplicationTable: React.FC = () => {
     const getStatusBadge = useCallback((status: string) => {
         const baseClasses = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wider uppercase';
         switch (status) {
-            case 'Applied': return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100`;
-            case 'Interview': return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100`;
-            case 'Offer': return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100`;
-            case 'Rejected': return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100`;
-            default: return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100`;
+            case 'Applied':
+                return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100`;
+            case 'Interview':
+                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100`;
+            case 'Offer':
+                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100`;
+            case 'Rejected':
+                return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100`;
+            default:
+                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100`;
         }
     }, []);
 
@@ -208,9 +227,12 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 </div>
 
                 {/* Results Summary */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                <div
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
                     <div>
-                        <span className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span className="font-bold">{currentApplications.length}</span> applications
+                        <span
+                            className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span
+                        className="font-bold">{currentApplications.length}</span> applications
                         {ui.searchQuery && (
                             <div className="text-sm font-semibold text-gradient-blue mt-1 sm:mt-0 sm:ml-2 sm:inline">
                                 (filtered from {filteredApplications.length} total)
@@ -218,7 +240,8 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         )}
                     </div>
                     <div className="text-xs font-medium opacity-75">
-                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{paginationData.totalPages}</span>
+                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span
+                        className="font-bold">{paginationData.totalPages}</span>
                     </div>
                 </div>
             </div>
@@ -263,7 +286,9 @@ const MobileResponsiveApplicationTable: React.FC = () => {
             {paginationData.totalPages > 1 && (
                 <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-center">
-                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span className="font-bold">{paginationData.totalPages}</span> • <span className="font-bold">{currentApplications.length}</span> total applications
+                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span
+                        className="font-bold">{paginationData.totalPages}</span> • <span
+                        className="font-bold">{currentApplications.length}</span> total applications
                         {selectedIds.length > 0 && (
                             <span className="ml-2 text-gradient-purple">
                                 • <span className="font-bold">{selectedIds.length}</span> selected
@@ -277,7 +302,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                             disabled={currentPage === 1}
                             className="flex items-center gap-1 px-3 py-2 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-4 w-4"/>
                             <span className="hidden sm:inline">Previous</span>
                             <span className="sm:hidden">Prev</span>
                         </button>
@@ -314,7 +339,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         >
                             <span className="hidden sm:inline">Next</span>
                             <span className="sm:hidden">Next</span>
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-4 w-4"/>
                         </button>
                     </div>
                 </div>
@@ -423,10 +448,10 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                         <div className="flex-1 min-w-0">
                             <h3
                                 className="font-extrabold text-lg text-gradient-static truncate"
-                                dangerouslySetInnerHTML={{ __html: highlightText(application.company) }}/>
+                                dangerouslySetInnerHTML={{__html: highlightText(application.company)}}/>
                             <p
                                 className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate"
-                                dangerouslySetInnerHTML={{ __html: highlightText(application.position) }}/>
+                                dangerouslySetInnerHTML={{__html: highlightText(application.position)}}/>
                         </div>
                     </div>
                     <span className={getStatusBadge(application.status)}>
@@ -436,33 +461,34 @@ const ApplicationCard: React.FC<CardProps> = memo(({
 
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                     <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0"/>
                         <span className="text-gray-600 dark:text-gray-400 truncate font-semibold">
                             {formatDate(application.dateApplied)}
                         </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
-                            application.type === 'Remote'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                                : application.type === 'Hybrid'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                        }`}>
+                        <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
+                                application.type === 'Remote'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                                    : application.type === 'Hybrid'
+                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+                            }`}>
                             {application.type}
                         </span>
                     </div>
                     {application.location && (
                         <div className="flex items-center space-x-2 col-span-2">
-                            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0"/>
                             <span
                                 className="text-gray-600 dark:text-gray-400 truncate font-medium"
-                                dangerouslySetInnerHTML={{ __html: highlightText(application.location) }}/>
+                                dangerouslySetInnerHTML={{__html: highlightText(application.location)}}/>
                         </div>
                     )}
                     {application.salary && application.salary !== '-' && (
                         <div className="flex items-center space-x-2 col-span-2">
-                            <DollarSign className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <DollarSign className="h-4 w-4 text-gray-400 flex-shrink-0"/>
                             <span className="text-gray-600 dark:text-gray-400 truncate font-semibold">
                                 {application.salary}
                             </span>
@@ -470,12 +496,13 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                     )}
                 </div>
 
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div
+                    className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                     >
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        {isExpanded ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
                     </button>
 
                     <div className="flex items-center space-x-2">
@@ -483,13 +510,13 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                             onClick={onEdit}
                             className="p-2 rounded-md text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
                         >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-4 w-4"/>
                         </button>
                         <button
                             onClick={onDelete}
                             className="p-2 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
                         >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4"/>
                         </button>
                     </div>
                 </div>
@@ -500,16 +527,26 @@ const ApplicationCard: React.FC<CardProps> = memo(({
 
 // Optimized Desktop Table View
 const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void; }> = memo(({
-                                                                                                           applications, selectedIds, onToggleSelection, onEdit, onDelete,
-                                                                                                           formatDate, getStatusBadge, showRejected, startIndex, onSelectAll
+                                                                                                           applications,
+                                                                                                           selectedIds,
+                                                                                                           onToggleSelection,
+                                                                                                           onEdit,
+                                                                                                           onDelete,
+                                                                                                           formatDate,
+                                                                                                           getStatusBadge,
+                                                                                                           showRejected,
+                                                                                                           startIndex,
+                                                                                                           onSelectAll
                                                                                                        }) => {
     if (applications.length === 0) {
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+            <div
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                 <div className="text-center py-16 px-6">
                     <div className="space-y-4">
-                        <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                            <Search className="h-8 w-8 text-gray-400" />
+                        <div
+                            className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                            <Search className="h-8 w-8 text-gray-400"/>
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-lg font-bold text-gradient-static">
@@ -531,7 +568,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
     const allCurrentPageSelected = applications.length > 0 && applications.every(app => selectedIds.includes(app.id));
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+        <div
+            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700/50">
@@ -584,36 +622,47 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 </div>
                             </td>
                             <td className="min-w-[140px] px-4 py-4 text-left">
-                                <div className="text-sm font-extrabold text-gradient-static truncate max-w-[140px]" title={app.company}>
+                                <div className="text-sm font-extrabold text-gradient-static truncate max-w-[140px]"
+                                     title={app.company}>
                                     {app.company}
                                 </div>
                             </td>
                             <td className="min-w-[140px] px-4 py-4 text-left">
-                                <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[140px]" title={app.position}>
+                                <div
+                                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[140px]"
+                                    title={app.position}>
                                     {app.position}
                                 </div>
                             </td>
                             <td className="w-20 px-4 py-4 text-center">
-                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
-                                        app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
-                                            app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
-                                                'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                    }`}>
+                                    <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
+                                            app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
+                                                app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
+                                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                        }`}>
                                         {app.type}
                                     </span>
                             </td>
                             <td className="min-w-[100px] px-4 py-4 text-left">
-                                <div className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] font-medium" title={app.location || ''}>
+                                <div
+                                    className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] font-medium"
+                                    title={app.location || ''}>
                                     {app.location || <span className="text-gray-400 italic font-normal">-</span>}
                                 </div>
                             </td>
                             <td className="w-24 px-4 py-4 text-left">
-                                <div className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[80px] font-semibold" title={app.salary || ''}>
-                                    {app.salary && app.salary !== '-' ? app.salary : <span className="text-gray-400 italic font-normal">-</span>}
+                                <div
+                                    className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[80px] font-semibold"
+                                    title={app.salary || ''}>
+                                    {app.salary && app.salary !== '-' ? app.salary :
+                                        <span className="text-gray-400 italic font-normal">-</span>}
                                 </div>
                             </td>
                             <td className="w-20 px-4 py-4 text-left">
-                                <div className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[60px] font-medium" title={app.jobSource || ''}>
+                                <div
+                                    className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[60px] font-medium"
+                                    title={app.jobSource || ''}>
                                     {app.jobSource || <span className="text-gray-400 italic font-normal">-</span>}
                                 </div>
                             </td>
@@ -629,7 +678,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors duration-150"
                                         title="Open job posting"
                                     >
-                                        <ExternalLink className="h-4 w-4" />
+                                        <ExternalLink className="h-4 w-4"/>
                                     </button>
                                 ) : (
                                     <span className="text-gray-400 italic font-normal">-</span>
@@ -642,14 +691,14 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
                                         title="Edit application"
                                     >
-                                        <Edit className="h-3.5 w-3.5" />
+                                        <Edit className="h-3.5 w-3.5"/>
                                     </button>
                                     <button
                                         onClick={() => onDelete(app.id, app.company)}
                                         className="inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
                                         title="Delete application"
                                     >
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <Trash2 className="h-3.5 w-3.5"/>
                                     </button>
                                 </div>
                             </td>

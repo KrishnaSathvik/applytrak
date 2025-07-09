@@ -69,7 +69,9 @@ const RecoveryAlert: React.FC = () => {
                                 Data Recovery Available
                             </h3>
                             <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300 mt-1 leading-relaxed">
-                                We found <span className="font-bold">{recoveryOptions}</span> backup{recoveryOptions !== 1 ? 's' : ''} that can restore
+                                We found <span
+                                className="font-bold">{recoveryOptions}</span> backup{recoveryOptions !== 1 ? 's' : ''} that
+                                can restore
                                 your previous applications.
                                 Would you like to recover your data?
                             </p>

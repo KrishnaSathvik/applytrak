@@ -1,14 +1,14 @@
 // src/components/ui/BackupStatus.tsx
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Download, Upload, Trash2, Info, CheckCircle, AlertCircle } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {AlertCircle, AlertTriangle, CheckCircle, Download, Info, Trash2, Upload} from 'lucide-react';
 import {
-    getStorageUsage,
     clearOldBackups,
     createManualBackup,
+    emergencyRecover,
     getLocalBackups,
-    emergencyRecover
+    getStorageUsage
 } from '../../utils/backup';
-import { Application } from '../../types';
+import {Application} from '../../types';
 
 interface BackupStatusProps {
     applications: Application[];
@@ -116,9 +116,9 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
     };
 
     const getStorageStatusIcon = () => {
-        if (storageInfo.percentage >= 90) return <AlertCircle className="w-4 h-4" />;
-        if (storageInfo.percentage >= 75) return <AlertTriangle className="w-4 h-4" />;
-        return <CheckCircle className="w-4 h-4" />;
+        if (storageInfo.percentage >= 90) return <AlertCircle className="w-4 h-4"/>;
+        if (storageInfo.percentage >= 75) return <AlertTriangle className="w-4 h-4"/>;
+        return <CheckCircle className="w-4 h-4"/>;
     };
 
     const getLatestBackupTime = () => {
@@ -137,7 +137,8 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
     };
 
     return (
-        <div className="glass-card bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-purple-50/50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
+        <div
+            className="glass-card bg-gradient-to-br from-blue-50/50 via-indigo-50/50 to-purple-50/50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
             {/* Header */}
             <div
                 className="flex items-center justify-between cursor-pointer group"
@@ -154,8 +155,10 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                         {storageInfo.percentage}% used
                     </span>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 group-hover:scale-110 transition-all duration-200">
-                    <Info className={`w-5 h-5 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                <button
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 group-hover:scale-110 transition-all duration-200">
+                    <Info
+                        className={`w-5 h-5 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}/>
                 </button>
             </div>
 
@@ -168,7 +171,7 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                                 storageInfo.percentage >= 75 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
                                     'bg-gradient-to-r from-green-500 to-emerald-500'
                         }`}
-                        style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
+                        style={{width: `${Math.min(storageInfo.percentage, 100)}%`}}
                     />
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
@@ -187,7 +190,7 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                     <div className="flex items-start space-x-3">
                         <AlertTriangle className={`w-5 h-5 mt-0.5 ${
                             storageInfo.percentage >= 90 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'
-                        }`} />
+                        }`}/>
                         <div className="text-sm">
                             <p className={`font-bold tracking-wide ${
                                 storageInfo.percentage >= 90 ? 'text-red-800 dark:text-red-200' : 'text-yellow-800 dark:text-yellow-200'
@@ -216,24 +219,29 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-600 dark:text-gray-400">Available backups:</span>
+                                    <span
+                                        className="font-semibold text-gray-600 dark:text-gray-400">Available backups:</span>
                                     <span className="font-bold text-gradient-static">{localBackups.length}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-600 dark:text-gray-400">Backup capability:</span>
-                                    <span className={`font-bold ${storageInfo.canBackup ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                    <span
+                                        className="font-semibold text-gray-600 dark:text-gray-400">Backup capability:</span>
+                                    <span
+                                        className={`font-bold ${storageInfo.canBackup ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                         {storageInfo.canBackup ? '✅ Good' : '❌ Limited'}
                                     </span>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <span className="font-semibold text-gray-600 dark:text-gray-400">Applications:</span>
+                                    <span
+                                        className="font-semibold text-gray-600 dark:text-gray-400">Applications:</span>
                                     <span className="font-bold text-gradient-purple">{applications.length}</span>
                                 </div>
                                 {localBackups.length > 0 && (
                                     <div className="flex justify-between">
-                                        <span className="font-semibold text-gray-600 dark:text-gray-400">Latest backup:</span>
+                                        <span
+                                            className="font-semibold text-gray-600 dark:text-gray-400">Latest backup:</span>
                                         <span className="font-bold text-gray-800 dark:text-gray-200 text-xs">
                                             {getLatestBackupTime() || 'Unknown'}
                                         </span>
@@ -249,7 +257,7 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                             onClick={handleCreateManualBackup}
                             className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl text-sm font-bold tracking-wide transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
                         >
-                            <Download className="w-4 h-4" />
+                            <Download className="w-4 h-4"/>
                             <span>Download Backup</span>
                         </button>
 
@@ -258,7 +266,7 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                                 onClick={handleEmergencyRecover}
                                 className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl text-sm font-bold tracking-wide transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
                             >
-                                <Upload className="w-4 h-4" />
+                                <Upload className="w-4 h-4"/>
                                 <span>Emergency Restore</span>
                             </button>
                         )}
@@ -268,7 +276,7 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
                                 onClick={handleClearBackups}
                                 className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl text-sm font-bold tracking-wide transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4"/>
                                 <span>Clear Backups</span>
                             </button>
                         )}
@@ -276,7 +284,8 @@ const BackupStatus: React.FC<BackupStatusProps> = ({
 
                     {/* Technical Details */}
                     <details className="text-xs text-gray-500 dark:text-gray-400">
-                        <summary className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 font-semibold tracking-wide">
+                        <summary
+                            className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 font-semibold tracking-wide">
                             Technical Details
                         </summary>
                         <div className="mt-3 space-y-1 font-mono bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border">

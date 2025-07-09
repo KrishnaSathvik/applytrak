@@ -1,9 +1,9 @@
 import React from 'react';
-import { X, CheckCircle, XCircle, AlertTriangle, Info, ExternalLink } from 'lucide-react';
-import { useAppStore, Toast } from '../../store/useAppStore';
+import {AlertTriangle, CheckCircle, ExternalLink, Info, X, XCircle} from 'lucide-react';
+import {Toast, useAppStore} from '../../store/useAppStore';
 
 const ToastContainer: React.FC = () => {
-    const { toasts, removeToast } = useAppStore();
+    const {toasts, removeToast} = useAppStore();
 
     // Auto-remove toasts and limit to 3 visible toasts
     const visibleToasts = toasts.slice(0, 3);
@@ -82,7 +82,7 @@ const ToastContainer: React.FC = () => {
                         animation: shrink var(--duration) linear forwards;
                     }
                 `
-            }} />
+            }}/>
 
             <div
                 className="fixed top-4 right-4 z-50 space-y-3 max-w-sm w-full"
@@ -108,7 +108,7 @@ const ToastContainer: React.FC = () => {
                             <div className="flex items-start space-x-3">
                                 {/* Icon */}
                                 <div className={`flex-shrink-0 p-1 ${getIconColor(toast.type)}`}>
-                                    <Icon className="h-5 w-5" />
+                                    <Icon className="h-5 w-5"/>
                                 </div>
 
                                 {/* Content */}
@@ -124,7 +124,7 @@ const ToastContainer: React.FC = () => {
                                             className="mt-2 inline-flex items-center text-xs font-bold text-gradient-blue hover:text-gradient-purple transition-colors tracking-wider"
                                         >
                                             {toast.action.label}
-                                            <ExternalLink className="h-3 w-3 ml-1" />
+                                            <ExternalLink className="h-3 w-3 ml-1"/>
                                         </button>
                                     )}
                                 </div>
@@ -135,13 +135,14 @@ const ToastContainer: React.FC = () => {
                                     className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
                                     aria-label="Dismiss notification"
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-4 w-4"/>
                                 </button>
                             </div>
 
                             {/* Progress Bar for timed toasts */}
                             {toast.duration && (
-                                <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                                <div
+                                    className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                                     <div
                                         className={`h-full ${getProgressBarColor(toast.type)} toast-progress transition-all ease-linear`}
                                         style={{

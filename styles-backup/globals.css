@@ -583,6 +583,7 @@ body.dark .table tbody td {
     .mobile-only {
         display: none;
     }
+
     .desktop-only {
         display: block;
     }

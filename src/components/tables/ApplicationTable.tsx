@@ -4,7 +4,7 @@ import MobileResponsiveApplicationTable from './MobileResponsiveApplicationTable
 
 const ApplicationTable: React.FC = () => {
     return (
-        <MobileResponsiveApplicationTable />
+        <MobileResponsiveApplicationTable/>
     );
 };
 

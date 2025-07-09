@@ -122,7 +122,8 @@ export const Modal: React.FC<ModalProps> = ({
 
                     {/* Enhanced Footer */}
                     {footer && (
-                        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50 dark:from-gray-800/50 dark:to-blue-900/20 rounded-b-xl">
+                        <div
+                            className="flex items-center justify-end gap-3 p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50 dark:from-gray-800/50 dark:to-blue-900/20 rounded-b-xl">
                             {footer}
                         </div>
                     )}

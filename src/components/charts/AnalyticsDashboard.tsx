@@ -61,10 +61,12 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="glass rounded-lg p-3 border border-white/20">
                     <p className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">{label}</p>
                     <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                        Success Rate: <span className="font-bold text-gradient-blue">{data.successRate.toFixed(1)}%</span>
+                        Success Rate: <span
+                        className="font-bold text-gradient-blue">{data.successRate.toFixed(1)}%</span>
                     </p>
                     <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                        Offers: <span className="font-bold">{data.offers}</span> / <span className="font-bold">{data.total}</span>
+                        Offers: <span className="font-bold">{data.offers}</span> / <span
+                        className="font-bold">{data.total}</span>
                     </p>
                 </div>
             );
@@ -79,7 +81,8 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wider uppercase">Total Applications</p>
+                            <p className="text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wider uppercase">Total
+                                Applications</p>
                             <p className="text-3xl font-extrabold text-gradient-static">
                                 {analytics.totalApplications}
                             </p>
@@ -93,7 +96,8 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wider uppercase">Success Rate</p>
+                            <p className="text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wider uppercase">Success
+                                Rate</p>
                             <p className="text-3xl font-extrabold text-green-600 dark:text-green-400">
                                 {analytics.successRate}%
                             </p>
@@ -121,7 +125,8 @@ const AnalyticsDashboard: React.FC = () => {
                 <div className="card">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wider uppercase">Avg Response</p>
+                            <p className="text-sm font-bold text-gray-600 dark:text-gray-400 tracking-wider uppercase">Avg
+                                Response</p>
                             <p className="text-3xl font-extrabold text-purple-600 dark:text-purple-400">
                                 {analytics.averageResponseTime === 0 ? '-' : `${analytics.averageResponseTime}d`}
                             </p>
@@ -232,7 +237,8 @@ const AnalyticsDashboard: React.FC = () => {
                 {/* Success Rate by Source */}
                 <div className="card lg:col-span-2">
                     <div className="card-header">
-                        <h3 className="text-xl font-bold text-gradient-static tracking-tight">Success Rate by Job Source</h3>
+                        <h3 className="text-xl font-bold text-gradient-static tracking-tight">Success Rate by Job
+                            Source</h3>
                     </div>
                     <div className="h-80">
                         {sourceData.length > 0 ? (
@@ -289,7 +295,8 @@ const AnalyticsDashboard: React.FC = () => {
                                     {typeData.reduce((max, item) => item.value > max.value ? item : max).name}
                                 </p>
                                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
-                                    <span className="font-bold">{typeData.reduce((max, item) => item.value > max.value ? item : max).value}</span> applications
+                                    <span
+                                        className="font-bold">{typeData.reduce((max, item) => item.value > max.value ? item : max).value}</span> applications
                                 </p>
                             </div>
                         )}
@@ -304,7 +311,8 @@ const AnalyticsDashboard: React.FC = () => {
                                     {sourceData[0].source}
                                 </p>
                                 <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 tracking-wide">
-                                    <span className="font-bold">{sourceData[0].successRate.toFixed(1)}%</span> success rate
+                                    <span className="font-bold">{sourceData[0].successRate.toFixed(1)}%</span> success
+                                    rate
                                 </p>
                             </div>
                         )}

@@ -42,12 +42,15 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 
                 {/* Enhanced Loading dots animation */}
                 <div className="flex justify-center space-x-2">
-                    <div className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
-                         style={{animationDelay: '0ms'}}></div>
-                    <div className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
-                         style={{animationDelay: '150ms'}}></div>
-                    <div className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
-                         style={{animationDelay: '300ms'}}></div>
+                    <div
+                        className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
+                        style={{animationDelay: '0ms'}}></div>
+                    <div
+                        className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
+                        style={{animationDelay: '150ms'}}></div>
+                    <div
+                        className="w-2 h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full animate-bounce"
+                        style={{animationDelay: '300ms'}}></div>
                 </div>
             </div>
         </div>

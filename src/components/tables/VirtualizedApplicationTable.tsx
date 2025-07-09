@@ -1,11 +1,12 @@
 // src/components/tables/VirtualizedApplicationTable.tsx
 // Use this instead of ApplicationTable.tsx when you have 100+ applications
-import React, { useState, memo, useCallback, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { Edit, ExternalLink, Paperclip, Search, StickyNote, Trash2, X } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
-import { Application } from '../../types';
+import React, {memo, useCallback, useMemo, useState} from 'react';
+import {FixedSizeList as List} from 'react-window';
+import {Edit, ExternalLink, Paperclip, Search, StickyNote, Trash2, X} from 'lucide-react';
+import {useAppStore} from '../../store/useAppStore';
+import {Application} from '../../types';
 import SearchHighlight from '../ui/SearchHighlight';
+
 const ITEM_HEIGHT = 64; // Height of each row in pixels
 const VISIBLE_ITEMS = 10; // Number of items visible at once
 
@@ -30,7 +31,7 @@ const VirtualizedApplicationTable: React.FC<VirtualizedTableProps> = ({
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Memoize filtered data
-    const { activeApplications, rejectedApplications } = useMemo(() => ({
+    const {activeApplications, rejectedApplications} = useMemo(() => ({
         activeApplications: filteredApplications.filter(app => app.status !== 'Rejected'),
         rejectedApplications: filteredApplications.filter(app => app.status === 'Rejected')
     }), [filteredApplications]);
@@ -64,11 +65,16 @@ const VirtualizedApplicationTable: React.FC<VirtualizedTableProps> = ({
     const getStatusBadge = useCallback((status: string) => {
         const baseClasses = 'status-badge';
         switch (status) {
-            case 'Applied': return `${baseClasses} status-applied`;
-            case 'Interview': return `${baseClasses} status-interview`;
-            case 'Offer': return `${baseClasses} status-offer`;
-            case 'Rejected': return `${baseClasses} status-rejected`;
-            default: return `${baseClasses} status-applied`;
+            case 'Applied':
+                return `${baseClasses} status-applied`;
+            case 'Interview':
+                return `${baseClasses} status-interview`;
+            case 'Offer':
+                return `${baseClasses} status-offer`;
+            case 'Rejected':
+                return `${baseClasses} status-rejected`;
+            default:
+                return `${baseClasses} status-applied`;
         }
     }, []);
 
@@ -135,7 +141,8 @@ const VirtualizedApplicationTable: React.FC<VirtualizedTableProps> = ({
             <div className="card overflow-hidden">
                 {/* Table Header */}
                 <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <div className="grid grid-cols-12 gap-4 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <div
+                        className="grid grid-cols-12 gap-4 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                         <div className="col-span-1">
                             <input
                                 type="checkbox"
@@ -228,7 +235,7 @@ interface VirtualizedRowProps {
     };
 }
 
-const VirtualizedRow: React.FC<VirtualizedRowProps> = memo(({ index, style, data }) => {
+const VirtualizedRow: React.FC<VirtualizedRowProps> = memo(({index, style, data}) => {
     const {
         applications,
         selectedIds,
@@ -246,7 +253,7 @@ const VirtualizedRow: React.FC<VirtualizedRowProps> = memo(({ index, style, data
     const [popupState, setPopupState] = useState<{
         showNotes: boolean;
         showAttachments: boolean;
-    }>({ showNotes: false, showAttachments: false });
+    }>({showNotes: false, showAttachments: false});
 
     const hasNotes = useMemo(() => Boolean(application.notes), [application.notes]);
     const hasAttachments = useMemo(() =>
@@ -254,11 +261,11 @@ const VirtualizedRow: React.FC<VirtualizedRowProps> = memo(({ index, style, data
     );
 
     const toggleNotes = useCallback(() => {
-        setPopupState(prev => ({ ...prev, showNotes: !prev.showNotes }));
+        setPopupState(prev => ({...prev, showNotes: !prev.showNotes}));
     }, []);
 
     const toggleAttachments = useCallback(() => {
-        setPopupState(prev => ({ ...prev, showAttachments: !prev.showAttachments }));
+        setPopupState(prev => ({...prev, showAttachments: !prev.showAttachments}));
     }, []);
 
     const handleToggleSelection = useCallback(() => {
@@ -397,7 +404,8 @@ const VirtualizedRow: React.FC<VirtualizedRowProps> = memo(({ index, style, data
 
                     {/* Popups */}
                     {popupState.showNotes && hasNotes && (
-                        <div className="absolute z-10 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-w-xs right-0">
+                        <div
+                            className="absolute z-10 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-w-xs right-0">
                             <div className="text-sm">
                                 <SearchHighlight
                                     text={application.notes!}
@@ -409,7 +417,8 @@ const VirtualizedRow: React.FC<VirtualizedRowProps> = memo(({ index, style, data
                     )}
 
                     {popupState.showAttachments && hasAttachments && (
-                        <div className="absolute z-10 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-48 right-0">
+                        <div
+                            className="absolute z-10 mt-2 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-48 right-0">
                             <div className="space-y-2">
                                 {application.attachments!.map((attachment, idx) => (
                                     <div key={idx} className="flex items-center justify-between text-sm">

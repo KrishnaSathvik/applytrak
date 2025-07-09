@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { Award, Calendar, Target, TrendingUp, Star, Zap, Trophy } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
+import React, {useEffect} from 'react';
+import {Award, Calendar, Star, Target, TrendingUp, Trophy, Zap} from 'lucide-react';
+import {useAppStore} from '../../store/useAppStore';
 
 const GoalTracker: React.FC = () => {
-    const { goals, goalProgress, openGoalModal, calculateProgress } = useAppStore();
+    const {goals, goalProgress, openGoalModal, calculateProgress} = useAppStore();
 
     // Force progress calculation on mount and when applications change
     useEffect(() => {
@@ -90,19 +90,23 @@ const GoalTracker: React.FC = () => {
             {/* ENHANCED Header Card - FIXED TYPOGRAPHY VISIBILITY */}
             <div className="glass-card relative overflow-hidden">
                 {/* Enhanced gradient background with better contrast */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary-500/20 via-primary-600/15 to-secondary-500/20 dark:from-primary-400/30 dark:via-primary-500/25 dark:to-secondary-400/30"></div>
+                <div
+                    className="absolute inset-0 bg-gradient-to-br from-primary-500/20 via-primary-600/15 to-secondary-500/20 dark:from-primary-400/30 dark:via-primary-500/25 dark:to-secondary-400/30"></div>
 
                 {/* Content with enhanced visibility */}
                 <div className="relative z-10">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-4 sm:mb-6">
+                    <div
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-4 sm:mb-6">
                         <div className="flex items-center space-x-3">
-                            <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg">
-                                <Target className="h-5 w-5 sm:h-6 sm:w-6" />
+                            <div
+                                className="p-2 sm:p-3 rounded-xl bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg">
+                                <Target className="h-5 w-5 sm:h-6 sm:w-6"/>
                             </div>
                             <div>
                                 {/* FIXED: Enhanced title visibility with better contrast */}
                                 <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight">
-                                    <span className="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 bg-clip-text text-transparent dark:from-primary-400 dark:via-primary-300 dark:to-secondary-400">
+                                    <span
+                                        className="bg-gradient-to-r from-primary-600 via-primary-700 to-secondary-600 bg-clip-text text-transparent dark:from-primary-400 dark:via-primary-300 dark:to-secondary-400">
                                         Application Goals
                                     </span>
                                 </h2>
@@ -116,7 +120,7 @@ const GoalTracker: React.FC = () => {
                             onClick={openGoalModal}
                             className="btn btn-primary w-full sm:w-auto font-bold tracking-wide shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                         >
-                            <Target className="h-4 w-4 mr-2" />
+                            <Target className="h-4 w-4 mr-2"/>
                             <span className="font-bold tracking-wide">Set Goals</span>
                         </button>
                     </div>
@@ -143,8 +147,10 @@ const GoalTracker: React.FC = () => {
                                     {/* Header - MOBILE OPTIMIZED with Enhanced Typography */}
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                                            <div className={`p-1.5 sm:p-2 rounded-lg bg-gradient-to-r ${item.lightColor} dark:bg-gradient-to-r dark:${item.darkColor} flex-shrink-0 shadow-sm`}>
-                                                <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300" />
+                                            <div
+                                                className={`p-1.5 sm:p-2 rounded-lg bg-gradient-to-r ${item.lightColor} dark:bg-gradient-to-r dark:${item.darkColor} flex-shrink-0 shadow-sm`}>
+                                                <Icon
+                                                    className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300"/>
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <h3 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-gray-100 truncate tracking-wide">
@@ -161,7 +167,8 @@ const GoalTracker: React.FC = () => {
                                         </div>
                                         <div className="text-right flex-shrink-0">
                                             <div className="flex items-center space-x-1">
-                                                <MilestoneIcon className={`h-3 w-3 sm:h-4 sm:w-4 ${getMilestoneColor(item.percentage)} drop-shadow-sm`} />
+                                                <MilestoneIcon
+                                                    className={`h-3 w-3 sm:h-4 sm:w-4 ${getMilestoneColor(item.percentage)} drop-shadow-sm`}/>
                                                 <span className="text-lg sm:text-xl font-extrabold text-gradient-blue">
                                                     {item.percentage}%
                                                 </span>
@@ -170,10 +177,11 @@ const GoalTracker: React.FC = () => {
                                     </div>
 
                                     {/* Progress Bar - MOBILE FRIENDLY HEIGHT with Enhanced Styling */}
-                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 sm:h-3 overflow-hidden shadow-inner">
+                                    <div
+                                        className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 sm:h-3 overflow-hidden shadow-inner">
                                         <div
                                             className={`h-full bg-gradient-to-r ${item.color} transition-all duration-1000 ease-out rounded-full shadow-sm`}
-                                            style={{ width: `${Math.min(item.percentage, 100)}%` }}
+                                            style={{width: `${Math.min(item.percentage, 100)}%`}}
                                         />
                                     </div>
 
@@ -188,7 +196,8 @@ const GoalTracker: React.FC = () => {
                                                 {item.target}
                                             </span>
                                         </div>
-                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-widest uppercase">
+                                        <span
+                                            className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-widest uppercase">
                                             <span className="hidden sm:inline">applications</span>
                                             <span className="sm:hidden">apps</span>
                                         </span>
@@ -219,17 +228,21 @@ const GoalTracker: React.FC = () => {
 
             {/* Weekly Streak Card - MOBILE RESPONSIVE with Enhanced Typography */}
             {currentProgress.weeklyStreak > 0 && (
-                <div className="glass-card bg-gradient-to-r from-green-50/80 to-green-100/80 dark:from-green-900/30 dark:to-green-800/30 border-l-4 border-l-green-500 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
-                        <div className="p-2 sm:p-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg">
-                            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+                <div
+                    className="glass-card bg-gradient-to-r from-green-50/80 to-green-100/80 dark:from-green-900/30 dark:to-green-800/30 border-l-4 border-l-green-500 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div
+                        className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
+                        <div
+                            className="p-2 sm:p-3 rounded-full bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg">
+                            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6"/>
                         </div>
                         <div className="text-center">
                             <div className="text-xl sm:text-3xl font-extrabold text-gradient-static">
                                 {currentProgress.weeklyStreak} Week Streak! 🔥
                             </div>
                             <p className="text-xs sm:text-sm font-bold text-green-700 dark:text-green-300 mt-1 leading-relaxed tracking-wide">
-                                <span className="hidden sm:inline">You've been consistently meeting your weekly goals</span>
+                                <span
+                                    className="hidden sm:inline">You've been consistently meeting your weekly goals</span>
                                 <span className="sm:hidden">Consistent weekly progress!</span>
                             </p>
                         </div>
@@ -241,7 +254,8 @@ const GoalTracker: React.FC = () => {
                                 />
                             ))}
                             {currentProgress.weeklyStreak > 5 && (
-                                <span className="text-yellow-500 font-extrabold text-sm drop-shadow-sm">+{currentProgress.weeklyStreak - 5}</span>
+                                <span
+                                    className="text-yellow-500 font-extrabold text-sm drop-shadow-sm">+{currentProgress.weeklyStreak - 5}</span>
                             )}
                         </div>
                     </div>
@@ -250,7 +264,8 @@ const GoalTracker: React.FC = () => {
 
             {/* Quick Stats Summary - MOBILE RESPONSIVE GRID with Enhanced Typography */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-primary-50/30 to-secondary-50/30 dark:from-primary-900/10 dark:to-secondary-900/10">
+                <div
+                    className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-primary-50/30 to-secondary-50/30 dark:from-primary-900/10 dark:to-secondary-900/10">
                     <div className="text-2xl sm:text-4xl font-extrabold text-gradient-static mb-1">
                         {currentProgress.totalApplications}
                     </div>
@@ -259,19 +274,26 @@ const GoalTracker: React.FC = () => {
                         <span className="sm:hidden">Total</span>
                     </div>
                 </div>
-                <div className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-blue-50/30 to-cyan-50/30 dark:from-blue-900/10 dark:to-cyan-900/10">
+                <div
+                    className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-blue-50/30 to-cyan-50/30 dark:from-blue-900/10 dark:to-cyan-900/10">
                     <div className="text-2xl sm:text-4xl font-extrabold text-gradient-blue mb-1">
                         {currentProgress.weeklyApplications}
                     </div>
-                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-widest uppercase">This Week</div>
+                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-widest uppercase">This
+                        Week
+                    </div>
                 </div>
-                <div className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-900/10 dark:to-pink-900/10">
+                <div
+                    className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-900/10 dark:to-pink-900/10">
                     <div className="text-2xl sm:text-4xl font-extrabold text-gradient-purple mb-1">
                         {currentProgress.monthlyApplications}
                     </div>
-                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-widest uppercase">This Month</div>
+                    <div className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-widest uppercase">This
+                        Month
+                    </div>
                 </div>
-                <div className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-900/10 dark:to-emerald-900/10">
+                <div
+                    className="glass-card p-3 sm:p-4 text-center hover:shadow-lg transform hover:scale-105 transition-all duration-200 bg-gradient-to-br from-green-50/30 to-emerald-50/30 dark:from-green-900/10 dark:to-emerald-900/10">
                     <div className="text-2xl sm:text-4xl font-extrabold text-green-600 dark:text-green-400 mb-1">
                         {currentProgress.weeklyStreak}
                     </div>

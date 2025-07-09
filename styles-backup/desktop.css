@@ -223,27 +223,71 @@
 
     /* Desktop column widths */
     .table th:nth-child(1),
-    .table td:nth-child(1) { width: 5%; }      /* # */
+    .table td:nth-child(1) {
+        width: 5%;
+    }
+
+    /* # */
     .table th:nth-child(2),
-    .table td:nth-child(2) { width: 10%; }     /* Date */
+    .table td:nth-child(2) {
+        width: 10%;
+    }
+
+    /* Date */
     .table th:nth-child(3),
-    .table td:nth-child(3) { width: 15%; }     /* Company */
+    .table td:nth-child(3) {
+        width: 15%;
+    }
+
+    /* Company */
     .table th:nth-child(4),
-    .table td:nth-child(4) { width: 15%; }     /* Position */
+    .table td:nth-child(4) {
+        width: 15%;
+    }
+
+    /* Position */
     .table th:nth-child(5),
-    .table td:nth-child(5) { width: 8%; }      /* Type */
+    .table td:nth-child(5) {
+        width: 8%;
+    }
+
+    /* Type */
     .table th:nth-child(6),
-    .table td:nth-child(6) { width: 12%; }     /* Location */
+    .table td:nth-child(6) {
+        width: 12%;
+    }
+
+    /* Location */
     .table th:nth-child(7),
-    .table td:nth-child(7) { width: 10%; }     /* Salary */
+    .table td:nth-child(7) {
+        width: 10%;
+    }
+
+    /* Salary */
     .table th:nth-child(8),
-    .table td:nth-child(8) { width: 8%; }      /* Source */
+    .table td:nth-child(8) {
+        width: 8%;
+    }
+
+    /* Source */
     .table th:nth-child(9),
-    .table td:nth-child(9) { width: 8%; }      /* Status */
+    .table td:nth-child(9) {
+        width: 8%;
+    }
+
+    /* Status */
     .table th:nth-child(10),
-    .table td:nth-child(10) { width: 5%; }     /* URL */
+    .table td:nth-child(10) {
+        width: 5%;
+    }
+
+    /* URL */
     .table th:nth-child(11),
-    .table td:nth-child(11) { width: 12%; }    /* Actions */
+    .table td:nth-child(11) {
+        width: 12%;
+    }
+
+    /* Actions */
 }
 
 /* =============================================================================
@@ -321,10 +365,21 @@
     }
 
     /* Enhanced modal sizes */
-    .modal-sm { max-width: 500px; }
-    .modal-md { max-width: 800px; }
-    .modal-lg { max-width: 1000px; }
-    .modal-xl { max-width: 1200px; }
+    .modal-sm {
+        max-width: 500px;
+    }
+
+    .modal-md {
+        max-width: 800px;
+    }
+
+    .modal-lg {
+        max-width: 1000px;
+    }
+
+    .modal-xl {
+        max-width: 1200px;
+    }
 }
 
 /* =============================================================================
@@ -425,16 +480,14 @@
 
     /* Desktop grid background */
     .bg-grid {
-        background-image:
-                linear-gradient(rgba(103, 126, 234, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(103, 126, 234, 0.03) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(103, 126, 234, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(103, 126, 234, 0.03) 1px, transparent 1px);
         background-size: 24px 24px;
     }
 
     body.dark .bg-grid {
-        background-image:
-                linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
     }
 
     /* Desktop floating animations */
@@ -683,24 +736,66 @@
 
 @media (min-width: 768px) {
     /* Desktop spacing utilities */
-    .desktop-spacing-xs { margin: 0.5rem 0; }
-    .desktop-spacing-sm { margin: 1rem 0; }
-    .desktop-spacing-md { margin: 1.5rem 0; }
-    .desktop-spacing-lg { margin: 2rem 0; }
-    .desktop-spacing-xl { margin: 3rem 0; }
+    .desktop-spacing-xs {
+        margin: 0.5rem 0;
+    }
 
-    .desktop-padding-xs { padding: 0.5rem; }
-    .desktop-padding-sm { padding: 1rem; }
-    .desktop-padding-md { padding: 1.5rem; }
-    .desktop-padding-lg { padding: 2rem; }
-    .desktop-padding-xl { padding: 3rem; }
+    .desktop-spacing-sm {
+        margin: 1rem 0;
+    }
+
+    .desktop-spacing-md {
+        margin: 1.5rem 0;
+    }
+
+    .desktop-spacing-lg {
+        margin: 2rem 0;
+    }
+
+    .desktop-spacing-xl {
+        margin: 3rem 0;
+    }
+
+    .desktop-padding-xs {
+        padding: 0.5rem;
+    }
+
+    .desktop-padding-sm {
+        padding: 1rem;
+    }
+
+    .desktop-padding-md {
+        padding: 1.5rem;
+    }
+
+    .desktop-padding-lg {
+        padding: 2rem;
+    }
+
+    .desktop-padding-xl {
+        padding: 3rem;
+    }
 
     /* Desktop text utilities */
-    .desktop-text-xs { font-size: 0.75rem; }
-    .desktop-text-sm { font-size: 0.875rem; }
-    .desktop-text-base { font-size: 1rem; }
-    .desktop-text-lg { font-size: 1.125rem; }
-    .desktop-text-xl { font-size: 1.25rem; }
+    .desktop-text-xs {
+        font-size: 0.75rem;
+    }
+
+    .desktop-text-sm {
+        font-size: 0.875rem;
+    }
+
+    .desktop-text-base {
+        font-size: 1rem;
+    }
+
+    .desktop-text-lg {
+        font-size: 1.125rem;
+    }
+
+    .desktop-text-xl {
+        font-size: 1.25rem;
+    }
 
     /* Desktop layout utilities */
     .desktop-container {
@@ -880,9 +975,15 @@
     }
 
     @keyframes gradientShift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
     }
 
     /* Desktop glow effects */

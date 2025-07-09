@@ -67,11 +67,14 @@ class ErrorBoundary extends React.Component<
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-orange-50 to-red-100 dark:from-red-950 dark:via-orange-950 dark:to-red-900 p-4">
-                    <div className="text-center max-w-lg w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-red-200/50 dark:border-red-700/50 p-8 space-y-6">
+                <div
+                    className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-orange-50 to-red-100 dark:from-red-950 dark:via-orange-950 dark:to-red-900 p-4">
+                    <div
+                        className="text-center max-w-lg w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-red-200/50 dark:border-red-700/50 p-8 space-y-6">
                         {/* Error Icon - Enhanced */}
                         <div className="relative">
-                            <div className="text-red-500 text-8xl mb-2 animate-bounce-gentle filter drop-shadow-lg">💥</div>
+                            <div className="text-red-500 text-8xl mb-2 animate-bounce-gentle filter drop-shadow-lg">💥
+                            </div>
                             <div className="absolute inset-0 text-red-300 text-8xl mb-2 animate-ping opacity-20">💥</div>
                         </div>
 
@@ -81,13 +84,16 @@ class ErrorBoundary extends React.Component<
                                 Application Crashed
                             </h1>
                             <p className="text-lg font-bold text-red-600 dark:text-red-400 tracking-wide">
-                                Error ID: <span className="font-mono text-sm bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">{this.state.errorId}</span>
+                                Error ID: <span
+                                className="font-mono text-sm bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">{this.state.errorId}</span>
                             </p>
                         </div>
 
                         {/* Error Message - Enhanced Typography */}
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-                            <h3 className="font-bold text-red-800 dark:text-red-200 mb-2 tracking-wide">Error Details:</h3>
+                        <div
+                            className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                            <h3 className="font-bold text-red-800 dark:text-red-200 mb-2 tracking-wide">Error
+                                Details:</h3>
                             <p className="text-red-700 dark:text-red-300 text-sm font-medium leading-relaxed break-words">
                                 {this.state.error?.message || 'An unexpected error occurred while loading the application'}
                             </p>
@@ -113,8 +119,10 @@ class ErrorBoundary extends React.Component<
                         </div>
 
                         {/* Recovery Tips - Enhanced */}
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-left">
-                            <h3 className="font-bold text-blue-800 dark:text-blue-200 mb-2 tracking-wide">💡 Quick Recovery Tips:</h3>
+                        <div
+                            className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-left">
+                            <h3 className="font-bold text-blue-800 dark:text-blue-200 mb-2 tracking-wide">💡 Quick
+                                Recovery Tips:</h3>
                             <ul className="text-blue-700 dark:text-blue-300 text-sm space-y-1 font-medium leading-relaxed">
                                 <li>• Try refreshing the page (Ctrl+R or Cmd+R)</li>
                                 <li>• Clear your browser cache and cookies</li>
@@ -124,14 +132,18 @@ class ErrorBoundary extends React.Component<
                         </div>
 
                         {/* Technical Info - Enhanced */}
-                        <details className="text-left bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <summary className="cursor-pointer p-4 font-bold text-gray-700 dark:text-gray-300 tracking-wide hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
+                        <details
+                            className="text-left bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <summary
+                                className="cursor-pointer p-4 font-bold text-gray-700 dark:text-gray-300 tracking-wide hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
                                 🔧 Technical Details
                             </summary>
                             <div className="p-4 pt-0 space-y-2">
-                                <div className="text-xs font-mono bg-gray-100 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <div
+                                    className="text-xs font-mono bg-gray-100 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                                     <div className="font-bold text-gray-600 dark:text-gray-400 mb-1">Error Stack:</div>
-                                    <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+                                    <div
+                                        className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
                                         {this.state.error?.stack || 'No stack trace available'}
                                     </div>
                                 </div>
@@ -236,7 +248,7 @@ const renderApp = () => {
         root.render(
             <React.StrictMode>
                 <ErrorBoundary>
-                    <App />
+                    <App/>
                 </ErrorBoundary>
             </React.StrictMode>
         );

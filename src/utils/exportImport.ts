@@ -1,5 +1,5 @@
 // src/utils/exportImport.ts - ENHANCED AND FIXED VERSION
-import { Application } from '../types/application.types';
+import {Application} from '../types/application.types';
 
 // Helper function to format dates consistently
 const formatDate = (dateString: string): string => {
@@ -54,7 +54,7 @@ export const exportToJSON = async (applications: Application[]): Promise<void> =
         };
 
         const jsonString = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
+        const blob = new Blob([jsonString], {type: 'application/json'});
 
         downloadFile(
             blob,
@@ -93,7 +93,7 @@ export const exportToCSV = async (applications: Application[]): Promise<void> =>
             ].join(','))
         ].join('\n');
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
 
         downloadFile(
             blob,
@@ -126,18 +126,18 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
         // Header
         doc.setFontSize(24);
         doc.setFont('helvetica', 'bold');
-        doc.text('ApplyTrak', pageWidth / 2, yPosition, { align: 'center' });
+        doc.text('ApplyTrak', pageWidth / 2, yPosition, {align: 'center'});
 
         yPosition += 10;
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Job Applications Report`, pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(`Job Applications Report`, pageWidth / 2, yPosition, {align: 'center'});
 
         yPosition += 8;
-        doc.text(`Generated on ${formatDate(new Date().toISOString())}`, pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(`Generated on ${formatDate(new Date().toISOString())}`, pageWidth / 2, yPosition, {align: 'center'});
 
         yPosition += 8;
-        doc.text(`Total Applications: ${applications.length}`, pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(`Total Applications: ${applications.length}`, pageWidth / 2, yPosition, {align: 'center'});
 
         yPosition += 15;
 
@@ -180,17 +180,17 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
                     fillColor: [245, 250, 251]
                 },
                 columnStyles: {
-                    0: { cellWidth: 10 }, // #
-                    1: { cellWidth: 20 }, // Date
-                    2: { cellWidth: 25 }, // Company
-                    3: { cellWidth: 25 }, // Position
-                    4: { cellWidth: 15 }, // Type
-                    5: { cellWidth: 20 }, // Location
-                    6: { cellWidth: 18 }, // Salary
-                    7: { cellWidth: 18 }, // Source
-                    8: { cellWidth: 15 }  // Status
+                    0: {cellWidth: 10}, // #
+                    1: {cellWidth: 20}, // Date
+                    2: {cellWidth: 25}, // Company
+                    3: {cellWidth: 25}, // Position
+                    4: {cellWidth: 15}, // Type
+                    5: {cellWidth: 20}, // Location
+                    6: {cellWidth: 18}, // Salary
+                    7: {cellWidth: 18}, // Source
+                    8: {cellWidth: 15}  // Status
                 },
-                margin: { top: 40, right: 14, bottom: 20, left: 14 },
+                margin: {top: 40, right: 14, bottom: 20, left: 14},
                 didDrawPage: function (data: any) {
                     // Footer
                     doc.setFontSize(8);

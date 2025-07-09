@@ -76,15 +76,15 @@ module.exports = {
 
             // 🔧 OPTIMIZED: Simplified responsive typography with Geist matching globals.css
             fontSize: {
-                'xs': ['0.75rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
-                'sm': ['0.875rem', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
-                'base': ['1rem', { lineHeight: '1.5', letterSpacing: '-0.01em' }],
-                'lg': ['1.125rem', { lineHeight: '1.4', letterSpacing: '-0.01em' }],
-                'xl': ['1.25rem', { lineHeight: '1.3', letterSpacing: '-0.02em' }],
-                '2xl': ['1.5rem', { lineHeight: '1.2', letterSpacing: '-0.02em' }],
-                '3xl': ['1.875rem', { lineHeight: '1.2', letterSpacing: '-0.02em' }],
-                '4xl': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-                '5xl': ['3rem', { lineHeight: '1', letterSpacing: '-0.02em' }],
+                'xs': ['0.75rem', {lineHeight: '1.2', letterSpacing: '-0.01em'}],
+                'sm': ['0.875rem', {lineHeight: '1.3', letterSpacing: '-0.01em'}],
+                'base': ['1rem', {lineHeight: '1.5', letterSpacing: '-0.01em'}],
+                'lg': ['1.125rem', {lineHeight: '1.4', letterSpacing: '-0.01em'}],
+                'xl': ['1.25rem', {lineHeight: '1.3', letterSpacing: '-0.02em'}],
+                '2xl': ['1.5rem', {lineHeight: '1.2', letterSpacing: '-0.02em'}],
+                '3xl': ['1.875rem', {lineHeight: '1.2', letterSpacing: '-0.02em'}],
+                '4xl': ['2.25rem', {lineHeight: '1.1', letterSpacing: '-0.02em'}],
+                '5xl': ['3rem', {lineHeight: '1', letterSpacing: '-0.02em'}],
             },
 
             // 🔧 OPTIMIZED: Simplified font weights for Geist matching globals.css
@@ -118,20 +118,20 @@ module.exports = {
             keyframes: {
                 // 🔧 OPTIMIZED: Consistent transform properties matching globals.css
                 fadeIn: {
-                    '0%': { opacity: '0', transform: 'translateY(10px) translateZ(0)' },
-                    '100%': { opacity: '1', transform: 'translateY(0) translateZ(0)' },
+                    '0%': {opacity: '0', transform: 'translateY(10px) translateZ(0)'},
+                    '100%': {opacity: '1', transform: 'translateY(0) translateZ(0)'},
                 },
                 slideUp: {
-                    '0%': { transform: 'translateY(100%) translateZ(0)', opacity: '0' },
-                    '100%': { transform: 'translateY(0) translateZ(0)', opacity: '1' },
+                    '0%': {transform: 'translateY(100%) translateZ(0)', opacity: '0'},
+                    '100%': {transform: 'translateY(0) translateZ(0)', opacity: '1'},
                 },
                 scaleIn: {
-                    '0%': { transform: 'scale(0.95) translateZ(0)', opacity: '0' },
-                    '100%': { transform: 'scale(1) translateZ(0)', opacity: '1' },
+                    '0%': {transform: 'scale(0.95) translateZ(0)', opacity: '0'},
+                    '100%': {transform: 'scale(1) translateZ(0)', opacity: '1'},
                 },
                 shimmer: {
-                    '0%': { transform: 'translateX(-100%) translateZ(0)' },
-                    '100%': { transform: 'translateX(100%) translateZ(0)' },
+                    '0%': {transform: 'translateX(-100%) translateZ(0)'},
+                    '100%': {transform: 'translateX(100%) translateZ(0)'},
                 },
             },
 
@@ -226,7 +226,7 @@ module.exports = {
         // =================================================================
         // OPTIMIZED CUSTOM PLUGIN - Essential utilities only matching globals.css
         // =================================================================
-        function({ addUtilities, addComponents, theme, addBase }) {
+        function ({addUtilities, addComponents, theme, addBase}) {
             // =============================================================
             // BASE STYLES - Geist font foundation matching globals.css
             // =============================================================

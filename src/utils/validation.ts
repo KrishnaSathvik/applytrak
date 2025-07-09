@@ -1,6 +1,6 @@
 // src/utils/validation.ts - SIMPLIFIED WITHOUT COMPLEX TYPES
 import * as yup from 'yup';
-import { ApplicationStatus, JobType, ApplicationFormData, GoalFormData } from '../types';
+import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType} from '../types';
 
 export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
@@ -165,7 +165,7 @@ export const validateFile = (file: File): { isValid: boolean; error?: string } =
         };
     }
 
-    return { isValid: true };
+    return {isValid: true};
 };
 
 // Validation helpers

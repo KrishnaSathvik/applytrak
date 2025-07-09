@@ -1,6 +1,7 @@
 # 🚀 ApplyTrak
 
-A modern, feature-rich job application tracking system built with React, TypeScript, and Tailwind CSS. Track your job search journey with style, analytics, and smart organization.
+A modern, feature-rich job application tracking system built with React, TypeScript, and Tailwind CSS. Track your job
+search journey with style, analytics, and smart organization.
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-applytrak.com-4A5E54?style=for-the-badge)](https://applytrak.com)
 
@@ -9,30 +10,35 @@ A modern, feature-rich job application tracking system built with React, TypeScr
 ## ✨ Features
 
 ### 📊 **Smart Application Management**
+
 - **Paginated Table View**: Clean, responsive table with 15 applications per page
 - **Advanced Search & Filtering**: Real-time search across all application fields
 - **Bulk Operations**: Select and manage multiple applications at once
 - **Fixed Table Layout**: No horizontal scrolling, content stays contained
 
 ### 🎯 **Goal Tracking & Analytics**
+
 - **Smart Goal Setting**: Total, weekly, and monthly application goals
 - **Progress Visualization**: Beautiful progress bars and streak counters
 - **Success Analytics**: Track success rates, response times, and trends
 - **Interactive Charts**: Visual insights into your job search performance
 
 ### 🎨 **Modern UI/UX**
+
 - **Glassmorphism Design**: Beautiful frosted glass effects and modern aesthetics
 - **Dark/Light Themes**: Auto-detecting system theme with manual toggle
 - **Responsive Design**: Perfect experience on desktop, tablet, and mobile
 - **Micro-Animations**: Smooth transitions and delightful interactions
 
 ### 💾 **Data Management**
+
 - **Local Storage**: Secure IndexedDB storage with Dexie.js
 - **Export/Import**: JSON and PDF export capabilities
 - **Auto-Backup**: Automatic data backup and recovery system
 - **Offline-First**: Works completely offline, no server required
 
 ### ⚡ **Performance & Developer Experience**
+
 - **TypeScript**: Full type safety and better development experience
 - **Component Architecture**: Reusable, maintainable React components
 - **Lazy Loading**: Optimized loading with React.Suspense
@@ -40,21 +46,22 @@ A modern, feature-rich job application tracking system built with React, TypeScr
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose | Version |
-|------------|---------|---------|
-| **React** | UI Framework | 19+ |
-| **TypeScript** | Type Safety | 5+ |
-| **Tailwind CSS** | Styling | 3+ |
-| **Zustand** | State Management | Latest |
-| **Dexie.js** | IndexedDB Wrapper | Latest |
-| **Lucide React** | Icons | Latest |
-| **Recharts** | Data Visualization | Latest |
-| **React Hook Form** | Form Management | Latest |
+| Technology          | Purpose            | Version |
+|---------------------|--------------------|---------|
+| **React**           | UI Framework       | 19+     |
+| **TypeScript**      | Type Safety        | 5+      |
+| **Tailwind CSS**    | Styling            | 3+      |
+| **Zustand**         | State Management   | Latest  |
+| **Dexie.js**        | IndexedDB Wrapper  | Latest  |
+| **Lucide React**    | Icons              | Latest  |
+| **Recharts**        | Data Visualization | Latest  |
+| **React Hook Form** | Form Management    | Latest  |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - npm or yarn
 
 ### Installation
@@ -89,24 +96,28 @@ npm run deploy
 ## 📱 Usage
 
 ### Adding Applications
+
 1. Fill out the application form with company, position, date, and details
 2. Upload attachments (resumes, cover letters)
 3. Add notes and track the job source
 4. Click "Add Application" to save
 
 ### Setting Goals
+
 1. Click "Set Goals" in the goal tracking section
 2. Set your total, weekly, and monthly application targets
 3. Track your progress with visual indicators
 4. Celebrate milestones and maintain streaks
 
 ### Viewing Analytics
+
 1. Switch to the "Analytics" tab
 2. View success rates, application trends, and insights
 3. Filter data by date ranges
 4. Export charts and reports
 
 ### Data Management
+
 1. **Export**: Use the export buttons to save your data as JSON or PDF
 2. **Import**: Upload a JSON file to restore or migrate data
 3. **Backup**: Automatic backups are created hourly
@@ -115,20 +126,25 @@ npm run deploy
 ## 📸 Screenshots
 
 ### Dashboard View
+
 *Beautiful overview with goal tracking and recent applications*
 
 ### Application Table
+
 *Clean, paginated table with advanced search and filtering*
 
 ### Analytics Dashboard
+
 *Comprehensive insights and data visualization*
 
 ### Dark Theme
+
 *Elegant dark mode with smooth transitions*
 
 ## 🔧 Configuration
 
 ### Customizing Goals
+
 Edit the goal limits in `src/components/modals/GoalModal.tsx`:
 
 ```typescript
@@ -140,6 +156,7 @@ const schema = yup.object({
 ```
 
 ### Theme Customization
+
 Modify colors in `src/styles/globals.css`:
 
 ```css
@@ -152,6 +169,7 @@ Modify colors in `src/styles/globals.css`:
 ```
 
 ### Environment Variables
+
 Create a `.env.local` file:
 
 ```bash
@@ -215,9 +233,11 @@ npm run deploy
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to
+discuss what you would like to change.
 
 ### Development Process
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
@@ -227,6 +247,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 7. Open a Pull Request
 
 ### Code Style
+
 - Use TypeScript for all new code
 - Follow existing component patterns
 - Use Tailwind CSS for styling
@@ -257,17 +278,20 @@ For feature requests, please open an issue with the "enhancement" label.
 ## 🗺️ Roadmap
 
 ### Phase 2: Backend Integration
+
 - [ ] **Cloud Sync** - Optional cloud backup and sync
 - [ ] **User Authentication** - Secure user accounts
 - [ ] **Team Collaboration** - Multi-user workspaces
 
 ### Phase 3: Advanced Features
+
 - [ ] **Mobile App** - React Native implementation
 - [ ] **AI Features** - Resume optimization and job matching
 - [ ] **Advanced Analytics** - Machine learning insights
 - [ ] **Integration APIs** - LinkedIn, Indeed, Glassdoor connections
 
 ### Phase 4: Enterprise Features
+
 - [ ] **SSO Integration** - Enterprise authentication
 - [ ] **Advanced Reporting** - Custom reports and dashboards
 - [ ] **API Access** - REST API for integrations
@@ -284,7 +308,9 @@ For feature requests, please open an issue with the "enhancement" label.
 
 <div align="center">
 
-**[🌐 Live Demo](https://applytrak.com)** • **[📝 Documentation](https://github.com/KrishnaSathvik/applytrak/wiki)** • **[🐛 Report Bug](https://github.com/KrishnaSathvik/applytrak/issues)** • **[✨ Request Feature](https://github.com/KrishnaSathvik/applytrak/issues)**
+**[🌐 Live Demo](https://applytrak.com)** • **[📝 Documentation](https://github.com/KrishnaSathvik/applytrak/wiki)** • *
+*[🐛 Report Bug](https://github.com/KrishnaSathvik/applytrak/issues)** • *
+*[✨ Request Feature](https://github.com/KrishnaSathvik/applytrak/issues)**
 
 Made with ❤️ for job seekers everywhere. Good luck with your applications! 🍀
 

@@ -1,5 +1,5 @@
 // src/components/ui/SearchHighlight.tsx - ENHANCED TYPOGRAPHY VERSION
-import React, { memo, useMemo } from 'react';
+import React, {memo, useMemo} from 'react';
 
 interface SearchHighlightProps {
     text: string;
@@ -62,7 +62,7 @@ const SearchHighlight: React.FC<SearchHighlightProps> = memo(({
                             <mark
                                 key={`highlight-${index}-${part}`}
                                 className={highlightClasses}
-                                style={{ backgroundColor: 'transparent' }} // Override default mark styles
+                                style={{backgroundColor: 'transparent'}} // Override default mark styles
                             >
                                 {part}
                             </mark>
