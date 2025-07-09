@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from './store/useAppStore';
 import Layout from './components/layout/Layout';
+import { initializeDatabase } from './services/databaseService';
 import LoadingScreen from './components/ui/LoadingScreen';
 import { setupAutoBackup } from './utils/backup';
 import { Application } from './types';
@@ -389,12 +390,18 @@ const App: React.FC = () => {
         loadGoals,
         setTheme,
         calculateProgress,
-        calculateAnalytics
+        calculateAnalytics,
+        showToast
     } = useAppStore();
 
     useEffect(() => {
         const initializeApp = async () => {
             try {
+                // 🔧 CRITICAL FIX: Initialize database FIRST
+                console.log('🚀 Initializing database...');
+                await initializeDatabase();
+                console.log('✅ Database initialized successfully');
+
                 // Theme initialization with enhanced system detection
                 const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
                 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -418,14 +425,23 @@ const App: React.FC = () => {
                     localStorage.setItem('theme', initialTheme);
                 }
 
-                // Load data with enhanced error handling
+                // 🔧 CRITICAL FIX: Load data AFTER database is initialized
+                console.log('📊 Loading application data...');
                 await Promise.all([
                     loadApplications(),
                     loadGoals()
                 ]);
+                console.log('✅ Data loaded successfully');
 
                 calculateProgress();
                 calculateAnalytics();
+
+                // 🔧 SHOW SUCCESS TOAST
+                showToast({
+                    type: 'success',
+                    message: 'Application loaded successfully!',
+                    duration: 3000
+                });
 
                 // System theme change listener with enhanced handling
                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -467,6 +483,14 @@ const App: React.FC = () => {
                 };
             } catch (error) {
                 console.error('❌ App initialization failed:', error);
+
+                // 🔧 SHOW ERROR TOAST
+                showToast({
+                    type: 'error',
+                    message: 'Failed to initialize application: ' + (error as Error).message,
+                    duration: 8000
+                });
+
                 if (error instanceof Error && error.message.includes('quota')) {
                     console.warn('⚠️ Storage quota issue detected - backup system will use minimal mode');
                 }
@@ -487,7 +511,7 @@ const App: React.FC = () => {
                 });
             }
         };
-    }, [loadApplications, loadGoals, setTheme, calculateProgress, calculateAnalytics]);
+    }, [loadApplications, loadGoals, setTheme, calculateProgress, calculateAnalytics, showToast]); // 🔧 ADD showToast TO DEPENDENCIES
 
     // Loading state with enhanced loading screen
     if (ui.isLoading && applications.length === 0) {

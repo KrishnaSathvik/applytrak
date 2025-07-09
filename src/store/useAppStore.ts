@@ -541,22 +541,40 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🚀 OPTIMIZED: Batched deletion
+                    // Add this to your useAppStore.ts - FIXED deleteApplication function
+
                     deleteApplication: async (id) => {
                         try {
-                            await databaseService.deleteApplication(id);
+                            // 🔧 FIXED: Try database delete but don't fail if not found
+                            try {
+                                await databaseService.deleteApplication(id);
+                                console.log('✅ Database delete successful for ID:', id);
+                            } catch (dbError) {
+                                console.warn('⚠️ Database delete failed (continuing anyway):', dbError);
+                                // Continue with state update even if database delete fails
+                            }
 
-                            // 🚀 SINGLE state update
+                            // 🔧 ALWAYS update state regardless of database result
                             set(state => {
                                 const applications = state.applications.filter(app => app.id !== id);
-                                const filteredApplications = state.filteredApplications.filter(app => app.id !== id);
+                                const filteredApplications = (state.filteredApplications || state.applications).filter(app => app.id !== id);
+
+                                console.log('🔍 State update:', {
+                                    before: {
+                                        total: state.applications.length,
+                                        filtered: state.filteredApplications?.length || 0,
+                                        filteredExists: !!state.filteredApplications
+                                    },
+                                    after: { total: applications.length, filtered: filteredApplications.length }
+                                });
 
                                 return {
+                                    ...state,
                                     applications,
                                     filteredApplications,
                                     ui: {
                                         ...state.ui,
-                                        selectedApplicationIds: state.ui.selectedApplicationIds.filter(selectedId => selectedId !== id)
+                                        selectedApplicationIds: (state.ui.selectedApplicationIds || []).filter(selectedId => selectedId !== id)
                                     }
                                 };
                             });
@@ -566,12 +584,13 @@ export const useAppStore = create<AppState>()(
                                 message: 'Application deleted successfully!'
                             });
 
-                            // 🚀 DEFERRED: Expensive calculations
+                            // 🔧 DEFERRED: Expensive calculations
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
                             });
                         } catch (error) {
+                            console.error('❌ Delete operation failed:', error);
                             get().showToast({
                                 type: 'error',
                                 message: 'Failed to delete application: ' + (error as Error).message

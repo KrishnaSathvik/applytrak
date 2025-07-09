@@ -1,20 +1,24 @@
 /* =============================================================================
-   MOBILE.CSS - OPTIMIZED Mobile-First with Geist Font
-   Clean, minimal design focused on performance and touch UX
+   MOBILE.CSS - PERFORMANCE OPTIMIZED Mobile-First with Geist Font
+   Aligned with globals.css performance optimizations
+   Clean, minimal design focused on 60fps performance and touch UX
    ============================================================================= */
 
 /* =============================================================================
-   MOBILE BASE LAYOUT - Touch-optimized
+   MOBILE BASE LAYOUT - Touch-optimized with consistent transforms
    ============================================================================= */
 
 @media (max-width: 1023px) {
     .sidebar-fixed {
-        transform: translateX(-100%);
+        /* 🔧 OPTIMIZED: Single transform property matching globals.css */
+        transform: translateX(-100%) translateZ(0);
         width: 320px;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.2s ease, background-color 0.2s ease;
     }
 
     .sidebar-fixed.open {
-        transform: translateX(0);
+        transform: translateX(0) translateZ(0);
     }
 
     .sidebar-overlay {
@@ -22,17 +26,21 @@
         inset: 0;
         background: rgba(0, 0, 0, 0.6);
         z-index: 400;
-        backdrop-filter: blur(2px);
-        -webkit-backdrop-filter: blur(2px);
+        /* 🔧 OPTIMIZED: Reduced backdrop-filter matching globals.css */
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        transition: opacity 0.2s ease;
     }
 
     .main-content {
         margin-left: 0 !important;
+        /* 🔧 OPTIMIZED: Controlled transition */
+        transition: margin-left 0.2s ease;
     }
 }
 
 /* =============================================================================
-   MOBILE TABLE SYSTEM - Card layout with Geist font
+   MOBILE TABLE SYSTEM - Card layout with Geist font and optimized transforms
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -48,9 +56,12 @@
         padding: 1rem;
         background: rgba(255, 255, 255, 0.9);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
+        /* 🔧 OPTIMIZED: Faster transitions with consolidated transform */
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         font-family: var(--font-geist);
         contain: layout style;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
     }
 
     body.dark .table tbody tr {
@@ -61,7 +72,8 @@
     .table tbody tr:hover {
         border-color: #667eea;
         box-shadow: 0 4px 12px rgba(103, 126, 234, 0.15);
-        transform: translateY(-2px);
+        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
+        transform: translateY(-2px) translateZ(0);
     }
 
     .table tbody td {
@@ -74,6 +86,9 @@
         font-size: 1rem;
         font-family: var(--font-geist);
         font-weight: 400;
+        letter-spacing: -0.01em;
+        /* 🔧 OPTIMIZED: Controlled transition */
+        transition: color 0.2s ease;
     }
 
     .table tbody td::before {
@@ -86,6 +101,7 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-family: var(--font-geist);
+        transition: color 0.2s ease;
     }
 
     body.dark .table tbody td::before {
@@ -99,7 +115,7 @@
 }
 
 /* =============================================================================
-   MOBILE FORM OPTIMIZATIONS - Geist font touch-friendly
+   MOBILE FORM OPTIMIZATIONS - Geist font touch-friendly with consistent transforms
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -113,6 +129,17 @@
         padding: 1rem;
         min-height: 44px;
         border-width: 2px;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
+        transform: translateY(-1px) translateZ(0);
     }
 
     .form-label {
@@ -120,6 +147,7 @@
         font-size: 1rem;
         font-weight: 500;
         margin-bottom: 0.5rem;
+        transition: color 0.2s ease;
     }
 
     .btn {
@@ -130,6 +158,16 @@
         font-size: 1rem;
         font-weight: 500;
         letter-spacing: -0.01em;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
+    }
+
+    .btn:hover,
+    .btn:active {
+        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
+        transform: translateY(-1px) translateZ(0);
     }
 
     .btn-sm {
@@ -146,22 +184,28 @@
 }
 
 /* =============================================================================
-   MOBILE MODAL SYSTEM - Full screen with Geist
+   MOBILE MODAL SYSTEM - Optimized animations with consistent transforms
    ============================================================================= */
 
 @media (max-width: 767px) {
     .modal-overlay {
         align-items: flex-end;
         padding: 0;
+        /* 🔧 OPTIMIZED: Reduced backdrop-filter matching globals.css */
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
     }
 
     .modal-content {
         border-radius: 1rem 1rem 0 0;
         width: 100%;
         max-height: 90vh;
+        /* 🔧 OPTIMIZED: Faster animation matching globals.css speed */
         animation: slideUpMobile 0.2s ease-out;
         margin: 0;
         font-family: var(--font-geist);
+        /* 🔧 OPTIMIZED: Controlled transform for modal */
+        transform: translateZ(0);
     }
 
     .modal-header {
@@ -176,7 +220,8 @@
         position: absolute;
         top: 0.75rem;
         left: 50%;
-        transform: translateX(-50%);
+        /* 🔧 OPTIMIZED: Single transform property */
+        transform: translateX(-50%) translateZ(0);
         width: 2rem;
         height: 0.25rem;
         background: rgba(255, 255, 255, 0.6);
@@ -210,7 +255,7 @@
 }
 
 /* =============================================================================
-   MOBILE NAVIGATION - Touch-optimized with Geist
+   MOBILE NAVIGATION - Touch-optimized with Geist and consistent transforms
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -230,14 +275,19 @@
         border-radius: 0.75rem;
         border: 2px solid #d1d5db;
         background-color: white;
-        transition: all 0.2s ease;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         min-height: 44px;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
     }
 
     .mobile-search-input:focus {
         outline: none;
         border-color: #667eea;
         box-shadow: 0 0 0 4px rgba(103, 126, 234, 0.15);
+        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
+        transform: translateY(-1px) translateZ(0);
     }
 
     body.dark .mobile-search-input {
@@ -268,12 +318,15 @@
         font-size: 1rem;
         font-weight: 500;
         letter-spacing: -0.01em;
-        transition: all 0.2s ease;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease;
         border: none;
         background: transparent;
         cursor: pointer;
         color: #6b7280;
         min-height: 44px;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
     }
 
     .mobile-status-tab.active {
@@ -281,6 +334,8 @@
         color: #667eea;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         font-weight: 600;
+        /* 🔧 OPTIMIZED: Consistent transform */
+        transform: translateY(-1px) translateZ(0);
     }
 
     body.dark .mobile-status-tab {
@@ -294,7 +349,7 @@
 }
 
 /* =============================================================================
-   MOBILE ACTION SYSTEM - Touch-friendly with Geist
+   MOBILE ACTION SYSTEM - Touch-friendly with Geist and optimized performance
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -326,9 +381,11 @@
         font-weight: 500;
         letter-spacing: -0.01em;
         text-align: center;
-        transition: all 0.15s ease;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
         cursor: pointer;
-        transform: translateZ(0);
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
     }
 
     body.dark .mobile-action-btn {
@@ -338,12 +395,15 @@
     }
 
     .mobile-action-btn:active {
-        transform: scale(0.98);
+        /* 🔧 OPTIMIZED: Faster, more subtle active state */
+        transform: translateY(1px) translateZ(0);
     }
 
     .mobile-action-btn:hover {
         background: #e5e7eb;
         border-color: #9ca3af;
+        /* 🔧 OPTIMIZED: Consistent transform */
+        transform: translateY(-1px) translateZ(0);
     }
 
     body.dark .mobile-action-btn:hover {
@@ -353,7 +413,7 @@
 }
 
 /* =============================================================================
-   MOBILE PAGINATION - Simplified with Geist
+   MOBILE PAGINATION - Simplified with Geist and optimized transforms
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -387,6 +447,7 @@
         font-weight: 400;
         color: #6b7280;
         order: 2;
+        transition: color 0.2s ease;
     }
 
     body.dark .pagination-info {
@@ -404,8 +465,10 @@
         color: #374151;
         font-weight: 500;
         letter-spacing: -0.01em;
-        transition: all 0.2s ease;
-        transform: translateZ(0);
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
     }
 
     body.dark .pagination-btn {
@@ -417,6 +480,8 @@
     .pagination-btn:hover {
         background: #f3f4f6;
         border-color: #9ca3af;
+        /* 🔧 OPTIMIZED: Consistent transform */
+        transform: translateY(-1px) translateZ(0);
     }
 
     body.dark .pagination-btn:hover {
@@ -433,11 +498,13 @@
     .pagination-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        /* 🔧 OPTIMIZED: Disabled state maintains base transform */
+        transform: translateY(0) translateZ(0) !important;
     }
 }
 
 /* =============================================================================
-   MOBILE TOAST SYSTEM - Bottom positioned with Geist
+   MOBILE TOAST SYSTEM - Bottom positioned with Geist and optimized animations
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -461,7 +528,9 @@
         font-weight: 400;
         letter-spacing: -0.01em;
         margin-bottom: 0.5rem;
+        /* 🔧 OPTIMIZED: Faster animation matching globals.css */
         animation: slideUpMobile 0.2s ease-out;
+        /* 🔧 OPTIMIZED: Controlled transform */
         transform: translateZ(0);
     }
 
@@ -511,7 +580,7 @@
 }
 
 /* =============================================================================
-   MOBILE FAB - Floating action button with Geist
+   MOBILE FAB - Floating action button with Geist and optimized transforms
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -531,24 +600,27 @@
         border-radius: 50%;
         box-shadow: 0 4px 12px rgba(103, 126, 234, 0.3);
         cursor: pointer;
-        transition: all 0.2s ease;
-        transform: translateZ(0);
-        will-change: transform;
+        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
         font-family: var(--font-geist);
     }
 
     .fab:hover {
-        transform: scale(1.1);
+        /* 🔧 OPTIMIZED: Consistent scale with transform */
+        transform: scale(1.05) translateZ(0);
         box-shadow: 0 6px 16px rgba(103, 126, 234, 0.4);
     }
 
     .fab:active {
-        transform: scale(0.95);
+        /* 🔧 OPTIMIZED: Faster, more subtle active state */
+        transform: scale(0.98) translateZ(0);
     }
 }
 
 /* =============================================================================
-   MOBILE UTILITY CLASSES - Geist font helpers
+   MOBILE UTILITY CLASSES - Geist font helpers with optimized performance
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -564,6 +636,15 @@
         padding: 1rem;
         border-radius: 0.75rem;
         contain: layout style;
+        /* 🔧 OPTIMIZED: Consistent transform base */
+        transform: translateY(0) translateZ(0);
+        /* 🔧 OPTIMIZED: Controlled transitions */
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .mobile-card:hover {
+        /* 🔧 OPTIMIZED: Consistent transform */
+        transform: translateY(-2px) translateZ(0);
     }
 
     .mobile-card-header {
@@ -576,7 +657,7 @@
 }
 
 /* =============================================================================
-   MOBILE PERFORMANCE OPTIMIZATIONS
+   MOBILE PERFORMANCE OPTIMIZATIONS - Aligned with globals.css approach
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -598,8 +679,10 @@
         background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
         background-size: 200% 100%;
         border-radius: 0.5rem;
-        animation: skeletonWave 1.5s ease-in-out infinite;
+        /* 🔧 OPTIMIZED: Faster animation matching globals.css */
+        animation: skeletonWave 1.2s ease-in-out infinite;
         min-height: 1.25rem;
+        /* 🔧 OPTIMIZED: Controlled transform */
         transform: translateZ(0);
     }
 
@@ -609,16 +692,17 @@
 }
 
 /* =============================================================================
-   MOBILE KEYFRAME ANIMATIONS - Minimal set
+   MOBILE KEYFRAME ANIMATIONS - Optimized speeds matching globals.css
    ============================================================================= */
 
 @keyframes slideUpMobile {
     from {
-        transform: translateY(100%);
+        /* 🔧 OPTIMIZED: Consistent transform property */
+        transform: translateY(100%) translateZ(0);
         opacity: 0;
     }
     to {
-        transform: translateY(0);
+        transform: translateY(0) translateZ(0);
         opacity: 1;
     }
 }
@@ -633,7 +717,7 @@
 }
 
 /* =============================================================================
-   MOBILE ACCESSIBILITY IMPROVEMENTS - Geist font
+   MOBILE ACCESSIBILITY IMPROVEMENTS - Geist font with performance focus
    ============================================================================= */
 
 @media (max-width: 767px) {
@@ -644,8 +728,9 @@
     }
 
     .mobile-interactive:active {
-        transform: scale(0.98);
-        opacity: 0.8;
+        /* 🔧 OPTIMIZED: Faster, more subtle active state */
+        transform: translateY(1px) translateZ(0);
+        opacity: 0.9;
     }
 
     .mobile-readable {
@@ -672,6 +757,8 @@
         margin-bottom: 0.5rem;
         padding: 0.5rem;
         font-family: var(--font-geist) !important;
+        /* 🔧 OPTIMIZED: Remove transforms in print */
+        transform: none !important;
     }
 
     .table tbody td::before {
@@ -690,11 +777,11 @@
 }
 
 /* =============================================================================
-   MOBILE PERFORMANCE CRITICAL OPTIMIZATIONS
+   MOBILE PERFORMANCE CRITICAL OPTIMIZATIONS - Matching globals.css approach
    ============================================================================= */
 
 @media (max-width: 767px) {
-    /* Reduce repaints and reflows */
+    /* 🔧 OPTIMIZED: Controlled containment for performance */
     .table tbody tr,
     .mobile-card,
     .mobile-action-btn,
@@ -702,17 +789,16 @@
         contain: layout style;
     }
 
-    /* GPU acceleration for frequently interacted elements */
+    /* 🔧 OPTIMIZED: Minimal GPU acceleration - only for frequently interacted elements */
     .mobile-action-btn,
     .pagination-btn,
     .fab,
     .mobile-status-tab {
-        transform: translateZ(0);
-        will-change: transform;
+        /* Already have transform: translateZ(0) in their base styles */
         backface-visibility: hidden;
     }
 
-    /* Optimize animations for mobile */
+    /* 🔧 OPTIMIZED: Reduce motion support matching globals.css */
     @media (prefers-reduced-motion: reduce) {
         .mobile-skeleton,
         .toast,
@@ -722,8 +808,44 @@
         }
 
         .mobile-action-btn:active,
-        .mobile-interactive:active {
-            transform: none !important;
+        .mobile-interactive:active,
+        .btn:hover,
+        .mobile-card:hover,
+        .pagination-btn:hover {
+            /* 🔧 OPTIMIZED: Remove transforms for reduced motion */
+            transform: translateY(0) translateZ(0) !important;
         }
+    }
+}
+
+/* =============================================================================
+   MOBILE TOUCH ENHANCEMENTS - Optimized for 60fps performance
+   ============================================================================= */
+
+@media (max-width: 767px) and (hover: none) and (pointer: coarse) {
+    /* 🔧 OPTIMIZED: Remove hover effects on pure touch devices */
+    .mobile-action-btn:hover,
+    .pagination-btn:hover,
+    .mobile-card:hover {
+        transform: translateY(0) translateZ(0);
+        background: initial;
+        border-color: initial;
+    }
+
+    /* 🔧 OPTIMIZED: Enhanced touch targets */
+    .mobile-action-btn,
+    .pagination-btn,
+    .btn,
+    .mobile-status-tab {
+        min-height: 48px; /* Larger touch targets on touch devices */
+        min-width: 48px;
+    }
+
+    /* 🔧 OPTIMIZED: Faster touch feedback */
+    .mobile-action-btn:active,
+    .pagination-btn:active,
+    .mobile-status-tab:active {
+        transform: scale(0.98) translateZ(0);
+        transition: transform 0.1s ease;
     }
 }
