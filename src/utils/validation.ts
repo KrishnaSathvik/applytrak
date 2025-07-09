@@ -1,6 +1,6 @@
 // src/utils/validation.ts - SIMPLIFIED WITHOUT COMPLEX TYPES
 import * as yup from 'yup';
-import { ApplicationStatus, JobType, ApplicationFormData, GoalFormData } from '../types';
+import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType} from '../types';
 
 export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
@@ -52,7 +52,7 @@ export const applicationFormSchema = yup.object({
     salary: yup
         .string()
         .notRequired()
-        .max(100, 'Salary'),
+        .max(255, 'Salary'),
 
     jobSource: yup
         .string()

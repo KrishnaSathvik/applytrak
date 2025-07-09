@@ -528,9 +528,9 @@ export const importApplications = async (file: File): Promise<Application[]> => 
     const fileName = file.name.toLowerCase();
     const fileSize = file.size;
 
-    // Validate file size (10MB limit)
-    if (fileSize > 10 * 1024 * 1024) {
-        throw new Error('File size too large. Maximum size is 10MB.');
+    // Validate file size (100MB limit)
+    if (fileSize > 100 * 1024 * 1024) {
+        throw new Error('File size too large. Maximum size is 100MB.');
     }
 
     if (fileName.endsWith('.json')) {

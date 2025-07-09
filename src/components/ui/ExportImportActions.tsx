@@ -461,7 +461,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                         Choose File to Import
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium tracking-wider">
-                                        JSON or CSV files accepted • Max 10MB
+                                        JSON or CSV files accepted • Max 100MB
                                     </p>
                                 </div>
                             </button>

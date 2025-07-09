@@ -1,4 +1,4 @@
-// src/types/application.types.ts
+// src/types/application.types.ts - UPDATED WITH GOAL TYPES
 
 export type JobType = 'Onsite' | 'Remote' | 'Hybrid';
 export type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected';
@@ -41,6 +41,19 @@ export interface ApplicationFormData {
     notes?: string;
 }
 
+// 🔧 ADDED: Goals related types
+export interface Goals {
+    totalGoal: number;
+    weeklyGoal: number;
+    monthlyGoal: number;
+}
+
+export interface GoalFormData {
+    totalGoal: number;
+    weeklyGoal: number;
+    monthlyGoal: number;
+}
+
 export interface GoalProgress {
     totalGoal: number;
     weeklyGoal: number;
@@ -49,6 +62,9 @@ export interface GoalProgress {
     weeklyProgress: number;
     monthlyProgress: number;
     weeklyStreak: number;
+    totalApplications: number;
+    weeklyApplications: number;
+    monthlyApplications: number;
 }
 
 export interface SourceSuccessRate {
