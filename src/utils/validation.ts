@@ -1,6 +1,6 @@
 // src/utils/validation.ts - SIMPLIFIED WITHOUT COMPLEX TYPES
 import * as yup from 'yup';
-import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType} from '../types';
+import { ApplicationStatus, JobType, ApplicationFormData, GoalFormData } from '../types';
 
 export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];

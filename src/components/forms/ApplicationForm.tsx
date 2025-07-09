@@ -318,9 +318,11 @@ const ApplicationForm: React.FC = () => {
                         />
                         <datalist id="jobSources">
                             <option value="LinkedIn" />
+                            <option value="Company Website" />
                             <option value="Indeed" />
                             <option value="Glassdoor" />
-                            <option value="Company Website" />
+                            <option value="Dice" />
+                            <option value="ZipRecruiter" />
                             <option value="AngelList" />
                             <option value="Stack Overflow Jobs" />
                             <option value="Referral" />
