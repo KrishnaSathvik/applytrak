@@ -8,55 +8,76 @@ module.exports = {
     theme: {
         extend: {
             // =================================================================
-            // OPTIMIZED COLOR SYSTEM - Consistent with globals.css performance
+            // DESIGN SYSTEM COLORS - Aligned with globals.css CSS custom properties
             // =================================================================
             colors: {
+                // Primary brand colors matching CSS custom properties
                 primary: {
-                    50: '#f0f9ff',
-                    100: '#e0f2fe',
-                    200: '#bae6fd',
-                    300: '#7dd3fc',
-                    400: '#38bdf8',
-                    500: '#667eea', // Main brand color matching globals.css
-                    600: '#5a67d8',
-                    700: '#4c51bf',
-                    800: '#434190',
-                    900: '#3c366b',
+                    50: '#eff6ff',
+                    100: '#dbeafe',
+                    200: '#bfdbfe',
+                    300: '#93c5fd',
+                    400: '#60a5fa',
+                    500: '#3b82f6', // --color-primary
+                    600: '#2563eb',
+                    700: '#1d4ed8', // --color-primary-dark
+                    800: '#1e40af',
+                    900: '#1e3a8a',
                 },
+
+                // Secondary brand colors
                 secondary: {
-                    50: '#fdf4ff',
-                    100: '#fae8ff',
-                    200: '#f5d0fe',
-                    300: '#f0abfc',
-                    400: '#e879f9',
-                    500: '#764ba2', // Secondary brand color matching globals.css
-                    600: '#c026d3',
-                    700: '#a21caf',
-                    800: '#86198f',
-                    900: '#701a75',
+                    50: '#faf5ff',
+                    100: '#f3e8ff',
+                    200: '#e9d5ff',
+                    300: '#d8b4fe',
+                    400: '#c084fc',
+                    500: '#8b5cf6', // --color-secondary
+                    600: '#7c3aed',
+                    700: '#6d28d9',
+                    800: '#5b21b6',
+                    900: '#4c1d95',
                 },
-                // Enhanced gray scale matching globals.css design
+
+                // Enhanced gray scale matching globals.css
                 gray: {
-                    50: '#f9fafb',
-                    100: '#f3f4f6',
-                    200: '#e5e7eb',
-                    300: '#d1d5db',
-                    400: '#9ca3af',
-                    500: '#6b7280',
-                    600: '#4b5563',
-                    700: '#374151',
-                    800: '#1f2937',
-                    900: '#111827',
-                    950: '#030712',
-                }
+                    50: '#f8fafc',   // --color-surface (light)
+                    100: '#f1f5f9',
+                    200: '#e2e8f0',  // --color-border (light)
+                    300: '#cbd5e1',
+                    400: '#94a3b8',
+                    500: '#64748b',  // --color-text-muted
+                    600: '#475569',  // --color-text-secondary
+                    700: '#334155',
+                    800: '#1e293b',  // --color-surface (dark)
+                    900: '#0f172a',  // --color-background (dark)
+                },
+
+                // Semantic colors
+                success: {
+                    500: '#10b981', // --color-success
+                    600: '#059669',
+                },
+                warning: {
+                    500: '#f59e0b', // --color-warning
+                    600: '#d97706',
+                },
+                error: {
+                    500: '#ef4444', // --color-error
+                    600: '#dc2626',
+                },
+                info: {
+                    500: '#06b6d4', // --color-accent
+                    600: '#0891b2',
+                },
             },
 
             // =================================================================
-            // GEIST FONT SYSTEM - Single font family matching globals.css
+            // GEIST FONT SYSTEM - Optimized typography
             // =================================================================
             fontFamily: {
                 sans: [
-                    'var(--font-geist)',
+                    'var(--font-family-primary)',
                     'Geist',
                     'ui-sans-serif',
                     'system-ui',
@@ -65,118 +86,89 @@ module.exports = {
                     'Segoe UI',
                     'sans-serif'
                 ],
-                // 🔧 OPTIMIZED: Enforce Geist only, remove competing font families
                 mono: [
-                    'var(--font-geist)',
+                    'var(--font-family-primary)',
                     'Geist',
                     'ui-monospace',
                     'monospace'
                 ],
             },
 
-            // 🔧 OPTIMIZED: Simplified responsive typography with Geist matching globals.css
+            // Typography scale with optimized line heights and letter spacing
             fontSize: {
-                'xs': ['0.75rem', {lineHeight: '1.2', letterSpacing: '-0.01em'}],
-                'sm': ['0.875rem', {lineHeight: '1.3', letterSpacing: '-0.01em'}],
-                'base': ['1rem', {lineHeight: '1.5', letterSpacing: '-0.01em'}],
-                'lg': ['1.125rem', {lineHeight: '1.4', letterSpacing: '-0.01em'}],
-                'xl': ['1.25rem', {lineHeight: '1.3', letterSpacing: '-0.02em'}],
-                '2xl': ['1.5rem', {lineHeight: '1.2', letterSpacing: '-0.02em'}],
-                '3xl': ['1.875rem', {lineHeight: '1.2', letterSpacing: '-0.02em'}],
-                '4xl': ['2.25rem', {lineHeight: '1.1', letterSpacing: '-0.02em'}],
-                '5xl': ['3rem', {lineHeight: '1', letterSpacing: '-0.02em'}],
+                'xs': ['0.75rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+                'sm': ['0.875rem', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
+                'base': ['1rem', { lineHeight: '1.5', letterSpacing: '-0.01em' }],
+                'lg': ['1.125rem', { lineHeight: '1.4', letterSpacing: '-0.01em' }],
+                'xl': ['1.25rem', { lineHeight: '1.3', letterSpacing: '-0.02em' }],
+                '2xl': ['1.5rem', { lineHeight: '1.2', letterSpacing: '-0.025em' }],
+                '3xl': ['1.875rem', { lineHeight: '1.2', letterSpacing: '-0.03em' }],
+                '4xl': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.035em' }],
+                '5xl': ['3rem', { lineHeight: '1', letterSpacing: '-0.04em' }],
             },
 
-            // 🔧 OPTIMIZED: Simplified font weights for Geist matching globals.css
+            // Optimized font weights for Geist
             fontWeight: {
-                normal: '400',
-                medium: '500',
-                semibold: '600',
-                // Remove bold to enforce consistent Geist weights
-            },
-
-            // 🔧 OPTIMIZED: Simplified letter spacing matching globals.css
-            letterSpacing: {
-                tight: '-0.02em',
-                normal: '-0.01em',
-                wide: '0em',
+                light: '300',    // --font-weight-light
+                normal: '400',   // --font-weight-normal
+                medium: '500',   // --font-weight-medium
+                semibold: '600', // --font-weight-semibold
+                bold: '700',     // --font-weight-bold
             },
 
             // =================================================================
-            // MINIMAL ANIMATION SYSTEM - Essential animations only matching globals.css performance
+            // SPACING SYSTEM - 8px base unit matching globals.css
             // =================================================================
-            animation: {
-                // 🔧 OPTIMIZED: Faster animations matching globals.css timing
-                'fade-in': 'fadeIn 0.2s ease-out',
-                'slide-up': 'slideUp 0.2s ease-out',
-                'scale-in': 'scaleIn 0.15s ease-out',
-                // 🔧 OPTIMIZED: Reduced shimmer speed for better performance
-                'shimmer': 'shimmer 1.5s linear infinite',
-                // 🔧 OPTIMIZED: Remove heavy animations that conflict with globals.css
-            },
-
-            keyframes: {
-                // 🔧 OPTIMIZED: Consistent transform properties matching globals.css
-                fadeIn: {
-                    '0%': {opacity: '0', transform: 'translateY(10px) translateZ(0)'},
-                    '100%': {opacity: '1', transform: 'translateY(0) translateZ(0)'},
-                },
-                slideUp: {
-                    '0%': {transform: 'translateY(100%) translateZ(0)', opacity: '0'},
-                    '100%': {transform: 'translateY(0) translateZ(0)', opacity: '1'},
-                },
-                scaleIn: {
-                    '0%': {transform: 'scale(0.95) translateZ(0)', opacity: '0'},
-                    '100%': {transform: 'scale(1) translateZ(0)', opacity: '1'},
-                },
-                shimmer: {
-                    '0%': {transform: 'translateX(-100%) translateZ(0)'},
-                    '100%': {transform: 'translateX(100%) translateZ(0)'},
-                },
+            spacing: {
+                '18': '4.5rem',   // 72px
+                '88': '22rem',    // 352px
+                '128': '32rem',   // 512px
             },
 
             // =================================================================
-            // OPTIMIZED BACKGROUND SYSTEM - Matching globals.css gradients
+            // BORDER RADIUS - Consistent with CSS custom properties
             // =================================================================
-            backgroundImage: {
-                'gradient-primary': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                'gradient-secondary': 'linear-gradient(135deg, #764ba2 0%, #f093fb 100%)',
-                'gradient-accent': 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                // 🔧 OPTIMIZED: Remove complex gradients that cause performance issues
+            borderRadius: {
+                'xs': 'var(--radius-xs)',    // 2px
+                'sm': 'var(--radius-sm)',    // 4px
+                'md': 'var(--radius-md)',    // 6px
+                'lg': 'var(--radius-lg)',    // 8px
+                'xl': 'var(--radius-xl)',    // 12px
+                '2xl': 'var(--radius-2xl)',  // 16px
+                'full': 'var(--radius-full)', // 9999px
             },
 
             // =================================================================
-            // OPTIMIZED SHADOW SYSTEM - Matching globals.css performance
+            // SHADOW SYSTEM - Matching globals.css performance-optimized shadows
             // =================================================================
             boxShadow: {
-                'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                'sm': '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                'DEFAULT': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                'xs': 'var(--shadow-xs)',
+                'sm': 'var(--shadow-sm)',
+                'md': 'var(--shadow-md)',
+                'lg': 'var(--shadow-lg)',
+                'xl': 'var(--shadow-xl)',
+                '2xl': 'var(--shadow-2xl)',
                 'inner': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
                 'none': 'none',
-                // Essential interactive shadows matching globals.css
+                // Interactive shadows
                 'hover': '0 8px 24px rgba(0, 0, 0, 0.15)',
-                'primary': '0 6px 16px rgba(103, 126, 234, 0.4)',
+                'primary': '0 6px 16px rgba(59, 130, 246, 0.25)',
             },
 
             // =================================================================
-            // OPTIMIZED BACKDROP BLUR - Matching globals.css reduced values
+            // BACKDROP BLUR - Optimized values matching globals.css
             // =================================================================
             backdropBlur: {
-                'none': '0',
+                'xs': '2px',
                 'sm': '4px',
-                'DEFAULT': '6px', // 🔧 OPTIMIZED: Reduced from 8px matching globals.css
-                'md': '8px',       // 🔧 OPTIMIZED: Reduced from 12px
-                'lg': '12px',      // 🔧 OPTIMIZED: Reduced from 16px
-                'xl': '16px',      // 🔧 OPTIMIZED: Reduced from 24px
+                'md': '6px',      // Optimized default
+                'lg': '8px',
+                'xl': '12px',
+                '2xl': '16px',
             },
 
             // =================================================================
-            // SIMPLIFIED Z-INDEX SCALE - Matching globals.css
+            // Z-INDEX SCALE - Centralized layer management
             // =================================================================
             zIndex: {
                 'auto': 'auto',
@@ -186,37 +178,74 @@ module.exports = {
                 '30': '30',
                 '40': '40',
                 '50': '50',
-                'dropdown': '1000',
-                'modal': '1050',
-                'toast': '1080',
+                'base': 'var(--z-base)',
+                'dropdown': 'var(--z-dropdown)',
+                'sticky': 'var(--z-sticky)',
+                'sidebar': 'var(--z-sidebar)',
+                'header': 'var(--z-header)',
+                'overlay': 'var(--z-overlay)',
+                'modal': 'var(--z-modal)',
+                'toast': 'var(--z-toast)',
+                'tooltip': 'var(--z-tooltip)',
+                'popover': 'var(--z-popover)',
             },
 
             // =================================================================
-            // OPTIMIZED SPACING SYSTEM
+            // ANIMATION SYSTEM - Performance-optimized animations
             // =================================================================
-            spacing: {
-                '18': '4.5rem',   // 72px
-                '88': '22rem',    // 352px
-                '128': '32rem',   // 512px
+            animation: {
+                'fade-in': 'fadeIn var(--duration-normal) ease-out',
+                'slide-up': 'slideUp var(--duration-normal) ease-out',
+                'scale-in': 'scaleIn var(--duration-fast) ease-out',
+                'shimmer': 'shimmer 1.2s ease-in-out infinite',
+                'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+
+            keyframes: {
+                fadeIn: {
+                    '0%': { opacity: '0', transform: 'translateY(8px) translateZ(0)' },
+                    '100%': { opacity: '1', transform: 'translateY(0) translateZ(0)' },
+                },
+                slideUp: {
+                    '0%': { transform: 'translateY(100%) translateZ(0)', opacity: '0' },
+                    '100%': { transform: 'translateY(0) translateZ(0)', opacity: '1' },
+                },
+                scaleIn: {
+                    '0%': { transform: 'scale(0.95) translateZ(0)', opacity: '0' },
+                    '100%': { transform: 'scale(1) translateZ(0)', opacity: '1' },
+                },
+                shimmer: {
+                    '0%': { transform: 'translateX(-100%) translateZ(0)' },
+                    '100%': { transform: 'translateX(100%) translateZ(0)' },
+                },
             },
 
             // =================================================================
-            // OPTIMIZED TRANSITION SYSTEM - Matching globals.css timing
+            // TRANSITION SYSTEM - Consistent timing with globals.css
             // =================================================================
             transitionDuration: {
                 '75': '75ms',
                 '100': '100ms',
-                '150': '150ms',    // 🔧 OPTIMIZED: Primary fast transition
-                '200': '200ms',    // 🔧 OPTIMIZED: Primary medium transition
-                '300': '300ms',
-                '500': '500ms',
-                '700': '700ms',
-                '1000': '1000ms',
+                '150': 'var(--duration-fast)',    // 150ms
+                '200': 'var(--duration-normal)',  // 200ms
+                '300': 'var(--duration-slow)',    // 300ms
+                '500': 'var(--duration-slower)',  // 500ms
             },
 
             transitionTimingFunction: {
                 'ease-out-fast': 'cubic-bezier(0, 0, 0.2, 1)',
                 'ease-in-out-fast': 'cubic-bezier(0.4, 0, 0.2, 1)',
+            },
+
+            // =================================================================
+            // BACKGROUND GRADIENTS - Matching globals.css design system
+            // =================================================================
+            backgroundImage: {
+                'gradient-primary': 'var(--gradient-primary)',
+                'gradient-surface': 'var(--gradient-surface)',
+                'gradient-glass': 'var(--gradient-glass)',
+                'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
             },
         },
     },
@@ -224,305 +253,404 @@ module.exports = {
         require('@tailwindcss/forms'),
 
         // =================================================================
-        // OPTIMIZED CUSTOM PLUGIN - Essential utilities only matching globals.css
+        // ENTERPRISE PLUGIN - Optimized components and utilities
         // =================================================================
-        function ({addUtilities, addComponents, theme, addBase}) {
+        function ({ addUtilities, addComponents, addBase, theme }) {
             // =============================================================
-            // BASE STYLES - Geist font foundation matching globals.css
+            // BASE STYLES - Foundation matching globals.css
             // =============================================================
             addBase({
                 ':root': {
-                    '--font-geist': 'Geist, ui-sans-serif, system-ui, sans-serif',
+                    // Ensure CSS custom properties are available to Tailwind
+                    '--font-family-primary': 'Geist, ui-sans-serif, system-ui, sans-serif',
                 },
+
+                // Enhanced focus styles
                 '*:focus-visible': {
-                    outline: '2px solid rgb(103 126 234)',
+                    outline: '2px solid var(--color-primary)',
                     outlineOffset: '2px',
                     borderRadius: theme('borderRadius.sm'),
                 },
+
+                // Smooth scrolling
                 'html': {
                     scrollBehavior: 'smooth',
-                    fontFamily: 'var(--font-geist)',
+                    fontFamily: 'var(--font-family-primary)',
                 },
+
+                // Font optimization
                 'body': {
-                    fontFamily: 'var(--font-geist)',
+                    fontFamily: 'var(--font-family-primary)',
                     '-webkit-font-smoothing': 'antialiased',
                     '-moz-osx-font-smoothing': 'grayscale',
+                    textRendering: 'optimizeLegibility',
                 },
             });
 
             // =============================================================
-            // OPTIMIZED GEIST TEXT UTILITIES - Performance focused
-            // =============================================================
-            addUtilities({
-                '.text-gradient-primary': {
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '600',
-                    letterSpacing: '-0.02em',
-                },
-                '.text-gradient-secondary': {
-                    background: 'linear-gradient(135deg, #764ba2 0%, #f093fb 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '600',
-                    letterSpacing: '-0.02em',
-                },
-                '.text-gradient-blue': {
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '600',
-                    letterSpacing: '-0.02em',
-                },
-                '.text-gradient-purple': {
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '600',
-                    letterSpacing: '-0.02em',
-                },
-                '.text-gradient-green': {
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '600',
-                    letterSpacing: '-0.02em',
-                },
-                '.text-gradient-orange': {
-                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '600',
-                    letterSpacing: '-0.02em',
-                },
-            });
-
-            // =============================================================
-            // OPTIMIZED COMPONENT CLASSES - Matching globals.css performance
+            // COMPONENT CLASSES - Enterprise-grade components
             // =============================================================
             addComponents({
-                // 🔧 OPTIMIZED: Geist button system matching globals.css
-                '.btn-base': {
-                    fontFamily: 'var(--font-geist)',
-                    fontWeight: '500',
+                // Button system
+                '.btn': {
+                    fontFamily: 'var(--font-family-primary)',
+                    fontWeight: 'var(--font-weight-medium)',
                     letterSpacing: '-0.01em',
-                    // 🔧 OPTIMIZED: Faster transitions matching globals.css
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease',
-                    borderRadius: theme('borderRadius.lg'),
+                    transition: 'transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background-color var(--duration-normal) ease',
+                    borderRadius: 'var(--radius-lg)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    // 🔧 OPTIMIZED: Consistent transform base matching globals.css
                     transform: 'translateY(0) translateZ(0)',
+                    minHeight: '44px',
+
                     '&:focus-visible': {
-                        outline: '2px solid rgb(103 126 234)',
+                        outline: '2px solid var(--color-primary)',
                         outlineOffset: '2px',
                     },
+
                     '&:disabled': {
                         opacity: '0.5',
                         cursor: 'not-allowed',
+                        transform: 'translateY(0) translateZ(0) !important',
                     },
-                    '&:hover': {
-                        // 🔧 OPTIMIZED: Consistent transform matching globals.css
+
+                    '&:hover:not(:disabled)': {
                         transform: 'translateY(-1px) translateZ(0)',
+                    },
+
+                    '&:active:not(:disabled)': {
+                        transform: 'translateY(0) translateZ(0)',
                     },
                 },
 
-                // 🔧 OPTIMIZED: Geist form enhancements matching globals.css
-                '.form-input-enhanced': {
-                    fontFamily: 'var(--font-geist)',
-                    fontSize: theme('fontSize.base'),
-                    fontWeight: '400',
+                '.btn-primary': {
+                    background: 'var(--gradient-primary)',
+                    color: 'white',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
+                    border: 'none',
+
+                    '&:hover:not(:disabled)': {
+                        boxShadow: '0 6px 16px rgba(59, 130, 246, 0.35)',
+                    },
+                },
+
+                '.btn-secondary': {
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text-primary)',
+                    border: '1px solid var(--color-border)',
+
+                    '&:hover:not(:disabled)': {
+                        background: 'var(--color-border)',
+                        borderColor: 'var(--color-text-muted)',
+                    },
+                },
+
+                // Form system
+                '.form-input': {
+                    fontFamily: 'var(--font-family-primary)',
+                    fontSize: '1rem',
+                    fontWeight: 'var(--font-weight-normal)',
                     letterSpacing: '-0.01em',
-                    // 🔧 OPTIMIZED: Faster transitions matching globals.css
-                    transition: 'transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
-                    // 🔧 OPTIMIZED: Consistent transform base
+                    transition: 'transform var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
                     transform: 'translateY(0) translateZ(0)',
+                    borderRadius: 'var(--radius-lg)',
+                    border: '2px solid var(--color-border)',
+                    background: 'var(--color-background)',
+                    color: 'var(--color-text-primary)',
+                    padding: 'var(--space-3) var(--space-4)',
+                    minHeight: '44px',
+
                     '&:focus': {
                         outline: 'none',
-                        borderColor: '#667eea',
-                        boxShadow: '0 0 0 4px rgba(103, 126, 234, 0.15)',
-                        // 🔧 OPTIMIZED: Consistent transform matching globals.css
+                        borderColor: 'var(--color-primary)',
+                        boxShadow: '0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent)',
                         transform: 'translateY(-1px) translateZ(0)',
                     },
                 },
-                '.form-label-enhanced': {
-                    fontFamily: 'var(--font-geist)',
-                    fontSize: theme('fontSize.sm'),
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '0.5rem',
+
+                '.form-label': {
+                    fontFamily: 'var(--font-family-primary)',
+                    fontSize: '0.875rem',
+                    fontWeight: 'var(--font-weight-medium)',
+                    color: 'var(--color-text-secondary)',
+                    marginBottom: 'var(--space-2)',
                     display: 'block',
-                    // 🔧 OPTIMIZED: Simple transition
-                    transition: 'color 0.2s ease',
-                    '.dark &': {
-                        color: '#d1d5db',
-                    },
+                    transition: 'color var(--duration-normal) ease',
                 },
 
-                // 🔧 OPTIMIZED: Minimal skeleton loader matching globals.css
-                '.skeleton': {
-                    background: 'linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%)',
-                    backgroundSize: '200% 100%',
-                    borderRadius: theme('borderRadius.md'),
-                    // 🔧 OPTIMIZED: Faster animation matching globals.css
-                    animation: 'shimmer 1.5s ease-in-out infinite',
-                    // 🔧 OPTIMIZED: Controlled transform
-                    transform: 'translateZ(0)',
-                    '.dark &': {
-                        background: 'linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%)',
-                    },
-                },
-
-                // 🔧 OPTIMIZED: Glass effect matching globals.css
-                '.glass-card': {
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: theme('borderRadius.xl'),
-                    // 🔧 OPTIMIZED: Faster transitions matching globals.css
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                    // 🔧 OPTIMIZED: Consistent transform base
+                // Card system
+                '.card': {
+                    background: 'var(--gradient-glass)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-2xl)',
+                    padding: 'var(--space-6)',
+                    boxShadow: 'var(--shadow-md)',
+                    transition: 'transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
                     transform: 'translateY(0) translateZ(0)',
+
                     '&:hover': {
                         transform: 'translateY(-2px) translateZ(0)',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                        boxShadow: 'var(--shadow-xl)',
                     },
-                    '.dark &': {
-                        background: 'rgba(17, 24, 39, 0.9)',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                },
+
+                // Glass effect
+                '.glass-effect': {
+                    background: 'var(--gradient-glass)',
+                    backdropFilter: 'blur(8px)',
+                    '-webkit-backdrop-filter': 'blur(8px)',
+                    border: '1px solid var(--color-border)',
+                    boxShadow: 'var(--shadow-lg)',
+                },
+
+                // Table system
+                '.table': {
+                    width: '100%',
+                    fontFamily: 'var(--font-family-primary)',
+                    borderCollapse: 'collapse',
+                },
+
+                '.table th': {
+                    background: 'var(--gradient-primary) !important',
+                    color: 'white !important',
+                    padding: 'var(--space-4) !important',
+                    textAlign: 'left',
+                    fontSize: '0.75rem',
+                    fontWeight: 'var(--font-weight-bold) !important',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    fontFamily: 'var(--font-family-primary) !important',
+                },
+
+                '.table td': {
+                    padding: 'var(--space-4)',
+                    fontSize: '0.875rem',
+                    color: 'var(--color-text-primary)',
+                    fontWeight: 'var(--font-weight-normal)',
+                    borderBottom: '1px solid var(--color-border)',
+                    transition: 'color var(--duration-normal) ease',
+                },
+
+                // Status badges
+                '.status-badge': {
+                    fontFamily: 'var(--font-family-primary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: 'var(--space-1) var(--space-3)',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 'var(--font-weight-medium)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    border: '1px solid',
+                    transform: 'translateZ(0)',
+                    transition: 'transform var(--duration-fast) ease',
+
+                    '&:hover': {
+                        transform: 'translateY(-1px) translateZ(0)',
                     },
+                },
+
+                // Loading skeleton
+                '.skeleton': {
+                    background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-surface) 50%, var(--color-border) 75%)',
+                    backgroundSize: '200% 100%',
+                    borderRadius: 'var(--radius-lg)',
+                    animation: 'shimmer 1.2s ease-in-out infinite',
+                    minHeight: 'var(--space-6)',
+                    transform: 'translateZ(0)',
                 },
             });
 
             // =============================================================
-            // OPTIMIZED UTILITY CLASSES - Performance focused
+            // UTILITY CLASSES - Performance-focused utilities
             // =============================================================
             addUtilities({
-                // 🔧 OPTIMIZED: Controlled GPU acceleration matching globals.css
+                // Text gradients
+                '.text-gradient-primary': {
+                    background: 'var(--gradient-primary)',
+                    backgroundClip: 'text',
+                    '-webkit-background-clip': 'text',
+                    color: 'transparent',
+                    fontFamily: 'var(--font-family-primary)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                    letterSpacing: '-0.02em',
+                },
+
+                '.text-gradient-blue': {
+                    background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
+                    backgroundClip: 'text',
+                    '-webkit-background-clip': 'text',
+                    color: 'transparent',
+                    fontFamily: 'var(--font-family-primary)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                },
+
+                '.text-gradient-purple': {
+                    background: 'linear-gradient(135deg, var(--color-secondary) 0%, #7c3aed 100%)',
+                    backgroundClip: 'text',
+                    '-webkit-background-clip': 'text',
+                    color: 'transparent',
+                    fontFamily: 'var(--font-family-primary)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                },
+
+                // Performance utilities
                 '.gpu-accelerated': {
                     transform: 'translateZ(0)',
                     backfaceVisibility: 'hidden',
                 },
 
-                // 🔧 OPTIMIZED: Text shadows matching globals.css
-                '.text-shadow-sm': {
-                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                },
-                '.text-shadow': {
-                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                },
-
-                // 🔧 OPTIMIZED: Hover effects matching globals.css performance
+                // Hover effects
                 '.hover-lift': {
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    transition: 'transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
                     transform: 'translateY(0) translateZ(0)',
+
                     '&:hover': {
                         transform: 'translateY(-2px) translateZ(0)',
-                        boxShadow: theme('boxShadow.hover'),
+                        boxShadow: 'var(--shadow-lg)',
                     },
                 },
 
                 '.hover-lift-sm': {
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    transition: 'transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
                     transform: 'translateY(0) translateZ(0)',
+
                     '&:hover': {
                         transform: 'translateY(-1px) translateZ(0)',
-                        boxShadow: theme('boxShadow.md'),
+                        boxShadow: 'var(--shadow-md)',
                     },
                 },
 
-                // 🔧 OPTIMIZED: Mobile scroll matching globals.css
-                '.mobile-scroll': {
-                    WebkitOverflowScrolling: 'touch',
-                    scrollBehavior: 'smooth',
-                },
-
-                // 🔧 OPTIMIZED: Performance containment
-                '.contain-layout': {
-                    contain: 'layout',
-                },
-                '.contain-style': {
-                    contain: 'style',
-                },
-                '.contain-layout-style': {
-                    contain: 'layout style',
-                },
-
-                // 🔧 OPTIMIZED: Focus utilities
-                '.focus-ring': {
-                    '&:focus-visible': {
-                        outline: '2px solid rgb(103 126 234)',
-                        outlineOffset: '2px',
-                        borderRadius: theme('borderRadius.sm'),
-                    },
-                },
-
-                '.focus-ring-inset': {
-                    '&:focus-visible': {
-                        outline: '2px solid rgb(103 126 234)',
-                        outlineOffset: '-2px',
-                        borderRadius: theme('borderRadius.sm'),
-                    },
-                },
-
-                // 🔧 OPTIMIZED: Interactive states
+                // Interactive states
                 '.interactive': {
-                    transition: 'transform 0.15s ease',
+                    transition: 'transform var(--duration-fast) ease',
                     transform: 'translateY(0) translateZ(0)',
                     cursor: 'pointer',
+
                     '&:hover': {
                         transform: 'translateY(-1px) translateZ(0)',
                     },
+
                     '&:active': {
                         transform: 'translateY(0) translateZ(0)',
                     },
                 },
 
-                // 🔧 OPTIMIZED: Status indicators with Geist font
-                '.status-badge': {
-                    fontFamily: 'var(--font-geist)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '0.375rem 0.75rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    border: '1px solid',
-                    // 🔧 OPTIMIZED: Faster transitions
-                    transition: 'transform 0.15s ease, background-color 0.15s ease',
-                    transform: 'translateZ(0)',
-                    '&:hover': {
-                        transform: 'translateY(-1px) translateZ(0)',
+                // Focus utilities
+                '.focus-ring': {
+                    '&:focus-visible': {
+                        outline: '2px solid var(--color-primary)',
+                        outlineOffset: '2px',
+                        borderRadius: 'var(--radius-sm)',
                     },
                 },
 
-                // 🔧 OPTIMIZED: Reduced motion support
+                '.focus-ring-inset': {
+                    '&:focus-visible': {
+                        outline: '2px solid var(--color-primary)',
+                        outlineOffset: '-2px',
+                        borderRadius: 'var(--radius-sm)',
+                    },
+                },
+
+                // Scroll utilities
+                '.mobile-scroll': {
+                    '-webkit-overflow-scrolling': 'touch',
+                    scrollBehavior: 'smooth',
+                    overscrollBehavior: 'contain',
+                },
+
+                // Containment utilities
+                '.contain-layout': {
+                    contain: 'layout',
+                },
+
+                '.contain-style': {
+                    contain: 'style',
+                },
+
+                '.contain-layout-style': {
+                    contain: 'layout style',
+                },
+
+                // Text shadows
+                '.text-shadow-sm': {
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                },
+
+                '.text-shadow': {
+                    textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                },
+
+                // Safe area utilities for mobile
+                '.safe-top': {
+                    paddingTop: 'max(var(--space-4), env(safe-area-inset-top))',
+                },
+
+                '.safe-bottom': {
+                    paddingBottom: 'max(var(--space-4), env(safe-area-inset-bottom))',
+                },
+
+                '.safe-left': {
+                    paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
+                },
+
+                '.safe-right': {
+                    paddingRight: 'max(var(--space-4), env(safe-area-inset-right))',
+                },
+
+                '.safe-all': {
+                    paddingTop: 'max(var(--space-4), env(safe-area-inset-top))',
+                    paddingBottom: 'max(var(--space-4), env(safe-area-inset-bottom))',
+                    paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
+                    paddingRight: 'max(var(--space-4), env(safe-area-inset-right))',
+                },
+
+                // Reduced motion support
                 '@media (prefers-reduced-motion: reduce)': {
                     '.hover-lift, .hover-lift-sm, .interactive': {
                         '&:hover': {
                             transform: 'translateY(0) translateZ(0) !important',
                         },
                     },
+
                     '.gpu-accelerated': {
                         willChange: 'auto',
+                    },
+
+                    '*': {
+                        animationDuration: '0.01ms !important',
+                        animationIterationCount: '1 !important',
+                        transitionDuration: '0.01ms !important',
+                        scrollBehavior: 'auto !important',
+                    },
+                },
+
+                // High contrast support
+                '@media (prefers-contrast: high)': {
+                    '.text-gradient-primary, .text-gradient-blue, .text-gradient-purple': {
+                        background: 'none',
+                        color: 'var(--color-text-primary)',
+                    },
+
+                    '.btn-primary': {
+                        background: 'var(--color-primary)',
+                        border: '2px solid var(--color-primary-dark)',
+                    },
+                },
+
+                // Touch device optimizations
+                '@media (hover: none) and (pointer: coarse)': {
+                    '.btn, .interactive, button': {
+                        minHeight: '44px',
+                        minWidth: '44px',
+                    },
+
+                    '.hover-lift:hover, .hover-lift-sm:hover, .interactive:hover': {
+                        transform: 'translateY(0) translateZ(0)',
                     },
                 },
             });

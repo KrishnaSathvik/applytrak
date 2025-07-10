@@ -1,20 +1,20 @@
 /* =============================================================================
-   MOBILE.CSS - PERFORMANCE OPTIMIZED Mobile-First with Geist Font
-   Aligned with globals.css performance optimizations
-   Clean, minimal design focused on 60fps performance and touch UX
+   MOBILE.CSS - ENTERPRISE PERFORMANCE OPTIMIZED
+   Mobile-First Design with Geist Font & Touch UX
+   Aligned with globals.css design system and performance standards
    ============================================================================= */
 
 /* =============================================================================
-   MOBILE BASE LAYOUT - Touch-optimized with consistent transforms
+   MOBILE BASE LAYOUT - Touch-optimized with consistent architecture
    ============================================================================= */
-
 @media (max-width: 1023px) {
     .sidebar-fixed {
-        /* 🔧 OPTIMIZED: Single transform property matching globals.css */
         transform: translateX(-100%) translateZ(0);
         width: 320px;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.2s ease, background-color 0.2s ease;
+        transition:
+                transform var(--duration-normal) ease,
+                background-color var(--duration-normal) ease;
+        contain: layout style;
     }
 
     .sidebar-fixed.open {
@@ -25,24 +25,21 @@
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.6);
-        z-index: 400;
-        /* 🔧 OPTIMIZED: Reduced backdrop-filter matching globals.css */
+        z-index: var(--z-overlay);
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
-        transition: opacity 0.2s ease;
+        transition: opacity var(--duration-normal) ease;
     }
 
     .main-content {
         margin-left: 0 !important;
-        /* 🔧 OPTIMIZED: Controlled transition */
-        transition: margin-left 0.2s ease;
+        transition: margin-left var(--duration-normal) ease;
     }
 }
 
 /* =============================================================================
-   MOBILE TABLE SYSTEM - Card layout with Geist font and optimized transforms
+   MOBILE TABLE SYSTEM - Card layout with optimal performance
    ============================================================================= */
-
 @media (max-width: 767px) {
     .table thead {
         display: none !important;
@@ -50,29 +47,24 @@
 
     .table tbody tr {
         display: block !important;
-        border: 2px solid #e2e8f0;
-        border-radius: 1rem;
-        margin-bottom: 1rem;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        /* 🔧 OPTIMIZED: Faster transitions with consolidated transform */
-        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-        font-family: var(--font-geist);
+        border: 2px solid var(--color-border);
+        border-radius: var(--radius-2xl);
+        margin-bottom: var(--space-4);
+        padding: var(--space-4);
+        background: var(--gradient-glass);
+        box-shadow: var(--shadow-sm);
+        transition:
+                transform var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease,
+                border-color var(--duration-fast) ease;
+        font-family: var(--font-family-primary);
         contain: layout style;
-        /* 🔧 OPTIMIZED: Consistent transform base */
         transform: translateY(0) translateZ(0);
     }
 
-    body.dark .table tbody tr {
-        border-color: #374151;
-        background: rgba(31, 41, 55, 0.9);
-    }
-
     .table tbody tr:hover {
-        border-color: #667eea;
-        box-shadow: 0 4px 12px rgba(103, 126, 234, 0.15);
-        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
+        border-color: var(--color-primary);
+        box-shadow: var(--shadow-md);
         transform: translateY(-2px) translateZ(0);
     }
 
@@ -80,32 +72,27 @@
         display: block !important;
         text-align: left !important;
         border: none !important;
-        padding: 0.5rem 0 !important;
+        padding: var(--space-2) 0 !important;
         white-space: normal !important;
         overflow: visible !important;
         font-size: 1rem;
-        font-family: var(--font-geist);
-        font-weight: 400;
+        font-family: var(--font-family-primary);
+        font-weight: var(--font-weight-normal);
         letter-spacing: -0.01em;
-        /* 🔧 OPTIMIZED: Controlled transition */
-        transition: color 0.2s ease;
+        transition: color var(--duration-normal) ease;
     }
 
     .table tbody td::before {
         content: attr(data-label) ': ';
-        font-weight: 500;
-        color: #6b7280;
+        font-weight: var(--font-weight-medium);
+        color: var(--color-text-secondary);
         display: block;
         font-size: 0.875rem;
-        margin-bottom: 0.25rem;
+        margin-bottom: var(--space-1);
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        font-family: var(--font-geist);
-        transition: color 0.2s ease;
-    }
-
-    body.dark .table tbody td::before {
-        color: #9ca3af;
+        font-family: var(--font-family-primary);
+        transition: color var(--duration-normal) ease;
     }
 
     .optional-column,
@@ -115,121 +102,120 @@
 }
 
 /* =============================================================================
-   MOBILE FORM OPTIMIZATIONS - Geist font touch-friendly with consistent transforms
+   MOBILE FORM SYSTEM - Touch-friendly with consistent design
    ============================================================================= */
-
 @media (max-width: 767px) {
     .form-input,
     .form-select,
     .form-textarea {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         font-size: 16px; /* Prevents iOS zoom */
-        font-weight: 400;
+        font-weight: var(--font-weight-normal);
         letter-spacing: -0.01em;
-        padding: 1rem;
+        padding: var(--space-4);
         min-height: 44px;
         border-width: 2px;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-        /* 🔧 OPTIMIZED: Consistent transform base */
+        border-radius: var(--radius-xl);
+        transition:
+                transform var(--duration-fast) ease,
+                border-color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
         transform: translateY(0) translateZ(0);
     }
 
     .form-input:focus,
     .form-select:focus,
     .form-textarea:focus {
-        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
         transform: translateY(-1px) translateZ(0);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
     }
 
     .form-label {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         font-size: 1rem;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        transition: color 0.2s ease;
+        font-weight: var(--font-weight-medium);
+        margin-bottom: var(--space-2);
+        transition: color var(--duration-normal) ease;
     }
 
     .btn {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         min-height: 44px;
         min-width: 44px;
-        padding: 0.75rem 1.25rem;
+        padding: var(--space-3) var(--space-4);
         font-size: 1rem;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
         letter-spacing: -0.01em;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
-        /* 🔧 OPTIMIZED: Consistent transform base */
+        border-radius: var(--radius-xl);
+        transition:
+                transform var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease,
+                background-color var(--duration-normal) ease;
         transform: translateY(0) translateZ(0);
     }
 
     .btn:hover,
     .btn:active {
-        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
         transform: translateY(-1px) translateZ(0);
     }
 
     .btn-sm {
         min-height: 36px;
-        padding: 0.5rem 1rem;
+        padding: var(--space-2) var(--space-4);
         font-size: 0.875rem;
     }
 
     .btn-lg {
         min-height: 52px;
-        padding: 1rem 1.5rem;
+        padding: var(--space-4) var(--space-6);
         font-size: 1.125rem;
     }
 }
 
 /* =============================================================================
-   MOBILE MODAL SYSTEM - Optimized animations with consistent transforms
+   MOBILE MODAL SYSTEM - Full-screen optimized experience
    ============================================================================= */
-
 @media (max-width: 767px) {
     .modal-overlay {
         align-items: flex-end;
         padding: 0;
-        /* 🔧 OPTIMIZED: Reduced backdrop-filter matching globals.css */
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
     }
 
     .modal-content {
-        border-radius: 1rem 1rem 0 0;
+        border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
         width: 100%;
         max-height: 90vh;
-        /* 🔧 OPTIMIZED: Faster animation matching globals.css speed */
-        animation: slideUpMobile 0.2s ease-out;
+        animation: slideUpMobile var(--duration-normal) ease-out;
         margin: 0;
-        font-family: var(--font-geist);
-        /* 🔧 OPTIMIZED: Controlled transform for modal */
+        font-family: var(--font-family-primary);
         transform: translateZ(0);
+        contain: layout;
     }
 
     .modal-header {
-        border-radius: 1rem 1rem 0 0;
+        border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
         position: relative;
-        font-family: var(--font-geist);
-        font-weight: 500;
+        font-family: var(--font-family-primary);
+        font-weight: var(--font-weight-medium);
+        padding: var(--space-6) var(--space-6) var(--space-4);
     }
 
     .modal-header::before {
         content: '';
         position: absolute;
-        top: 0.75rem;
+        top: var(--space-3);
         left: 50%;
-        /* 🔧 OPTIMIZED: Single transform property */
         transform: translateX(-50%) translateZ(0);
-        width: 2rem;
-        height: 0.25rem;
+        width: var(--space-8);
+        height: var(--space-1);
         background: rgba(255, 255, 255, 0.6);
-        border-radius: 0.125rem;
+        border-radius: var(--radius-xs);
     }
 
-    /* Full screen modal for mobile */
-    .modal-content {
+    /* Full screen modal for complex forms */
+    .modal-fullscreen {
         width: 100% !important;
         max-width: 100% !important;
         height: 100vh !important;
@@ -238,11 +224,15 @@
         margin: 0 !important;
     }
 
-    .modal-content > div {
-        padding: 1.5rem !important;
+    .modal-fullscreen .modal-header {
+        border-radius: 0 !important;
     }
 
-    /* Simplified mobile forms */
+    .modal-fullscreen .modal-content > div {
+        padding: var(--space-6) !important;
+    }
+
+    /* Simplified mobile grid layouts */
     .grid.grid-cols-1.lg\\:grid-cols-3,
     .grid.grid-cols-1.lg\\:grid-cols-5 {
         display: block !important;
@@ -250,421 +240,399 @@
 
     .grid.grid-cols-1.lg\\:grid-cols-3 > *,
     .grid.grid-cols-1.lg\\:grid-cols-5 > * {
-        margin-bottom: 1.5rem !important;
+        margin-bottom: var(--space-6) !important;
     }
 }
 
 /* =============================================================================
-   MOBILE NAVIGATION - Touch-optimized with Geist and consistent transforms
+   MOBILE NAVIGATION - Touch-optimized search and filtering
    ============================================================================= */
-
 @media (max-width: 767px) {
     .mobile-search-container {
         position: relative;
         width: 100%;
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-4);
     }
 
     .mobile-search-input {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         width: 100%;
-        padding: 0.75rem 1rem 0.75rem 3rem;
+        padding: var(--space-3) var(--space-4) var(--space-3) var(--space-12);
         font-size: 1rem;
-        font-weight: 400;
+        font-weight: var(--font-weight-normal);
         letter-spacing: -0.01em;
-        border-radius: 0.75rem;
-        border: 2px solid #d1d5db;
-        background-color: white;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        border-radius: var(--radius-xl);
+        border: 2px solid var(--color-border);
+        background-color: var(--color-background);
+        color: var(--color-text-primary);
+        transition:
+                transform var(--duration-fast) ease,
+                border-color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
         min-height: 44px;
-        /* 🔧 OPTIMIZED: Consistent transform base */
         transform: translateY(0) translateZ(0);
     }
 
     .mobile-search-input:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 4px rgba(103, 126, 234, 0.15);
-        /* 🔧 OPTIMIZED: Consistent transform matching globals.css */
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
         transform: translateY(-1px) translateZ(0);
     }
 
-    body.dark .mobile-search-input {
-        background-color: #1f2937;
-        border-color: #4b5563;
-        color: white;
+    .mobile-search-icon {
+        position: absolute;
+        left: var(--space-4);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-text-muted);
+        pointer-events: none;
     }
 
     .mobile-status-tabs {
         display: flex;
-        background: #f3f4f6;
-        border-radius: 0.75rem;
-        padding: 0.25rem;
-        margin-bottom: 1rem;
+        background: var(--color-surface);
+        border-radius: var(--radius-xl);
+        padding: var(--space-1);
+        margin-bottom: var(--space-4);
         contain: layout;
-    }
-
-    body.dark .mobile-status-tabs {
-        background: #374151;
+        border: 1px solid var(--color-border);
     }
 
     .mobile-status-tab {
         flex: 1;
-        padding: 0.75rem 1rem;
+        padding: var(--space-3) var(--space-4);
         text-align: center;
-        border-radius: 0.5rem;
-        font-family: var(--font-geist);
+        border-radius: var(--radius-lg);
+        font-family: var(--font-family-primary);
         font-size: 1rem;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
         letter-spacing: -0.01em;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+        transition:
+                transform var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                color var(--duration-fast) ease;
         border: none;
         background: transparent;
         cursor: pointer;
-        color: #6b7280;
+        color: var(--color-text-secondary);
         min-height: 44px;
-        /* 🔧 OPTIMIZED: Consistent transform base */
         transform: translateY(0) translateZ(0);
     }
 
     .mobile-status-tab.active {
-        background: white;
-        color: #667eea;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        font-weight: 600;
-        /* 🔧 OPTIMIZED: Consistent transform */
+        background: var(--color-background);
+        color: var(--color-primary);
+        box-shadow: var(--shadow-sm);
+        font-weight: var(--font-weight-semibold);
         transform: translateY(-1px) translateZ(0);
-    }
-
-    body.dark .mobile-status-tab {
-        color: #9ca3af;
-    }
-
-    body.dark .mobile-status-tab.active {
-        background: #1f2937;
-        color: #60a5fa;
     }
 }
 
 /* =============================================================================
-   MOBILE ACTION SYSTEM - Touch-friendly with Geist and optimized performance
+   MOBILE ACTION SYSTEM - Touch-friendly interaction controls
    ============================================================================= */
-
 @media (max-width: 767px) {
     .mobile-action-row {
         display: flex;
-        gap: 0.5rem;
+        gap: var(--space-2);
         flex-wrap: wrap;
-        margin-top: 0.75rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid #e2e8f0;
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: 1px solid var(--color-border);
         contain: layout;
     }
 
-    body.dark .mobile-action-row {
-        border-top-color: #374151;
-    }
-
     .mobile-action-btn {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         flex: 1;
         min-width: 80px;
         min-height: 44px;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #d1d5db;
-        background: #f9fafb;
-        color: #374151;
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        color: var(--color-text-primary);
         font-size: 0.875rem;
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
         letter-spacing: -0.01em;
         text-align: center;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+        transition:
+                transform var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                border-color var(--duration-fast) ease;
         cursor: pointer;
-        /* 🔧 OPTIMIZED: Consistent transform base */
         transform: translateY(0) translateZ(0);
     }
 
-    body.dark .mobile-action-btn {
-        border-color: #4b5563;
-        background: #374151;
-        color: #d1d5db;
-    }
-
     .mobile-action-btn:active {
-        /* 🔧 OPTIMIZED: Faster, more subtle active state */
         transform: translateY(1px) translateZ(0);
     }
 
     .mobile-action-btn:hover {
-        background: #e5e7eb;
-        border-color: #9ca3af;
-        /* 🔧 OPTIMIZED: Consistent transform */
+        background: var(--color-border);
+        border-color: var(--color-text-muted);
         transform: translateY(-1px) translateZ(0);
     }
 
-    body.dark .mobile-action-btn:hover {
-        background: #4b5563;
-        border-color: #6b7280;
+    /* Primary action button styling */
+    .mobile-action-btn.primary {
+        background: var(--gradient-primary);
+        color: white;
+        border-color: var(--color-primary);
+    }
+
+    .mobile-action-btn.primary:hover {
+        background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-primary) 90%, black),
+        color-mix(in srgb, var(--color-secondary) 90%, black));
     }
 }
 
 /* =============================================================================
-   MOBILE PAGINATION - Simplified with Geist and optimized transforms
+   MOBILE PAGINATION - Simplified and touch-optimized
    ============================================================================= */
-
 @media (max-width: 767px) {
     .pagination-centered {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 1rem;
-        padding: 1rem;
-        border-top: 1px solid rgba(203, 213, 225, 0.5);
+        gap: var(--space-4);
+        padding: var(--space-4);
+        border-top: 1px solid var(--color-border);
         contain: layout;
-    }
-
-    body.dark .pagination-centered {
-        border-top-color: rgba(51, 65, 85, 0.5);
     }
 
     .pagination-controls {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
+        gap: var(--space-2);
         flex-wrap: wrap;
     }
 
     .pagination-info {
         text-align: center;
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         font-size: 1rem;
-        font-weight: 400;
-        color: #6b7280;
+        font-weight: var(--font-weight-normal);
+        color: var(--color-text-secondary);
         order: 2;
-        transition: color 0.2s ease;
-    }
-
-    body.dark .pagination-info {
-        color: #9ca3af;
+        transition: color var(--duration-normal) ease;
     }
 
     .pagination-btn {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         min-height: 44px;
         min-width: 44px;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        border: 1px solid #d1d5db;
-        background: white;
-        color: #374151;
-        font-weight: 500;
+        padding: var(--space-3);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border);
+        background: var(--color-background);
+        color: var(--color-text-primary);
+        font-weight: var(--font-weight-medium);
         letter-spacing: -0.01em;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-        /* 🔧 OPTIMIZED: Consistent transform base */
+        transition:
+                transform var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                border-color var(--duration-fast) ease;
         transform: translateY(0) translateZ(0);
     }
 
-    body.dark .pagination-btn {
-        border-color: #4b5563;
-        background: #374151;
-        color: #d1d5db;
-    }
-
     .pagination-btn:hover {
-        background: #f3f4f6;
-        border-color: #9ca3af;
-        /* 🔧 OPTIMIZED: Consistent transform */
+        background: var(--color-surface);
+        border-color: var(--color-text-muted);
         transform: translateY(-1px) translateZ(0);
     }
 
-    body.dark .pagination-btn:hover {
-        background: #4b5563;
-        border-color: #6b7280;
-    }
-
     .pagination-btn.active {
-        background: #667eea;
-        border-color: #667eea;
+        background: var(--color-primary);
+        border-color: var(--color-primary);
         color: white;
     }
 
     .pagination-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        /* 🔧 OPTIMIZED: Disabled state maintains base transform */
         transform: translateY(0) translateZ(0) !important;
+    }
+
+    /* Simplified pagination for very small screens */
+    @media (max-width: 480px) {
+        .pagination-controls {
+            gap: var(--space-1);
+        }
+
+        .pagination-btn {
+            min-width: 36px;
+            padding: var(--space-2);
+            font-size: 0.875rem;
+        }
     }
 }
 
 /* =============================================================================
-   MOBILE TOAST SYSTEM - Bottom positioned with Geist and optimized animations
+   MOBILE TOAST SYSTEM - Bottom-positioned notifications
    ============================================================================= */
-
 @media (max-width: 767px) {
     .toast-container {
         position: fixed;
-        bottom: 1rem;
-        left: 1rem;
-        right: 1rem;
-        z-index: 1080;
+        bottom: var(--space-4);
+        left: var(--space-4);
+        right: var(--space-4);
+        z-index: var(--z-toast);
         contain: layout;
     }
 
     .toast {
-        font-family: var(--font-geist);
-        padding: 1rem 1.25rem;
+        font-family: var(--font-family-primary);
+        padding: var(--space-4) var(--space-6);
         width: 100%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        border-radius: 0.5rem;
+        box-shadow: var(--shadow-lg);
+        border-radius: var(--radius-xl);
         border-left: 4px solid;
         font-size: 1rem;
-        font-weight: 400;
+        font-weight: var(--font-weight-normal);
         letter-spacing: -0.01em;
-        margin-bottom: 0.5rem;
-        /* 🔧 OPTIMIZED: Faster animation matching globals.css */
-        animation: slideUpMobile 0.2s ease-out;
-        /* 🔧 OPTIMIZED: Controlled transform */
+        margin-bottom: var(--space-2);
+        animation: slideUpMobile var(--duration-normal) ease-out;
         transform: translateZ(0);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 
     .toast-success {
-        border-left-color: #10b981;
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    body.dark .toast-success {
-        background: #064e3b;
-        color: #a7f3d0;
+        border-left-color: var(--color-success);
+        background: color-mix(in srgb, var(--color-success) 10%, var(--color-background));
+        color: var(--color-success);
     }
 
     .toast-error {
-        border-left-color: #ef4444;
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    body.dark .toast-error {
-        background: #7f1d1d;
-        color: #fca5a5;
+        border-left-color: var(--color-error);
+        background: color-mix(in srgb, var(--color-error) 10%, var(--color-background));
+        color: var(--color-error);
     }
 
     .toast-warning {
-        border-left-color: #f59e0b;
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    body.dark .toast-warning {
-        background: #78350f;
-        color: #fde68a;
+        border-left-color: var(--color-warning);
+        background: color-mix(in srgb, var(--color-warning) 10%, var(--color-background));
+        color: var(--color-warning);
     }
 
     .toast-info {
-        border-left-color: #3b82f6;
-        background: #dbeafe;
-        color: #1e40af;
-    }
-
-    body.dark .toast-info {
-        background: #1e3a8a;
-        color: #93c5fd;
+        border-left-color: var(--color-primary);
+        background: color-mix(in srgb, var(--color-primary) 10%, var(--color-background));
+        color: var(--color-primary);
     }
 }
 
 /* =============================================================================
-   MOBILE FAB - Floating action button with Geist and optimized transforms
+   MOBILE FAB - Floating Action Button
    ============================================================================= */
-
 @media (max-width: 767px) {
     .fab {
         position: fixed;
-        bottom: 1.25rem;
-        right: 1.25rem;
-        z-index: 40;
+        bottom: var(--space-6);
+        right: var(--space-6);
+        z-index: var(--z-sticky);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 3.5rem;
-        height: 3.5rem;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        width: 56px;
+        height: 56px;
+        background: var(--gradient-primary);
         color: white;
         border: none;
         border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(103, 126, 234, 0.3);
+        box-shadow: var(--shadow-lg);
         cursor: pointer;
-        /* 🔧 OPTIMIZED: Faster transitions matching globals.css */
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-        /* 🔧 OPTIMIZED: Consistent transform base */
+        transition:
+                transform var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
         transform: translateY(0) translateZ(0);
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
     }
 
     .fab:hover {
-        /* 🔧 OPTIMIZED: Consistent scale with transform */
         transform: scale(1.05) translateZ(0);
-        box-shadow: 0 6px 16px rgba(103, 126, 234, 0.4);
+        box-shadow: var(--shadow-xl);
     }
 
     .fab:active {
-        /* 🔧 OPTIMIZED: Faster, more subtle active state */
         transform: scale(0.98) translateZ(0);
+    }
+
+    /* FAB with label */
+    .fab-extended {
+        width: auto;
+        padding: var(--space-4) var(--space-6);
+        border-radius: var(--radius-full);
+        font-size: 0.875rem;
+        font-weight: var(--font-weight-medium);
+        gap: var(--space-2);
     }
 }
 
 /* =============================================================================
-   MOBILE UTILITY CLASSES - Geist font helpers with optimized performance
+   MOBILE UTILITY CLASSES - Layout and interaction helpers
    ============================================================================= */
-
 @media (max-width: 767px) {
     .mobile-container {
         max-width: 100%;
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
     }
 
     .mobile-card {
-        font-family: var(--font-geist);
-        margin-bottom: 1rem;
-        padding: 1rem;
-        border-radius: 0.75rem;
+        font-family: var(--font-family-primary);
+        margin-bottom: var(--space-4);
+        padding: var(--space-4);
+        border-radius: var(--radius-xl);
+        background: var(--gradient-glass);
+        border: 1px solid var(--color-border);
         contain: layout style;
-        /* 🔧 OPTIMIZED: Consistent transform base */
         transform: translateY(0) translateZ(0);
-        /* 🔧 OPTIMIZED: Controlled transitions */
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition:
+                transform var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
     }
 
     .mobile-card:hover {
-        /* 🔧 OPTIMIZED: Consistent transform */
         transform: translateY(-2px) translateZ(0);
+        box-shadow: var(--shadow-md);
     }
 
     .mobile-card-header {
-        font-family: var(--font-geist);
-        font-weight: 500;
-        padding: 1rem;
-        margin: -1rem -1rem 1rem -1rem;
-        border-radius: 0.75rem 0.75rem 0 0;
+        font-family: var(--font-family-primary);
+        font-weight: var(--font-weight-medium);
+        padding: var(--space-4);
+        margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) var(--space-4) calc(-1 * var(--space-4));
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        background: var(--gradient-primary);
+        color: white;
+    }
+
+    .mobile-section {
+        margin-bottom: var(--space-8);
+    }
+
+    .mobile-divider {
+        height: 1px;
+        background: var(--color-border);
+        margin: var(--space-6) 0;
     }
 }
 
 /* =============================================================================
-   MOBILE PERFORMANCE OPTIMIZATIONS - Aligned with globals.css approach
+   MOBILE PERFORMANCE OPTIMIZATIONS - Touch and scroll performance
    ============================================================================= */
-
 @media (max-width: 767px) {
     .mobile-scroll-container {
         -webkit-overflow-scrolling: touch;
         scroll-behavior: smooth;
         contain: layout;
+        overscroll-behavior: contain;
     }
 
     .mobile-touch-target {
@@ -676,28 +644,51 @@
     }
 
     .mobile-skeleton {
-        background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+        background: linear-gradient(90deg,
+        var(--color-border) 25%,
+        var(--color-surface) 50%,
+        var(--color-border) 75%);
         background-size: 200% 100%;
-        border-radius: 0.5rem;
-        /* 🔧 OPTIMIZED: Faster animation matching globals.css */
+        border-radius: var(--radius-lg);
         animation: skeletonWave 1.2s ease-in-out infinite;
-        min-height: 1.25rem;
-        /* 🔧 OPTIMIZED: Controlled transform */
+        min-height: var(--space-6);
         transform: translateZ(0);
     }
 
-    body.dark .mobile-skeleton {
-        background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    /* Loading states */
+    .mobile-loading-card {
+        padding: var(--space-4);
+        border-radius: var(--radius-xl);
+        background: var(--gradient-glass);
+        border: 1px solid var(--color-border);
+    }
+
+    .mobile-loading-line {
+        height: var(--space-3);
+        background: var(--color-border);
+        border-radius: var(--radius-sm);
+        margin-bottom: var(--space-2);
+        animation: skeletonWave 1.2s ease-in-out infinite;
+    }
+
+    .mobile-loading-line.short {
+        width: 60%;
+    }
+
+    .mobile-loading-line.medium {
+        width: 80%;
+    }
+
+    .mobile-loading-line.long {
+        width: 100%;
     }
 }
 
 /* =============================================================================
-   MOBILE KEYFRAME ANIMATIONS - Optimized speeds matching globals.css
+   MOBILE KEYFRAME ANIMATIONS - Smooth and performant
    ============================================================================= */
-
 @keyframes slideUpMobile {
     from {
-        /* 🔧 OPTIMIZED: Consistent transform property */
         transform: translateY(100%) translateZ(0);
         opacity: 0;
     }
@@ -716,36 +707,71 @@
     }
 }
 
-/* =============================================================================
-   MOBILE ACCESSIBILITY IMPROVEMENTS - Geist font with performance focus
-   ============================================================================= */
+@keyframes mobileSlideIn {
+    from {
+        transform: translateX(-100%) translateZ(0);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) translateZ(0);
+        opacity: 1;
+    }
+}
 
+@keyframes mobileFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateZ(0);
+    }
+}
+
+/* =============================================================================
+   MOBILE ACCESSIBILITY - Focus and interaction improvements
+   ============================================================================= */
 @media (max-width: 767px) {
     .mobile-focus:focus-visible {
-        outline: 3px solid #667eea;
+        outline: 3px solid var(--color-primary);
         outline-offset: 2px;
-        border-radius: 0.25rem;
+        border-radius: var(--radius-sm);
     }
 
     .mobile-interactive:active {
-        /* 🔧 OPTIMIZED: Faster, more subtle active state */
         transform: translateY(1px) translateZ(0);
         opacity: 0.9;
     }
 
     .mobile-readable {
-        font-family: var(--font-geist);
+        font-family: var(--font-family-primary);
         line-height: 1.6;
         font-size: 1rem;
-        font-weight: 400;
+        font-weight: var(--font-weight-normal);
         letter-spacing: -0.01em;
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+        .mobile-card {
+            border-width: 2px;
+            border-color: var(--color-text-primary);
+        }
+
+        .mobile-action-btn {
+            border-width: 2px;
+        }
+
+        .pagination-btn {
+            border-width: 2px;
+        }
     }
 }
 
 /* =============================================================================
-   MOBILE PRINT OPTIMIZATIONS
+   MOBILE PRINT OPTIMIZATIONS - Clean printing experience
    ============================================================================= */
-
 @media print and (max-width: 767px) {
     .mobile-only {
         display: none !important;
@@ -754,34 +780,30 @@
     .table tbody tr {
         break-inside: avoid;
         border: 1px solid #000;
-        margin-bottom: 0.5rem;
-        padding: 0.5rem;
-        font-family: var(--font-geist) !important;
-        /* 🔧 OPTIMIZED: Remove transforms in print */
+        margin-bottom: var(--space-2);
+        padding: var(--space-2);
+        font-family: var(--font-family-primary) !important;
         transform: none !important;
     }
 
     .table tbody td::before {
-        font-weight: 500;
+        font-weight: var(--font-weight-medium);
         color: #000;
-        font-family: var(--font-geist) !important;
+        font-family: var(--font-family-primary) !important;
     }
 
-    .mobile-action-row {
-        display: none !important;
-    }
-
-    .fab {
+    .mobile-action-row,
+    .fab,
+    .toast-container {
         display: none !important;
     }
 }
 
 /* =============================================================================
-   MOBILE PERFORMANCE CRITICAL OPTIMIZATIONS - Matching globals.css approach
+   MOBILE CRITICAL PERFORMANCE - GPU acceleration and containment
    ============================================================================= */
-
 @media (max-width: 767px) {
-    /* 🔧 OPTIMIZED: Controlled containment for performance */
+    /* Controlled containment for performance */
     .table tbody tr,
     .mobile-card,
     .mobile-action-btn,
@@ -789,41 +811,53 @@
         contain: layout style;
     }
 
-    /* 🔧 OPTIMIZED: Minimal GPU acceleration - only for frequently interacted elements */
+    /* Strategic GPU acceleration */
     .mobile-action-btn,
     .pagination-btn,
     .fab,
     .mobile-status-tab {
-        /* Already have transform: translateZ(0) in their base styles */
         backface-visibility: hidden;
     }
 
-    /* 🔧 OPTIMIZED: Reduce motion support matching globals.css */
-    @media (prefers-reduced-motion: reduce) {
-        .mobile-skeleton,
-        .toast,
-        .modal-content,
-        .fab {
-            animation: none !important;
-        }
+    /* Scroll performance optimization */
+    .mobile-scroll-container {
+        scroll-snap-type: y mandatory;
+    }
 
-        .mobile-action-btn:active,
-        .mobile-interactive:active,
-        .btn:hover,
-        .mobile-card:hover,
-        .pagination-btn:hover {
-            /* 🔧 OPTIMIZED: Remove transforms for reduced motion */
-            transform: translateY(0) translateZ(0) !important;
-        }
+    .mobile-card {
+        scroll-snap-align: start;
     }
 }
 
 /* =============================================================================
-   MOBILE TOUCH ENHANCEMENTS - Optimized for 60fps performance
+   MOBILE REDUCED MOTION - Accessibility compliance
    ============================================================================= */
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+    .mobile-skeleton,
+    .toast,
+    .modal-content,
+    .fab {
+        animation: none !important;
+    }
 
+    .mobile-action-btn:active,
+    .mobile-interactive:active,
+    .btn:hover,
+    .mobile-card:hover,
+    .pagination-btn:hover {
+        transform: translateY(0) translateZ(0) !important;
+    }
+
+    .mobile-status-tab.active {
+        transform: translateY(0) translateZ(0) !important;
+    }
+}
+
+/* =============================================================================
+   MOBILE TOUCH ENHANCEMENTS - Optimized for touch devices
+   ============================================================================= */
 @media (max-width: 767px) and (hover: none) and (pointer: coarse) {
-    /* 🔧 OPTIMIZED: Remove hover effects on pure touch devices */
+    /* Remove hover effects on pure touch devices */
     .mobile-action-btn:hover,
     .pagination-btn:hover,
     .mobile-card:hover {
@@ -832,20 +866,85 @@
         border-color: initial;
     }
 
-    /* 🔧 OPTIMIZED: Enhanced touch targets */
+    /* Enhanced touch targets */
     .mobile-action-btn,
     .pagination-btn,
     .btn,
     .mobile-status-tab {
-        min-height: 48px; /* Larger touch targets on touch devices */
+        min-height: 48px;
         min-width: 48px;
     }
 
-    /* 🔧 OPTIMIZED: Faster touch feedback */
+    /* Faster touch feedback */
     .mobile-action-btn:active,
     .pagination-btn:active,
     .mobile-status-tab:active {
         transform: scale(0.98) translateZ(0);
         transition: transform 0.1s ease;
     }
+
+    /* Touch-friendly scrolling */
+    .mobile-scroll-container {
+        scroll-snap-type: y proximity;
+        -webkit-overflow-scrolling: touch;
+    }
 }
+
+/* =============================================================================
+   MOBILE SAFE AREAS - Support for notches and rounded corners
+   ============================================================================= */
+@media (max-width: 767px) {
+    .mobile-safe-top {
+        padding-top: max(var(--space-4), env(safe-area-inset-top));
+    }
+
+    .mobile-safe-bottom {
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    }
+
+    .mobile-safe-left {
+        padding-left: max(var(--space-4), env(safe-area-inset-left));
+    }
+
+    .mobile-safe-right {
+        padding-right: max(var(--space-4), env(safe-area-inset-right));
+    }
+
+    .mobile-safe-all {
+        padding-top: max(var(--space-4), env(safe-area-inset-top));
+        padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+        padding-left: max(var(--space-4), env(safe-area-inset-left));
+        padding-right: max(var(--space-4), env(safe-area-inset-right));
+    }
+}
+
+/* =============================================================================
+   MOBILE PROGRESSIVE ENHANCEMENT - Feature detection
+   ============================================================================= */
+@media (max-width: 767px) {
+    /* Support for CSS custom properties */
+    @supports (color: color-mix(in srgb, red, blue)) {
+        .mobile-card {
+            background: color-mix(in srgb, var(--color-background) 95%, var(--color-primary));
+        }
+    }
+
+    /* Support for backdrop-filter */
+    @supports (backdrop-filter: blur(8px)) {
+        .toast {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+    }
+
+    /* Support for scroll-snap */
+    @supports (scroll-snap-type: y mandatory) {
+        .mobile-scroll-container {
+            scroll-snap-type: y proximity;
+        }
+    }
+}
+
+/* =============================================================================
+   END MOBILE CSS - Optimized for touch performance and accessibility
+   ============================================================================= */
