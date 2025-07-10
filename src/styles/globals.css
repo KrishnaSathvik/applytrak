@@ -947,425 +947,355 @@ body.dark .goal-section {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 /* =============================================================================
-   IMPORT/EXPORT UNIFIED SYSTEM - Add this to globals.css
-   Matching design patterns, Geist font, and performance optimizations
+   UNIFIED IMPORT/EXPORT MODAL COLORS - Make both modals use blue scheme
+   Add this to your globals.css to match the Export modal colors
    ============================================================================= */
 
 /* =============================================================================
-   EXPORT/IMPORT BUTTONS - Unified styling with consistent brand patterns
+   IMPORT MODAL - Override green colors to match blue export theme
    ============================================================================= */
 
-.export-btn,
-.import-btn {
-    font-family: var(--font-geist);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: var(--border-radius-lg);
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    letter-spacing: -0.01em;
-    min-height: 44px;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
-    transform: translateY(0) translateZ(0);
-    text-decoration: none;
-    gap: 0.5rem;
+/* Import modal header icon background - change from green to blue */
+.import-modal .bg-gradient-to-r.from-emerald-500.to-green-600,
+.import-modal [class*="from-emerald-500"] {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important; /* Blue gradient */
 }
 
-/* Export button - Primary brand gradient */
-.export-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(103, 126, 234, 0.3);
+/* Import modal supported formats section background */
+.import-modal .bg-gradient-to-r.from-emerald-50.via-green-50.to-blue-50 {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #e0f2fe 100%) !important;
 }
 
-.export-btn:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, #6a4190 100%);
-    transform: translateY(-1px) translateZ(0);
-    box-shadow: 0 6px 16px rgba(103, 126, 234, 0.4);
+.import-modal .dark\\:from-emerald-900\\/20.dark\\:via-green-900\\/20.dark\\:to-blue-900\\/20 {
+    background: linear-gradient(135deg, rgb(30 58 138 / 0.2) 0%, rgb(29 78 216 / 0.2) 50%, rgb(56 189 248 / 0.2) 100%) !important;
 }
 
-/* Import button - Success gradient to match brand */
-.import-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+/* Import modal border colors - change from emerald to blue */
+.import-modal .border-emerald-200\\/50,
+.import-modal .border-emerald-200 {
+    border-color: rgb(191 219 254 / 0.5) !important; /* Blue border */
 }
 
-.import-btn:hover {
-    background: linear-gradient(135deg, #0d9488 0%, #047857 100%);
-    transform: translateY(-1px) translateZ(0);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+.import-modal .dark\\:border-emerald-700\\/50,
+.import-modal .dark\\:border-emerald-700 {
+    border-color: rgb(29 78 216 / 0.5) !important; /* Dark blue border */
 }
 
-/* Dark mode adjustments */
-body.dark .export-btn,
-body.dark .import-btn {
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+/* CSV Files card - change from emerald to blue theme */
+.import-modal .bg-gradient-to-r.from-emerald-500.to-green-600 {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+}
+
+/* Success message colors - change from emerald to blue */
+.import-modal .bg-gradient-to-r.from-emerald-50.to-green-50 {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+}
+
+.import-modal .dark\\:from-emerald-900\\/20.dark\\:to-green-900\\/20 {
+    background: linear-gradient(135deg, rgb(30 58 138 / 0.2), rgb(29 78 216 / 0.2)) !important;
+}
+
+.import-modal .border-l-emerald-500 {
+    border-left-color: #3b82f6 !important; /* Blue left border */
+}
+
+.import-modal .text-emerald-800,
+.import-modal .text-emerald-600,
+.import-modal .text-emerald-700 {
+    color: #1d4ed8 !important; /* Blue text */
+}
+
+.import-modal .dark\\:text-emerald-200,
+.import-modal .dark\\:text-emerald-400,
+.import-modal .dark\\:text-emerald-300 {
+    color: #93c5fd !important; /* Light blue for dark mode */
+}
+
+/* Import button in modal - change from emerald to blue */
+.import-modal .bg-gradient-to-r.from-emerald-600.to-green-600 {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+}
+
+.import-modal .hover\\:from-emerald-700.hover\\:to-green-700:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
+}
+
+.import-modal .shadow-emerald-500\\/25 {
+    box-shadow: 0 10px 15px -3px rgb(59 130 246 / 0.25), 0 4px 6px -2px rgb(59 130 246 / 0.1) !important;
+}
+
+.import-modal .hover\\:shadow-emerald-500\\/30:hover {
+                                                  box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.3), 0 10px 10px -5px rgb(59 130 246 / 0.1) !important;
+                                              }
+
+/* =============================================================================
+   EXPORT MODAL - Ensure blue colors are consistent (already correct)
+   ============================================================================= */
+
+/* Keep export modal blue theme as-is - it's already perfect */
+.export-modal .bg-gradient-to-r.from-blue-50.via-indigo-50.to-purple-50 {
+    /* Already blue - no changes needed */
 }
 
 /* =============================================================================
-   FILE UPLOAD/IMPORT AREAS - Glassmorphism matching modal style
+   ACTION BUTTONS - Ensure consistent button colors
    ============================================================================= */
 
-.file-upload-area,
-.import-drop-zone {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 2px dashed #d1d5db;
-    border-radius: var(--border-radius-xl);
-    padding: 2rem;
-    text-align: center;
-    font-family: var(--font-geist);
-    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.2s ease;
-    transform: translateY(0) translateZ(0);
-    cursor: pointer;
-    min-height: 200px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
+/* Make Import button use blue theme instead of green */
+.btn-import,
+button[class*="from-emerald-50"] {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+    border-color: rgb(59 130 246 / 0.3) !important;
+    color: #1d4ed8 !important;
 }
 
-body.dark .file-upload-area,
-body.dark .import-drop-zone {
-    background: rgba(17, 24, 39, 0.95);
-    border-color: #4b5563;
+.btn-import:hover,
+button[class*="from-emerald-50"]:hover {
+    border-color: rgb(59 130 246 / 0.5) !important;
+    background: linear-gradient(135deg, #bfdbfe, #93c5fd) !important;
 }
 
-/* Hover states */
-.file-upload-area:hover,
-.import-drop-zone:hover {
-    border-color: #667eea;
-    background: rgba(103, 126, 234, 0.05);
-    transform: translateY(-2px) translateZ(0);
+/* Dark mode import button */
+.dark .btn-import,
+.dark button[class*="from-emerald-50"] {
+    background: linear-gradient(135deg, rgb(30 58 138 / 0.2), rgb(29 78 216 / 0.2)) !important;
+    border-color: rgb(29 78 216 / 0.5) !important;
+    color: #93c5fd !important;
 }
 
-body.dark .file-upload-area:hover,
-body.dark .import-drop-zone:hover {
-    background: rgba(103, 126, 234, 0.1);
-}
-
-/* Active/dragging states */
-.file-upload-area.dragging,
-.import-drop-zone.dragging {
-    border-color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    transform: translateY(-2px) translateZ(0);
+.dark .btn-import:hover,
+.dark button[class*="from-emerald-50"]:hover {
+    border-color: rgb(59 130 246 / 0.6) !important;
 }
 
 /* =============================================================================
-   IMPORT/EXPORT MODALS - Matching existing modal system
+   UTILITY CLASSES - For consistent import/export styling
    ============================================================================= */
 
-.export-modal,
-.import-modal {
-    /* Inherits from existing .modal-content styling */
-    font-family: var(--font-geist);
+/* Unified modal background */
+.modal-import-export {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #e0f2fe 100%);
+    border-color: rgb(59 130 246 / 0.3);
 }
 
-.export-modal .modal-header,
-.import-modal .modal-header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    font-family: var(--font-geist);
-    font-weight: 500;
+.dark .modal-import-export {
+    background: linear-gradient(135deg, rgb(30 58 138 / 0.2) 0%, rgb(29 78 216 / 0.2) 50%, rgb(56 189 248 / 0.2) 100%);
+    border-color: rgb(29 78 216 / 0.5);
 }
 
-.import-modal .modal-header {
-    background: linear-gradient(135deg, #10b981, #059669);
-}
-
-/* =============================================================================
-   PROGRESS INDICATORS - Unified for import/export operations
-   ============================================================================= */
-
-.export-progress,
-.import-progress {
-    width: 100%;
-    height: 8px;
-    background: #e2e8f0;
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 1rem 0;
-}
-
-body.dark .export-progress,
-body.dark .import-progress {
-    background: #374151;
-}
-
-.export-progress-bar {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    transform: translateZ(0);
-}
-
-.import-progress-bar {
-    height: 100%;
-    background: linear-gradient(135deg, #10b981, #059669);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    transform: translateZ(0);
-}
-
-/* =============================================================================
-   FILE TYPE INDICATORS - Consistent with status badge system
-   ============================================================================= */
-
-.file-type-badge {
-    font-family: var(--font-geist);
-    display: inline-flex;
-    align-items: center;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border: 1px solid;
-    transition: transform 0.15s ease, background-color 0.2s ease;
-    transform: translateZ(0);
-}
-
-.file-type-badge.csv {
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    color: #059669;
-    border-color: #86efac;
-}
-
-.file-type-badge.json {
-    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+/* Unified text colors */
+.text-import-export-primary {
     color: #1d4ed8;
-    border-color: #93c5fd;
 }
 
-.file-type-badge.excel {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    color: #d97706;
-    border-color: #fbbf24;
+.dark .text-import-export-primary {
+    color: #93c5fd;
 }
 
-.file-type-badge.pdf {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: #dc2626;
-    border-color: #fca5a5;
+.text-import-export-secondary {
+    color: #2563eb;
 }
 
-/* =============================================================================
-   SUCCESS/ERROR STATES - Matching existing toast/notification system
-   ============================================================================= */
-
-.export-success,
-.import-success {
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    border: 1px solid #86efac;
-    border-left: 4px solid #10b981;
-    color: #166534;
-    padding: 1rem 1.25rem;
-    border-radius: var(--border-radius-lg);
-    font-family: var(--font-geist);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    margin: 1rem 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+.dark .text-import-export-secondary {
+    color: #bfdbfe;
 }
 
-body.dark .export-success,
-body.dark .import-success {
-    background: #064e3b;
-    color: #a7f3d0;
-    border-color: #065f46;
-    border-left-color: #10b981;
+/* Unified button styles */
+.btn-import-export {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
 }
 
-.export-error,
-.import-error {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    border: 1px solid #fca5a5;
-    border-left: 4px solid #ef4444;
-    color: #991b1b;
-    padding: 1rem 1.25rem;
-    border-radius: var(--border-radius-lg);
-    font-family: var(--font-geist);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    margin: 1rem 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-body.dark .export-error,
-body.dark .import-error {
-    background: #7f1d1d;
-    color: #fca5a5;
-    border-color: #991b1b;
-    border-left-color: #ef4444;
+.btn-import-export:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
+    box-shadow: 0 20px 25px -5px rgb(59 130 246 / 0.3);
 }
 
 /* =============================================================================
-   LOADING STATES - Matching existing loading spinner system
+   OVERRIDE SPECIFICITY - Force blue colors on import elements
    ============================================================================= */
 
-.export-loading,
-.import-loading {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-geist);
-    font-size: 0.875rem;
-    font-weight: 400;
-    color: #6b7280;
-    transition: color 0.2s ease;
+/* High specificity overrides for stubborn green colors */
+.modal-content .import-modal,
+[data-modal-type="import"] {
+    --emerald-50: #dbeafe;
+    --emerald-100: #bfdbfe;
+    --emerald-500: #3b82f6;
+    --emerald-600: #2563eb;
+    --emerald-700: #1d4ed8;
+    --emerald-800: #1e40af;
+    --emerald-900: #1e3a8a;
+    --green-50: #dbeafe;
+    --green-500: #3b82f6;
+    --green-600: #2563eb;
+    --green-700: #1d4ed8;
 }
 
-body.dark .export-loading,
-body.dark .import-loading {
-    color: #9ca3af;
-}
-
-.export-spinner,
-.import-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid #e2e8f0;
-    border-top: 2px solid #667eea;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    transform: translateZ(0);
-}
-
-.import-spinner {
-    border-top-color: #10b981;
-}
-
-body.dark .export-spinner,
-body.dark .import-spinner {
-    border-color: #374151;
-}
-
-body.dark .export-spinner {
-    border-top-color: #667eea;
-}
-
-body.dark .import-spinner {
-    border-top-color: #10b981;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg) translateZ(0); }
-    100% { transform: rotate(360deg) translateZ(0); }
+/* Force all emerald/green colors to blue in import modals */
+.import-modal * {
+    --tw-gradient-from: #dbeafe !important;
+    --tw-gradient-to: #bfdbfe !important;
 }
 
 /* =============================================================================
-   RESPONSIVE DESIGN - Mobile optimizations matching existing patterns
+   RESPONSIVE CONSISTENCY - Ensure colors work on all screen sizes
    ============================================================================= */
 
-@media (max-width: 767px) {
-    .export-btn,
-    .import-btn {
-        width: 100%;
-        justify-content: center;
-        margin-bottom: 0.5rem;
-    }
-
-    .file-upload-area,
-    .import-drop-zone {
-        padding: 1.5rem 1rem;
-        min-height: 150px;
-    }
-
-    .export-modal,
-    .import-modal {
-        margin: 1rem;
-        width: calc(100% - 2rem);
+@media (max-width: 768px) {
+    .import-modal .bg-gradient-to-r,
+    .import-modal [class*="gradient"] {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
     }
 }
 
 /* =============================================================================
-   DESKTOP ENHANCEMENTS - Matching desktop.css patterns
+   ACCESSIBILITY - Maintain contrast with blue theme
    ============================================================================= */
 
-@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
-    .file-upload-area:hover,
-    .import-drop-zone:hover {
-        transform: translateY(-4px) translateZ(0);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+@media (prefers-contrast: high) {
+    .import-modal .text-emerald-800,
+    .import-modal .text-emerald-600 {
+        color: #1e40af !important;
     }
 
-    .file-type-badge:hover {
-        transform: translateY(-1px) translateZ(0);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    .dark .import-modal .text-emerald-200,
+    .dark .import-modal .text-emerald-400 {
+        color: #dbeafe !important;
     }
+}
+/* =============================================================================
+   IMPORT BUTTON - Make it match Export and Backup neutral styling
+   Override the blue theme and match the gray neutral buttons
+   ============================================================================= */
+
+/* Remove blue override and make Import button neutral like Export/Backup */
+.btn-import,
+button[class*="from-emerald-50"],
+button[class*="border-emerald-200"],
+button[class*="text-emerald-700"] {
+    /* Reset to neutral gray theme */
+    background: rgba(243, 244, 246, 0.8) !important; /* Same as Export/Backup */
+    border-color: rgba(209, 213, 219, 0.5) !important; /* Same as Export/Backup */
+    color: #374151 !important; /* Same as Export/Backup */
+}
+
+/* Dark mode - match Export/Backup neutral styling */
+.dark .btn-import,
+.dark button[class*="from-emerald-50"],
+.dark button[class*="border-emerald-200"],
+.dark button[class*="text-emerald-700"] {
+    background: rgba(55, 65, 81, 0.8) !important; /* Same as Export/Backup */
+    border-color: rgba(75, 85, 99, 0.5) !important; /* Same as Export/Backup */
+    color: #d1d5db !important; /* Same as Export/Backup */
+}
+
+/* Hover states - match Export/Backup hover effects */
+.btn-import:hover,
+button[class*="from-emerald-50"]:hover {
+    background: rgba(229, 231, 235, 0.9) !important;
+    border-color: rgba(156, 163, 175, 0.6) !important;
+    color: #1f2937 !important;
+}
+
+.dark .btn-import:hover,
+.dark button[class*="from-emerald-50"]:hover {
+    background: rgba(75, 85, 99, 0.9) !important;
+    border-color: rgba(107, 114, 128, 0.6) !important;
+    color: #f9fafb !important;
+}
+
+/* Override any gradient backgrounds on Import button */
+button[class*="from-emerald-50"]:not(:hover) {
+    background-image: none !important;
+}
+
+button[class*="to-green-50"]:not(:hover) {
+    background-image: none !important;
+}
+
+/* Remove any special Import button styling that makes it different */
+.import-export-actions button:nth-child(2) {
+    background: rgba(243, 244, 246, 0.8) !important;
+    border-color: rgba(209, 213, 219, 0.5) !important;
+    color: #374151 !important;
+}
+
+.dark .import-export-actions button:nth-child(2) {
+    background: rgba(55, 65, 81, 0.8) !important;
+    border-color: rgba(75, 85, 99, 0.5) !important;
+    color: #d1d5db !important;
 }
 
 /* =============================================================================
-   ACCESSIBILITY - Focus states and reduced motion
+   ENSURE ALL THREE BUTTONS MATCH - Export, Import, Backup
    ============================================================================= */
 
-.export-btn:focus-visible,
-.import-btn:focus-visible,
-.file-upload-area:focus-visible,
-.import-drop-zone:focus-visible {
-    outline: 2px solid #667eea;
-    outline-offset: 2px;
+/* Unified styling for all three action buttons */
+.export-import-buttons .btn,
+.export-import-actions .btn,
+[class*="export-import"] .btn {
+    background: rgba(243, 244, 246, 0.8) !important;
+    border: 1px solid rgba(209, 213, 219, 0.5) !important;
+    color: #374151 !important;
+    transition: all 0.2s ease !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .export-btn,
-    .import-btn,
-    .file-upload-area,
-    .import-drop-zone,
-    .file-type-badge {
-        transition: none !important;
-        transform: translateY(0) translateZ(0) !important;
-    }
+.dark .export-import-buttons .btn,
+.dark .export-import-actions .btn,
+.dark [class*="export-import"] .btn {
+    background: rgba(55, 65, 81, 0.8) !important;
+    border-color: rgba(75, 85, 99, 0.5) !important;
+    color: #d1d5db !important;
+}
 
-    .export-btn:hover,
-    .import-btn:hover,
-    .file-upload-area:hover,
-    .import-drop-zone:hover {
-        transform: translateY(0) translateZ(0) !important;
-    }
+/* Unified hover effects */
+.export-import-buttons .btn:hover,
+.export-import-actions .btn:hover,
+[class*="export-import"] .btn:hover {
+    background: rgba(229, 231, 235, 0.9) !important;
+    border-color: rgba(156, 163, 175, 0.6) !important;
+    color: #1f2937 !important;
+    transform: translateY(-1px) scale(1.02) !important;
+}
 
-    .export-spinner,
-    .import-spinner {
-        animation: none !important;
-    }
+.dark .export-import-buttons .btn:hover,
+.dark .export-import-actions .btn:hover,
+.dark [class*="export-import"] .btn:hover {
+    background: rgba(75, 85, 99, 0.9) !important;
+    border-color: rgba(107, 114, 128, 0.6) !important;
+    color: #f9fafb !important;
 }
 
 /* =============================================================================
-   PRINT OPTIMIZATIONS - Matching existing print styles
+   REMOVE PREVIOUS BLUE OVERRIDES for action buttons
    ============================================================================= */
 
-@media print {
-    .export-btn,
-    .import-btn,
-    .file-upload-area,
-    .import-drop-zone,
-    .export-spinner,
-    .import-spinner {
-        display: none !important;
-    }
-
-    .export-success,
-    .import-success,
-    .export-error,
-    .import-error {
-        background: white !important;
-        color: black !important;
-        border: 1px solid black !important;
-        box-shadow: none !important;
-    }
+/* Cancel out the previous blue styling I added */
+.btn-import {
+    background: rgba(243, 244, 246, 0.8) !important;
+    background-image: none !important;
+    border-color: rgba(209, 213, 219, 0.5) !important;
+    color: #374151 !important;
 }
+
+.dark .btn-import {
+    background: rgba(55, 65, 81, 0.8) !important;
+    background-image: none !important;
+    border-color: rgba(75, 85, 99, 0.5) !important;
+    color: #d1d5db !important;
+}
+
+/* Override any lingering gradient classes */
+button[class*="from-emerald-50"][class*="to-green-50"] {
+    background: rgba(243, 244, 246, 0.8) !important;
+    background-image: none !important;
+}
+
+.dark button[class*="from-emerald-900"][class*="to-green-900"] {
+    background: rgba(55, 65, 81, 0.8) !important;
+    background-image: none !important;
+}
+
+

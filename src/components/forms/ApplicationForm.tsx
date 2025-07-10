@@ -439,20 +439,6 @@ Interview details, salary negotiations, follow-up reminders, or any other releva
                         </div>
                     </div>
 
-                    {/* 🚀 ENHANCED Helper text with examples */}
-                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-blue-200/50 dark:border-blue-700/50">
-                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                            💡 <strong>Suggested information to include:</strong>
-                        </p>
-                        <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 ml-4">
-                            <li>• Interview details and experience</li>
-                            <li>• Salary negotiations and benefits</li>
-                            <li>• Follow-up reminders and deadlines</li>
-                            <li>• Company culture observations</li>
-                            <li>• Any other relevant information</li>
-                        </ul>
-                    </div>
-
                     {errors.notes && (
                         <p className="form-error flex items-center gap-1 mt-2">
                             ⚠️ {errors.notes.message}

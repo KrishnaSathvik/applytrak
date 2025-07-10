@@ -413,7 +413,16 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                     <Target className="h-7 w-7 text-white drop-shadow-lg"/>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight drop-shadow-lg">
+                                    <h2
+                                        style={{
+                                            color: 'white !important',
+                                            textShadow: '2px 2px 8px rgba(0,0,0,0.9)',
+                                            fontWeight: '900',
+                                            zIndex: 9999,
+                                            position: 'relative'
+                                        }}
+                                        className="text-2xl font-extrabold text-white tracking-tight leading-tight drop-shadow-lg"
+                                    >
                                         Set Application Goals
                                     </h2>
                                     <p className="text-white/95 font-semibold mt-1 leading-relaxed drop-shadow-md tracking-wide">
