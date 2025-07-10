@@ -1,7 +1,6 @@
 /* =============================================================================
-   JOB APPLICATION TRACKER - PERFORMANCE OPTIMIZED GLOBALS CSS
-   Same visual design, optimized for smooth performance
-   Fixed transform conflicts, backdrop-filter overload, and transition jank
+   JOB APPLICATION TRACKER - CLEAN OPTIMIZED GLOBALS CSS
+   Conflict-free, performance optimized, enterprise-grade styling
    ============================================================================= */
 
 /* Tailwind CSS imports */
@@ -14,36 +13,44 @@
 @import './desktop.css';
 
 /* =============================================================================
-   GEIST FONT SYSTEM - Single font family for modern minimalism
+   GEIST FONT SYSTEM - Modern minimalism
    ============================================================================= */
 
-/* OPTIMIZED: Only Geist font with essential weights */
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap&subset=latin');
 
-/* Simplified CSS Variables - Geist only */
+/* =============================================================================
+   CSS VARIABLES - Clean design system
+   ============================================================================= */
+
 :root {
-    /* Single Font Family - Geist */
+    /* Typography */
     --font-geist: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 
-    /* Minimal Design System Variables */
+    /* Border Radius */
     --border-radius-sm: 0.375rem;
     --border-radius-md: 0.5rem;
     --border-radius-lg: 0.75rem;
     --border-radius-xl: 1rem;
 
+    /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
 
-    /* Essential Z-index scale */
-    --z-dropdown: 1000;
-    --z-modal: 1050;
-    --z-toast: 1080;
+    /* Z-Index Scale - Single source of truth */
+    --z-base: 1;
+    --z-sidebar: 500;
+    --z-header: 1000;
+    --z-dropdown: 1100;
+    --z-modal: 1200;
+    --z-toast: 1300;
+    --z-tooltip: 1400;
+    --z-overlay: 1500;
 }
 
 /* =============================================================================
-   BASE STYLES - Geist font foundation
+   BASE STYLES - Foundation
    ============================================================================= */
 
 *,
@@ -87,11 +94,8 @@ body.dark {
     color: #f1f5f9;
 }
 
-/* 🔧 OPTIMIZED: Selective transitions instead of universal */
-/* Removed universal * transition that was causing jank */
-
 /* =============================================================================
-   SIMPLIFIED TYPOGRAPHY SYSTEM - Geist font hierarchy
+   TYPOGRAPHY SYSTEM - Geist hierarchy
    ============================================================================= */
 
 h1, h2, h3, h4, h5, h6 {
@@ -113,45 +117,14 @@ body.dark h6 {
     color: #f8fafc;
 }
 
-/* Simplified heading sizes */
-h1 {
-    font-size: 2.25rem;
-    font-weight: 600;
-}
+h1 { font-size: 2.25rem; font-weight: 600; }
+h2 { font-size: 1.875rem; font-weight: 600; }
+h3 { font-size: 1.5rem; font-weight: 600; }
+h4 { font-size: 1.25rem; font-weight: 500; }
+h5 { font-size: 1.125rem; font-weight: 500; }
+h6 { font-size: 1rem; font-weight: 500; }
 
-/* 36px */
-h2 {
-    font-size: 1.875rem;
-    font-weight: 600;
-}
-
-/* 30px */
-h3 {
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-/* 24px */
-h4 {
-    font-size: 1.25rem;
-    font-weight: 500;
-}
-
-/* 20px */
-h5 {
-    font-size: 1.125rem;
-    font-weight: 500;
-}
-
-/* 18px */
-h6 {
-    font-size: 1rem;
-    font-weight: 500;
-}
-
-/* 16px */
-
-/* Enhanced Typography Classes with Geist */
+/* Enhanced Typography Classes */
 .text-gradient-static {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     -webkit-background-clip: text;
@@ -180,45 +153,8 @@ h6 {
     font-weight: 600;
 }
 
-/* Form Typography with Geist */
-.form-label-enhanced {
-    font-family: var(--font-geist);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-    letter-spacing: 0em;
-    margin-bottom: 0.5rem;
-    display: block;
-    transition: color 0.2s ease;
-}
-
-body.dark .form-label-enhanced {
-    color: #d1d5db;
-}
-
-.form-input-enhanced {
-    font-family: var(--font-geist);
-    font-size: 1rem;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.5;
-}
-
-.form-error {
-    font-family: var(--font-geist);
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #dc2626;
-    margin-top: 0.25rem;
-    transition: color 0.2s ease;
-}
-
-body.dark .form-error {
-    color: #f87171;
-}
-
 /* =============================================================================
-   LAYOUT SYSTEM - Modern and minimal
+   LAYOUT SYSTEM - Modern structure
    ============================================================================= */
 
 .layout-container {
@@ -226,13 +162,12 @@ body.dark .form-error {
     position: relative;
 }
 
-/* 🔧 OPTIMIZED: Reduced backdrop-filter blur for better performance */
 .header-fixed {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: var(--z-dropdown);
+    z-index: var(--z-header);
     height: 4rem;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
@@ -246,13 +181,12 @@ body.dark .header-fixed {
     border-bottom-color: rgba(75, 85, 99, 0.3);
 }
 
-/* 🔧 OPTIMIZED: Reduced backdrop-filter blur for better performance */
 .sidebar-fixed {
     position: fixed;
     top: 4rem;
     left: 0;
     height: calc(100vh - 4rem);
-    z-index: 500;
+    z-index: var(--z-sidebar);
     transition: transform 0.2s ease, background-color 0.2s ease;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(6px);
@@ -271,11 +205,16 @@ body.dark .sidebar-fixed {
     transition: margin-left 0.2s ease;
 }
 
+.content-container {
+    margin-top: 1rem;
+    position: relative;
+    z-index: var(--z-base);
+}
+
 /* =============================================================================
-   MODERN COMPONENT STYLES - Simplified and clean
+   COMPONENT STYLES - Clean and modern
    ============================================================================= */
 
-/* 🔧 OPTIMIZED: Reduced backdrop-filter blur */
 .glass-effect {
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(6px);
@@ -290,7 +229,6 @@ body.dark .glass-effect {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* 🔧 OPTIMIZED: Consolidated transforms and optimized transitions */
 .card {
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -299,7 +237,6 @@ body.dark .glass-effect {
     box-shadow: var(--shadow-md);
     transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
     margin-bottom: 1.5rem;
-    /* 🔧 OPTIMIZED: Single transform property */
     transform: translateY(0) translateZ(0);
 }
 
@@ -324,7 +261,10 @@ body.dark .card {
     font-weight: 500;
 }
 
-/* 🔧 OPTIMIZED: Consolidated button transforms and faster transitions */
+/* =============================================================================
+   BUTTON SYSTEM - Enhanced interactions
+   ============================================================================= */
+
 .btn {
     font-family: var(--font-geist);
     display: inline-flex;
@@ -340,7 +280,6 @@ body.dark .card {
     min-height: 44px;
     padding: 0.75rem 1.5rem;
     text-decoration: none;
-    /* 🔧 OPTIMIZED: Single transform property */
     transform: translateY(0) translateZ(0);
 }
 
@@ -368,7 +307,37 @@ body.dark .btn-secondary {
     border-color: rgba(75, 85, 99, 0.5);
 }
 
-/* 🔧 OPTIMIZED: Consolidated form element transforms and faster transitions */
+.btn-sm {
+    min-height: 40px;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-lg {
+    min-height: 56px;
+    padding: 1rem 2.5rem;
+    font-size: 1.125rem;
+}
+
+/* =============================================================================
+   FORM SYSTEM - Clean inputs
+   ============================================================================= */
+
+.form-label-enhanced {
+    font-family: var(--font-geist);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    letter-spacing: 0em;
+    margin-bottom: 0.5rem;
+    display: block;
+    transition: color 0.2s ease;
+}
+
+body.dark .form-label-enhanced {
+    color: #d1d5db;
+}
+
 .form-input,
 .form-select,
 .form-textarea {
@@ -380,13 +349,12 @@ body.dark .btn-secondary {
     background: #ffffff;
     padding: 0.75rem 1rem;
     color: #0f172a;
-    font-size: 16px; /* Prevents iOS zoom */
+    font-size: 16px;
     line-height: 1.5;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
     min-height: 44px;
     font-weight: 400;
     letter-spacing: -0.01em;
-    /* 🔧 OPTIMIZED: Single transform property */
     transform: translateY(0) translateZ(0);
 }
 
@@ -407,7 +375,220 @@ body.dark .form-textarea {
     transform: translateY(-1px) translateZ(0);
 }
 
-/* Status Badges with Geist */
+.form-input-enhanced {
+    font-family: var(--font-geist);
+    font-size: 1rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.5;
+}
+
+.form-error {
+    font-family: var(--font-geist);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #dc2626;
+    margin-top: 0.25rem;
+    transition: color 0.2s ease;
+}
+
+body.dark .form-error {
+    color: #f87171;
+}
+
+/* =============================================================================
+   MODAL SYSTEM - Clean and conflict-free
+   ============================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--border-radius-xl);
+    width: 100%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl);
+    animation: modalScale 0.2s ease-out;
+    transform: translateZ(0);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+body.dark .modal-content {
+    background: rgba(17, 24, 39, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+    font-family: var(--font-geist);
+    font-weight: 500;
+}
+
+/* Responsive modal sizing */
+@media (min-width: 768px) {
+    .modal-content {
+        max-width: 1200px;
+        width: 95vw;
+        max-height: 90vh;
+        margin: auto;
+    }
+
+    .modal-sm {
+        max-width: 600px;
+        width: 90vw;
+    }
+
+    .modal-md {
+        max-width: 900px;
+        width: 92vw;
+    }
+
+    .modal-lg {
+        max-width: 1200px;
+        width: 95vw;
+    }
+
+    .modal-xl {
+        max-width: 1400px;
+        width: 98vw;
+    }
+}
+
+/* =============================================================================
+   TABLE SYSTEM - NUCLEAR STRENGTH HEADER FIX
+   ============================================================================= */
+
+.table-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: var(--border-radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    width: 100%;
+    transition: background-color 0.2s ease;
+}
+
+body.dark .table-container {
+    background: rgba(17, 24, 39, 0.95);
+}
+
+.table {
+    width: 100%;
+    background: transparent;
+    font-family: var(--font-geist);
+}
+
+/* NUCLEAR STRENGTH TABLE HEADER FIXES */
+table thead,
+.table thead,
+thead {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    color: white !important;
+}
+
+table thead th,
+.table thead th,
+thead th,
+th {
+    padding: 1rem !important;
+    text-align: left !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-family: var(--font-geist) !important;
+    color: white !important;
+    background: transparent !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    border: none !important;
+    background-color: transparent !important;
+}
+
+/* FORCE EVERY POSSIBLE TH ELEMENT */
+table th,
+.table th,
+thead th,
+tr th,
+th,
+th span,
+th div,
+th p,
+th * {
+    color: white !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* TARGET SPECIFIC TABLE CLASSES */
+.applications-table thead,
+.application-table thead,
+.data-table thead,
+.responsive-table thead,
+.mobile-table thead {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+}
+
+.applications-table thead th,
+.application-table thead th,
+.data-table thead th,
+.responsive-table thead th,
+.mobile-table thead th {
+    color: white !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+    transition: background-color 0.15s ease;
+}
+
+body.dark .table tbody tr {
+    border-bottom-color: rgba(75, 85, 99, 0.5);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(103, 126, 234, 0.05);
+}
+
+.table tbody td {
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: #374151;
+    font-family: var(--font-geist);
+    font-weight: 400;
+    transition: color 0.2s ease;
+}
+
+body.dark .table tbody td {
+    color: #d1d5db;
+}
+
+/* =============================================================================
+   STATUS BADGES - Application status indicators
+   ============================================================================= */
+
 .status-badge {
     font-family: var(--font-geist);
     display: inline-flex;
@@ -448,120 +629,9 @@ body.dark .form-textarea {
 }
 
 /* =============================================================================
-   MODAL SYSTEM - Clean and modern
+   UTILITY CLASSES - Responsive helpers
    ============================================================================= */
 
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    /* 🔧 OPTIMIZED: Removed backdrop-filter for better performance */
-    z-index: var(--z-modal);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-
-.modal-content {
-    background: rgba(255, 255, 255, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: var(--border-radius-xl);
-    padding: 1.5rem;
-    width: 100%;
-    max-width: 1200px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-xl);
-    animation: modalScale 0.2s ease-out;
-    /* 🔧 OPTIMIZED: Controlled transform for animation only */
-    transform: translateZ(0);
-}
-
-body.dark .modal-content {
-    background: rgba(17, 24, 39, 0.98);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.modal-header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 1.25rem 1.5rem;
-    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
-    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-    font-family: var(--font-geist);
-    font-weight: 500;
-}
-
-/* =============================================================================
-   TABLE SYSTEM - Clean and responsive
-   ============================================================================= */
-
-.table-container {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: var(--border-radius-xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-    width: 100%;
-    transition: background-color 0.2s ease;
-}
-
-body.dark .table-container {
-    background: rgba(17, 24, 39, 0.95);
-}
-
-.table {
-    width: 100%;
-    background: transparent;
-    font-family: var(--font-geist);
-}
-
-.table thead {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-}
-
-.table thead th {
-    padding: 1rem;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-family: var(--font-geist);
-}
-
-.table tbody tr {
-    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-    transition: background-color 0.15s ease;
-}
-
-body.dark .table tbody tr {
-    border-bottom-color: rgba(75, 85, 99, 0.5);
-}
-
-.table tbody tr:hover {
-    background-color: rgba(103, 126, 234, 0.05);
-}
-
-.table tbody td {
-    padding: 1rem;
-    font-size: 0.875rem;
-    color: #374151;
-    font-family: var(--font-geist);
-    font-weight: 400;
-    transition: color 0.2s ease;
-}
-
-body.dark .table tbody td {
-    color: #d1d5db;
-}
-
-/* =============================================================================
-   UTILITY CLASSES - Modern and minimal
-   ============================================================================= */
-
-/* Display utilities */
 .mobile-only {
     display: block;
 }
@@ -580,7 +650,6 @@ body.dark .table tbody td {
     }
 }
 
-/* 🔧 OPTIMIZED: Faster, smoother animations */
 .animate-fade-in {
     animation: fadeIn 0.2s ease-out;
 }
@@ -589,13 +658,15 @@ body.dark .table tbody td {
     animation: slideUp 0.2s ease-out;
 }
 
-/* 🔧 OPTIMIZED: Controlled GPU optimization - only when needed */
 .gpu-accelerated {
     transform: translateZ(0);
     backface-visibility: hidden;
 }
 
-/* Custom scrollbar with minimal design */
+/* =============================================================================
+   SCROLLBAR STYLING - Custom scrollbars
+   ============================================================================= */
+
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
@@ -624,10 +695,9 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
 }
 
 /* =============================================================================
-   ACCESSIBILITY & PERFORMANCE
+   ACCESSIBILITY & UX - Focus and interaction states
    ============================================================================= */
 
-/* Focus management */
 *:focus {
     outline: none;
 }
@@ -638,7 +708,39 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     border-radius: var(--border-radius-sm);
 }
 
-/* Reduced motion support */
+.modal-content:focus-within {
+    outline: 2px solid #667eea;
+    outline-offset: 4px;
+}
+
+.modal-content:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN - Mobile optimizations
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .main-content {
+        padding-top: 4rem;
+    }
+
+    .modal-content {
+        width: 95vw;
+        margin: 1rem;
+    }
+
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* =============================================================================
+   REDUCED MOTION - Accessibility support
+   ============================================================================= */
+
 @media (prefers-reduced-motion: reduce) {
     * {
         animation-duration: 0.01ms !important;
@@ -646,7 +748,6 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
         transition-duration: 0.01ms !important;
     }
 
-    /* 🔧 OPTIMIZED: Remove will-change for reduced motion */
     .card,
     .btn,
     .form-input,
@@ -656,7 +757,10 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     }
 }
 
-/* High contrast support */
+/* =============================================================================
+   HIGH CONTRAST - Accessibility support
+   ============================================================================= */
+
 @media (prefers-contrast: high) {
     .text-gradient-static,
     .text-gradient-blue,
@@ -672,7 +776,10 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     }
 }
 
-/* Touch device optimizations */
+/* =============================================================================
+   TOUCH DEVICES - Mobile optimizations
+   ============================================================================= */
+
 @media (hover: none) and (pointer: coarse) {
     button,
     .btn,
@@ -681,14 +788,16 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
         min-width: 44px;
     }
 
-    /* 🔧 OPTIMIZED: Remove transforms on touch devices */
     .btn:hover,
     .card:hover {
         transform: translateZ(0);
     }
 }
 
-/* Print optimizations */
+/* =============================================================================
+   PRINT STYLES - Document printing
+   ============================================================================= */
+
 @media print {
     * {
         background: white !important;
@@ -705,10 +814,22 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     .desktop-only {
         display: block !important;
     }
+
+    .header-fixed,
+    .sidebar-fixed,
+    .modal-overlay,
+    .toast-container {
+        display: none !important;
+    }
+
+    .main-content {
+        padding-top: 0 !important;
+        margin-left: 0 !important;
+    }
 }
 
 /* =============================================================================
-   MINIMAL KEYFRAME ANIMATIONS - Faster and smoother
+   KEYFRAME ANIMATIONS - Smooth transitions
    ============================================================================= */
 
 @keyframes fadeIn {
@@ -744,150 +865,507 @@ body.dark .custom-scrollbar::-webkit-scrollbar-thumb {
     }
 }
 
-/* =============================================================================
-   MODERN MODAL ENHANCEMENTS - Spacious and clean
-   ============================================================================= */
-
-@media (min-width: 768px) {
-    .modal-content {
-        max-width: 1200px !important;
-        width: 95vw;
-        max-height: 90vh;
-        margin: auto;
-        padding: 0;
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(50px) scale(0.95);
+        opacity: 0;
     }
-
-    .modal-sm {
-        max-width: 600px !important;
-        width: 90vw;
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
     }
-
-    .modal-md {
-        max-width: 900px !important;
-        width: 92vw;
-    }
-
-    .modal-lg {
-        max-width: 1200px !important;
-        width: 95vw;
-    }
-
-    .modal-xl {
-        max-width: 1400px !important;
-        width: 98vw;
-    }
-}
-
-/* Enhanced spacing in modals */
-.modal-content > div {
-    padding: 2rem 2.5rem !important;
-}
-
-.modal-content .grid {
-    gap: 2rem 1.5rem !important;
-}
-
-/* Enhanced form elements in modals */
-.modal-content .form-input,
-.modal-content .form-select,
-.modal-content .form-textarea {
-    min-height: 48px !important;
-    padding: 0.875rem 1.25rem !important;
-    font-size: 1rem !important;
-    line-height: 1.5 !important;
-    font-family: var(--font-geist) !important;
-}
-
-.modal-content .form-textarea {
-    min-height: 120px !important;
-    resize: vertical;
-}
-
-.modal-content .form-label-enhanced {
-    margin-bottom: 0.75rem !important;
-    font-size: 0.9375rem !important;
-    line-height: 1.4 !important;
-    font-family: var(--font-geist) !important;
-}
-
-/* Enhanced modal footer */
-.modal-content .flex.justify-end {
-    margin-top: 2.5rem !important;
-    padding-top: 2rem !important;
-    gap: 1rem !important;
-}
-
-.btn {
-    min-height: 48px !important;
-    padding: 0.875rem 2rem !important;
-    font-size: 1rem !important;
-    font-weight: 500 !important;
-    font-family: var(--font-geist) !important;
-}
-
-.btn-sm {
-    min-height: 40px !important;
-    padding: 0.75rem 1.5rem !important;
-}
-
-.btn-lg {
-    min-height: 56px !important;
-    padding: 1rem 2.5rem !important;
-    font-size: 1.125rem !important;
-}
-
-/* Enhanced focus states */
-.modal-content input:focus,
-.modal-content select:focus,
-.modal-content textarea:focus {
-    outline: none !important;
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 4px rgba(103, 126, 234, 0.15) !important;
-    transform: translateY(-1px) translateZ(0) !important;
-}
-
-/* Dark mode enhancements */
-body.dark .modal-content {
-    background: rgba(15, 23, 42, 0.98) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-body.dark .form-input-enhanced,
-body.dark .form-select,
-body.dark .form-textarea {
-    background: rgba(30, 41, 59, 0.8) !important;
-    border-color: rgba(71, 85, 105, 0.5) !important;
-    color: #f1f5f9 !important;
-}
-
-body.dark .form-input-enhanced:focus,
-body.dark .form-select:focus,
-body.dark .form-textarea:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 4px rgba(103, 126, 234, 0.25) !important;
 }
 
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS - Controlled and minimal
+   ANIMATION PERFORMANCE - Optimized animations
    ============================================================================= */
 
-/* 🔧 OPTIMIZED: Only essential elements get GPU acceleration */
+.modal-overlay {
+    animation: fadeIn 0.2s ease-out;
+}
+
 .modal-content {
+    animation: modalSlideUp 0.2s ease-out;
+}
+
+/* =============================================================================
+   DROPDOWN & TOAST SYSTEM - Z-index hierarchy
+   ============================================================================= */
+
+.dropdown-menu,
+.popover,
+[data-dropdown],
+[data-popover] {
+    z-index: var(--z-dropdown);
+}
+
+.toast-container,
+[data-toast-container] {
+    z-index: var(--z-toast);
+}
+
+.toast-item,
+[data-toast-item] {
+    z-index: calc(var(--z-toast) + 1);
+}
+
+.loading-overlay {
+    z-index: var(--z-overlay);
+}
+
+.fab,
+.floating-action-button,
+.scroll-to-top {
+    z-index: calc(var(--z-toast) - 1);
+}
+
+/* =============================================================================
+   GOAL SYSTEM - Content spacing fixes
+   ============================================================================= */
+
+.goal-container,
+.goal-setting-section,
+.application-goals,
+[data-goal-section] {
+    margin-top: 5rem;
+    position: relative;
+    z-index: calc(var(--z-header) - 1);
+}
+
+.goal-card,
+.goal-input,
+.goal-section {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
+}
+
+body.dark .goal-card,
+body.dark .goal-input,
+body.dark .goal-section {
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+/* =============================================================================
+   IMPORT/EXPORT UNIFIED SYSTEM - Add this to globals.css
+   Matching design patterns, Geist font, and performance optimizations
+   ============================================================================= */
+
+/* =============================================================================
+   EXPORT/IMPORT BUTTONS - Unified styling with consistent brand patterns
+   ============================================================================= */
+
+.export-btn,
+.import-btn {
+    font-family: var(--font-geist);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--border-radius-lg);
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+    min-height: 44px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+    transform: translateY(0) translateZ(0);
+    text-decoration: none;
+    gap: 0.5rem;
+}
+
+/* Export button - Primary brand gradient */
+.export-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(103, 126, 234, 0.3);
+}
+
+.export-btn:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6a4190 100%);
+    transform: translateY(-1px) translateZ(0);
+    box-shadow: 0 6px 16px rgba(103, 126, 234, 0.4);
+}
+
+/* Import button - Success gradient to match brand */
+.import-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.import-btn:hover {
+    background: linear-gradient(135deg, #0d9488 0%, #047857 100%);
+    transform: translateY(-1px) translateZ(0);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* Dark mode adjustments */
+body.dark .export-btn,
+body.dark .import-btn {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* =============================================================================
+   FILE UPLOAD/IMPORT AREAS - Glassmorphism matching modal style
+   ============================================================================= */
+
+.file-upload-area,
+.import-drop-zone {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 2px dashed #d1d5db;
+    border-radius: var(--border-radius-xl);
+    padding: 2rem;
+    text-align: center;
+    font-family: var(--font-geist);
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.2s ease;
+    transform: translateY(0) translateZ(0);
+    cursor: pointer;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+body.dark .file-upload-area,
+body.dark .import-drop-zone {
+    background: rgba(17, 24, 39, 0.95);
+    border-color: #4b5563;
+}
+
+/* Hover states */
+.file-upload-area:hover,
+.import-drop-zone:hover {
+    border-color: #667eea;
+    background: rgba(103, 126, 234, 0.05);
+    transform: translateY(-2px) translateZ(0);
+}
+
+body.dark .file-upload-area:hover,
+body.dark .import-drop-zone:hover {
+    background: rgba(103, 126, 234, 0.1);
+}
+
+/* Active/dragging states */
+.file-upload-area.dragging,
+.import-drop-zone.dragging {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    transform: translateY(-2px) translateZ(0);
+}
+
+/* =============================================================================
+   IMPORT/EXPORT MODALS - Matching existing modal system
+   ============================================================================= */
+
+.export-modal,
+.import-modal {
+    /* Inherits from existing .modal-content styling */
+    font-family: var(--font-geist);
+}
+
+.export-modal .modal-header,
+.import-modal .modal-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-family: var(--font-geist);
+    font-weight: 500;
+}
+
+.import-modal .modal-header {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+/* =============================================================================
+   PROGRESS INDICATORS - Unified for import/export operations
+   ============================================================================= */
+
+.export-progress,
+.import-progress {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+body.dark .export-progress,
+body.dark .import-progress {
+    background: #374151;
+}
+
+.export-progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.3s ease;
     transform: translateZ(0);
-    backface-visibility: hidden;
 }
 
-/* 🔧 OPTIMIZED: Table performance with contain */
-.table tbody tr {
-    contain: layout style;
+.import-progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    transform: translateZ(0);
 }
 
-.table-container {
-    contain: layout;
+/* =============================================================================
+   FILE TYPE INDICATORS - Consistent with status badge system
+   ============================================================================= */
+
+.file-type-badge {
+    font-family: var(--font-geist);
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+    transition: transform 0.15s ease, background-color 0.2s ease;
+    transform: translateZ(0);
 }
 
-/* 🔧 OPTIMIZED: Efficient focus management */
-.modal-overlay:focus-within .modal-content {
+.file-type-badge.csv {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #059669;
+    border-color: #86efac;
+}
+
+.file-type-badge.json {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1d4ed8;
+    border-color: #93c5fd;
+}
+
+.file-type-badge.excel {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #d97706;
+    border-color: #fbbf24;
+}
+
+.file-type-badge.pdf {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+/* =============================================================================
+   SUCCESS/ERROR STATES - Matching existing toast/notification system
+   ============================================================================= */
+
+.export-success,
+.import-success {
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border: 1px solid #86efac;
+    border-left: 4px solid #10b981;
+    color: #166534;
+    padding: 1rem 1.25rem;
+    border-radius: var(--border-radius-lg);
+    font-family: var(--font-geist);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+body.dark .export-success,
+body.dark .import-success {
+    background: #064e3b;
+    color: #a7f3d0;
+    border-color: #065f46;
+    border-left-color: #10b981;
+}
+
+.export-error,
+.import-error {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border: 1px solid #fca5a5;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+    padding: 1rem 1.25rem;
+    border-radius: var(--border-radius-lg);
+    font-family: var(--font-geist);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+body.dark .export-error,
+body.dark .import-error {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border-color: #991b1b;
+    border-left-color: #ef4444;
+}
+
+/* =============================================================================
+   LOADING STATES - Matching existing loading spinner system
+   ============================================================================= */
+
+.export-loading,
+.import-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-geist);
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #6b7280;
+    transition: color 0.2s ease;
+}
+
+body.dark .export-loading,
+body.dark .import-loading {
+    color: #9ca3af;
+}
+
+.export-spinner,
+.import-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e2e8f0;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    transform: translateZ(0);
+}
+
+.import-spinner {
+    border-top-color: #10b981;
+}
+
+body.dark .export-spinner,
+body.dark .import-spinner {
+    border-color: #374151;
+}
+
+body.dark .export-spinner {
+    border-top-color: #667eea;
+}
+
+body.dark .import-spinner {
+    border-top-color: #10b981;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg) translateZ(0); }
+    100% { transform: rotate(360deg) translateZ(0); }
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN - Mobile optimizations matching existing patterns
+   ============================================================================= */
+
+@media (max-width: 767px) {
+    .export-btn,
+    .import-btn {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-upload-area,
+    .import-drop-zone {
+        padding: 1.5rem 1rem;
+        min-height: 150px;
+    }
+
+    .export-modal,
+    .import-modal {
+        margin: 1rem;
+        width: calc(100% - 2rem);
+    }
+}
+
+/* =============================================================================
+   DESKTOP ENHANCEMENTS - Matching desktop.css patterns
+   ============================================================================= */
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+    .file-upload-area:hover,
+    .import-drop-zone:hover {
+        transform: translateY(-4px) translateZ(0);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .file-type-badge:hover {
+        transform: translateY(-1px) translateZ(0);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* =============================================================================
+   ACCESSIBILITY - Focus states and reduced motion
+   ============================================================================= */
+
+.export-btn:focus-visible,
+.import-btn:focus-visible,
+.file-upload-area:focus-visible,
+.import-drop-zone:focus-visible {
     outline: 2px solid #667eea;
-    outline-offset: 4px;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .export-btn,
+    .import-btn,
+    .file-upload-area,
+    .import-drop-zone,
+    .file-type-badge {
+        transition: none !important;
+        transform: translateY(0) translateZ(0) !important;
+    }
+
+    .export-btn:hover,
+    .import-btn:hover,
+    .file-upload-area:hover,
+    .import-drop-zone:hover {
+        transform: translateY(0) translateZ(0) !important;
+    }
+
+    .export-spinner,
+    .import-spinner {
+        animation: none !important;
+    }
+}
+
+/* =============================================================================
+   PRINT OPTIMIZATIONS - Matching existing print styles
+   ============================================================================= */
+
+@media print {
+    .export-btn,
+    .import-btn,
+    .file-upload-area,
+    .import-drop-zone,
+    .export-spinner,
+    .import-spinner {
+        display: none !important;
+    }
+
+    .export-success,
+    .import-success,
+    .export-error,
+    .import-error {
+        background: white !important;
+        color: black !important;
+        border: 1px solid black !important;
+        box-shadow: none !important;
+    }
 }

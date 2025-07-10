@@ -1,10 +1,10 @@
-// src/components/forms/ApplicationForm.tsx - ENHANCED TYPOGRAPHY VERSION
+// src/components/forms/ApplicationForm.tsx - ENHANCED WITH MUCH LARGER NOTES TEXTAREA
 import React, {useCallback, useState} from 'react';
 import {SubmitHandler, useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
 import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {ApplicationFormData, Attachment} from '../../types';
+import {ApplicationFormData, Attachment} from '../../types/application.types';
 import {applicationFormSchema} from '../../utils/validation';
 
 const ApplicationForm: React.FC = () => {
@@ -34,6 +34,7 @@ const ApplicationForm: React.FC = () => {
     });
 
     const jobUrl = watch('jobUrl');
+    const notesValue = watch('notes') || '';
 
     const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
         try {
@@ -156,13 +157,11 @@ const ApplicationForm: React.FC = () => {
     };
 
     return (
-        <div
-            className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
+        <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
             {/* Header - MOBILE RESPONSIVE */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3 sm:gap-4">
-                    <div
-                        className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
+                    <div className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
                         <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400"/>
                     </div>
                     <div>
@@ -369,19 +368,93 @@ const ApplicationForm: React.FC = () => {
                     )}
                 </div>
 
-                {/* Row 4: Notes - MOBILE OPTIMIZED */}
-                <div className="space-y-2">
-                    <label className="form-label-enhanced">
-                        Notes
-                    </label>
-                    <textarea
-                        {...register('notes')}
-                        rows={4}
-                        className="form-input-enhanced text-base font-medium focus:border-indigo-500 focus:ring-indigo-500/20 transition-all duration-300 resize-none"
-                        placeholder="Add any additional notes about this application..."
-                    />
+                {/* 🚀 MASSIVELY ENHANCED NOTES SECTION - MUCH BIGGER AND BETTER */}
+                <div className="space-y-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl p-6 border border-blue-200/30 dark:border-blue-700/30">
+                    <div className="flex items-center justify-between">
+                        <label className="form-label-enhanced text-lg font-bold text-blue-900 dark:text-blue-100 mb-0">
+                            📝 Notes
+                        </label>
+                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                            {notesValue.length} / 2000 characters
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        <textarea
+                            {...register('notes')}
+                            rows={8} // 🚀 MASSIVELY INCREASED from 8 to 12 rows
+                            className={`
+                                w-full px-6 py-4 text-base font-medium 
+                                bg-white/90 dark:bg-gray-800/90 
+                                border-2 border-blue-200 dark:border-blue-700 
+                                rounded-xl 
+                                focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 
+                                transition-all duration-300 
+                                resize-y 
+                                min-h-[300px] max-h-[600px]
+                                placeholder:text-gray-500 dark:placeholder:text-gray-400
+                                backdrop-blur-sm
+                                shadow-sm hover:shadow-md focus:shadow-lg
+                                ${errors.notes ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+                            `} // 🚀 MASSIVE min-height increase: 200px → 300px
+                            placeholder="Add any additional notes about this application...
+
+Interview details, salary negotiations, follow-up reminders, or any other relevant information"
+                            style={{
+                                lineHeight: '1.7', // 🚀 Even better line spacing
+                                fontSize: '16px',   // 🚀 Consistent font size
+                                fontFamily: 'inherit' // 🚀 Inherit from form styles
+                            }}
+                            maxLength={2000}
+                        />
+
+                        {/* 🚀 ENHANCED Character count with progress bar */}
+                        <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                            {/* Progress indicator */}
+                            <div className="hidden sm:flex items-center gap-2">
+                                <div className="w-16 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                            notesValue.length > 1800 ? 'bg-red-500' :
+                                                notesValue.length > 1500 ? 'bg-yellow-500' :
+                                                    'bg-blue-500'
+                                        }`}
+                                        style={{ width: `${(notesValue.length / 2000) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Character count badge */}
+                            <div className={`
+                                px-3 py-1 rounded-lg text-xs font-bold backdrop-blur-sm
+                                ${notesValue.length > 1800
+                                ? 'bg-red-100/90 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                                : notesValue.length > 1500
+                                    ? 'bg-yellow-100/90 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
+                                    : 'bg-blue-100/90 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                            }
+                            `}>
+                                {notesValue.length} / 2000
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 🚀 ENHANCED Helper text with examples */}
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-blue-200/50 dark:border-blue-700/50">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                            💡 <strong>Suggested information to include:</strong>
+                        </p>
+                        <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 ml-4">
+                            <li>• Interview details and experience</li>
+                            <li>• Salary negotiations and benefits</li>
+                            <li>• Follow-up reminders and deadlines</li>
+                            <li>• Company culture observations</li>
+                            <li>• Any other relevant information</li>
+                        </ul>
+                    </div>
+
                     {errors.notes && (
-                        <p className="form-error flex items-center gap-1">
+                        <p className="form-error flex items-center gap-1 mt-2">
                             ⚠️ {errors.notes.message}
                         </p>
                     )}
@@ -442,8 +515,7 @@ const ApplicationForm: React.FC = () => {
                     >
                         <div className="space-y-3 sm:space-y-4">
                             <div className="flex justify-center">
-                                <div
-                                    className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                                <div className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
                                     <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400"/>
                                 </div>
                             </div>
@@ -451,8 +523,7 @@ const ApplicationForm: React.FC = () => {
                             <div>
                                 <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
                                     <span className="hidden sm:inline">Drop files here, or </span>
-                                    <label
-                                        className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
+                                    <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
                                         <span className="sm:hidden">Tap to </span>browse
                                         <input
                                             type="file"
@@ -490,8 +561,7 @@ const ApplicationForm: React.FC = () => {
                                 <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300"/>
                                 <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
                                 <span className="sm:hidden font-bold">Add Application</span>
-                                <Sparkles
-                                    className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
+                                <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
                             </>
                         )}
                     </button>

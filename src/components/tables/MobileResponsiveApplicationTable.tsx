@@ -1,4 +1,4 @@
-// src/components/tables/MobileResponsiveApplicationTable.tsx - OPTIMIZED VERSION
+// src/components/tables/MobileResponsiveApplicationTable.tsx - ENHANCED WITH ENTERPRISE NOTES SYSTEM
 import React, {memo, useCallback, useMemo, useState} from 'react';
 import {
     Calendar,
@@ -13,13 +13,236 @@ import {
     Paperclip,
     Search,
     Trash2,
-    X
+    X,
+    FileText,
+    MessageSquare,
+    Copy,
+    Check,
+    Eye
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Application} from '../../types';
+import {Application} from '../../types/application.types';
 import BulkOperations from './BulkOperations';
+import {Modal} from '../ui/Modal';
+import {cn} from '../../utils/helpers';
 
 const ITEMS_PER_PAGE = 15;
+
+// 🎨 COMPANY COLOR GENERATOR - Consistent colors for company names
+const getCompanyColor = (companyName: string): string => {
+    const colors = [
+        'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700',
+        'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
+        'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700',
+        'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700',
+        'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700',
+        'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700',
+        'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-700',
+        'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
+        'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
+        'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700'
+    ];
+
+    // Simple hash function for consistent colors
+    let hash = 0;
+    for (let i = 0; i < companyName.length; i++) {
+        hash = companyName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return colors[Math.abs(hash) % colors.length];
+};
+
+// 📝 ENHANCED NOTES MODAL COMPONENT
+interface NotesModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    application: Application | null;
+}
+
+const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, application }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        if (!application?.notes) return;
+
+        try {
+            await navigator.clipboard.writeText(application.notes);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy notes:', err);
+        }
+    };
+
+    if (!application) return null;
+
+    const hasNotes = application.notes && application.notes.trim();
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Application Notes"
+            size="lg"
+            variant="primary"
+            className="notes-modal"
+        >
+            {/* Application Info Header */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-3">
+                    <div className={cn(
+                        "w-4 h-4 rounded-full border-2",
+                        getCompanyColor(application.company).split(' ')[0],
+                        getCompanyColor(application.company).split(' ')[2]
+                    )}></div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                            {application.company}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                            {application.position}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Applied: {new Date(application.dateApplied).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Notes Content */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                            Notes
+                        </h4>
+                    </div>
+                    {hasNotes && (
+                        <button
+                            onClick={handleCopy}
+                            className={cn(
+                                "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200",
+                                copied
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                            )}
+                        >
+                            {copied ? (
+                                <>
+                                    <Check className="h-3 w-3" />
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-3 w-3" />
+                                    Copy
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                {hasNotes ? (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                            <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap font-medium">
+                                {application.notes}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h5 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                            No notes yet
+                        </h5>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
+                            No notes have been added for this application. You can add notes by editing the application.
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Character Count & Word Count */}
+            {hasNotes && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>
+                            {application.notes!.length} characters
+                        </span>
+                        <span>
+                            {application.notes!.split(/\s+/).filter(word => word.length > 0).length} words
+                        </span>
+                    </div>
+                </div>
+            )}
+        </Modal>
+    );
+};
+
+// 📝 ENHANCED NOTES ICON COMPONENT
+interface NotesIconProps {
+    application: Application;
+    variant?: 'desktop' | 'mobile';
+    onClick: () => void;
+    className?: string;
+}
+
+const NotesIcon: React.FC<NotesIconProps> = ({
+                                                 application,
+                                                 variant = 'desktop',
+                                                 onClick,
+                                                 className = ""
+                                             }) => {
+    const hasNotes = application.notes && application.notes.trim();
+
+    if (variant === 'mobile') {
+        return (
+            <button
+                onClick={onClick}
+                className={cn(
+                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    hasNotes
+                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
+                    className
+                )}
+            >
+                <Eye className="h-3 w-3" />
+                <span>
+                    {hasNotes ? 'View Notes' : 'No Notes'}
+                </span>
+            </button>
+        );
+    }
+
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 group",
+                hasNotes
+                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 hover:scale-110"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600",
+                className
+            )}
+            title={hasNotes ? "View notes" : "No notes"}
+        >
+            {hasNotes ? (
+                <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform" />
+            ) : (
+                <FileText className="h-4 w-4 opacity-50" />
+            )}
+        </button>
+    );
+};
 
 const MobileResponsiveApplicationTable: React.FC = () => {
     const {
@@ -34,6 +257,30 @@ const MobileResponsiveApplicationTable: React.FC = () => {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    // 📝 NOTES MODAL STATE
+    const [notesModal, setNotesModal] = useState<{
+        isOpen: boolean;
+        application: Application | null;
+    }>({
+        isOpen: false,
+        application: null
+    });
+
+    // 📝 NOTES HANDLERS
+    const openNotesModal = useCallback((application: Application) => {
+        setNotesModal({
+            isOpen: true,
+            application
+        });
+    }, []);
+
+    const closeNotesModal = useCallback(() => {
+        setNotesModal({
+            isOpen: false,
+            application: null
+        });
+    }, []);
 
     // 🔧 OPTIMIZED: Debounced resize handler
     React.useEffect(() => {
@@ -227,12 +474,9 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 </div>
 
                 {/* Results Summary */}
-                <div
-                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
                     <div>
-                        <span
-                            className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span
-                        className="font-bold">{currentApplications.length}</span> applications
+                        <span className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span className="font-bold">{currentApplications.length}</span> applications
                         {ui.searchQuery && (
                             <div className="text-sm font-semibold text-gradient-blue mt-1 sm:mt-0 sm:ml-2 sm:inline">
                                 (filtered from {filteredApplications.length} total)
@@ -240,8 +484,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         )}
                     </div>
                     <div className="text-xs font-medium opacity-75">
-                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span
-                        className="font-bold">{paginationData.totalPages}</span>
+                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{paginationData.totalPages}</span>
                     </div>
                 </div>
             </div>
@@ -261,6 +504,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onToggleSelection={toggleRowSelection}
                     onEdit={openEditModal}
                     onDelete={handleDelete}
+                    onNotesClick={openNotesModal}
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
@@ -273,6 +517,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onToggleSelection={toggleRowSelection}
                     onEdit={openEditModal}
                     onDelete={handleDelete}
+                    onNotesClick={openNotesModal}
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
@@ -286,9 +531,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
             {paginationData.totalPages > 1 && (
                 <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-center">
-                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span
-                        className="font-bold">{paginationData.totalPages}</span> • <span
-                        className="font-bold">{currentApplications.length}</span> total applications
+                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span className="font-bold">{paginationData.totalPages}</span> • <span className="font-bold">{currentApplications.length}</span> total applications
                         {selectedIds.length > 0 && (
                             <span className="ml-2 text-gradient-purple">
                                 • <span className="font-bold">{selectedIds.length}</span> selected
@@ -344,17 +587,25 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* 📝 ENHANCED NOTES MODAL */}
+            <NotesModal
+                isOpen={notesModal.isOpen}
+                onClose={closeNotesModal}
+                application={notesModal.application}
+            />
         </div>
     );
 };
 
-// Optimized Mobile Card View
+// 📱 ENHANCED Mobile Card View WITH NOTES & COMPANY COLORS
 interface ViewProps {
     applications: Application[];
     selectedIds: string[];
     onToggleSelection: (id: string) => void;
     onEdit: (app: Application) => void;
     onDelete: (id: string, company: string) => void;
+    onNotesClick: (app: Application) => void;
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
     searchQuery: string;
@@ -362,7 +613,7 @@ interface ViewProps {
 }
 
 const MobileCardView: React.FC<ViewProps> = memo(({
-                                                      applications, selectedIds, onToggleSelection, onEdit, onDelete,
+                                                      applications, selectedIds, onToggleSelection, onEdit, onDelete, onNotesClick,
                                                       formatDate, getStatusBadge, searchQuery, showRejected
                                                   }) => {
     if (applications.length === 0) {
@@ -399,6 +650,7 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                     onToggleSelection={() => onToggleSelection(app.id)}
                     onEdit={() => onEdit(app)}
                     onDelete={() => onDelete(app.id, app.company)}
+                    onNotesClick={() => onNotesClick(app)}
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={searchQuery}
@@ -408,20 +660,21 @@ const MobileCardView: React.FC<ViewProps> = memo(({
     );
 });
 
-// Optimized Application Card
+// 📱 ENHANCED Application Card WITH NOTES & COMPANY COLORS
 interface CardProps {
     application: Application;
     isSelected: boolean;
     onToggleSelection: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    onNotesClick: () => void;
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
     searchQuery: string;
 }
 
 const ApplicationCard: React.FC<CardProps> = memo(({
-                                                       application, isSelected, onToggleSelection, onEdit, onDelete,
+                                                       application, isSelected, onToggleSelection, onEdit, onDelete, onNotesClick,
                                                        formatDate, getStatusBadge, searchQuery
                                                    }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -431,6 +684,9 @@ const ApplicationCard: React.FC<CardProps> = memo(({
         const regex = new RegExp(`(${searchQuery})`, 'gi');
         return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
     }, [searchQuery]);
+
+    const companyColorClasses = getCompanyColor(application.company);
+    const hasNotes = application.notes && application.notes.trim();
 
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-lg border-2 transition-all duration-200 ${
@@ -446,9 +702,13 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                             className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <div className="flex-1 min-w-0">
-                            <h3
-                                className="font-extrabold text-lg text-gradient-static truncate"
-                                dangerouslySetInnerHTML={{__html: highlightText(application.company)}}/>
+                            {/* 🎨 COMPANY WITH COLOR INDICATOR */}
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className={`w-3 h-3 rounded-full border ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
+                                <h3
+                                    className="font-extrabold text-lg text-gradient-static truncate"
+                                    dangerouslySetInnerHTML={{__html: highlightText(application.company)}}/>
+                            </div>
                             <p
                                 className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate"
                                 dangerouslySetInnerHTML={{__html: highlightText(application.position)}}/>
@@ -496,14 +756,58 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                     )}
                 </div>
 
-                <div
-                    className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
-                    >
-                        {isExpanded ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
-                    </button>
+                {/* 📝 ENHANCED NOTES PREVIEW */}
+                {hasNotes && (
+                    <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-l-4 border-blue-500">
+                        <div className="flex items-start gap-2">
+                            <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase">Notes Preview:</p>
+                                    <NotesIcon
+                                        application={application}
+                                        variant="mobile"
+                                        onClick={onNotesClick}
+                                        className="text-xs px-2 py-0.5"
+                                    />
+                                </div>
+                                <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                                    <p className="whitespace-pre-wrap">
+                                        {application.notes!.length > 100
+                                            ? `${application.notes!.substring(0, 100)}...`
+                                            : application.notes
+                                        }
+                                    </p>
+                                    {application.notes!.length > 100 && (
+                                        <button
+                                            onClick={onNotesClick}
+                                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1 font-medium text-xs hover:underline"
+                                        >
+                                            ↗ Read full notes
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                        >
+                            {isExpanded ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
+                        </button>
+
+                        {/* Notes Icon for mobile */}
+                        <NotesIcon
+                            application={application}
+                            variant="mobile"
+                            onClick={onNotesClick}
+                        />
+                    </div>
 
                     <div className="flex items-center space-x-2">
                         <button
@@ -525,13 +829,14 @@ const ApplicationCard: React.FC<CardProps> = memo(({
     );
 });
 
-// Optimized Desktop Table View
+// 🖥️ ENHANCED Desktop Table View WITH NOTES & COMPANY COLORS
 const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void; }> = memo(({
                                                                                                            applications,
                                                                                                            selectedIds,
                                                                                                            onToggleSelection,
                                                                                                            onEdit,
                                                                                                            onDelete,
+                                                                                                           onNotesClick,
                                                                                                            formatDate,
                                                                                                            getStatusBadge,
                                                                                                            showRejected,
@@ -540,12 +845,10 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                        }) => {
     if (applications.length === 0) {
         return (
-            <div
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                 <div className="text-center py-16 px-6">
                     <div className="space-y-4">
-                        <div
-                            className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                             <Search className="h-8 w-8 text-gray-400"/>
                         </div>
                         <div className="space-y-2">
@@ -568,8 +871,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
     const allCurrentPageSelected = applications.length > 0 && applications.every(app => selectedIds.includes(app.id));
 
     return (
-        <div
-            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700/50">
@@ -584,57 +886,65 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                         </th>
                         <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">#</th>
                         <th className="w-24 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Date</th>
-                        <th className="px-4 py-4 text-left text-xs font-extrabold text-white uppercase tracking-widest text-shadow">Company</th>
+                        <th className="px-4 py-4 text-left text-xs font-extrabold text-white uppercase tracking-widest">Company</th>
                         <th className="min-w-[140px] px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Position</th>
                         <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Type</th>
                         <th className="min-w-[100px] px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Location</th>
                         <th className="w-24 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Salary</th>
                         <th className="w-20 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Source</th>
                         <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Status</th>
+                        {/* 📝 ENHANCED NOTES COLUMN */}
+                        <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Notes</th>
                         <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">URL</th>
                         <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Actions</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {applications.map((app, index) => (
-                        <tr
-                            key={app.id}
-                            className={`transition-colors duration-150 ${
-                                selectedIds.includes(app.id)
-                                    ? 'bg-blue-50 dark:bg-blue-900/20'
-                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                            }`}
-                        >
-                            <td className="w-12 px-4 py-4 text-center">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedIds.includes(app.id)}
-                                    onChange={() => onToggleSelection(app.id)}
-                                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
-                                />
-                            </td>
-                            <td className="w-16 px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400 font-bold">
-                                {startIndex + index + 1}
-                            </td>
-                            <td className="w-24 px-4 py-4 text-left">
-                                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                    {formatDate(app.dateApplied)}
-                                </div>
-                            </td>
-                            <td className="min-w-[140px] px-4 py-4 text-left">
-                                <div className="text-sm font-extrabold text-gradient-static truncate max-w-[140px]"
-                                     title={app.company}>
-                                    {app.company}
-                                </div>
-                            </td>
-                            <td className="min-w-[140px] px-4 py-4 text-left">
-                                <div
-                                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[140px]"
-                                    title={app.position}>
-                                    {app.position}
-                                </div>
-                            </td>
-                            <td className="w-20 px-4 py-4 text-center">
+                    {applications.map((app, index) => {
+                        const companyColorClasses = getCompanyColor(app.company);
+
+                        return (
+                            <tr
+                                key={app.id}
+                                className={`transition-colors duration-150 ${
+                                    selectedIds.includes(app.id)
+                                        ? 'bg-blue-50 dark:bg-blue-900/20'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                }`}
+                            >
+                                <td className="w-12 px-4 py-4 text-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.includes(app.id)}
+                                        onChange={() => onToggleSelection(app.id)}
+                                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                    />
+                                </td>
+                                <td className="w-16 px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400 font-bold">
+                                    {startIndex + index + 1}
+                                </td>
+                                <td className="w-24 px-4 py-4 text-left">
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                        {formatDate(app.dateApplied)}
+                                    </div>
+                                </td>
+                                {/* 🎨 ENHANCED COMPANY COLUMN WITH COLOR INDICATOR */}
+                                <td className="min-w-[140px] px-4 py-4 text-left">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
+                                        <div className="text-sm font-extrabold text-gradient-static truncate max-w-[120px]" title={app.company}>
+                                            {app.company}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="min-w-[140px] px-4 py-4 text-left">
+                                    <div
+                                        className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[140px]"
+                                        title={app.position}>
+                                        {app.position}
+                                    </div>
+                                </td>
+                                <td className="w-20 px-4 py-4 text-center">
                                     <span
                                         className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
                                             app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
@@ -643,67 +953,75 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         }`}>
                                         {app.type}
                                     </span>
-                            </td>
-                            <td className="min-w-[100px] px-4 py-4 text-left">
-                                <div
-                                    className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] font-medium"
-                                    title={app.location || ''}>
-                                    {app.location || <span className="text-gray-400 italic font-normal">-</span>}
-                                </div>
-                            </td>
-                            <td className="w-24 px-4 py-4 text-left">
-                                <div
-                                    className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[80px] font-semibold"
-                                    title={app.salary || ''}>
-                                    {app.salary && app.salary !== '-' ? app.salary :
-                                        <span className="text-gray-400 italic font-normal">-</span>}
-                                </div>
-                            </td>
-                            <td className="w-20 px-4 py-4 text-left">
-                                <div
-                                    className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[60px] font-medium"
-                                    title={app.jobSource || ''}>
-                                    {app.jobSource || <span className="text-gray-400 italic font-normal">-</span>}
-                                </div>
-                            </td>
-                            <td className="w-24 px-4 py-4 text-center">
+                                </td>
+                                <td className="min-w-[100px] px-4 py-4 text-left">
+                                    <div
+                                        className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] font-medium"
+                                        title={app.location || ''}>
+                                        {app.location || <span className="text-gray-400 italic font-normal">-</span>}
+                                    </div>
+                                </td>
+                                <td className="w-24 px-4 py-4 text-left">
+                                    <div
+                                        className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[80px] font-semibold"
+                                        title={app.salary || ''}>
+                                        {app.salary && app.salary !== '-' ? app.salary :
+                                            <span className="text-gray-400 italic font-normal">-</span>}
+                                    </div>
+                                </td>
+                                <td className="w-20 px-4 py-4 text-left">
+                                    <div
+                                        className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[60px] font-medium"
+                                        title={app.jobSource || ''}>
+                                        {app.jobSource || <span className="text-gray-400 italic font-normal">-</span>}
+                                    </div>
+                                </td>
+                                <td className="w-24 px-4 py-4 text-center">
                                     <span className={getStatusBadge(app.status)}>
                                         {app.status}
                                     </span>
-                            </td>
-                            <td className="w-16 px-4 py-4 text-center">
-                                {app.jobUrl ? (
-                                    <button
-                                        onClick={() => window.open(app.jobUrl, '_blank')}
-                                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors duration-150"
-                                        title="Open job posting"
-                                    >
-                                        <ExternalLink className="h-4 w-4"/>
-                                    </button>
-                                ) : (
-                                    <span className="text-gray-400 italic font-normal">-</span>
-                                )}
-                            </td>
-                            <td className="w-24 px-4 py-4 text-center">
-                                <div className="flex items-center justify-center space-x-1">
-                                    <button
-                                        onClick={() => onEdit(app)}
-                                        className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
-                                        title="Edit application"
-                                    >
-                                        <Edit className="h-3.5 w-3.5"/>
-                                    </button>
-                                    <button
-                                        onClick={() => onDelete(app.id, app.company)}
-                                        className="inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
-                                        title="Delete application"
-                                    >
-                                        <Trash2 className="h-3.5 w-3.5"/>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
+                                </td>
+                                {/* 📝 ENHANCED NOTES COLUMN */}
+                                <td className="w-20 px-4 py-4 text-center">
+                                    <NotesIcon
+                                        application={app}
+                                        onClick={() => onNotesClick(app)}
+                                    />
+                                </td>
+                                <td className="w-16 px-4 py-4 text-center">
+                                    {app.jobUrl ? (
+                                        <button
+                                            onClick={() => window.open(app.jobUrl, '_blank')}
+                                            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors duration-150"
+                                            title="Open job posting"
+                                        >
+                                            <ExternalLink className="h-4 w-4"/>
+                                        </button>
+                                    ) : (
+                                        <span className="text-gray-400 italic font-normal">-</span>
+                                    )}
+                                </td>
+                                <td className="w-24 px-4 py-4 text-center">
+                                    <div className="flex items-center justify-center space-x-1">
+                                        <button
+                                            onClick={() => onEdit(app)}
+                                            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
+                                            title="Edit application"
+                                        >
+                                            <Edit className="h-3.5 w-3.5"/>
+                                        </button>
+                                        <button
+                                            onClick={() => onDelete(app.id, app.company)}
+                                            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
+                                            title="Delete application"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5"/>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        );
+                    })}
                     </tbody>
                 </table>
             </div>
