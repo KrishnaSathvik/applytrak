@@ -1,4 +1,4 @@
-// src/store/useAppStore.ts - PERFORMANCE OPTIMIZED VERSION
+// src/store/useAppStore.ts - FIXED VERSION WITH ALL ISSUES RESOLVED
 import {create} from 'zustand';
 import {persist, subscribeWithSelector} from 'zustand/middleware';
 import {startTransition} from 'react';
@@ -74,6 +74,7 @@ export interface AppState {
     bulkDeleteApplications: (ids: string[]) => Promise<void>;
     bulkUpdateApplications: (ids: string[], updates: Partial<Application>) => Promise<void>;
     searchApplications: (query: string) => void;
+    clearSearch: () => void; // 🔧 NEW: Clear search method
     bulkAddApplications: (applications: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{
         successCount: number;
         errorCount: number
@@ -326,7 +327,7 @@ const checkMilestones = (applicationCount: number, showToast: (toast: Omit<Toast
     }
 };
 
-// 🚀 OPTIMIZED: Debounced search function
+// 🔧 FIXED: Debounced search function with proper handling
 const createDebouncedSearch = (setState: any) => {
     return debounce((query: string, applications: Application[]) => {
         let filtered = applications;
@@ -446,7 +447,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🚀 OPTIMIZED: Single state update + startTransition
+                    // 🔧 FIXED: Single toast notification for addApplication
                     addApplication: async (applicationData) => {
                         try {
                             const newApplication = await databaseService.addApplication(applicationData);
@@ -474,7 +475,7 @@ export const useAppStore = create<AppState>()(
                                 };
                             });
 
-                            // 🚀 Show toast immediately
+                            // 🔧 FIXED: Single toast notification only
                             get().showToast({
                                 type: 'success',
                                 message: 'Application added successfully!',
@@ -543,8 +544,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // Add this to your useAppStore.ts - FIXED deleteApplication function
-
+                    // 🔧 FIXED: deleteApplication function
                     deleteApplication: async (id) => {
                         try {
                             // 🔧 FIXED: Try database delete but don't fail if not found
@@ -787,16 +787,36 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🚀 OPTIMIZED: Debounced search
+                    // 🔧 FIXED: Search functionality with proper clear handling
                     searchApplications: (query) => {
-                        // 🚀 Update UI immediately for responsiveness
+                        // 🔧 IMMEDIATE: Update UI state first for responsiveness
                         set(state => ({
                             ui: {...state.ui, searchQuery: query}
                         }));
 
-                        // 🚀 Debounce the expensive filtering
+                        // 🔧 SPECIAL CASE: If query is empty, reset immediately without debounce
+                        if (!query || query.trim() === '') {
+                            set(state => ({
+                                filteredApplications: state.applications,
+                                ui: {...state.ui, currentPage: 1}
+                            }));
+                            return;
+                        }
+
+                        // 🔧 DEBOUNCE: Only for actual search queries
                         const {applications} = get();
                         debouncedSearch(query, applications);
+                    },
+
+                    // 🔧 NEW: Clear search with immediate UI reset
+                    clearSearch: () => {
+                        // 🔧 IMMEDIATE: Reset UI state first
+                        set(state => ({
+                            ui: {...state.ui, searchQuery: ''},
+                            filteredApplications: state.applications // Reset to show all applications
+                        }));
+
+                        console.log('✅ Search cleared - UI immediately reset');
                     },
 
                     handleImport: async (importedApplications) => {
@@ -948,18 +968,21 @@ export const useAppStore = create<AppState>()(
                         }));
                     },
 
-                    // 🚀 OPTIMIZED: Better toast management
+                    // 🔧 ENHANCED: Better toast management with duplicate prevention
                     showToast: (toast) => {
                         const currentToasts = get().toasts;
 
-                        // 🚀 Prevent duplicate messages within 1 second
+                        // 🔧 ENHANCED: Prevent duplicates within 2 seconds (increased from 1 second)
                         const isDuplicate = currentToasts.some(t =>
                             t.message === toast.message &&
                             t.type === toast.type &&
-                            Date.now() - parseInt(t.id.split('-')[0], 36) < 1000
+                            Date.now() - parseInt(t.id.split('-')[0], 36) < 2000 // Increased from 1000ms to 2000ms
                         );
 
-                        if (isDuplicate) return;
+                        if (isDuplicate) {
+                            console.log('🚫 Prevented duplicate toast:', toast.message);
+                            return;
+                        }
 
                         const id = generateId();
                         const newToast = {...toast, id};

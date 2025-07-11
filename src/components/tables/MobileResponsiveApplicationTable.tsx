@@ -1,27 +1,29 @@
-// src/components/tables/MobileResponsiveApplicationTable.tsx - ENHANCED WITH ENTERPRISE NOTES SYSTEM
+// src/components/tables/MobileResponsiveApplicationTable.tsx - COMPLETE UPDATE WITH RESUME COMPONENTS + SEARCH FIXES
 import React, {memo, useCallback, useMemo, useState} from 'react';
 import {
     Calendar,
+    Check,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
     ChevronUp,
+    Copy,
     DollarSign,
+    Download,
     Edit,
     ExternalLink,
+    Eye,
+    FileIcon,
+    FileText,
     MapPin,
+    MessageSquare,
     Paperclip,
     Search,
     Trash2,
-    X,
-    FileText,
-    MessageSquare,
-    Copy,
-    Check,
-    Eye
+    X
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Application} from '../../types/application.types';
+import {Application, Attachment} from '../../types/application.types';
 import BulkOperations from './BulkOperations';
 import {Modal} from '../ui/Modal';
 import {cn} from '../../utils/helpers';
@@ -52,6 +54,248 @@ const getCompanyColor = (companyName: string): string => {
     return colors[Math.abs(hash) % colors.length];
 };
 
+// 📄 NEW: RESUME MODAL COMPONENT - Following Notes Modal Pattern
+interface ResumeModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    application: Application | null;
+}
+
+const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application}) => {
+    const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+    const handleDownload = async (attachment: Attachment) => {
+        if (!attachment.data) return;
+
+        try {
+            setDownloadingId(attachment.id || attachment.name);
+
+            // Create blob from base64 data
+            const byteCharacters = atob(attachment.data.split(',')[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: attachment.type});
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = attachment.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to download attachment:', err);
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
+    if (!application) return null;
+
+    const resumeAttachments = application.attachments?.filter(attachment =>
+        attachment.name.toLowerCase().includes('resume') ||
+        attachment.name.toLowerCase().includes('cv') ||
+        attachment.type === 'application/pdf'
+    ) || [];
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Resume & Attachments"
+            size="lg"
+            variant="primary"
+            className="resume-modal"
+        >
+            {/* Application Info Header */}
+            <div
+                className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-3">
+                    <div className={cn(
+                        "w-4 h-4 rounded-full border-2",
+                        getCompanyColor(application.company).split(' ')[0],
+                        getCompanyColor(application.company).split(' ')[2]
+                    )}></div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                            {application.company}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                            {application.position}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Applied: {new Date(application.dateApplied).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Resume Content */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <Paperclip className="h-5 w-5 text-green-600 dark:text-green-400"/>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                        Resume & Attachments
+                    </h4>
+                    <span
+                        className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                        {resumeAttachments.length} file{resumeAttachments.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+
+                {resumeAttachments.length > 0 ? (
+                    <div className="space-y-3">
+                        {resumeAttachments.map((attachment) => (
+                            <div
+                                key={attachment.id || attachment.name}
+                                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                            <FileIcon className="h-5 w-5 text-green-600 dark:text-green-400"/>
+                                        </div>
+                                        <div>
+                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100">
+                                                {attachment.name}
+                                            </h5>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                {attachment.type} • {(attachment.size / 1024 / 1024).toFixed(1)} MB
+                                            </p>
+                                            {attachment.uploadedAt && (
+                                                <p className="text-xs text-gray-400 dark:text-gray-500">
+                                                    Uploaded: {new Date(attachment.uploadedAt).toLocaleDateString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDownload(attachment)}
+                                        disabled={downloadingId === (attachment.id || attachment.name)}
+                                        className={cn(
+                                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                                            downloadingId === (attachment.id || attachment.name)
+                                                ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
+                                                : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                                        )}
+                                    >
+                                        {downloadingId === (attachment.id || attachment.name) ? (
+                                            <>
+                                                <div
+                                                    className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                Downloading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="h-3 w-3"/>
+                                                Download
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-12">
+                        <div
+                            className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                            <Paperclip className="h-8 w-8 text-gray-400"/>
+                        </div>
+                        <h5 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                            No resume attached
+                        </h5>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
+                            No resume or attachments have been added for this application. You can add attachments by
+                            editing the application.
+                        </p>
+                    </div>
+                )}
+            </div>
+        </Modal>
+    );
+};
+
+// 📄 NEW: RESUME ICON COMPONENT - Following Notes Icon Pattern
+interface ResumeIconProps {
+    application: Application;
+    variant?: 'desktop' | 'mobile';
+    onClick: () => void;
+    className?: string;
+}
+
+const ResumeIcon: React.FC<ResumeIconProps> = ({
+                                                   application,
+                                                   variant = 'desktop',
+                                                   onClick,
+                                                   className = ""
+                                               }) => {
+    const resumeAttachments = application.attachments?.filter(attachment =>
+        attachment.name.toLowerCase().includes('resume') ||
+        attachment.name.toLowerCase().includes('cv') ||
+        attachment.type === 'application/pdf'
+    ) || [];
+
+    const hasResume = resumeAttachments.length > 0;
+
+    if (variant === 'mobile') {
+        return (
+            <button
+                onClick={onClick}
+                className={cn(
+                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    hasResume
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
+                    className
+                )}
+            >
+                <Paperclip className="h-3 w-3"/>
+                <span>
+                    {hasResume ? `${resumeAttachments.length} file${resumeAttachments.length > 1 ? 's' : ''}` : 'No Resume'}
+                </span>
+            </button>
+        );
+    }
+
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 group relative",
+                hasResume
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 hover:scale-110"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600",
+                className
+            )}
+            title={hasResume ? `View ${resumeAttachments.length} attachment${resumeAttachments.length > 1 ? 's' : ''}` : "No resume attached"}
+        >
+            {hasResume ? (
+                <>
+                    <Paperclip className="h-4 w-4 group-hover:scale-110 transition-transform"/>
+                    {resumeAttachments.length > 1 && (
+                        <span
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                            {resumeAttachments.length}
+                        </span>
+                    )}
+                </>
+            ) : (
+                <FileText className="h-4 w-4 opacity-50"/>
+            )}
+        </button>
+    );
+};
+
 // 📝 ENHANCED NOTES MODAL COMPONENT
 interface NotesModalProps {
     isOpen: boolean;
@@ -59,7 +303,7 @@ interface NotesModalProps {
     application: Application | null;
 }
 
-const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, application }) => {
+const NotesModal: React.FC<NotesModalProps> = ({isOpen, onClose, application}) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
@@ -88,7 +332,8 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, application })
             className="notes-modal"
         >
             {/* Application Info Header */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <div
+                className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-3">
                     <div className={cn(
                         "w-4 h-4 rounded-full border-2",
@@ -117,7 +362,7 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, application })
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                         <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">
                             Notes
                         </h4>
@@ -134,12 +379,12 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, application })
                         >
                             {copied ? (
                                 <>
-                                    <Check className="h-3 w-3" />
+                                    <Check className="h-3 w-3"/>
                                     Copied!
                                 </>
                             ) : (
                                 <>
-                                    <Copy className="h-3 w-3" />
+                                    <Copy className="h-3 w-3"/>
                                     Copy
                                 </>
                             )}
@@ -148,17 +393,20 @@ const NotesModal: React.FC<NotesModalProps> = ({ isOpen, onClose, application })
                 </div>
 
                 {hasNotes ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                    <div
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
                         <div className="prose prose-sm max-w-none dark:prose-invert">
-                            <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap font-medium">
+                            <div
+                                className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap font-medium">
                                 {application.notes}
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div className="text-center py-12">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                            <FileText className="h-8 w-8 text-gray-400" />
+                        <div
+                            className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                            <FileText className="h-8 w-8 text-gray-400"/>
                         </div>
                         <h5 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
                             No notes yet
@@ -215,7 +463,7 @@ const NotesIcon: React.FC<NotesIconProps> = ({
                     className
                 )}
             >
-                <Eye className="h-3 w-3" />
+                <Eye className="h-3 w-3"/>
                 <span>
                     {hasNotes ? 'View Notes' : 'No Notes'}
                 </span>
@@ -236,9 +484,9 @@ const NotesIcon: React.FC<NotesIconProps> = ({
             title={hasNotes ? "View notes" : "No notes"}
         >
             {hasNotes ? (
-                <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform"/>
             ) : (
-                <FileText className="h-4 w-4 opacity-50" />
+                <FileText className="h-4 w-4 opacity-50"/>
             )}
         </button>
     );
@@ -249,6 +497,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         filteredApplications,
         ui,
         setSearchQuery,
+        clearSearch, // 🔧 FIXED: Using clearSearch from store
         openEditModal,
         deleteApplication
     } = useAppStore();
@@ -267,6 +516,15 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         application: null
     });
 
+    // 📄 NEW: RESUME MODAL STATE
+    const [resumeModal, setResumeModal] = useState<{
+        isOpen: boolean;
+        application: Application | null;
+    }>({
+        isOpen: false,
+        application: null
+    });
+
     // 📝 NOTES HANDLERS
     const openNotesModal = useCallback((application: Application) => {
         setNotesModal({
@@ -277,6 +535,21 @@ const MobileResponsiveApplicationTable: React.FC = () => {
 
     const closeNotesModal = useCallback(() => {
         setNotesModal({
+            isOpen: false,
+            application: null
+        });
+    }, []);
+
+    // 📄 NEW: RESUME HANDLERS
+    const openResumeModal = useCallback((application: Application) => {
+        setResumeModal({
+            isOpen: true,
+            application
+        });
+    }, []);
+
+    const closeResumeModal = useCallback(() => {
+        setResumeModal({
             isOpen: false,
             application: null
         });
@@ -385,20 +658,18 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         }
     }, []);
 
-    // 🔧 OPTIMIZED: Debounced search with better cleanup
-    const debouncedSearch = useMemo(() => {
-        let timeoutId: NodeJS.Timeout;
-        return (query: string) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => setSearchQuery(query), 300);
-        };
-    }, [setSearchQuery]);
-
+    // 🔧 FIXED: Search change handler for controlled input
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
-        debouncedSearch(query);
+        setSearchQuery(query);
         setCurrentPage(1);
-    }, [debouncedSearch]);
+    }, [setSearchQuery]);
+
+    // 🔧 FIXED: Clear search handler
+    const handleClearSearch = useCallback(() => {
+        clearSearch();
+        setCurrentPage(1);
+    }, [clearSearch]);
 
     // 🔧 OPTIMIZED: Stable tab switching
     const handleTabSwitch = useCallback((rejected: boolean) => {
@@ -426,18 +697,19 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         <div className="space-y-4">
             {/* Search and Controls - OPTIMIZED */}
             <div className="space-y-4">
-                {/* Search - Optimized with reduced transitions */}
+                {/* 🔧 FIXED: Search - Now controlled component with proper value prop */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10"/>
                     <input
                         type="text"
                         placeholder="Search applications..."
+                        value={ui.searchQuery} // 🔧 FIXED: Added controlled value
                         onChange={handleSearchChange}
                         className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 dark:placeholder-gray-400 font-medium text-base placeholder:font-normal transition-colors duration-150"
                     />
                     {ui.searchQuery && (
                         <button
-                            onClick={() => setSearchQuery('')}
+                            onClick={handleClearSearch} // 🔧 FIXED: Using proper clear handler
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150"
                         >
                             <X className="h-4 w-4"/>
@@ -474,9 +746,12 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 </div>
 
                 {/* Results Summary */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                <div
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
                     <div>
-                        <span className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span className="font-bold">{currentApplications.length}</span> applications
+                        <span
+                            className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span
+                        className="font-bold">{currentApplications.length}</span> applications
                         {ui.searchQuery && (
                             <div className="text-sm font-semibold text-gradient-blue mt-1 sm:mt-0 sm:ml-2 sm:inline">
                                 (filtered from {filteredApplications.length} total)
@@ -484,7 +759,8 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         )}
                     </div>
                     <div className="text-xs font-medium opacity-75">
-                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span className="font-bold">{paginationData.totalPages}</span>
+                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span
+                        className="font-bold">{paginationData.totalPages}</span>
                     </div>
                 </div>
             </div>
@@ -505,6 +781,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onEdit={openEditModal}
                     onDelete={handleDelete}
                     onNotesClick={openNotesModal}
+                    onResumeClick={openResumeModal} // 📄 NEW: Resume handler
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
@@ -518,6 +795,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onEdit={openEditModal}
                     onDelete={handleDelete}
                     onNotesClick={openNotesModal}
+                    onResumeClick={openResumeModal} // 📄 NEW: Resume handler
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
@@ -531,7 +809,9 @@ const MobileResponsiveApplicationTable: React.FC = () => {
             {paginationData.totalPages > 1 && (
                 <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-center">
-                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span className="font-bold">{paginationData.totalPages}</span> • <span className="font-bold">{currentApplications.length}</span> total applications
+                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span
+                        className="font-bold">{paginationData.totalPages}</span> • <span
+                        className="font-bold">{currentApplications.length}</span> total applications
                         {selectedIds.length > 0 && (
                             <span className="ml-2 text-gradient-purple">
                                 • <span className="font-bold">{selectedIds.length}</span> selected
@@ -594,11 +874,18 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 onClose={closeNotesModal}
                 application={notesModal.application}
             />
+
+            {/* 📄 NEW: RESUME MODAL */}
+            <ResumeModal
+                isOpen={resumeModal.isOpen}
+                onClose={closeResumeModal}
+                application={resumeModal.application}
+            />
         </div>
     );
 };
 
-// 📱 ENHANCED Mobile Card View WITH NOTES & COMPANY COLORS
+// 📱 ENHANCED Mobile Card View WITH NOTES & RESUME & COMPANY COLORS
 interface ViewProps {
     applications: Application[];
     selectedIds: string[];
@@ -606,6 +893,7 @@ interface ViewProps {
     onEdit: (app: Application) => void;
     onDelete: (id: string, company: string) => void;
     onNotesClick: (app: Application) => void;
+    onResumeClick: (app: Application) => void; // 📄 NEW: Resume handler
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
     searchQuery: string;
@@ -613,8 +901,17 @@ interface ViewProps {
 }
 
 const MobileCardView: React.FC<ViewProps> = memo(({
-                                                      applications, selectedIds, onToggleSelection, onEdit, onDelete, onNotesClick,
-                                                      formatDate, getStatusBadge, searchQuery, showRejected
+                                                      applications,
+                                                      selectedIds,
+                                                      onToggleSelection,
+                                                      onEdit,
+                                                      onDelete,
+                                                      onNotesClick,
+                                                      onResumeClick, // 📄 NEW: Resume handler
+                                                      formatDate,
+                                                      getStatusBadge,
+                                                      searchQuery,
+                                                      showRejected
                                                   }) => {
     if (applications.length === 0) {
         return (
@@ -651,6 +948,7 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                     onEdit={() => onEdit(app)}
                     onDelete={() => onDelete(app.id, app.company)}
                     onNotesClick={() => onNotesClick(app)}
+                    onResumeClick={() => onResumeClick(app)} // 📄 NEW: Resume handler
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={searchQuery}
@@ -660,7 +958,7 @@ const MobileCardView: React.FC<ViewProps> = memo(({
     );
 });
 
-// 📱 ENHANCED Application Card WITH NOTES & COMPANY COLORS
+// 📱 ENHANCED Application Card WITH NOTES & RESUME & COMPANY COLORS
 interface CardProps {
     application: Application;
     isSelected: boolean;
@@ -668,14 +966,23 @@ interface CardProps {
     onEdit: () => void;
     onDelete: () => void;
     onNotesClick: () => void;
+    onResumeClick: () => void; // 📄 NEW: Resume handler
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
     searchQuery: string;
 }
 
 const ApplicationCard: React.FC<CardProps> = memo(({
-                                                       application, isSelected, onToggleSelection, onEdit, onDelete, onNotesClick,
-                                                       formatDate, getStatusBadge, searchQuery
+                                                       application,
+                                                       isSelected,
+                                                       onToggleSelection,
+                                                       onEdit,
+                                                       onDelete,
+                                                       onNotesClick,
+                                                       onResumeClick, // 📄 NEW: Resume handler
+                                                       formatDate,
+                                                       getStatusBadge,
+                                                       searchQuery
                                                    }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
@@ -704,7 +1011,8 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                         <div className="flex-1 min-w-0">
                             {/* 🎨 COMPANY WITH COLOR INDICATOR */}
                             <div className="flex items-center gap-2 mb-1">
-                                <div className={`w-3 h-3 rounded-full border ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
+                                <div
+                                    className={`w-3 h-3 rounded-full border ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
                                 <h3
                                     className="font-extrabold text-lg text-gradient-static truncate"
                                     dangerouslySetInnerHTML={{__html: highlightText(application.company)}}/>
@@ -758,12 +1066,14 @@ const ApplicationCard: React.FC<CardProps> = memo(({
 
                 {/* 📝 ENHANCED NOTES PREVIEW */}
                 {hasNotes && (
-                    <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-l-4 border-blue-500">
+                    <div
+                        className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-l-4 border-blue-500">
                         <div className="flex items-start gap-2">
-                            <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0"/>
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between mb-1">
-                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase">Notes Preview:</p>
+                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase">Notes
+                                        Preview:</p>
                                     <NotesIcon
                                         application={application}
                                         variant="mobile"
@@ -792,7 +1102,8 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                     </div>
                 )}
 
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div
+                    className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
@@ -806,6 +1117,13 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                             application={application}
                             variant="mobile"
                             onClick={onNotesClick}
+                        />
+
+                        {/* 📄 NEW: Resume Icon for mobile */}
+                        <ResumeIcon
+                            application={application}
+                            variant="mobile"
+                            onClick={onResumeClick}
                         />
                     </div>
 
@@ -829,7 +1147,7 @@ const ApplicationCard: React.FC<CardProps> = memo(({
     );
 });
 
-// 🖥️ ENHANCED Desktop Table View WITH NOTES & COMPANY COLORS
+// 🖥️ ENHANCED Desktop Table View WITH NOTES & RESUME & COMPANY COLORS
 const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void; }> = memo(({
                                                                                                            applications,
                                                                                                            selectedIds,
@@ -837,6 +1155,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                            onEdit,
                                                                                                            onDelete,
                                                                                                            onNotesClick,
+                                                                                                           onResumeClick, // 📄 NEW: Resume handler
                                                                                                            formatDate,
                                                                                                            getStatusBadge,
                                                                                                            showRejected,
@@ -845,10 +1164,12 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                        }) => {
     if (applications.length === 0) {
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+            <div
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                 <div className="text-center py-16 px-6">
                     <div className="space-y-4">
-                        <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                        <div
+                            className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                             <Search className="h-8 w-8 text-gray-400"/>
                         </div>
                         <div className="space-y-2">
@@ -871,7 +1192,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
     const allCurrentPageSelected = applications.length > 0 && applications.every(app => selectedIds.includes(app.id));
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+        <div
+            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700/50">
@@ -895,6 +1217,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                         <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Status</th>
                         {/* 📝 ENHANCED NOTES COLUMN */}
                         <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Notes</th>
+                        {/* 📄 NEW: RESUME COLUMN */}
+                        <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Resume</th>
                         <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">URL</th>
                         <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Actions</th>
                     </tr>
@@ -931,8 +1255,11 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 {/* 🎨 ENHANCED COMPANY COLUMN WITH COLOR INDICATOR */}
                                 <td className="min-w-[140px] px-4 py-4 text-left">
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
-                                        <div className="text-sm font-extrabold text-gradient-static truncate max-w-[120px]" title={app.company}>
+                                        <div
+                                            className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
+                                        <div
+                                            className="text-sm font-extrabold text-gradient-static truncate max-w-[120px]"
+                                            title={app.company}>
                                             {app.company}
                                         </div>
                                     </div>
@@ -986,6 +1313,13 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     <NotesIcon
                                         application={app}
                                         onClick={() => onNotesClick(app)}
+                                    />
+                                </td>
+                                {/* 📄 NEW: RESUME COLUMN */}
+                                <td className="w-20 px-4 py-4 text-center">
+                                    <ResumeIcon
+                                        application={app}
+                                        onClick={() => onResumeClick(app)}
                                     />
                                 </td>
                                 <td className="w-16 px-4 py-4 text-center">

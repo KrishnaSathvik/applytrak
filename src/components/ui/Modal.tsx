@@ -1,5 +1,6 @@
-// src/components/ui/Modal.tsx - ENHANCED TYPOGRAPHY VERSION
+// src/components/ui/Modal.tsx - FIXED VERSION WITH PROPER Z-INDEX
 import React, {useEffect} from 'react';
+import {createPortal} from 'react-dom';
 import {X} from 'lucide-react';
 import {cn} from '../../utils/helpers';
 
@@ -79,15 +80,17 @@ export const Modal: React.FC<ModalProps> = ({
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-            {/* Enhanced Backdrop */}
+    // 🔧 FIXED: Render modal content
+    const modalContent = (
+        /* 🔧 FIXED: Increased z-index to be above header (z-header = 400) */
+        <div className="fixed inset-0 z-[9999] overflow-y-auto">
+            {/* 🔧 FIXED: Enhanced Backdrop */}
             <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300"
                 onClick={onClose}
             />
 
-            {/* Modal */}
+            {/* 🔧 FIXED: Modal positioned above all content */}
             <div className="flex min-h-full items-center justify-center p-4">
                 <div className={cn(
                     'relative w-full glass-card shadow-2xl transform transition-all duration-300 scale-100',
@@ -142,4 +145,10 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
         </div>
     );
+
+    // 🔧 FIXED: Use portal to render modal at document root level
+    // This ensures modal appears above header regardless of component tree position
+    return typeof document !== 'undefined'
+        ? createPortal(modalContent, document.body)
+        : null;
 };

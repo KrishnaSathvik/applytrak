@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle, ExternalLink, Info, X, XCircle } from 'lucide-react';
-import { Toast, useAppStore } from '../../store/useAppStore';
+import React, {useEffect, useState} from 'react';
+import {AlertTriangle, CheckCircle, ExternalLink, Info, X, XCircle} from 'lucide-react';
+import {Toast, useAppStore} from '../../store/useAppStore';
 
 const ToastContainer: React.FC = () => {
-    const { toasts, removeToast } = useAppStore();
+    const {toasts, removeToast} = useAppStore();
     const [isVisible, setIsVisible] = useState(false);
 
     // Auto-remove toasts with cleanup
@@ -151,7 +151,7 @@ const ToastContainer: React.FC = () => {
                                     ${getIconColor(toast.type)}
                                     bg-white/50 dark:bg-gray-800/50
                                 `}>
-                                    <Icon className="h-5 w-5" />
+                                    <Icon className="h-5 w-5"/>
                                 </div>
 
                                 {/* Content */}
@@ -177,7 +177,7 @@ const ToastContainer: React.FC = () => {
                                             "
                                         >
                                             {toast.action.label}
-                                            <ExternalLink className="h-3 w-3 ml-1" />
+                                            <ExternalLink className="h-3 w-3 ml-1"/>
                                         </button>
                                     )}
                                 </div>
@@ -194,13 +194,14 @@ const ToastContainer: React.FC = () => {
                                     "
                                     aria-label="Dismiss notification"
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-4 w-4"/>
                                 </button>
                             </div>
 
                             {/* Progress Bar for timed toasts */}
                             {toast.duration && (
-                                <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                                <div
+                                    className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                                     <div
                                         className={`
                                             h-full ${getProgressBarColor(toast.type)} 
@@ -274,7 +275,7 @@ const ToastContainer: React.FC = () => {
                         backface-visibility: hidden;
                     }
                 `
-            }} />
+            }}/>
         </>
     );
 };

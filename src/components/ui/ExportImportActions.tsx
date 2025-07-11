@@ -1,33 +1,32 @@
 // src/components/ui/ExportImportActions.tsx - 🚀 ENTERPRISE-GRADE ENHANCED VERSION
-import React, { useRef, useState, useCallback } from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
+    Activity,
     AlertCircle,
+    Award,
     BarChart3,
+    Calendar,
     CheckCircle,
+    Clock,
     Database,
     Download,
     FileImage,
     FileSpreadsheet,
+    FileText,
     Loader2,
     Shield,
-    Upload,
-    X,
-    FileText,
-    Zap,
-    Clock,
-    Users,
-    TrendingUp,
-    Calendar,
     Target,
-    Award,
-    Activity
+    TrendingUp,
+    Upload,
+    Users,
+    Zap
 } from 'lucide-react';
-import { Application } from '../../types/application.types';
-import { formatDate } from '../../utils/formatters';
-import { useAppStore } from '../../store/useAppStore';
-import { exportToCSV, exportToJSON, exportToPDF, importApplications } from '../../utils/exportImport';
-import { Modal } from './Modal';
-import { cn } from '../../utils/helpers';
+import {Application} from '../../types/application.types';
+import {formatDate} from '../../utils/formatters';
+import {useAppStore} from '../../store/useAppStore';
+import {exportToCSV, exportToJSON, exportToPDF, importApplications} from '../../utils/exportImport';
+import {Modal} from './Modal';
+import {cn} from '../../utils/helpers';
 
 interface ExportImportActionsProps {
     applications: Application[];
@@ -46,7 +45,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
     const [isExporting, setIsExporting] = useState(false);
     const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'pdf'>('json');
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { showToast, handleImport: storeHandleImport } = useAppStore();
+    const {showToast, handleImport: storeHandleImport} = useAppStore();
 
     // 🎨 Enhanced export options with beautiful design
     const exportOptions = [
@@ -222,7 +221,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
             };
 
             const jsonString = JSON.stringify(backup, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
+            const blob = new Blob([jsonString], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -304,9 +303,10 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                         "text-blue-700 dark:text-blue-300"
                     )}
                 >
-                    <Download className="h-4 w-4 mr-2 group-hover:animate-bounce" />
+                    <Download className="h-4 w-4 mr-2 group-hover:animate-bounce"/>
                     <span className="relative z-10">Export</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                    <div
+                        className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-indigo-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"/>
                 </button>
 
                 <button
@@ -320,9 +320,10 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                         "text-emerald-700 dark:text-emerald-300"
                     )}
                 >
-                    <Upload className="h-4 w-4 mr-2 group-hover:animate-bounce" />
+                    <Upload className="h-4 w-4 mr-2 group-hover:animate-bounce"/>
                     <span className="relative z-10">Import</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-green-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                    <div
+                        className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-green-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"/>
                 </button>
 
                 <button
@@ -336,9 +337,10 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                         "text-purple-700 dark:text-purple-300"
                     )}
                 >
-                    <Shield className="h-4 w-4 mr-2 group-hover:animate-pulse" />
+                    <Shield className="h-4 w-4 mr-2 group-hover:animate-pulse"/>
                     <span className="relative z-10">Backup</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 to-pink-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                    <div
+                        className="absolute inset-0 bg-gradient-to-r from-purple-400/10 to-pink-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"/>
                 </button>
             </div>
 
@@ -353,63 +355,76 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
             >
                 <div className="space-y-8">
                     {/* 📊 BEAUTIFUL STATS DASHBOARD */}
-                    <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-6 border border-blue-200/50 dark:border-blue-700/50">
+                    <div
+                        className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-6 border border-blue-200/50 dark:border-blue-700/50">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-                                <BarChart3 className="h-6 w-6" />
+                                <BarChart3 className="h-6 w-6"/>
                             </div>
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Export Analytics</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Your application data overview</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Your application data
+                                    overview</p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
+                            <div
+                                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
                                 <div className="text-3xl font-extrabold text-blue-600 dark:text-blue-400 mb-2">
                                     {stats.total}
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
-                                    <Users className="h-3 w-3" />
+                                <div
+                                    className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
+                                    <Users className="h-3 w-3"/>
                                     Total Apps
                                 </div>
                             </div>
 
-                            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
+                            <div
+                                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
                                 <div className="text-3xl font-extrabold text-green-600 dark:text-green-400 mb-2">
                                     {stats.offers}
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
-                                    <Award className="h-3 w-3" />
+                                <div
+                                    className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
+                                    <Award className="h-3 w-3"/>
                                     Offers
                                 </div>
                             </div>
 
-                            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
+                            <div
+                                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
                                 <div className="text-3xl font-extrabold text-purple-600 dark:text-purple-400 mb-2">
                                     {stats.successRate}%
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
-                                    <Target className="h-3 w-3" />
+                                <div
+                                    className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
+                                    <Target className="h-3 w-3"/>
                                     Success Rate
                                 </div>
                             </div>
 
-                            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
+                            <div
+                                className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 dark:border-gray-700/20">
                                 <div className="text-3xl font-extrabold text-orange-600 dark:text-orange-400 mb-2">
                                     {stats.monthlyApps}
                                 </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
-                                    <Calendar className="h-3 w-3" />
+                                <div
+                                    className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider flex items-center justify-center gap-1">
+                                    <Calendar className="h-3 w-3"/>
                                     This Month
                                 </div>
                             </div>
                         </div>
 
                         <div className="mt-4 flex justify-center">
-                            <div className="text-sm text-gray-600 dark:text-gray-400 bg-white/40 dark:bg-gray-800/40 rounded-lg px-4 py-2 border border-white/30 dark:border-gray-700/30">
+                            <div
+                                className="text-sm text-gray-600 dark:text-gray-400 bg-white/40 dark:bg-gray-800/40 rounded-lg px-4 py-2 border border-white/30 dark:border-gray-700/30">
                                 <span className="font-medium">Interview Rate:</span> {stats.interviewRate}% •
-                                <span className="font-medium ml-2">Recent Activity:</span> {stats.monthlyApps} applications this month
+                                <span
+                                    className="font-medium ml-2">Recent Activity:</span> {stats.monthlyApps} applications
+                                this month
                             </div>
                         </div>
                     </div>
@@ -417,10 +432,12 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     {/* 🎨 ENHANCED FORMAT SELECTION */}
                     <div>
                         <div className="flex items-center gap-3 mb-6">
-                            <Zap className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                            <Zap className="h-6 w-6 text-amber-600 dark:text-amber-400"/>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Choose Export Format</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Select the best format for your needs</p>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Choose Export
+                                    Format</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Select the best format for your
+                                    needs</p>
                             </div>
                         </div>
 
@@ -452,7 +469,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                                     <Icon className={cn(
                                                         "h-8 w-8",
                                                         isSelected ? option.color : "text-gray-600 dark:text-gray-400"
-                                                    )} />
+                                                    )}/>
                                                 </div>
 
                                                 <div className="flex-1">
@@ -470,7 +487,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                                                 {option.fileSize}
                                                             </span>
                                                             {isSelected && (
-                                                                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400 animate-pulse" />
+                                                                <CheckCircle
+                                                                    className="h-6 w-6 text-green-600 dark:text-green-400 animate-pulse"/>
                                                             )}
                                                         </div>
                                                     </div>
@@ -495,7 +513,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                                         ))}
                                                     </div>
 
-                                                    <div className="text-xs text-gray-500 dark:text-gray-500 flex items-center gap-2">
+                                                    <div
+                                                        className="text-xs text-gray-500 dark:text-gray-500 flex items-center gap-2">
                                                         <span>Compatible with:</span>
                                                         <span className="font-medium">{option.compatibility}</span>
                                                     </div>
@@ -504,7 +523,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                         </div>
 
                                         {isSelected && (
-                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/5 via-indigo-400/5 to-purple-400/5 animate-pulse" />
+                                            <div
+                                                className="absolute inset-0 bg-gradient-to-r from-blue-400/5 via-indigo-400/5 to-purple-400/5 animate-pulse"/>
                                         )}
                                     </button>
                                 );
@@ -533,12 +553,12 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                         >
                             {isExporting ? (
                                 <>
-                                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                    <Loader2 className="h-5 w-5 mr-2 animate-spin"/>
                                     Exporting...
                                 </>
                             ) : (
                                 <>
-                                    <Download className="h-5 w-5 mr-2" />
+                                    <Download className="h-5 w-5 mr-2"/>
                                     Export {exportFormat.toUpperCase()}
                                 </>
                             )}
@@ -563,46 +583,58 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     {importStatus === 'idle' && (
                         <>
                             {/* 📁 SUPPORTED FORMATS */}
-                            <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-blue-50 dark:from-emerald-900/20 dark:via-green-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-emerald-200/50 dark:border-emerald-700/50">
+                            <div
+                                className="bg-gradient-to-r from-emerald-50 via-green-50 to-blue-50 dark:from-emerald-900/20 dark:via-green-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-emerald-200/50 dark:border-emerald-700/50">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white">
-                                        <FileText className="h-6 w-6" />
+                                    <div
+                                        className="p-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white">
+                                        <FileText className="h-6 w-6"/>
                                     </div>
                                     <div>
-                                        <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">Supported Import Formats</h4>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">We support multiple file formats for easy import</p>
+                                        <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">Supported
+                                            Import Formats</h4>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">We support multiple file
+                                            formats for easy import</p>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
+                                    <div
+                                        className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
                                         <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white group-hover:scale-110 transition-transform duration-200">
-                                                <Database className="h-6 w-6" />
+                                            <div
+                                                className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white group-hover:scale-110 transition-transform duration-200">
+                                                <Database className="h-6 w-6"/>
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-900 dark:text-gray-100">JSON Files</div>
+                                                <div className="font-bold text-gray-900 dark:text-gray-100">JSON Files
+                                                </div>
                                                 <div className="text-sm text-gray-600 dark:text-gray-400">
                                                     Exported from ApplyTrak or backup files
                                                 </div>
-                                                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
+                                                <div
+                                                    className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
                                                     ✓ Complete data preservation
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
+                                    <div
+                                        className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
                                         <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white group-hover:scale-110 transition-transform duration-200">
-                                                <FileSpreadsheet className="h-6 w-6" />
+                                            <div
+                                                className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white group-hover:scale-110 transition-transform duration-200">
+                                                <FileSpreadsheet className="h-6 w-6"/>
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-900 dark:text-gray-100">CSV Files</div>
+                                                <div className="font-bold text-gray-900 dark:text-gray-100">CSV Files
+                                                </div>
                                                 <div className="text-sm text-gray-600 dark:text-gray-400">
                                                     Spreadsheet exports with proper columns
                                                 </div>
-                                                <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+                                                <div
+                                                    className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1">
                                                     ✓ Excel & Google Sheets compatible
                                                 </div>
                                             </div>
@@ -625,8 +657,9 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                 className="w-full p-12 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-2xl hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 group hover:bg-gradient-to-r hover:from-blue-50/50 hover:via-indigo-50/50 hover:to-purple-50/50 dark:hover:from-blue-900/10 dark:hover:via-indigo-900/10 dark:hover:to-purple-900/10 hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 <div className="text-center">
-                                    <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 w-fit mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg group-hover:shadow-xl">
-                                        <Upload className="h-16 w-16 text-white" />
+                                    <div
+                                        className="p-6 rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 w-fit mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg group-hover:shadow-xl">
+                                        <Upload className="h-16 w-16 text-white"/>
                                     </div>
                                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                         Choose File to Import
@@ -634,17 +667,18 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                     <p className="text-gray-600 dark:text-gray-400 mb-4">
                                         JSON or CSV files accepted • Maximum 100MB
                                     </p>
-                                    <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-500">
+                                    <div
+                                        className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-500">
                                         <div className="flex items-center gap-1">
-                                            <Clock className="h-4 w-4" />
+                                            <Clock className="h-4 w-4"/>
                                             <span>Quick processing</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Shield className="h-4 w-4" />
+                                            <Shield className="h-4 w-4"/>
                                             <span>Secure upload</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Activity className="h-4 w-4" />
+                                            <Activity className="h-4 w-4"/>
                                             <span>Auto-validation</span>
                                         </div>
                                     </div>
@@ -655,8 +689,9 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
                     {importStatus === 'loading' && (
                         <div className="text-center py-20">
-                            <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 w-fit mx-auto mb-8 animate-pulse shadow-xl">
-                                <Loader2 className="h-16 w-16 animate-spin text-white" />
+                            <div
+                                className="p-6 rounded-3xl bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 w-fit mx-auto mb-8 animate-pulse shadow-xl">
+                                <Loader2 className="h-16 w-16 animate-spin text-white"/>
                             </div>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
                                 Processing your file...
@@ -664,17 +699,20 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                             <p className="text-gray-600 dark:text-gray-400 mb-6">
                                 Validating data and preparing import preview
                             </p>
-                            <div className="flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-500">
+                            <div
+                                className="flex items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-500">
                                 <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                                     <span>Reading file</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+                                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"
+                                         style={{animationDelay: '0.5s'}}></div>
                                     <span>Validating data</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+                                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"
+                                         style={{animationDelay: '1s'}}></div>
                                     <span>Preparing preview</span>
                                 </div>
                             </div>
@@ -682,10 +720,12 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     )}
 
                     {importStatus === 'error' && (
-                        <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl p-8 border-l-4 border-l-red-500">
+                        <div
+                            className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl p-8 border-l-4 border-l-red-500">
                             <div className="flex items-start gap-5">
-                                <div className="p-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 text-white flex-shrink-0">
-                                    <AlertCircle className="h-8 w-8" />
+                                <div
+                                    className="p-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 text-white flex-shrink-0">
+                                    <AlertCircle className="h-8 w-8"/>
                                 </div>
                                 <div className="flex-1">
                                     <h4 className="text-xl font-bold text-red-800 dark:text-red-200 mb-3">
@@ -696,7 +736,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                         onClick={() => setImportStatus('idle')}
                                         className="btn btn-outline border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20 px-6 py-2 font-bold tracking-wide"
                                     >
-                                        <Upload className="h-4 w-4 mr-2" />
+                                        <Upload className="h-4 w-4 mr-2"/>
                                         Try Again
                                     </button>
                                 </div>
@@ -707,25 +747,30 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                     {importStatus === 'success' && (
                         <div className="space-y-8">
                             {/* ✅ SUCCESS MESSAGE */}
-                            <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-2xl p-8 border-l-4 border-l-emerald-500">
+                            <div
+                                className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-2xl p-8 border-l-4 border-l-emerald-500">
                                 <div className="flex items-start gap-5">
-                                    <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white flex-shrink-0 animate-pulse">
-                                        <CheckCircle className="h-8 w-8" />
+                                    <div
+                                        className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 text-white flex-shrink-0 animate-pulse">
+                                        <CheckCircle className="h-8 w-8"/>
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="text-xl font-bold text-emerald-800 dark:text-emerald-200 mb-3">
                                             🎉 Import Preview Ready
                                         </h4>
                                         <p className="text-emerald-600 dark:text-emerald-400 text-lg">
-                                            Found <span className="font-bold text-2xl">{importPreview.length}</span> valid applications ready to import
+                                            Found <span
+                                            className="font-bold text-2xl">{importPreview.length}</span> valid
+                                            applications ready to import
                                         </p>
-                                        <div className="flex items-center gap-4 mt-4 text-sm text-emerald-700 dark:text-emerald-300">
+                                        <div
+                                            className="flex items-center gap-4 mt-4 text-sm text-emerald-700 dark:text-emerald-300">
                                             <div className="flex items-center gap-2">
-                                                <TrendingUp className="h-4 w-4" />
+                                                <TrendingUp className="h-4 w-4"/>
                                                 <span>High quality data detected</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Shield className="h-4 w-4" />
+                                                <Shield className="h-4 w-4"/>
                                                 <span>All validations passed</span>
                                             </div>
                                         </div>
@@ -734,10 +779,12 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                             </div>
 
                             {/* 📋 PREVIEW TABLE */}
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
-                                <div className="p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
+                            <div
+                                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
+                                <div
+                                    className="p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-b border-gray-200 dark:border-gray-700">
                                     <h5 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                                         Import Preview
                                     </h5>
                                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -747,7 +794,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
                                 <div className="max-h-80 overflow-y-auto">
                                     <table className="w-full text-sm">
-                                        <thead className="sticky top-0 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                                        <thead
+                                            className="sticky top-0 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                                         <tr>
                                             <th className="px-6 py-4 text-left font-bold text-gray-700 dark:text-gray-300">#</th>
                                             <th className="px-6 py-4 text-left font-bold text-gray-700 dark:text-gray-300">Company</th>
@@ -758,7 +806,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                         </thead>
                                         <tbody>
                                         {importPreview.slice(0, 10).map((app, index) => (
-                                            <tr key={index} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <tr key={index}
+                                                className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                                 <td className="px-6 py-4 text-gray-500 dark:text-gray-400 font-medium">
                                                     {index + 1}
                                                 </td>
@@ -788,7 +837,8 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                     </table>
 
                                     {importPreview.length > 10 && (
-                                        <div className="p-4 bg-gray-50 dark:bg-gray-800 text-center border-t border-gray-200 dark:border-gray-700">
+                                        <div
+                                            className="p-4 bg-gray-50 dark:bg-gray-800 text-center border-t border-gray-200 dark:border-gray-700">
                                             <p className="text-sm text-gray-600 dark:text-gray-400">
                                                 Showing first 10 of {importPreview.length} applications
                                             </p>
@@ -817,7 +867,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                         "transform hover:scale-105 active:scale-95 transition-all duration-200"
                                     )}
                                 >
-                                    <Upload className="h-5 w-5 mr-2" />
+                                    <Upload className="h-5 w-5 mr-2"/>
                                     Import {importPreview.length} Applications
                                 </button>
                             </div>

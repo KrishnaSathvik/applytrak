@@ -1,5 +1,6 @@
-// src/components/modals/GoalModal.tsx - ENTERPRISE ENHANCED WITH FIXES
+// src/components/modals/GoalModal.tsx - FIXED Z-INDEX ISSUE
 import React, {forwardRef, useCallback, useEffect, useMemo} from 'react';
+import {createPortal} from 'react-dom';
 import {useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -385,8 +386,10 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
 
     if (!goalSetting.isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+    // 🔧 FIXED: Use React Portal to render at document root level (like fixed Modal component)
+    const modalContent = (
+        /* 🔧 FIXED: Increased z-index to 9999 to be above header (z-400) */
+        <div className="fixed inset-0 z-[9999] overflow-y-auto" role="dialog" aria-modal="true">
             {/* Enhanced Backdrop */}
             <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300"
@@ -744,6 +747,11 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
             </div>
         </div>
     );
+
+    // 🔧 FIXED: Use React Portal to render at document root level
+    return typeof document !== 'undefined'
+        ? createPortal(modalContent, document.body)
+        : null;
 });
 
 GoalModal.displayName = 'GoalModal';

@@ -7,7 +7,7 @@ interface NotesIconProps {
     className?: string;
 }
 
-export const NotesIcon: React.FC<NotesIconProps> = ({ hasNotes, onClick, className = "" }) => {
+export const NotesIcon: React.FC<NotesIconProps> = ({hasNotes, onClick, className = ""}) => {
     return (
         <button
             onClick={onClick}
@@ -21,7 +21,7 @@ export const NotesIcon: React.FC<NotesIconProps> = ({ hasNotes, onClick, classNa
             `}
             title={hasNotes ? "View notes" : "No notes"}
         >
-            <FileText className="h-4 w-4" />
+            <FileText className="h-4 w-4"/>
         </button>
     );
 };
