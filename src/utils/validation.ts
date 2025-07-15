@@ -70,8 +70,7 @@ export const applicationFormSchema = yup.object({
             } catch {
                 return false;
             }
-        })
-        .max(500, 'URL'),
+        }),
 
     notes: yup
         .string()
