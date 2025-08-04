@@ -1,9 +1,10 @@
+// src/components/layout/Sidebar.tsx - ENHANCED WITH SVG LOGO
 import React, {useEffect, useState} from 'react';
-import {BarChart3, Briefcase, ChevronRight, Target, TrendingUp, X} from 'lucide-react';
+import {BarChart3, ChevronRight, Target, TrendingUp, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
+import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 
 const Sidebar: React.FC = () => {
-    // 🔧 FIXED: Use goalProgress instead of progress
     const {ui, setSelectedTab, goalProgress, toggleSidebar} = useAppStore();
     const [isDesktop, setIsDesktop] = useState(false);
 
@@ -22,7 +23,7 @@ const Sidebar: React.FC = () => {
         {
             id: 'tracker' as const,
             label: 'Tracker',
-            icon: Briefcase,
+            icon: 'logo', // Special case for logo
             description: 'Manage applications',
             count: useAppStore.getState().applications.length
         },
@@ -82,9 +83,12 @@ const Sidebar: React.FC = () => {
                         {!isDesktop && (
                             <div
                                 className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
-                                <h2 className="font-display text-xl font-bold text-gradient-static tracking-wide">
-                                    Navigation
-                                </h2>
+                                <div className="flex items-center gap-3">
+                                    <ApplyTrakLogo size="sm"/>
+                                    <h2 className="font-display text-xl font-bold text-gradient-static tracking-wide">
+                                        ApplyTrak
+                                    </h2>
+                                </div>
                                 <button
                                     onClick={toggleSidebar}
                                     className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -100,9 +104,12 @@ const Sidebar: React.FC = () => {
                             <div
                                 className={`flex p-3 border-b border-gray-200/50 dark:border-gray-700/50 ${ui.sidebarOpen ? 'justify-between items-center' : 'justify-center'}`}>
                                 {ui.sidebarOpen && (
-                                    <h2 className="font-display text-base font-bold text-gradient-static tracking-wide">
-                                        Navigation
-                                    </h2>
+                                    <div className="flex items-center gap-2">
+                                        <ApplyTrakLogo size="xs"/>
+                                        <h2 className="font-display text-base font-bold text-gradient-static tracking-wide">
+                                            ApplyTrak
+                                        </h2>
+                                    </div>
                                 )}
                                 <button
                                     onClick={toggleSidebar}
@@ -122,7 +129,6 @@ const Sidebar: React.FC = () => {
                     {/* Navigation Items */}
                     <nav className="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
                         {navigationItems.map((item) => {
-                            const Icon = item.icon;
                             const isActive = ui.selectedTab === item.id;
 
                             return (
@@ -145,13 +151,20 @@ const Sidebar: React.FC = () => {
                                     {/* Icon with explicit rendering */}
                                     <div
                                         className={`flex items-center justify-center ${showFullContent ? 'w-5 h-5' : 'w-6 h-6'}`}>
-                                        <Icon
-                                            className={`
-                                                ${showFullContent ? 'h-5 w-5' : 'h-6 w-6'} 
-                                                ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
-                                            `}
-                                            strokeWidth={2}
-                                        />
+                                        {item.icon === 'logo' ? (
+                                            <ApplyTrakLogo
+                                                size={showFullContent ? 'xs' : 'sm'}
+                                                className={`transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
+                                            />
+                                        ) : (
+                                            React.createElement(item.icon as any, {
+                                                className: `
+                                                    ${showFullContent ? 'h-5 w-5' : 'h-6 w-6'} 
+                                                    ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
+                                                `,
+                                                strokeWidth: 2
+                                            })
+                                        )}
                                     </div>
 
                                     {showFullContent && (
@@ -201,7 +214,7 @@ const Sidebar: React.FC = () => {
                                 </div>
 
                                 <div className="space-y-3">
-                                    {/* Total Progress - 🔧 FIXED: Use goalProgress */}
+                                    {/* Total Progress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
                                             <span
@@ -226,7 +239,7 @@ const Sidebar: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Weekly Progress - 🔧 FIXED: Use goalProgress */}
+                                    {/* Weekly Progress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
                                             <span
@@ -251,7 +264,7 @@ const Sidebar: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Weekly Streak - 🔧 FIXED: Use goalProgress */}
+                                    {/* Weekly Streak */}
                                     {goalProgress.weeklyStreak > 0 && (
                                         <div
                                             className="flex items-center justify-center space-x-2 pt-2 border-t border-blue-200/30 dark:border-blue-700/30">
@@ -284,6 +297,7 @@ const Sidebar: React.FC = () => {
                                         style={{width: `${Math.min(goalProgress.totalProgress, 100)}%`}}
                                     />
                                 </div>
+                                <ApplyTrakLogo size="xs" className="opacity-50"/>
                             </div>
                         </div>
                     )}

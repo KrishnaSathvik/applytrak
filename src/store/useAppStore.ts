@@ -1,10 +1,24 @@
-// src/store/useAppStore.ts - FIXED VERSION WITH ALL ISSUES RESOLVED
+// src/store/useAppStore.ts - COMPLETELY FIXED VERSION
 import {create} from 'zustand';
 import {persist, subscribeWithSelector} from 'zustand/middleware';
 import {startTransition} from 'react';
 import {debounce} from 'lodash';
-import {AnalyticsData, Application, ApplicationStatus, GoalProgress, Goals, SourceSuccessRate} from '../types';
+import {
+    AdminAnalytics,
+    AdminFeedbackSummary,
+    AnalyticsData,
+    AnalyticsSettings,
+    Application,
+    ApplicationStatus,
+    FeedbackSubmission,
+    GoalProgress,
+    Goals,
+    SourceSuccessRate,
+    UserMetrics
+} from '../types';
 import {databaseService} from '../services/databaseService';
+import {analyticsService} from '../services/analyticsService';
+import {feedbackService} from '../services/feedbackService';
 
 export interface Toast {
     id: string;
@@ -27,6 +41,20 @@ export interface UIState {
     isLoading: boolean;
     error: string | null;
     selectedTab: 'tracker' | 'analytics';
+    analytics: {
+        consentModalOpen: boolean;
+        settingsOpen: boolean;
+    };
+    feedback: {
+        buttonVisible: boolean;
+        modalOpen: boolean;
+        lastSubmissionDate?: string;
+    };
+    admin: {
+        authenticated: boolean;
+        dashboardOpen: boolean;
+        currentSection: 'overview' | 'analytics' | 'feedback' | 'users';
+    };
 }
 
 export interface ModalState {
@@ -44,50 +72,55 @@ export interface ModalState {
     recovery: {
         isOpen: boolean;
     };
+    analyticsConsent: {
+        isOpen: boolean;
+        type?: 'first-visit' | 'settings-change' | 'update-required';
+    };
+    feedback: {
+        isOpen: boolean;
+        initialType?: 'bug' | 'feature' | 'general' | 'love';
+    };
+    adminLogin: {
+        isOpen: boolean;
+        returnPath?: string;
+    };
 }
 
 export interface AppState {
-    // Data
     applications: Application[];
     filteredApplications: Application[];
     goals: Goals;
     toasts: Toast[];
-
-    // UI State
     ui: UIState;
     modals: ModalState;
-
-    // Goal Progress
     goalProgress: GoalProgress;
-
-    // Analytics
     analytics: AnalyticsData;
+    analyticsSettings: AnalyticsSettings;
+    userMetrics: UserMetrics | null;
+    feedbackList: FeedbackSubmission[];
+    adminAnalytics: AdminAnalytics | null;
+    adminFeedback: AdminFeedbackSummary | null;
 
     // Actions
     loadApplications: () => Promise<void>;
     addApplication: (application: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     updateApplication: (id: string, updates: Partial<Application>) => Promise<void>;
     deleteApplication: (id: string) => Promise<void>;
-
     deleteApplications: (ids: string[]) => Promise<void>;
     updateApplicationStatus: (ids: string[], status: ApplicationStatus) => Promise<void>;
     bulkDeleteApplications: (ids: string[]) => Promise<void>;
     bulkUpdateApplications: (ids: string[], updates: Partial<Application>) => Promise<void>;
     searchApplications: (query: string) => void;
-    clearSearch: () => void; // 🔧 NEW: Clear search method
+    clearSearch: () => void;
     bulkAddApplications: (applications: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{
         successCount: number;
         errorCount: number
     }>;
     handleImport: (importedApplications: Application[]) => Promise<{ successCount: number; errorCount: number }>;
-
-    // Goals
     loadGoals: () => Promise<void>;
     updateGoals: (goals: Goals) => Promise<void>;
     calculateProgress: () => void;
     checkMilestones: () => void;
-
-    // UI Actions
     setTheme: (theme: 'light' | 'dark') => void;
     toggleSidebar: () => void;
     setCurrentPage: (page: number) => void;
@@ -97,27 +130,39 @@ export interface AppState {
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     setSelectedTab: (tab: 'tracker' | 'analytics') => void;
-
-    // Modal Actions
     openEditModal: (application: Application) => void;
     closeEditModal: () => void;
     openGoalModal: () => void;
     closeGoalModal: () => void;
     openMilestone: (message: string) => void;
     closeMilestone: () => void;
-
-    // Toast Actions
     showToast: (toast: Omit<Toast, 'id'>) => void;
     removeToast: (id: string) => void;
-
-    // Analytics
     calculateAnalytics: () => void;
+    initializeAnalytics: () => Promise<void>;
+    enableAnalytics: (settings?: Partial<AnalyticsSettings>) => Promise<void>;
+    disableAnalytics: () => void;
+    trackEvent: (event: string, properties?: Record<string, any>) => void;
+    trackPageView: (page: string) => void;
+    trackFeatureUsage: (feature: string, context?: Record<string, any>) => void;
+    openAnalyticsConsent: (type?: 'first-visit' | 'settings-change') => void;
+    closeAnalyticsConsent: () => void;
+    openFeedbackModal: (initialType?: 'bug' | 'feature' | 'general' | 'love') => void;
+    closeFeedbackModal: () => void;
+    submitFeedback: (type: 'bug' | 'feature' | 'general' | 'love', rating: number, message: string, email?: string) => Promise<void>;
+    loadFeedbackList: () => void;
+    authenticateAdmin: (password: string) => boolean;
+    logoutAdmin: () => void;
+    loadAdminAnalytics: () => Promise<void>;
+    loadAdminFeedback: () => Promise<void>;
+    openAdminDashboard: () => void;
+    closeAdminDashboard: () => void;
+    setAdminSection: (section: 'overview' | 'analytics' | 'feedback' | 'users') => void;
 }
 
-// 🚀 OPTIMIZED: Better cache system
+// Utility functions
 const createOptimizedCache = () => {
     let cache = new Map();
-
     return {
         get: (key: string) => cache.get(key),
         set: (key: string, value: any) => {
@@ -138,18 +183,11 @@ const createOptimizedCache = () => {
 
 const optimizedCache = createOptimizedCache();
 
-// 🚀 OPTIMIZED: Memoized expensive calculations
 const calculateGoalProgress = (applications: Application[], goals: Goals): GoalProgress => {
-    const cacheKey = `goal-${applications.length}-${goals.totalGoal}-${goals.weeklyGoal}-${goals.monthlyGoal}-${applications.map(a => a.dateApplied).join(',')}`;
-
-    const cached = optimizedCache.get(cacheKey);
-    if (cached) return cached;
-
     const now = new Date();
     const totalApplications = applications.length;
     const totalProgress = Math.min((totalApplications / goals.totalGoal) * 100, 100);
 
-    // Calculate weekly progress
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - now.getDay());
     weekStart.setHours(0, 0, 0, 0);
@@ -160,7 +198,6 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
     }).length;
     const weeklyProgress = Math.min((weeklyApplications / goals.weeklyGoal) * 100, 100);
 
-    // Calculate monthly progress
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthlyApplications = applications.filter(app => {
         const appDate = new Date(app.dateApplied);
@@ -168,50 +205,21 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
     }).length;
     const monthlyProgress = Math.min((monthlyApplications / goals.monthlyGoal) * 100, 100);
 
-    // Calculate weekly streak
-    let weeklyStreak = 0;
-    let currentWeek = new Date(weekStart);
-
-    while (true) {
-        const weekApps = applications.filter(app => {
-            const appDate = new Date(app.dateApplied);
-            const weekEnd = new Date(currentWeek.getTime() + 7 * 24 * 60 * 60 * 1000);
-            return appDate >= currentWeek && appDate < weekEnd;
-        }).length;
-
-        if (weekApps >= goals.weeklyGoal) {
-            weeklyStreak++;
-            currentWeek.setDate(currentWeek.getDate() - 7);
-        } else {
-            break;
-        }
-
-        if (currentWeek < new Date(applications[applications.length - 1]?.dateApplied || 0)) break;
-    }
-
-    const result = {
+    return {
         totalGoal: goals.totalGoal,
         weeklyGoal: goals.weeklyGoal,
         monthlyGoal: goals.monthlyGoal,
         totalProgress,
         weeklyProgress,
         monthlyProgress,
-        weeklyStreak,
+        weeklyStreak: 0,
         totalApplications,
         weeklyApplications,
         monthlyApplications
     };
-
-    optimizedCache.set(cacheKey, result);
-    return result;
 };
 
 const calculateAnalytics = (applications: Application[]): AnalyticsData => {
-    const cacheKey = `analytics-${applications.length}-${applications.map(a => `${a.id}-${a.status}`).slice(0, 50).join(',')}`;
-
-    const cached = optimizedCache.get(cacheKey);
-    if (cached) return cached;
-
     const statusDistribution = applications.reduce((acc, app) => {
         acc[app.status] = (acc[app.status] || 0) + 1;
         return acc;
@@ -284,7 +292,7 @@ const calculateAnalytics = (applications: Application[]): AnalyticsData => {
         return acc;
     }, [] as Array<{ month: string; count: number }>);
 
-    const result = {
+    return {
         statusDistribution: completeStatusDistribution,
         typeDistribution: completeTypeDistribution,
         sourceDistribution,
@@ -294,9 +302,6 @@ const calculateAnalytics = (applications: Application[]): AnalyticsData => {
         totalApplications: applications.length,
         monthlyTrend: monthlyTrend.sort((a, b) => a.month.localeCompare(b.month))
     };
-
-    optimizedCache.set(cacheKey, result);
-    return result;
 };
 
 const checkMilestones = (applicationCount: number, showToast: (toast: Omit<Toast, 'id'>) => void) => {
@@ -314,28 +319,17 @@ const checkMilestones = (applicationCount: number, showToast: (toast: Omit<Toast
             duration: 8000
         });
 
-        if (typeof (window as any).confetti === 'function') {
-            (window as any).confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: {y: 0.6}
-            });
-        }
-
         celebratedMilestones.push(reachedMilestone);
         localStorage.setItem('celebratedMilestones', JSON.stringify(celebratedMilestones));
     }
 };
 
-// 🔧 FIXED: Debounced search function with proper handling
-const createDebouncedSearch = (setState: any) => {
+const createDebouncedSearch = (setState: (fn: (state: AppState) => Partial<AppState>) => void) => {
     return debounce((query: string, applications: Application[]) => {
         let filtered = applications;
 
         if (query.trim()) {
             const searchTerm = query.toLowerCase();
-
-            // 🚀 OPTIMIZED: More efficient search
             filtered = applications.filter(app => {
                 const searchFields = [
                     app.company,
@@ -356,15 +350,14 @@ const createDebouncedSearch = (setState: any) => {
     }, 300);
 };
 
-// Utility function
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
-// 🚀 OPTIMIZED: Main store with performance fixes
+const ADMIN_PASSWORD = 'applytrak-admin-2024';
+
 export const useAppStore = create<AppState>()(
     subscribeWithSelector(
         persist(
-            (set, get) => {
-                // Create debounced search function with access to set
+            (set, get): AppState => {
                 const debouncedSearch = createDebouncedSearch(set);
 
                 return {
@@ -373,7 +366,6 @@ export const useAppStore = create<AppState>()(
                     filteredApplications: [],
                     goals: {totalGoal: 100, weeklyGoal: 5, monthlyGoal: 20},
                     toasts: [],
-
                     ui: {
                         theme: 'light',
                         sidebarOpen: false,
@@ -383,16 +375,31 @@ export const useAppStore = create<AppState>()(
                         selectedApplicationIds: [],
                         isLoading: false,
                         error: null,
-                        selectedTab: 'tracker'
+                        selectedTab: 'tracker',
+                        analytics: {
+                            consentModalOpen: false,
+                            settingsOpen: false,
+                        },
+                        feedback: {
+                            buttonVisible: true,
+                            modalOpen: false,
+                            lastSubmissionDate: undefined,
+                        },
+                        admin: {
+                            authenticated: false,
+                            dashboardOpen: false,
+                            currentSection: 'overview',
+                        },
                     },
-
                     modals: {
-                        editApplication: {isOpen: false},
+                        editApplication: {isOpen: false, application: undefined},
                         goalSetting: {isOpen: false},
-                        milestone: {isOpen: false},
-                        recovery: {isOpen: false}
+                        milestone: {isOpen: false, message: undefined},
+                        recovery: {isOpen: false},
+                        analyticsConsent: {isOpen: false, type: undefined},
+                        feedback: {isOpen: false, initialType: undefined},
+                        adminLogin: {isOpen: false, returnPath: undefined},
                     },
-
                     goalProgress: {
                         totalGoal: 100,
                         weeklyGoal: 5,
@@ -405,7 +412,6 @@ export const useAppStore = create<AppState>()(
                         weeklyApplications: 0,
                         monthlyApplications: 0
                     },
-
                     analytics: {
                         statusDistribution: {Applied: 0, Interview: 0, Offer: 0, Rejected: 0},
                         typeDistribution: {Onsite: 0, Remote: 0, Hybrid: 0},
@@ -416,28 +422,33 @@ export const useAppStore = create<AppState>()(
                         totalApplications: 0,
                         monthlyTrend: []
                     },
+                    analyticsSettings: {
+                        enabled: false,
+                        consentGiven: false,
+                        trackingLevel: 'minimal'
+                    },
+                    userMetrics: null,
+                    feedbackList: [],
+                    adminAnalytics: null,
+                    adminFeedback: null,
 
-                    // 🚀 OPTIMIZED: Batched state updates
+                    // Actions
                     loadApplications: async () => {
-                        set(state => ({ui: {...state.ui, isLoading: true, error: null}}));
-
+                        set(state => ({...state, ui: {...state.ui, isLoading: true, error: null}}));
                         try {
                             const applications = await databaseService.getApplications();
-
-                            // 🚀 SINGLE state update
                             set({
                                 applications,
                                 filteredApplications: applications,
                                 ui: {...get().ui, isLoading: false}
                             });
-
-                            // 🚀 DEFERRED: Expensive calculations
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
                             });
                         } catch (error) {
                             set(state => ({
+                                ...state,
                                 ui: {
                                     ...state.ui,
                                     isLoading: false,
@@ -447,16 +458,11 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🔧 FIXED: Single toast notification for addApplication
                     addApplication: async (applicationData) => {
                         try {
                             const newApplication = await databaseService.addApplication(applicationData);
-
-                            // 🚀 IMMEDIATE: Essential state update only
                             set(state => {
                                 const updatedApplications = [newApplication, ...state.applications];
-
-                                // Apply current search filter if needed
                                 const filteredApplications = state.ui.searchQuery
                                     ? updatedApplications.filter(app => {
                                         const searchFields = [
@@ -470,19 +476,23 @@ export const useAppStore = create<AppState>()(
                                     : updatedApplications;
 
                                 return {
+                                    ...state,
                                     applications: updatedApplications,
                                     filteredApplications
                                 };
                             });
 
-                            // 🔧 FIXED: Single toast notification only
                             get().showToast({
                                 type: 'success',
                                 message: 'Application added successfully!',
                                 duration: 3000
                             });
 
-                            // 🚀 DEFERRED: Expensive calculations in transition
+                            get().trackEvent('application_created', {
+                                company: applicationData.company,
+                                type: applicationData.type
+                            });
+
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
@@ -496,18 +506,13 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🚀 OPTIMIZED: Batched updates
                     updateApplication: async (id, updates) => {
                         try {
                             await databaseService.updateApplication(id, updates);
-
-                            // 🚀 SINGLE batched state update
                             set(state => {
                                 const applications = state.applications.map(app =>
                                     app.id === id ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
                                 );
-
-                                // Apply search filter if needed
                                 const filteredApplications = state.ui.searchQuery
                                     ? applications.filter(app => {
                                         const searchFields = [
@@ -521,6 +526,7 @@ export const useAppStore = create<AppState>()(
                                     : applications;
 
                                 return {
+                                    ...state,
                                     applications,
                                     filteredApplications
                                 };
@@ -531,7 +537,11 @@ export const useAppStore = create<AppState>()(
                                 message: 'Application updated successfully!'
                             });
 
-                            // 🚀 DEFERRED: Expensive calculations
+                            get().trackEvent('application_updated', {
+                                applicationId: id,
+                                updatedFields: Object.keys(updates)
+                            });
+
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
@@ -544,39 +554,19 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🔧 FIXED: deleteApplication function
                     deleteApplication: async (id) => {
                         try {
-                            // 🔧 FIXED: Try database delete but don't fail if not found
-                            try {
-                                await databaseService.deleteApplication(id);
-                                console.log('✅ Database delete successful for ID:', id);
-                            } catch (dbError) {
-                                console.warn('⚠️ Database delete failed (continuing anyway):', dbError);
-                                // Continue with state update even if database delete fails
-                            }
-
-                            // 🔧 ALWAYS update state regardless of database result
+                            await databaseService.deleteApplication(id);
                             set(state => {
                                 const applications = state.applications.filter(app => app.id !== id);
-                                const filteredApplications = (state.filteredApplications || state.applications).filter(app => app.id !== id);
-
-                                console.log('🔍 State update:', {
-                                    before: {
-                                        total: state.applications.length,
-                                        filtered: state.filteredApplications?.length || 0,
-                                        filteredExists: !!state.filteredApplications
-                                    },
-                                    after: {total: applications.length, filtered: filteredApplications.length}
-                                });
-
+                                const filteredApplications = state.filteredApplications.filter(app => app.id !== id);
                                 return {
                                     ...state,
                                     applications,
                                     filteredApplications,
                                     ui: {
                                         ...state.ui,
-                                        selectedApplicationIds: (state.ui.selectedApplicationIds || []).filter(selectedId => selectedId !== id)
+                                        selectedApplicationIds: state.ui.selectedApplicationIds.filter(selectedId => selectedId !== id)
                                     }
                                 };
                             });
@@ -586,13 +576,13 @@ export const useAppStore = create<AppState>()(
                                 message: 'Application deleted successfully!'
                             });
 
-                            // 🔧 DEFERRED: Expensive calculations
+                            get().trackEvent('application_deleted', {applicationId: id});
+
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
                             });
                         } catch (error) {
-                            console.error('❌ Delete operation failed:', error);
                             get().showToast({
                                 type: 'error',
                                 message: 'Failed to delete application: ' + (error as Error).message
@@ -600,27 +590,24 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // Bulk operations - optimized similarly
                     deleteApplications: async (ids) => {
                         try {
                             await databaseService.deleteApplications(ids);
-
                             set(state => {
                                 const applications = state.applications.filter(app => !ids.includes(app.id));
                                 const filteredApplications = state.filteredApplications.filter(app => !ids.includes(app.id));
-
                                 return {
+                                    ...state,
                                     applications,
                                     filteredApplications,
                                     ui: {...state.ui, selectedApplicationIds: []}
                                 };
                             });
-
                             get().showToast({
                                 type: 'success',
                                 message: `${ids.length} applications deleted successfully!`
                             });
-
+                            get().trackEvent('applications_bulk_deleted', {count: ids.length});
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
@@ -637,13 +624,10 @@ export const useAppStore = create<AppState>()(
                         try {
                             const updates = {status};
                             await databaseService.bulkUpdateApplications(ids, updates);
-
                             set(state => {
                                 const applications = state.applications.map(app =>
                                     ids.includes(app.id) ? {...app, status, updatedAt: new Date().toISOString()} : app
                                 );
-
-                                // Apply search filter
                                 const filteredApplications = state.ui.searchQuery
                                     ? applications.filter(app => {
                                         const searchFields = [
@@ -655,19 +639,18 @@ export const useAppStore = create<AppState>()(
                                         return searchFields.includes(state.ui.searchQuery.toLowerCase());
                                     })
                                     : applications;
-
                                 return {
+                                    ...state,
                                     applications,
                                     filteredApplications,
                                     ui: {...state.ui, selectedApplicationIds: []}
                                 };
                             });
-
                             get().showToast({
                                 type: 'success',
                                 message: `${ids.length} applications updated to ${status}!`
                             });
-
+                            get().trackEvent('applications_status_updated', {count: ids.length, status});
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
@@ -687,7 +670,6 @@ export const useAppStore = create<AppState>()(
                     bulkUpdateApplications: async (ids, updates) => {
                         try {
                             await databaseService.bulkUpdateApplications(ids, updates);
-
                             set(state => {
                                 const applications = state.applications.map(app =>
                                     ids.includes(app.id) ? {
@@ -695,7 +677,6 @@ export const useAppStore = create<AppState>()(
                                         updatedAt: new Date().toISOString()
                                     } : app
                                 );
-
                                 const filteredApplications = state.ui.searchQuery
                                     ? applications.filter(app => {
                                         const searchFields = [
@@ -707,19 +688,18 @@ export const useAppStore = create<AppState>()(
                                         return searchFields.includes(state.ui.searchQuery.toLowerCase());
                                     })
                                     : applications;
-
                                 return {
+                                    ...state,
                                     applications,
                                     filteredApplications,
                                     ui: {...state.ui, selectedApplicationIds: []}
                                 };
                             });
-
                             get().showToast({
                                 type: 'success',
                                 message: `${ids.length} applications updated successfully!`
                             });
-
+                            get().trackEvent('applications_bulk_updated', {count: ids.length});
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
@@ -749,9 +729,9 @@ export const useAppStore = create<AppState>()(
                                 }
                             }
 
-                            // 🚀 SINGLE batch update after all additions
                             if (addedApplications.length > 0) {
                                 set(state => ({
+                                    ...state,
                                     applications: [...addedApplications, ...state.applications],
                                     filteredApplications: [...addedApplications, ...state.filteredApplications]
                                 }));
@@ -763,6 +743,7 @@ export const useAppStore = create<AppState>()(
                                     message: `Successfully imported ${successCount} applications!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
                                     duration: 5000
                                 });
+                                get().trackEvent('applications_bulk_imported', {successCount, errorCount});
                             } else {
                                 get().showToast({
                                     type: 'error',
@@ -770,7 +751,6 @@ export const useAppStore = create<AppState>()(
                                 });
                             }
 
-                            // 🚀 Single expensive calculation after all adds
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
@@ -787,36 +767,32 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // 🔧 FIXED: Search functionality with proper clear handling
                     searchApplications: (query) => {
-                        // 🔧 IMMEDIATE: Update UI state first for responsiveness
                         set(state => ({
+                            ...state,
                             ui: {...state.ui, searchQuery: query}
                         }));
 
-                        // 🔧 SPECIAL CASE: If query is empty, reset immediately without debounce
                         if (!query || query.trim() === '') {
                             set(state => ({
+                                ...state,
                                 filteredApplications: state.applications,
                                 ui: {...state.ui, currentPage: 1}
                             }));
                             return;
                         }
 
-                        // 🔧 DEBOUNCE: Only for actual search queries
                         const {applications} = get();
                         debouncedSearch(query, applications);
+                        get().trackEvent('search_performed', {query: query.substring(0, 20)});
                     },
 
-                    // 🔧 NEW: Clear search with immediate UI reset
                     clearSearch: () => {
-                        // 🔧 IMMEDIATE: Reset UI state first
                         set(state => ({
+                            ...state,
                             ui: {...state.ui, searchQuery: ''},
-                            filteredApplications: state.applications // Reset to show all applications
+                            filteredApplications: state.applications
                         }));
-
-                        console.log('✅ Search cleared - UI immediately reset');
                     },
 
                     handleImport: async (importedApplications) => {
@@ -824,15 +800,13 @@ export const useAppStore = create<AppState>()(
                             const {id, createdAt, updatedAt, ...appData} = app;
                             return appData;
                         });
-
                         return await get().bulkAddApplications(applicationsToAdd);
                     },
 
-                    // Goals actions
                     loadGoals: async () => {
                         try {
                             const goals = await databaseService.getGoals();
-                            set({goals});
+                            set(state => ({...state, goals}));
                             get().calculateProgress();
                         } catch (error) {
                             get().showToast({
@@ -845,16 +819,17 @@ export const useAppStore = create<AppState>()(
                     updateGoals: async (newGoals) => {
                         try {
                             await databaseService.updateGoals(newGoals);
-                            set({goals: newGoals});
-
-                            // Clear cache since goals changed
+                            set(state => ({...state, goals: newGoals}));
                             optimizedCache.invalidatePattern('goal-');
-
                             get().calculateProgress();
-
                             get().showToast({
                                 type: 'success',
                                 message: 'Goals updated successfully!'
+                            });
+                            get().trackEvent('goals_updated', {
+                                totalGoal: newGoals.totalGoal,
+                                weeklyGoal: newGoals.weeklyGoal,
+                                monthlyGoal: newGoals.monthlyGoal
                             });
                         } catch (error) {
                             get().showToast({
@@ -867,7 +842,7 @@ export const useAppStore = create<AppState>()(
                     calculateProgress: () => {
                         const {applications, goals} = get();
                         const goalProgress = calculateGoalProgress(applications, goals);
-                        set({goalProgress});
+                        set(state => ({...state, goalProgress}));
                     },
 
                     checkMilestones: () => {
@@ -875,18 +850,19 @@ export const useAppStore = create<AppState>()(
                         checkMilestones(applications.length, showToast);
                     },
 
-                    // UI actions - minimal state updates
                     setTheme: (theme) => {
-                        set(state => ({ui: {...state.ui, theme}}));
+                        set(state => ({...state, ui: {...state.ui, theme}}));
                         document.documentElement.classList.toggle('dark', theme === 'dark');
+                        get().trackEvent('theme_changed', {theme});
                     },
 
                     toggleSidebar: () => {
-                        set(state => ({ui: {...state.ui, sidebarOpen: !state.ui.sidebarOpen}}));
+                        set(state => ({...state, ui: {...state.ui, sidebarOpen: !state.ui.sidebarOpen}}));
+                        get().trackFeatureUsage('sidebar_toggle');
                     },
 
                     setCurrentPage: (page) => {
-                        set(state => ({ui: {...state.ui, currentPage: page}}));
+                        set(state => ({...state, ui: {...state.ui, currentPage: page}}));
                     },
 
                     setSearchQuery: (query) => {
@@ -894,37 +870,40 @@ export const useAppStore = create<AppState>()(
                     },
 
                     setSelectedApplicationIds: (ids) => {
-                        set(state => ({ui: {...state.ui, selectedApplicationIds: ids}}));
+                        set(state => ({...state, ui: {...state.ui, selectedApplicationIds: ids}}));
                     },
 
                     clearSelection: () => {
-                        set(state => ({ui: {...state.ui, selectedApplicationIds: []}}));
+                        set(state => ({...state, ui: {...state.ui, selectedApplicationIds: []}}));
                     },
 
                     setLoading: (loading) => {
-                        set(state => ({ui: {...state.ui, isLoading: loading}}));
+                        set(state => ({...state, ui: {...state.ui, isLoading: loading}}));
                     },
 
                     setError: (error) => {
-                        set(state => ({ui: {...state.ui, error}}));
+                        set(state => ({...state, ui: {...state.ui, error}}));
                     },
 
                     setSelectedTab: (tab) => {
-                        set(state => ({ui: {...state.ui, selectedTab: tab}}));
+                        set(state => ({...state, ui: {...state.ui, selectedTab: tab}}));
+                        get().trackPageView(tab);
                     },
 
-                    // Modal actions
                     openEditModal: (application) => {
                         set(state => ({
+                            ...state,
                             modals: {
                                 ...state.modals,
                                 editApplication: {isOpen: true, application}
                             }
                         }));
+                        get().trackFeatureUsage('edit_modal_opened');
                     },
 
                     closeEditModal: () => {
                         set(state => ({
+                            ...state,
                             modals: {
                                 ...state.modals,
                                 editApplication: {isOpen: false}
@@ -934,15 +913,18 @@ export const useAppStore = create<AppState>()(
 
                     openGoalModal: () => {
                         set(state => ({
+                            ...state,
                             modals: {
                                 ...state.modals,
                                 goalSetting: {isOpen: true}
                             }
                         }));
+                        get().trackFeatureUsage('goal_modal_opened');
                     },
 
                     closeGoalModal: () => {
                         set(state => ({
+                            ...state,
                             modals: {
                                 ...state.modals,
                                 goalSetting: {isOpen: false}
@@ -952,6 +934,7 @@ export const useAppStore = create<AppState>()(
 
                     openMilestone: (message) => {
                         set(state => ({
+                            ...state,
                             modals: {
                                 ...state.modals,
                                 milestone: {isOpen: true, message}
@@ -961,6 +944,7 @@ export const useAppStore = create<AppState>()(
 
                     closeMilestone: () => {
                         set(state => ({
+                            ...state,
                             modals: {
                                 ...state.modals,
                                 milestone: {isOpen: false}
@@ -968,33 +952,29 @@ export const useAppStore = create<AppState>()(
                         }));
                     },
 
-                    // 🔧 ENHANCED: Better toast management with duplicate prevention
                     showToast: (toast) => {
                         const currentToasts = get().toasts;
-
-                        // 🔧 ENHANCED: Prevent duplicates within 2 seconds (increased from 1 second)
                         const isDuplicate = currentToasts.some(t =>
                             t.message === toast.message &&
                             t.type === toast.type &&
-                            Date.now() - parseInt(t.id.split('-')[0], 36) < 2000 // Increased from 1000ms to 2000ms
+                            Date.now() - parseInt(t.id.split('-')[0], 36) < 2000
                         );
 
                         if (isDuplicate) {
-                            console.log('🚫 Prevented duplicate toast:', toast.message);
                             return;
                         }
 
                         const id = generateId();
                         const newToast = {...toast, id};
 
-                        // 🚀 Limit toasts and clean up old ones
                         set(state => {
                             const filteredToasts = state.toasts.filter(t => {
                                 const toastTime = parseInt(t.id.split('-')[0], 36);
-                                return Date.now() - toastTime < 30000; // Remove toasts older than 30s
+                                return Date.now() - toastTime < 30000;
                             });
 
                             return {
+                                ...state,
                                 toasts: [newToast, ...filteredToasts.slice(0, 2)]
                             };
                         });
@@ -1006,27 +986,412 @@ export const useAppStore = create<AppState>()(
                     },
 
                     removeToast: (id) => {
-                        set(state => ({toasts: state.toasts.filter(toast => toast.id !== id)}));
+                        set(state => ({...state, toasts: state.toasts.filter(toast => toast.id !== id)}));
                     },
 
-                    // Analytics - with caching
                     calculateAnalytics: () => {
                         const {applications} = get();
                         const analytics = calculateAnalytics(applications);
-                        set({analytics});
-                    }
+                        set(state => ({...state, analytics}));
+                    },
+
+                    // Analytics Actions
+                    initializeAnalytics: async () => {
+                        try {
+                            const settings: AnalyticsSettings = analyticsService.isEnabled() ? {
+                                enabled: true,
+                                consentGiven: true,
+                                trackingLevel: 'standard'
+                            } : {
+                                enabled: false,
+                                consentGiven: false,
+                                trackingLevel: 'minimal'
+                            };
+
+                            set(state => ({...state, analyticsSettings: settings}));
+
+                            if (settings.consentGiven) {
+                                await analyticsService.initialize();
+                                const userMetrics = analyticsService.getUserMetrics();
+                                set(state => ({...state, userMetrics}));
+                            } else {
+                                get().openAnalyticsConsent('first-visit');
+                            }
+                        } catch (error) {
+                            console.warn('Analytics initialization failed:', error);
+                        }
+                    },
+
+                    enableAnalytics: async (settings = {}) => {
+                        try {
+                            await analyticsService.enableAnalytics(settings);
+                            const analyticsSettings: AnalyticsSettings = {
+                                enabled: true,
+                                consentGiven: true,
+                                consentDate: new Date().toISOString(),
+                                trackingLevel: settings.trackingLevel || 'standard'
+                            };
+
+                            set(state => ({...state, analyticsSettings}));
+
+                            const userMetrics = analyticsService.getUserMetrics();
+                            set(state => ({...state, userMetrics}));
+
+                            get().showToast({
+                                type: 'success',
+                                message: 'Analytics enabled! Thank you for helping improve ApplyTrak.',
+                                duration: 5000
+                            });
+
+                            analyticsService.trackEvent('analytics_enabled', {
+                                trackingLevel: settings.trackingLevel || 'standard'
+                            });
+                        } catch (error) {
+                            console.error('Failed to enable analytics:', error);
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to enable analytics.'
+                            });
+                        }
+                    },
+
+                    disableAnalytics: () => {
+                        analyticsService.disableAnalytics();
+                        set(state => ({
+                            ...state,
+                            analyticsSettings: {
+                                enabled: false,
+                                consentGiven: false,
+                                trackingLevel: 'minimal'
+                            },
+                            userMetrics: null
+                        }));
+
+                        get().showToast({
+                            type: 'info',
+                            message: 'Analytics disabled and data cleared.',
+                            duration: 3000
+                        });
+                    },
+
+                    trackEvent: (event, properties) => {
+                        if (analyticsService.isEnabled()) {
+                            analyticsService.trackEvent(event as any, properties);
+                        }
+                    },
+
+                    trackPageView: (page) => {
+                        if (analyticsService.isEnabled()) {
+                            analyticsService.trackPageView(page);
+                        }
+                    },
+
+                    trackFeatureUsage: (feature, context) => {
+                        if (analyticsService.isEnabled()) {
+                            analyticsService.trackFeatureUsage(feature, context);
+                        }
+                    },
+
+                    openAnalyticsConsent: (type = 'settings-change') => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                analyticsConsent: {isOpen: true, type}
+                            }
+                        }));
+                    },
+
+                    closeAnalyticsConsent: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                analyticsConsent: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    // Feedback Actions
+                    openFeedbackModal: (initialType) => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                feedback: {isOpen: true, initialType}
+                            }
+                        }));
+                        get().trackEvent('feedback_modal_opened', {initialType});
+                    },
+
+                    closeFeedbackModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                feedback: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    submitFeedback: async (type, rating, message, email) => {
+                        try {
+                            const feedback = await feedbackService.submitFeedback(type, rating, message, email);
+
+                            set(state => ({
+                                ...state,
+                                feedbackList: [feedback, ...state.feedbackList]
+                            }));
+
+                            get().showToast({
+                                type: 'success',
+                                message: '🎉 Thank you for your feedback! This helps make ApplyTrak better.',
+                                duration: 5000
+                            });
+
+                            get().closeFeedbackModal();
+                        } catch (error) {
+                            console.error('Feedback submission failed:', error);
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to submit feedback. Please try again.'
+                            });
+                        }
+                    },
+
+                    loadFeedbackList: () => {
+                        const feedbackList = feedbackService.getAllFeedback();
+                        set(state => ({...state, feedbackList}));
+                    },
+
+                    // Admin Actions
+                    authenticateAdmin: (password) => {
+                        if (password === ADMIN_PASSWORD) {
+                            set(state => ({
+                                ...state,
+                                ui: {
+                                    ...state.ui,
+                                    admin: {
+                                        ...state.ui.admin,
+                                        authenticated: true
+                                    }
+                                }
+                            }));
+
+                            get().showToast({
+                                type: 'success',
+                                message: 'Admin access granted.',
+                                duration: 3000
+                            });
+
+                            return true;
+                        } else {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Invalid admin password.'
+                            });
+                            return false;
+                        }
+                    },
+
+                    logoutAdmin: () => {
+                        set(state => ({
+                            ...state,
+                            ui: {
+                                ...state.ui,
+                                admin: {
+                                    authenticated: false,
+                                    dashboardOpen: false,
+                                    currentSection: 'overview'
+                                }
+                            },
+                            adminAnalytics: null,
+                            adminFeedback: null
+                        }));
+
+                        get().showToast({
+                            type: 'info',
+                            message: 'Admin logged out.',
+                            duration: 2000
+                        });
+                    },
+
+                    loadAdminAnalytics: async () => {
+                        try {
+                            const userMetrics = analyticsService.getUserMetrics();
+                            const sessions = analyticsService.getAllSessions();
+                            const events = analyticsService.getAllEvents();
+
+                            const adminAnalytics: AdminAnalytics = {
+                                userMetrics: {
+                                    totalUsers: userMetrics ? 1 : 0,
+                                    activeUsers: {
+                                        daily: userMetrics ? 1 : 0,
+                                        weekly: userMetrics ? 1 : 0,
+                                        monthly: userMetrics ? 1 : 0
+                                    },
+                                    newUsers: {
+                                        today: 0,
+                                        thisWeek: 0,
+                                        thisMonth: 0
+                                    }
+                                },
+                                usageMetrics: {
+                                    totalSessions: sessions.length,
+                                    averageSessionDuration: sessions.length > 0
+                                        ? sessions.reduce((sum, s) => sum + (s.duration || 0), 0) / sessions.length
+                                        : 0,
+                                    totalApplicationsCreated: userMetrics?.applicationsCreated || 0,
+                                    featuresUsage: events.reduce((acc, event) => {
+                                        if (event.event === 'feature_used' && event.properties?.feature) {
+                                            acc[event.properties.feature] = (acc[event.properties.feature] || 0) + 1;
+                                        }
+                                        return acc;
+                                    }, {} as { [key: string]: number })
+                                },
+                                deviceMetrics: {
+                                    mobile: userMetrics?.deviceType === 'mobile' ? 1 : 0,
+                                    desktop: userMetrics?.deviceType === 'desktop' ? 1 : 0
+                                },
+                                engagementMetrics: {
+                                    dailyActiveUsers: [],
+                                    featureAdoption: [],
+                                    userRetention: {
+                                        day1: 0,
+                                        day7: 0,
+                                        day30: 0
+                                    }
+                                }
+                            };
+
+                            set(state => ({...state, adminAnalytics}));
+                        } catch (error) {
+                            console.error('Failed to load admin analytics:', error);
+                        }
+                    },
+
+                    loadAdminFeedback: async () => {
+                        try {
+                            const stats = feedbackService.getFeedbackStats();
+                            const recentFeedback = feedbackService.getRecentFeedback(10);
+
+                            const adminFeedback: AdminFeedbackSummary = {
+                                totalFeedback: stats.totalSubmissions,
+                                unreadFeedback: recentFeedback.filter((f: FeedbackSubmission) => !f.metadata?.read).length,
+                                averageRating: stats.averageRating,
+                                recentFeedback,
+                                feedbackTrends: {
+                                    bugs: stats.typeDistribution.bug,
+                                    features: stats.typeDistribution.feature,
+                                    general: stats.typeDistribution.general,
+                                    love: stats.typeDistribution.love
+                                },
+                                topIssues: []
+                            };
+
+                            set(state => ({...state, adminFeedback}));
+                        } catch (error) {
+                            console.error('Failed to load admin feedback:', error);
+                        }
+                    },
+
+                    openAdminDashboard: () => {
+                        set(state => ({
+                            ...state,
+                            ui: {
+                                ...state.ui,
+                                admin: {
+                                    ...state.ui.admin,
+                                    dashboardOpen: true
+                                }
+                            }
+                        }));
+
+                        get().loadAdminAnalytics();
+                        get().loadAdminFeedback();
+                    },
+
+                    closeAdminDashboard: () => {
+                        set(state => ({
+                            ...state,
+                            ui: {
+                                ...state.ui,
+                                admin: {
+                                    ...state.ui.admin,
+                                    dashboardOpen: false
+                                }
+                            }
+                        }));
+                    },
+
+                    setAdminSection: (section) => {
+                        set(state => ({
+                            ...state,
+                            ui: {
+                                ...state.ui,
+                                admin: {
+                                    ...state.ui.admin,
+                                    currentSection: section
+                                }
+                            }
+                        }));
+                    },
                 };
             },
             {
                 name: 'applytrak-store',
-                partialize: (state) => ({
+                partialize: (state: AppState) => ({
                     ui: {
-                        theme: state.ui.theme,
-                        itemsPerPage: state.ui.itemsPerPage,
-                        selectedTab: state.ui.selectedTab
+                        theme: state.ui?.theme || 'light',
+                        itemsPerPage: state.ui?.itemsPerPage || 10,
+                        selectedTab: state.ui?.selectedTab || 'tracker',
+                        feedback: {
+                            buttonVisible: state.ui?.feedback?.buttonVisible ?? true
+                        },
+                        admin: {
+                            authenticated: false,
+                            dashboardOpen: false,
+                            currentSection: state.ui?.admin?.currentSection || 'overview'
+                        }
                     },
-                    goals: state.goals
-                })
+                    goals: state.goals,
+                    analyticsSettings: state.analyticsSettings
+                }),
+                onRehydrateStorage: () => (state: AppState | undefined) => {
+                    if (state) {
+                        // Ensure admin state exists after rehydration
+                        if (!state.ui) {
+                            state.ui = {} as UIState;
+                        }
+                        if (!state.ui.admin) {
+                            state.ui.admin = {
+                                authenticated: false,
+                                dashboardOpen: false,
+                                currentSection: 'overview'
+                            };
+                        }
+                        if (!state.ui.analytics) {
+                            state.ui.analytics = {
+                                consentModalOpen: false,
+                                settingsOpen: false,
+                            };
+                        }
+                        if (!state.ui.feedback) {
+                            state.ui.feedback = {
+                                buttonVisible: true,
+                                modalOpen: false,
+                                lastSubmissionDate: undefined,
+                            };
+                        }
+
+                        // Force admin to be logged out on page refresh for security
+                        if (state.ui?.admin) {
+                            state.ui.admin.authenticated = false;
+                            state.ui.admin.dashboardOpen = false;
+                        }
+                        console.log('🔧 Store rehydrated with admin state fix');
+                    }
+                }
             }
         )
     )

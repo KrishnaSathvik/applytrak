@@ -1178,6 +1178,52 @@ thead th {
     color: white;
 }
 
+/* Add this to your globals.css for maximum logo clarity */
+
+.logo-crisp {
+    /* Prevent blurry scaling */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+
+    /* Ensure proper object fitting */
+    object-fit: contain;
+    object-position: center;
+
+    /* Prevent browser anti-aliasing blur */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+
+    /* Ensure proper sizing */
+    max-width: 100%;
+    height: auto;
+
+    /* Remove any default filters */
+    filter: none;
+}
+
+/* For retina displays */
+.logo-retina {
+    image-rendering: -webkit-optimize-contrast;
+    transform: translateZ(0);
+}
+
+/* Specific sizes with pixel-perfect scaling */
+.logo-sm {
+    width: 24px;
+    height: 24px;
+}
+
+.logo-md {
+    width: 32px;
+    height: 32px;
+}
+
+.logo-lg {
+    width: 48px;
+    height: 48px;
+}
 /* =============================================================================
    END OF STYLES - Total: ~1000+ lines optimized for performance and maintainability
    ============================================================================= */

@@ -1,5 +1,5 @@
 // src/components/forms/ApplicationForm.tsx - FIXED VERSION WITH ALL STYLING IMPROVEMENTS
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {SubmitHandler, useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
 import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
@@ -32,59 +32,29 @@ const ApplicationForm: React.FC = () => {
             notes: ''
         }
     });
-
     const jobUrl = watch('jobUrl');
     const notesValue = watch('notes') || '';
 
-    // 🔧 FIXED: Remove duplicate toast - let store handle all notifications
-    const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
-        try {
-            // ✅ Only call addApplication - store handles the toast notification
-            await addApplication({
-                company: data.company,
-                position: data.position,
-                dateApplied: data.dateApplied,
-                type: data.type,
-                status: 'Applied',
-                location: data.location || undefined,
-                salary: data.salary || undefined,
-                jobSource: data.jobSource || undefined,
-                jobUrl: data.jobUrl || undefined,
-                notes: data.notes || undefined,
-                attachments: attachments.length > 0 ? attachments : undefined
-            });
+// 🔧 FIXED: Add the useRef declaration at the top of your component
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-            // Reset form and attachments
-            reset({
-                company: '',
-                position: '',
-                dateApplied: new Date().toISOString().split('T')[0],
-                type: 'Remote',
-                location: '',
-                salary: '',
-                jobSource: '',
-                jobUrl: '',
-                notes: ''
-            });
-            setAttachments([]);
-
-            // 🔧 REMOVED: Duplicate toast call - store already shows success message
-            // The store's addApplication method handles the success notification
-
-        } catch (error) {
-            console.error('Error adding application:', error);
-            // ✅ KEEP: Form-specific error handling
-            showToast({
-                type: 'error',
-                message: 'Failed to add application. Please try again.'
-            });
-        }
-    };
-
+// 🔧 FIXED: Declare handleFileSelect first, then use it in handleFileInputChange
     const handleFileSelect = useCallback((files: FileList | null) => {
-        if (!files) return;
+        if (!files || files.length === 0) {
+            console.log('📁 handleFileSelect: No files provided');
+            return;
+        }
 
-        Array.from(files).forEach(file => {
+        console.log('📁 handleFileSelect: Starting to process', files.length, 'files');
+        console.log('📊 Current attachment count before processing:', attachments.length);
+
+        Array.from(files).forEach((file, fileIndex) => {
+            console.log(`📄 Processing file ${fileIndex + 1}/${files.length}:`, {
+                name: file.name,
+                type: file.type,
+                size: file.size
+            });
+
             // Validate file type
             const allowedTypes = [
                 'application/pdf',
@@ -96,67 +66,236 @@ const ApplicationForm: React.FC = () => {
             ];
 
             if (!allowedTypes.includes(file.type)) {
+                console.log('❌ File type validation failed:', file.type);
                 showToast({
                     type: 'error',
-                    message: `File type ${file.type} is not allowed. Please use PDF, DOC, DOCX, TXT, JPG, or PNG files.`
+                    message: `File type not allowed: ${file.name}. Use PDF, DOC, DOCX, TXT, JPG, or PNG.`
                 });
                 return;
             }
 
             // Validate file size (10MB limit)
             if (file.size > 10 * 1024 * 1024) {
+                console.log('❌ File size validation failed:', file.size, 'bytes');
                 showToast({
                     type: 'error',
-                    message: `File ${file.name} is too large. Maximum size is 10MB.`
+                    message: `File too large: ${file.name}. Maximum size is 10MB.`
                 });
                 return;
             }
 
-            // Check for duplicates
-            if (attachments.some(att => att.name === file.name)) {
-                showToast({
-                    type: 'warning',
-                    message: `File ${file.name} is already attached.`
-                });
-                return;
-            }
+            console.log('✅ File validation passed for:', file.name);
+            console.log('📖 Starting FileReader...');
 
-            // Convert to base64
+            // Create FileReader to convert file to base64
             const reader = new FileReader();
+
             reader.onload = (e) => {
+                console.log('📖 FileReader onload completed for:', file.name);
+
+                const result = e.target?.result;
+                if (!result) {
+                    console.error('❌ FileReader result is null for:', file.name);
+                    return;
+                }
+
+                // Create attachment object
                 const attachment: Attachment = {
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${fileIndex}`,
                     name: file.name,
                     type: file.type,
                     size: file.size,
-                    data: e.target?.result as string,
+                    data: result as string,
                     uploadedAt: new Date().toISOString()
                 };
 
-                setAttachments(prev => [...prev, attachment]);
+                console.log('📎 Created attachment object:', {
+                    id: attachment.id,
+                    name: attachment.name,
+                    size: attachment.size
+                });
+
+                // Update state using functional update
+                setAttachments(currentAttachments => {
+                    console.log('📊 setAttachments called with current count:', currentAttachments.length);
+
+                    const updatedAttachments = [...currentAttachments, attachment];
+                    console.log('✅ Adding attachment. New count will be:', updatedAttachments.length);
+
+                    // Show success toast
+                    showToast({
+                        type: 'success',
+                        message: `📎 "${file.name}" attached successfully!`,
+                        duration: 2000
+                    });
+
+                    console.log('🔄 Returning updated attachments array');
+                    return updatedAttachments;
+                });
             };
+
+            reader.onerror = (error) => {
+                console.error('❌ FileReader error for file:', file.name, error);
+                showToast({
+                    type: 'error',
+                    message: `Failed to read file: ${file.name}`
+                });
+            };
+
+            // Start reading the file as data URL
             reader.readAsDataURL(file);
         });
-    }, [attachments, showToast]);
+    }, [showToast]); // 🔧 FIXED: Only showToast in dependencies
 
-    const removeAttachment = (index: number) => {
-        setAttachments(prev => prev.filter((_, i) => i !== index));
+// 🔧 FIXED: File input change handler (now declared after handleFileSelect)
+    const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        const fileCount = files?.length || 0;
+
+        console.log('📁 File input onChange event - Files selected:', fileCount);
+        console.log('📄 File names:', files ? Array.from(files).map(f => f.name) : []);
+        console.log('📊 Current attachments state:', attachments.length);
+
+        // Process files if any were selected
+        if (files && fileCount > 0) {
+            handleFileSelect(files);
+        }
+
+        // Clear the input value to allow same file selection
+        e.target.value = '';
+        console.log('🔄 File input value cleared immediately');
+    }, [handleFileSelect]);
+
+// 🔧 FIXED: Form submission handler
+    const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
+        // Track submission number for debugging
+        const submissionNumber = ((window as any).formSubmissionCount = ((window as any).formSubmissionCount || 0) + 1);
+
+        console.log('🚀 Form submission #', submissionNumber);
+        console.log('📎 Attachments in state at submission time:', attachments.length);
+        console.log('📋 Attachment details:', attachments.map(a => ({
+            name: a.name,
+            id: a.id,
+            size: a.size
+        })));
+
+        try {
+            // Create immutable snapshot of attachments
+            const attachmentsSnapshot = attachments.map(att => ({...att}));
+            console.log('📤 Submitting application with', attachmentsSnapshot.length, 'attachments');
+
+            // Submit to store
+            await addApplication({
+                company: data.company,
+                position: data.position,
+                dateApplied: data.dateApplied,
+                type: data.type,
+                status: 'Applied',
+                location: data.location || undefined,
+                salary: data.salary || undefined,
+                jobSource: data.jobSource || undefined,
+                jobUrl: data.jobUrl || undefined,
+                notes: data.notes || undefined,
+                attachments: attachmentsSnapshot.length > 0 ? attachmentsSnapshot : undefined
+            });
+
+            console.log('✅ Application submitted successfully to store');
+
+            // Reset form fields
+            reset({
+                company: '',
+                position: '',
+                dateApplied: new Date().toISOString().split('T')[0],
+                type: 'Remote',
+                location: '',
+                salary: '',
+                jobSource: '',
+                jobUrl: '',
+                notes: ''
+            });
+
+            // Reset attachments state
+            setAttachments([]);
+            console.log('🔄 Attachments state reset to empty array');
+
+            // Also reset the file input DOM element
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+                console.log('🔄 File input DOM element reset via ref');
+            }
+
+            console.log('🔄 Complete form reset finished');
+
+        } catch (error) {
+            console.error('❌ Error submitting application:', error);
+            showToast({
+                type: 'error',
+                message: 'Failed to add application. Please try again.'
+            });
+        }
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
+// 🔧 FIXED: Remove attachment handler
+    const removeAttachment = useCallback((index: number) => {
+        console.log('🗑️ Remove attachment requested for index:', index);
+
+        setAttachments(currentAttachments => {
+            console.log('📊 Current attachments count:', currentAttachments.length);
+
+            if (index < 0 || index >= currentAttachments.length) {
+                console.error('❌ Invalid attachment index:', index, 'Valid range: 0 to', currentAttachments.length - 1);
+                return currentAttachments;
+            }
+
+            const attachmentToRemove = currentAttachments[index];
+            console.log('🗑️ Removing attachment:', attachmentToRemove.name);
+
+            const updatedAttachments = currentAttachments.filter((_, i) => i !== index);
+            console.log('✅ Attachment removed. New count:', updatedAttachments.length);
+
+            return updatedAttachments;
+        });
+    }, []);
+
+// 🔧 FIXED: Drag and drop handlers
+    const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
-        setIsDragOver(true);
-    };
+        e.stopPropagation();
 
-    const handleDragLeave = () => {
-        setIsDragOver(false);
-    };
+        if (!isDragOver) {
+            console.log('🎯 Drag over event started');
+            setIsDragOver(true);
+        }
+    }, [isDragOver]);
 
-    const handleDrop = (e: React.DragEvent) => {
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
+
+        // Only set to false if we're actually leaving the drop zone
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+            console.log('🎯 Drag leave event - exiting drop zone');
+            setIsDragOver(false);
+        }
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const droppedFiles = e.dataTransfer.files;
+        console.log('📁 Drop event - Files dropped:', droppedFiles.length);
+
         setIsDragOver(false);
-        handleFileSelect(e.dataTransfer.files);
-    };
+
+        if (droppedFiles.length > 0) {
+            handleFileSelect(droppedFiles);
+        }
+    }, [handleFileSelect]);
 
     return (
         <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
@@ -524,10 +663,11 @@ Feel free to include any relevant information that will help you track this oppo
                                     <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
                                         <span className="sm:hidden">Tap to </span>browse
                                         <input
+                                            ref={fileInputRef}
                                             type="file"
                                             multiple
                                             accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                                            onChange={(e) => handleFileSelect(e.target.files)}
+                                            onChange={handleFileInputChange}
                                             className="hidden"
                                         />
                                     </label>

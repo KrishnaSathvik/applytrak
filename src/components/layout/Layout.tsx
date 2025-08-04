@@ -1,9 +1,10 @@
-// src/components/layout/Layout.tsx - Enhanced Typography Version with ToastContainer
+// src/components/layout/Layout.tsx - Enhanced with Footer Integration
 import React, {useEffect, useState} from 'react';
 import {ChevronUp} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import Footer from './Footer';
 import ToastContainer from '../ui/ToastContainer';
 
 interface LayoutProps {
@@ -49,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
     };
 
     return (
-        <div className="min-h-screen relative overflow-x-hidden">
+        <div className="min-h-screen relative overflow-x-hidden flex flex-col">
             {/* Enhanced Background */}
             <div
                 className="fixed inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"/>
@@ -79,11 +80,11 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
             {/* Sidebar */}
             <Sidebar/>
 
-            {/* Main Content Area */}
-            <main className="relative z-10 pt-16"> {/* pt-16 accounts for fixed header height */}
+            {/* Main Content Area - Flex grow to push footer down */}
+            <main className="relative z-10 pt-16 flex-1"> {/* pt-16 accounts for fixed header height */}
                 {/* Content Container with proper responsive margins */}
                 <div className={`
-                    min-h-[calc(100vh-4rem)] 
+                    min-h-[calc(100vh-4rem-200px)] 
                     transition-all duration-300 ease-out
                     ${getMainContentMargin()}
                 `}>
@@ -103,6 +104,14 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
                     </div>
                 </div>
             </main>
+
+            {/* Footer - Now properly positioned at bottom */}
+            <div className={`
+                relative z-10 transition-all duration-300 ease-out
+                ${getMainContentMargin()}
+            `}>
+                <Footer/>
+            </div>
 
             {/* Enhanced Scroll to top FAB with typography */}
             {showScrollTop && (
