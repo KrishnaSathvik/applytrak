@@ -25,30 +25,6 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 let supabase: SupabaseClient | null = null;
 
-// Initialize Supabase client only if environment variables are provided
-const initializeSupabase = (): SupabaseClient | null => {
-    if (!supabaseUrl || !supabaseAnonKey) {
-        console.warn('Supabase environment variables not found. Running in offline-only mode.');
-        return null;
-    }
-
-    try {
-        if (!supabase) {
-            supabase = createClient(supabaseUrl, supabaseAnonKey);
-            console.log('✅ Supabase client initialized');
-        }
-        return supabase;
-    } catch (error) {
-        console.error('Failed to initialize Supabase:', error);
-        return null;
-    }
-};
-
-// Check if online and Supabase is available
-const isOnlineWithSupabase = (): boolean => {
-    return navigator.onLine && !!initializeSupabase();
-};
-
 // ============================================================================
 // EXISTING DATABASE SCHEMA (UNCHANGED)
 // ============================================================================
@@ -112,14 +88,142 @@ const generateId = (): string => {
 // CLOUD SYNC UTILITIES
 // ============================================================================
 
-// Get user ID for cloud sync (anonymous user identification)
+// Generate proper UUID for Supabase compatibility
+const generateUUID = (): string => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
+
+// Get user ID for cloud sync (generates proper UUID)
 const getUserId = (): string => {
     let userId = localStorage.getItem('applytrak_user_id');
     if (!userId) {
-        userId = generateId();
+        userId = generateUUID(); // Generate proper UUID instead of random string
         localStorage.setItem('applytrak_user_id', userId);
     }
     return userId;
+};
+
+// Helper function to get the database user ID (not UUID)
+const getUserDbId = async (): Promise<number | null> => {
+    // Try to get cached DB ID first
+    const cachedId = localStorage.getItem('applytrak_user_db_id');
+    if (cachedId) {
+        return parseInt(cachedId);
+    }
+
+    // If not cached, look it up
+    if (!isOnlineWithSupabase()) return null;
+
+    try {
+        const client = initializeSupabase()!;
+        const userId = getUserId();
+
+        const { data: user, error } = await client
+            .from('users')
+            .select('id')
+            .eq('external_id', userId)
+            .single();
+
+        if (error || !user) {
+            console.warn('Could not find user DB ID');
+            return null;
+        }
+
+        // Cache it for future use
+        localStorage.setItem('applytrak_user_db_id', user.id.toString());
+        return user.id;
+    } catch (error) {
+        console.warn('Error getting user DB ID:', error);
+        return null;
+    }
+};
+
+// Initialize Supabase client only if environment variables are provided
+const initializeSupabase = (): SupabaseClient | null => {
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.warn('Supabase environment variables not found. Running in offline-only mode.');
+        return null;
+    }
+
+    try {
+        if (!supabase) {
+            supabase = createClient(supabaseUrl, supabaseAnonKey);
+            console.log('✅ Supabase client initialized');
+
+            // Ensure user exists when first connecting
+            ensureUserExists().catch(err =>
+                console.warn('Failed to create user:', err)
+            );
+        }
+        return supabase;
+    } catch (error) {
+        console.error('Failed to initialize Supabase:', error);
+        return null;
+    }
+};
+
+// Check if online and Supabase is available
+const isOnlineWithSupabase = (): boolean => {
+    return navigator.onLine && !!initializeSupabase();
+};
+
+// Ensure user exists in Supabase
+const ensureUserExists = async (): Promise<void> => {
+    if (!isOnlineWithSupabase()) return;
+
+    try {
+        const client = initializeSupabase()!;
+        const userId = getUserId();
+
+        console.log('🔍 Checking user exists:', userId);
+
+        // Check if user exists
+        const { data: existingUser, error: fetchError } = await client
+            .from('users')
+            .select('id, external_id')
+            .eq('external_id', userId)
+            .maybeSingle(); // Use maybeSingle instead of single to avoid error when no rows
+
+        if (fetchError) {
+            console.error('Error checking user:', fetchError);
+            return;
+        }
+
+        // Create user if doesn't exist
+        if (!existingUser) {
+            console.log('🔧 Creating new user:', userId);
+
+            const { data: newUser, error: insertError } = await client
+                .from('users')
+                .insert({
+                    external_id: userId,
+                    email: `user-${userId.split('-')[0]}@applytrak.local`,
+                    display_name: 'ApplyTrak User',
+                    created_at: new Date().toISOString()
+                })
+                .select('id, external_id')
+                .single();
+
+            if (insertError) {
+                console.error('Error creating user:', insertError);
+                throw insertError;
+            } else {
+                console.log('✅ User created in cloud:', newUser);
+                // Store the database ID for future use
+                localStorage.setItem('applytrak_user_db_id', newUser.id.toString());
+            }
+        } else {
+            console.log('✅ User already exists:', existingUser);
+            // Store the database ID for future use
+            localStorage.setItem('applytrak_user_db_id', existingUser.id.toString());
+        }
+    } catch (error) {
+        console.warn('Failed to ensure user exists:', error);
+    }
 };
 
 // Sync data to cloud (non-blocking)
@@ -128,24 +232,48 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
 
     try {
         const client = initializeSupabase()!;
-        const userId = getUserId();
+        const userDbId = await getUserDbId();
 
+        if (!userDbId) {
+            console.warn('No user DB ID available, skipping cloud sync');
+            return;
+        }
+
+        // Add user_id to all operations (use the database ID, not UUID)
         const dataWithUser = {
             ...data,
-            user_id: userId,
+            user_id: userDbId,  // Use the database ID
             synced_at: new Date().toISOString()
         };
 
+        let result;
+
         switch (operation) {
             case 'insert':
-                await client.from(table).insert(dataWithUser);
+                result = await client.from(table).insert(dataWithUser);
                 break;
             case 'update':
-                await client.from(table).update(dataWithUser).eq('id', data.id).eq('user_id', userId);
+                const updateData = { ...dataWithUser };
+                delete updateData.user_id; // Remove to avoid conflicts
+
+                result = await client
+                    .from(table)
+                    .update(updateData)
+                    .eq('id', data.id)
+                    .eq('user_id', userDbId);
                 break;
             case 'delete':
-                await client.from(table).delete().eq('id', data.id).eq('user_id', userId);
+                result = await client
+                    .from(table)
+                    .delete()
+                    .eq('id', data.id)
+                    .eq('user_id', userDbId);
                 break;
+        }
+
+        if (result.error) {
+            console.error('Supabase operation error:', result.error);
+            throw result.error;
         }
 
         console.log(`✅ Synced to cloud: ${table} ${operation}`);
@@ -161,15 +289,23 @@ const syncFromCloud = async (table: string): Promise<any[]> => {
 
     try {
         const client = initializeSupabase()!;
-        const userId = getUserId();
+        const userDbId = await getUserDbId();
 
-        const {data, error} = await client
+        if (!userDbId) {
+            console.warn('No user DB ID available, skipping cloud sync');
+            return [];
+        }
+
+        const { data, error } = await client
             .from(table)
             .select('*')
-            .eq('user_id', userId)
-            .order('created_at', {ascending: false});
+            .eq('user_id', userDbId)  // Use the database ID
+            .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase query error:', error);
+            throw error;
+        }
 
         console.log(`✅ Synced from cloud: ${table} (${data?.length || 0} items)`);
         return data || [];
@@ -468,17 +604,19 @@ export const databaseService: DatabaseService = {
             if (isOnlineWithSupabase()) {
                 try {
                     const client = initializeSupabase()!;
-                    const userId = getUserId();
+                    const userDbId = await getUserDbId();
 
-                    // Delete all user data from cloud
-                    await Promise.all([
-                        client.from('applications').delete().eq('user_id', userId),
-                        client.from('goals').delete().eq('user_id', userId),
-                        client.from('analytics_events').delete().eq('user_id', userId),
-                        client.from('feedback').delete().eq('user_id', userId)
-                    ]);
+                    if (userDbId) {
+                        // Delete all user data from cloud
+                        await Promise.all([
+                            client.from('applications').delete().eq('user_id', userDbId),
+                            client.from('goals').delete().eq('user_id', userDbId),
+                            client.from('analytics_events').delete().eq('user_id', userDbId),
+                            client.from('feedback').delete().eq('user_id', userDbId)
+                        ]);
 
-                    console.log('✅ Cloud data cleared');
+                        console.log('✅ Cloud data cleared');
+                    }
                 } catch (cloudError) {
                     console.warn('Failed to clear cloud data:', cloudError);
                 }
