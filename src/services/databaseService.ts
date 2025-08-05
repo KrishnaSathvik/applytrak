@@ -90,7 +90,7 @@ const generateId = (): string => {
 
 // Generate proper UUID for Supabase compatibility
 const generateUUID = (): string => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0;
         const v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
@@ -122,7 +122,7 @@ const getUserDbId = async (): Promise<number | null> => {
         const client = initializeSupabase()!;
         const userId = getUserId();
 
-        const { data: user, error } = await client
+        const {data: user, error} = await client
             .from('users')
             .select('id')
             .eq('external_id', userId)
@@ -182,7 +182,7 @@ const ensureUserExists = async (): Promise<void> => {
         console.log('🔍 Checking user exists:', userId);
 
         // Check if user exists
-        const { data: existingUser, error: fetchError } = await client
+        const {data: existingUser, error: fetchError} = await client
             .from('users')
             .select('id, external_id')
             .eq('external_id', userId)
@@ -197,7 +197,7 @@ const ensureUserExists = async (): Promise<void> => {
         if (!existingUser) {
             console.log('🔧 Creating new user:', userId);
 
-            const { data: newUser, error: insertError } = await client
+            const {data: newUser, error: insertError} = await client
                 .from('users')
                 .insert({
                     external_id: userId,
@@ -253,7 +253,7 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
                 result = await client.from(table).insert(dataWithUser);
                 break;
             case 'update':
-                const updateData = { ...dataWithUser };
+                const updateData = {...dataWithUser};
                 delete updateData.user_id; // Remove to avoid conflicts
 
                 result = await client
@@ -296,11 +296,11 @@ const syncFromCloud = async (table: string): Promise<any[]> => {
             return [];
         }
 
-        const { data, error } = await client
+        const {data, error} = await client
             .from(table)
             .select('*')
             .eq('user_id', userDbId)  // Use the database ID
-            .order('created_at', { ascending: false });
+            .order('created_at', {ascending: false});
 
         if (error) {
             console.error('Supabase query error:', error);

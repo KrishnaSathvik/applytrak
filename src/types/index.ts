@@ -525,45 +525,67 @@ export interface SupabasePrivacySettings {
 export interface DatabaseService {
     // Existing Application methods
     getApplications(): Promise<Application[]>;
+
     getApplicationCount(): Promise<number>;
+
     addApplication(app: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>): Promise<Application>;
+
     updateApplication(id: string, updates: Partial<Application>): Promise<Application>;
+
     deleteApplication(id: string): Promise<void>;
+
     deleteApplications(ids: string[]): Promise<void>;
+
     bulkUpdateApplications(ids: string[], updates: Partial<Application>): Promise<void>;
+
     importApplications(applications: Application[]): Promise<void>;
+
     clearAllData(): Promise<void>;
 
     // Existing Goals methods
     getGoals(): Promise<Goals>;
+
     updateGoals(goals: Omit<Goals, 'id'>): Promise<Goals>;
 
     // Existing Backup methods
     createBackup(): Promise<void>;
+
     getBackups(): Promise<Backup[]>;
+
     restoreFromBackup(backup: Backup): Promise<void>;
 
     // Analytics methods
     saveAnalyticsEvent(event: AnalyticsEvent): Promise<void>;
+
     getAnalyticsEvents(sessionId?: string): Promise<AnalyticsEvent[]>;
+
     getUserSession(sessionId: string): Promise<UserSession | null>;
+
     saveUserSession(session: UserSession): Promise<void>;
+
     getUserMetrics(): Promise<UserMetrics>;
+
     updateUserMetrics(metrics: Partial<UserMetrics>): Promise<void>;
 
     // Feedback methods
     saveFeedback(feedback: FeedbackSubmission): Promise<void>;
+
     getAllFeedback(): Promise<FeedbackSubmission[]>;
+
     getFeedbackStats(): Promise<FeedbackStats>;
+
     markFeedbackAsRead(feedbackId: string): Promise<void>;
 
     // Privacy methods
     savePrivacySettings(settings: PrivacySettings): Promise<void>;
+
     getPrivacySettings(): Promise<PrivacySettings | null>;
 
     // Admin methods
     getAdminAnalytics(): Promise<AdminAnalytics>;
+
     getAdminFeedbackSummary(): Promise<AdminFeedbackSummary>;
+
     cleanupOldData(olderThanDays: number): Promise<void>;
 
     // Cloud sync methods (optional)
