@@ -1,6 +1,5 @@
 // src/utils/analytics.ts - Analytics Helper Functions and Event Tracking Utilities
 import type {AnalyticsEvent, AnalyticsEventType, AnalyticsSettings, UserMetrics, UserSession} from '../types';
-
 // ============================================================================
 // DEVICE AND ENVIRONMENT DETECTION
 // ============================================================================
@@ -258,7 +257,7 @@ export const calculateAverageSessionDuration = (sessions: UserSession[]): number
     if (!sessions.length) return 0;
 
     const totalDuration = sessions.reduce((sum, session) => {
-        return sum + (session.duration || 0);
+        return sum + Number(session.duration || 0);
     }, 0);
 
     return Math.round(totalDuration / sessions.length);

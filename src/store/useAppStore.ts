@@ -1,4 +1,4 @@
-// src/store/useAppStore.ts - COMPLETELY FIXED VERSION
+// src/store/useAppStore.ts - COMPLETELY FIXED VERSION WITH ALL METHODS
 import {create} from 'zustand';
 import {persist, subscribeWithSelector} from 'zustand/middleware';
 import {startTransition} from 'react';
@@ -18,6 +18,7 @@ import {
 } from '../types';
 import {databaseService} from '../services/databaseService';
 import {analyticsService} from '../services/analyticsService';
+import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
 
 export interface Toast {
@@ -101,6 +102,11 @@ export interface AppState {
     adminAnalytics: AdminAnalytics | null;
     adminFeedback: AdminFeedbackSummary | null;
 
+    // 🔄 NEW: Real-time admin state
+    isAdminRealtime: boolean;
+    adminSubscription: (() => void) | null;
+    lastAdminUpdate: string | null;
+
     // Actions
     loadApplications: () => Promise<void>;
     addApplication: (application: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -158,6 +164,19 @@ export interface AppState {
     openAdminDashboard: () => void;
     closeAdminDashboard: () => void;
     setAdminSection: (section: 'overview' | 'analytics' | 'feedback' | 'users') => void;
+
+    // 🔄 NEW: Real-time admin actions
+    enableRealtimeAdmin: () => void;
+    disableRealtimeAdmin: () => void;
+    loadRealtimeAdminAnalytics: () => Promise<void>;
+    loadRealtimeFeedbackSummary: () => Promise<void>;
+    refreshAdminData: () => Promise<void>;
+    getAdminConnectionStatus: () => {
+        isRealtime: boolean;
+        isConnected: boolean;
+        lastUpdate: string | null;
+        mode: string;
+    };
 }
 
 // Utility functions
@@ -432,7 +451,137 @@ export const useAppStore = create<AppState>()(
                     adminAnalytics: null,
                     adminFeedback: null,
 
-                    // Actions
+                    // 🔄 NEW: Real-time admin state
+                    isAdminRealtime: false,
+                    adminSubscription: null,
+                    lastAdminUpdate: null,
+
+                    // 🔄 NEW: Real-time admin actions
+                    enableRealtimeAdmin: () => {
+                        const cleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
+                            // Update admin analytics with real-time data
+                            if (data.userMetrics) {
+                                set(state => ({
+                                    ...state,
+                                    adminAnalytics: data,
+                                    lastAdminUpdate: new Date().toISOString()
+                                }));
+
+                                get().showToast({
+                                    type: 'info',
+                                    message: '📊 Admin data updated in real-time',
+                                    duration: 2000
+                                });
+                            }
+                        });
+
+                        set(state => ({
+                            ...state,
+                            isAdminRealtime: true,
+                            adminSubscription: cleanup
+                        }));
+
+                        console.log('🔄 Real-time admin mode enabled');
+                    },
+
+                    disableRealtimeAdmin: () => {
+                        const {adminSubscription} = get();
+                        if (adminSubscription) {
+                            adminSubscription();
+                        }
+
+                        set(state => ({
+                            ...state,
+                            isAdminRealtime: false,
+                            adminSubscription: null
+                        }));
+
+                        console.log('⏹️ Real-time admin mode disabled');
+                    },
+
+                    loadRealtimeAdminAnalytics: async () => {
+                        try {
+                            set(state => ({
+                                ...state,
+                                ui: {...state.ui, isLoading: true}
+                            }));
+
+                            const analytics = await realtimeAdminService.getRealtimeAdminAnalytics();
+
+                            set(state => ({
+                                ...state,
+                                adminAnalytics: analytics,
+                                lastAdminUpdate: new Date().toISOString(),
+                                ui: {...state.ui, isLoading: false}
+                            }));
+
+                            console.log('📊 Real-time admin analytics loaded');
+                        } catch (error) {
+                            console.error('Failed to load real-time admin analytics:', error);
+
+                            // Fallback to local analytics
+                            get().loadAdminAnalytics();
+
+                            get().showToast({
+                                type: 'warning',
+                                message: 'Using local data - cloud unavailable'
+                            });
+                        }
+                    },
+
+                    loadRealtimeFeedbackSummary: async () => {
+                        try {
+                            const feedback = await realtimeAdminService.getRealtimeFeedbackSummary();
+
+                            set(state => ({
+                                ...state,
+                                adminFeedback: feedback,
+                                lastAdminUpdate: new Date().toISOString()
+                            }));
+
+                            console.log('💬 Real-time feedback summary loaded');
+                        } catch (error) {
+                            console.error('Failed to load real-time feedback:', error);
+
+                            // Fallback to local feedback
+                            get().loadAdminFeedback();
+                        }
+                    },
+
+                    refreshAdminData: async () => {
+                        const {isAdminRealtime} = get();
+
+                        if (isAdminRealtime) {
+                            await get().loadRealtimeAdminAnalytics();
+                            await get().loadRealtimeFeedbackSummary();
+
+                            get().showToast({
+                                type: 'success',
+                                message: '🔄 Admin data refreshed from cloud'
+                            });
+                        } else {
+                            await get().loadAdminAnalytics();
+                            await get().loadAdminFeedback();
+
+                            get().showToast({
+                                type: 'success',
+                                message: '🔄 Local admin data refreshed'
+                            });
+                        }
+                    },
+
+                    getAdminConnectionStatus: () => {
+                        const {isAdminRealtime, lastAdminUpdate} = get();
+
+                        return {
+                            isRealtime: isAdminRealtime,
+                            isConnected: !!process.env.REACT_APP_SUPABASE_URL,
+                            lastUpdate: lastAdminUpdate,
+                            mode: isAdminRealtime ? 'Real-time Cloud' : 'Local Only'
+                        };
+                    },
+
+                    // ALL EXISTING ACTIONS (PRESERVED EXACTLY)
                     loadApplications: async () => {
                         set(state => ({...state, ui: {...state.ui, isLoading: true, error: null}}));
                         try {
@@ -1239,7 +1388,7 @@ export const useAppStore = create<AppState>()(
                                 usageMetrics: {
                                     totalSessions: sessions.length,
                                     averageSessionDuration: sessions.length > 0
-                                        ? sessions.reduce((sum, s) => sum + (s.duration || 0), 0) / sessions.length
+                                        ? sessions.reduce((sum, s) => sum + Number(s.duration || 0), 0) / sessions.length
                                         : 0,
                                     totalApplicationsCreated: userMetrics?.applicationsCreated || 0,
                                     featuresUsage: events.reduce((acc, event) => {
@@ -1295,6 +1444,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
+                    // 🔄 UPDATED: Enhanced openAdminDashboard with real-time option
                     openAdminDashboard: () => {
                         set(state => ({
                             ...state,
@@ -1307,11 +1457,22 @@ export const useAppStore = create<AppState>()(
                             }
                         }));
 
-                        get().loadAdminAnalytics();
-                        get().loadAdminFeedback();
+                        // Load real-time data if available, otherwise fallback to local
+                        if (process.env.REACT_APP_SUPABASE_URL) {
+                            get().loadRealtimeAdminAnalytics();
+                            get().loadRealtimeFeedbackSummary();
+                            get().enableRealtimeAdmin();
+                        } else {
+                            get().loadAdminAnalytics();
+                            get().loadAdminFeedback();
+                        }
                     },
 
+                    // 🔄 UPDATED: Enhanced closeAdminDashboard with cleanup
                     closeAdminDashboard: () => {
+                        // Cleanup real-time subscriptions
+                        get().disableRealtimeAdmin();
+
                         set(state => ({
                             ...state,
                             ui: {
@@ -1355,7 +1516,9 @@ export const useAppStore = create<AppState>()(
                         }
                     },
                     goals: state.goals,
-                    analyticsSettings: state.analyticsSettings
+                    analyticsSettings: state.analyticsSettings,
+                    // 🔄 NEW: Reset real-time state on persist (security)
+                    isAdminRealtime: false
                 }),
                 onRehydrateStorage: () => (state: AppState | undefined) => {
                     if (state) {
@@ -1384,12 +1547,17 @@ export const useAppStore = create<AppState>()(
                             };
                         }
 
+                        // 🔄 NEW: Initialize real-time state
+                        state.isAdminRealtime = false;
+                        state.adminSubscription = null;
+                        state.lastAdminUpdate = null;
+
                         // Force admin to be logged out on page refresh for security
                         if (state.ui?.admin) {
                             state.ui.admin.authenticated = false;
                             state.ui.admin.dashboardOpen = false;
                         }
-                        console.log('🔧 Store rehydrated with admin state fix');
+                        console.log('🔧 Store rehydrated with real-time admin state');
                     }
                 }
             }

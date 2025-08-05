@@ -187,7 +187,7 @@ class AnalyticsService {
             eventsCount: events.length,
             sessionsCount: sessions.length,
             averageSessionDuration: sessions.length > 0
-                ? sessions.reduce((sum, s) => sum + (s.duration || 0), 0) / sessions.length
+                ? sessions.reduce((sum, s) => sum + Number(s.duration || 0), 0) / sessions.length
                 : 0,
             lastActive: metrics?.lastActiveDate,
             consentStatus: this.settings

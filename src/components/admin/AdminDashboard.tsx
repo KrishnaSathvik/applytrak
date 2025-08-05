@@ -47,6 +47,125 @@ const sections = [
     {id: 'users' as const, label: 'Users', icon: Users}
 ];
 
+// 🔄 NEW: Real-Time Status Indicator Component
+const RealtimeStatusIndicator: React.FC = () => {
+    const {getAdminConnectionStatus} = useAppStore();
+    const [status, setStatus] = useState(getAdminConnectionStatus());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setStatus(getAdminConnectionStatus());
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [getAdminConnectionStatus]);
+
+    const getStatusColor = () => {
+        if (!status.isConnected) return 'text-gray-400';
+        if (status.isRealtime) return 'text-green-500';
+        return 'text-yellow-500';
+    };
+
+    const getStatusIcon = () => {
+        if (!status.isConnected) return '⚪';
+        if (status.isRealtime) return '🟢';
+        return '🟡';
+    };
+
+    const getStatusText = () => {
+        if (!status.isConnected) return 'Offline';
+        if (status.isRealtime) return 'Real-time';
+        return 'Local Only';
+    };
+
+    const formatLastUpdate = () => {
+        if (!status.lastUpdate) return 'Never';
+
+        const diff = Date.now() - new Date(status.lastUpdate).getTime();
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+
+        if (seconds < 60) return `${seconds}s ago`;
+        if (minutes < 60) return `${minutes}m ago`;
+        return new Date(status.lastUpdate).toLocaleTimeString();
+    };
+
+    return (
+        <div
+            className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2">
+                <span className="text-lg">{getStatusIcon()}</span>
+                <div className="flex flex-col">
+                    <span className={`text-sm font-medium ${getStatusColor()}`}>
+                        {getStatusText()}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                        Updated: {formatLastUpdate()}
+                    </span>
+                </div>
+            </div>
+
+            {status.isRealtime && (
+                <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
+                    <span className="text-xs text-green-600 font-medium">LIVE</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// 🔄 NEW: Real-Time Toggle Button Component
+const RealtimeToggle: React.FC = () => {
+    const {
+        isAdminRealtime,
+        enableRealtimeAdmin,
+        disableRealtimeAdmin,
+        showToast
+    } = useAppStore();
+
+    const handleToggle = () => {
+        if (isAdminRealtime) {
+            disableRealtimeAdmin();
+            showToast({
+                type: 'info',
+                message: '📊 Switched to local data mode'
+            });
+        } else {
+            enableRealtimeAdmin();
+            showToast({
+                type: 'success',
+                message: '🔄 Real-time mode enabled'
+            });
+        }
+    };
+
+    return (
+        <button
+            onClick={handleToggle}
+            className={`
+                flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+                ${isAdminRealtime
+                ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
+            }
+            `}
+        >
+            {isAdminRealtime ? (
+                <>
+                    <Activity className="h-4 w-4"/>
+                    <span className="text-sm font-medium">Real-time ON</span>
+                </>
+            ) : (
+                <>
+                    <RefreshCw className="h-4 w-4"/>
+                    <span className="text-sm font-medium">Enable Real-time</span>
+                </>
+            )}
+        </button>
+    );
+};
+
 const AdminDashboard: React.FC = () => {
     const {
         ui,
@@ -61,7 +180,10 @@ const AdminDashboard: React.FC = () => {
         adminFeedback,
         loadAdminAnalytics,
         loadAdminFeedback,
-        showToast
+        showToast,
+        // 🔄 NEW: Real-time methods
+        refreshAdminData,
+        isAdminRealtime
     } = useAppStore();
 
     const [isExporting, setIsExporting] = useState(false);
@@ -86,10 +208,10 @@ const AdminDashboard: React.FC = () => {
     // Move the useMemo hook before any conditional returns
     useEffect(() => {
         if (isDashboardOpen && isAuthenticated) {
-            loadAdminAnalytics();
-            loadAdminFeedback();
+            // 🔄 UPDATED: Use refreshAdminData for both local and real-time
+            refreshAdminData();
         }
-    }, [isDashboardOpen, isAuthenticated, loadAdminAnalytics, loadAdminFeedback]);
+    }, [isDashboardOpen, isAuthenticated, refreshAdminData]);
 
     // Calculate ApplyTrak-specific metrics
     const jobMetrics = useMemo(() => {
@@ -218,15 +340,11 @@ const AdminDashboard: React.FC = () => {
         return null;
     }
 
+    // 🔄 UPDATED: Enhanced refresh handler
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
-            await Promise.all([loadAdminAnalytics(), loadAdminFeedback()]);
-            showToast({
-                type: 'success',
-                message: 'Dashboard data refreshed successfully!',
-                duration: 2000
-            });
+            await refreshAdminData();
         } catch (error) {
             showToast({
                 type: 'error',
@@ -246,6 +364,7 @@ const AdminDashboard: React.FC = () => {
             const exportData = {
                 exportDate: new Date().toISOString(),
                 timeRange,
+                mode: isAdminRealtime ? 'Real-time Cloud' : 'Local Only',
                 analytics: analyticsData,
                 feedback: feedbackData,
                 applyTrakData: {
@@ -338,6 +457,7 @@ const AdminDashboard: React.FC = () => {
 
         const exportData = {
             exportDate: new Date().toISOString(),
+            mode: isAdminRealtime ? 'Real-time Cloud' : 'Local Only',
             totalFeedback: adminFeedback.totalFeedback,
             averageRating: adminFeedback.averageRating,
             feedbackData: filteredFeedback.map(feedback => ({
@@ -443,7 +563,7 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Main Content */}
                 <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-auto relative z-10">
-                    {/* Header */}
+                    {/* 🔄 UPDATED: Enhanced Header with Real-time Indicators */}
                     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                         <div className="flex items-center justify-between">
                             <div>
@@ -460,8 +580,15 @@ const AdminDashboard: React.FC = () => {
                                     {currentSection === 'users' && 'User behavior and engagement analytics'}
                                 </p>
                             </div>
+
+                            {/* 🔄 NEW: Real-time status indicator and controls */}
                             <div className="flex items-center gap-4">
-                                {/* Time Range Filter */}
+                                <RealtimeStatusIndicator/>
+
+                                {/* Real-time Toggle */}
+                                <RealtimeToggle/>
+
+                                {/* Existing time range and refresh controls */}
                                 <div className="flex items-center gap-2">
                                     <label className="text-sm text-gray-600 dark:text-gray-400">Period:</label>
                                     <select
@@ -490,6 +617,24 @@ const AdminDashboard: React.FC = () => {
                         {/* Overview Section */}
                         {currentSection === 'overview' && (
                             <div className="space-y-6">
+                                {/* 🔄 NEW: Real-time Data Status Banner */}
+                                {isAdminRealtime && (
+                                    <div
+                                        className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 border border-green-200/50 dark:border-green-700/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
+                                            <div>
+                                                <p className="font-medium text-green-900 dark:text-green-100">Live Data
+                                                    Mode Active</p>
+                                                <p className="text-sm text-green-700 dark:text-green-300">
+                                                    Dashboard automatically updates with real-time job application
+                                                    insights
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Key ApplyTrak Metrics */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {/* Total Applications */}
@@ -799,7 +944,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Analytics Section */}
+                        {/* 📊 COMPLETE ANALYTICS SECTION */}
                         {currentSection === 'analytics' && (
                             <div className="space-y-6">
                                 {/* Analytics Overview Cards */}
@@ -1262,7 +1407,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Feedback Section */}
+                        {/* 💬 COMPLETE FEEDBACK SECTION */}
                         {currentSection === 'feedback' && (
                             <div className="space-y-6">
                                 {/* Feedback Overview Cards */}
@@ -1617,7 +1762,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Users Section */}
+                        {/* 👥 COMPLETE USERS SECTION */}
                         {currentSection === 'users' && (
                             <div className="space-y-6">
                                 {/* User Overview Cards */}

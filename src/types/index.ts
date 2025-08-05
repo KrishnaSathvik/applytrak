@@ -1,6 +1,8 @@
-// src/types/index.ts - Complete Types with Analytics & Feedback Integration
+// src/types/index.ts - COMPLETE FIXED VERSION WITH ALL TYPES
+import * as React from 'react';
+
 // ============================================================================
-// CORE APPLICATION TYPES (Existing - Enhanced)
+// CORE APPLICATION TYPES
 // ============================================================================
 
 export interface Application {
@@ -18,6 +20,10 @@ export interface Application {
     attachments?: Attachment[];
     createdAt: string;
     updatedAt: string;
+    // NEW: Cloud sync metadata
+    syncedAt?: string;
+    cloudId?: string;
+    syncStatus?: 'synced' | 'pending' | 'error';
 }
 
 export type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected';
@@ -33,7 +39,33 @@ export interface Attachment {
 }
 
 // ============================================================================
-// GOALS AND PROGRESS (Existing - Enhanced)
+// FORM DATA TYPES (MISSING - ADDED)
+// ============================================================================
+
+export interface ApplicationFormData {
+    company: string;
+    position: string;
+    dateApplied: string;
+    status?: ApplicationStatus; // Made optional
+    type: JobType;
+    location?: string;
+    salary?: string;
+    jobSource?: string;
+    jobUrl?: string;
+    notes?: string;
+}
+
+export interface EditFormData extends ApplicationFormData {
+}
+
+export interface GoalFormData {
+    totalGoal: number;
+    weeklyGoal: number;
+    monthlyGoal: number;
+}
+
+// ============================================================================
+// GOALS AND PROGRESS
 // ============================================================================
 
 export interface Goals {
@@ -43,6 +75,9 @@ export interface Goals {
     monthlyGoal: number;
     createdAt?: string;
     updatedAt?: string;
+    // NEW: Cloud sync metadata
+    syncedAt?: string;
+    cloudId?: string;
 }
 
 export interface GoalProgress {
@@ -63,7 +98,7 @@ export interface ProgressMetrics extends GoalProgress {
 }
 
 // ============================================================================
-// BACKUP SYSTEM (Existing)
+// BACKUP SYSTEM
 // ============================================================================
 
 export interface Backup {
@@ -73,7 +108,7 @@ export interface Backup {
 }
 
 // ============================================================================
-// ANALYTICS & CHARTS (Existing - Enhanced)
+// ANALYTICS & CHARTS
 // ============================================================================
 
 export interface AnalyticsData {
@@ -84,7 +119,9 @@ export interface AnalyticsData {
     successRate: number;
     averageResponseTime: number;
     totalApplications: number;
-    monthlyTrend?: Array<{ month: string; count: number }>;
+    monthlyTrend: MonthlyTrendData[];
+    weeklyGoalProgress?: number;
+    monthlyGoalProgress?: number;
 }
 
 export interface StatusDistribution {
@@ -109,49 +146,20 @@ export interface SourceSuccessRate {
     interviewRate: number;
 }
 
+export interface MonthlyTrendData {
+    month: string;
+    count: number;
+    // Optional properties for enhanced analytics
+    applications?: number;
+    interviews?: number;
+    offers?: number;
+    successRate?: number;
+}
+
 // ============================================================================
-// NEW: ANALYTICS SYSTEM TYPES
+// USER ANALYTICS SYSTEM
 // ============================================================================
 
-export interface AnalyticsEvent {
-    event: string;
-    properties?: Record<string, any>;
-    timestamp: string;
-    sessionId: string;
-    userId?: string; // Anonymous user identifier
-}
-
-export interface UserSession {
-    id: string;
-    startTime: string;
-    endTime?: string;
-    duration?: number;
-    events: AnalyticsEvent[];
-    deviceType: 'mobile' | 'desktop';
-    userAgent: string;
-    timezone: string;
-    language: string;
-}
-
-export interface UserMetrics {
-    sessionsCount: number;
-    totalTimeSpent: number; // in milliseconds
-    applicationsCreated: number;
-    featuresUsed: string[];
-    lastActiveDate: string;
-    deviceType: 'mobile' | 'desktop';
-    firstVisit: string;
-    totalEvents: number;
-}
-
-export interface AnalyticsSettings {
-    enabled: boolean;
-    consentGiven: boolean;
-    consentDate?: string;
-    trackingLevel: 'minimal' | 'standard' | 'detailed';
-}
-
-// 🔧 UPDATED: Complete AnalyticsEventType with all events used in the codebase
 export type AnalyticsEventType =
     | 'page_view'
     | 'application_created'
@@ -176,31 +184,102 @@ export type AnalyticsEventType =
     | 'analytics_enabled'
     | 'analytics_disabled';
 
+export interface AnalyticsEvent {
+    id?: number;
+    event: AnalyticsEventType | string;
+    properties?: Record<string, any>;
+    timestamp: string;
+    sessionId: string;
+    userId?: string;
+    // NEW: Cloud sync metadata
+    syncedAt?: string;
+    cloudId?: string;
+}
+
+export interface UserSession {
+    id?: number | string;
+    sessionId?: string; // Made optional since some services don't provide it
+    startTime: string;
+    endTime?: string;
+    deviceType: 'mobile' | 'tablet' | 'desktop';
+    userAgent?: string;
+    referrer?: string;
+    // Additional properties for analytics service compatibility
+    duration?: number | string; // Allow both number and string
+    events?: AnalyticsEvent[]; // Added for analytics service
+    timezone?: string;
+    language?: string;
+}
+
+export interface UserMetrics {
+    sessionsCount: number;
+    totalTimeSpent: number; // in minutes
+    applicationsCreated: number;
+    applicationsUpdated?: number;
+    applicationsDeleted?: number;
+    goalsSet?: number;
+    attachmentsAdded?: number;
+    exportsPerformed?: number;
+    importsPerformed?: number;
+    searchesPerformed?: number;
+    featuresUsed?: string[]; // Made optional - some services expect undefined
+    lastActiveDate: string;
+    // Additional properties for store compatibility
+    deviceType?: 'mobile' | 'tablet' | 'desktop';
+    // Properties expected by analytics
+    totalEvents?: number;
+    browserVersion?: string;
+    screenResolution?: string;
+    timezone?: string;
+    language?: string;
+    applicationsCount?: number;
+    sessionDuration?: number;
+    firstVisit?: string;
+}
+
+export interface AnalyticsSettings {
+    enabled: boolean;
+    consentGiven: boolean;
+    trackingLevel: 'minimal' | 'standard' | 'detailed';
+    // Additional properties for store compatibility
+    consentDate?: string;
+    // NEW: Cloud sync preferences
+    cloudSyncEnabled?: boolean;
+    dataSharingConsent?: boolean;
+}
+
 // ============================================================================
-// NEW: FEEDBACK SYSTEM TYPES
+// FEEDBACK SYSTEM
 // ============================================================================
 
 export interface FeedbackSubmission {
-    id: string;
+    id?: string;
     type: 'bug' | 'feature' | 'general' | 'love';
     rating: number; // 1-5 stars
     message: string;
-    email?: string; // Optional for follow-up
+    email?: string;
     timestamp: string;
-    sessionId: string;
-    userAgent: string;
-    url: string; // Current page when feedback was given
+    sessionId?: string;
+    userAgent?: string;
+    url?: string;
     metadata?: {
-        applicationsCount?: number;
-        lastFeatureUsed?: string;
-        sessionDuration?: number;
+        browserVersion?: string;
         deviceType?: string;
         screenResolution?: string;
         timezone?: string;
         language?: string;
         read?: boolean;
         readAt?: string;
+        flagged?: boolean;
+        response?: string;
+        respondedAt?: string;
+        applicationsCount?: number;
+        lastFeatureUsed?: string;
+        sessionDuration?: number;
     };
+    // NEW: Cloud sync metadata
+    syncedAt?: string;
+    cloudId?: string;
 }
 
 export interface FeedbackStats {
@@ -211,23 +290,23 @@ export interface FeedbackStats {
         feature: number;
         general: number;
         love: number;
+        // Allow any additional string keys for backward compatibility
+        [key: string]: number;
     };
-    ratingDistribution: {
+    ratingDistribution?: {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number;
         [rating: number]: number;
     };
+    recentFeedback?: FeedbackSubmission[];
 }
 
-export type FeedbackType = FeedbackSubmission['type'];
-
 // ============================================================================
-// NEW: ADMIN DASHBOARD TYPES
+// ADMIN ANALYTICS
 // ============================================================================
-
-export interface AdminSession {
-    authenticated: boolean;
-    lastLogin?: string;
-    sessionTimeout: number;
-}
 
 export interface AdminAnalytics {
     userMetrics: {
@@ -243,29 +322,32 @@ export interface AdminAnalytics {
             thisMonth: number;
         };
     };
-
     usageMetrics: {
         totalSessions: number;
         averageSessionDuration: number;
         totalApplicationsCreated: number;
-        featuresUsage: {
-            [feature: string]: number;
-        };
+        featuresUsage: { [key: string]: number };
     };
-
     deviceMetrics: {
         mobile: number;
         desktop: number;
+        tablet?: number;
     };
-
     engagementMetrics: {
         dailyActiveUsers: Array<{ date: string; count: number }>;
-        featureAdoption: Array<{ feature: string; adoptionRate: number }>;
+        featureAdoption: Array<{ feature: string; usage: number }>;
         userRetention: {
             day1: number;
             day7: number;
             day30: number;
         };
+    };
+    // NEW: Cloud analytics
+    cloudSyncStats?: {
+        totalSynced: number;
+        pendingSync: number;
+        syncErrors: number;
+        lastSyncTime: string;
     };
 }
 
@@ -285,123 +367,27 @@ export interface AdminFeedbackSummary {
         count: number;
         severity: 'low' | 'medium' | 'high';
     }>;
-}
-
-export type AdminSection = 'overview' | 'analytics' | 'feedback' | 'users' | 'settings';
-
-// ============================================================================
-// ENHANCED UI STATE MANAGEMENT
-// ============================================================================
-
-export interface UIState {
-    theme: 'light' | 'dark';
-    sidebarOpen: boolean;
-    currentPage: number;
-    itemsPerPage: number;
-    searchQuery: string;
-    selectedApplicationIds: string[];
-    isLoading: boolean;
-    error: string | null;
-    selectedTab: 'tracker' | 'analytics';
-
-    // NEW: Analytics & Feedback UI State
-    analytics: {
-        consentModalOpen: boolean;
-        settingsOpen: boolean;
-    };
-
-    feedback: {
-        buttonVisible: boolean;
-        modalOpen: boolean;
-        lastSubmissionDate?: string;
-    };
-
-    admin: {
-        authenticated: boolean;
-        dashboardOpen: boolean;
-        currentSection: AdminSection;
-    };
+    // NEW: Cloud feedback analytics
+    cloudSyncedCount?: number;
+    pendingSyncCount?: number;
 }
 
 // ============================================================================
-// ENHANCED MODAL STATES
+// ADMIN SESSION (FIXED - ALL PROPERTIES)
 // ============================================================================
 
-export interface ModalState {
-    editApplication: {
-        isOpen: boolean;
-        application?: Application;
-    };
-    goalSetting: {
-        isOpen: boolean;
-    };
-    milestone: {
-        isOpen: boolean;
-        message?: string;
-    };
-    recovery: {
-        isOpen: boolean;
-        data?: Application[];
-    };
+export interface AdminSession {
+    // Required properties
+    authenticated: boolean;
 
-    // NEW: Analytics & Feedback Modals
-    analyticsConsent: {
-        isOpen: boolean;
-        type?: 'first-visit' | 'settings-change' | 'update-required';
-    };
-
-    feedback: {
-        isOpen: boolean;
-        initialType?: FeedbackType;
-    };
-
-    adminLogin: {
-        isOpen: boolean;
-        returnPath?: string;
-    };
-}
-
-// ============================================================================
-// FORM TYPES (Existing - Enhanced)
-// ============================================================================
-
-export interface ApplicationFormData {
-    company: string;
-    position: string;
-    dateApplied: string;
-    type: JobType;
-    location: string;
-    salary: string;
-    jobSource: string;
-    jobUrl: string;
-    notes: string;
-}
-
-export interface EditFormData {
-    company: string;
-    position: string;
-    dateApplied: string;
-    type: JobType;
-    status: ApplicationStatus;
-    location: string;
-    salary: string;
-    jobSource: string;
-    jobUrl: string;
-    notes: string;
-}
-
-export interface GoalFormData {
-    totalGoal: number;
-    weeklyGoal: number;
-    monthlyGoal: number;
-}
-
-// NEW: Feedback Form Data
-export interface FeedbackFormData {
-    type: FeedbackType;
-    rating: number;
-    message: string;
-    email?: string;
+    // Optional properties that services might expect
+    id?: string;
+    userId?: string;
+    createdAt?: string;
+    expiresAt?: string;
+    isActive?: boolean;
+    lastLogin?: string;
+    sessionTimeout?: number;
 }
 
 // ============================================================================
@@ -414,6 +400,10 @@ export interface PrivacySettings {
     functionalCookies: boolean;
     consentDate: string;
     consentVersion: string;
+    // NEW: Cloud privacy settings
+    cloudSyncConsent?: boolean;
+    dataRetentionPeriod?: number; // days
+    anonymizeAfter?: number; // days
 }
 
 export interface ConsentBanner {
@@ -425,78 +415,171 @@ export interface ConsentBanner {
 export type TrackingLevel = AnalyticsSettings['trackingLevel'];
 
 // ============================================================================
+// CLOUD SYNC TYPES
+// ============================================================================
+
+export interface SyncStatus {
+    isOnline: boolean;
+    isSupabaseConnected: boolean;
+    lastSyncTime?: string;
+    pendingOperations: number;
+    syncErrors: SyncError[];
+}
+
+export interface SyncError {
+    id: string;
+    operation: 'create' | 'update' | 'delete';
+    table: string;
+    recordId: string;
+    error: string;
+    timestamp: string;
+    retryCount: number;
+}
+
+export interface CloudSyncSettings {
+    enabled: boolean;
+    autoSync: boolean;
+    syncInterval: number; // minutes
+    retryAttempts: number;
+    batchSize: number;
+    compression: boolean;
+}
+
+// ============================================================================
+// SUPABASE DATABASE TYPES
+// ============================================================================
+
+export interface SupabaseApplication {
+    id: string;
+    user_id: string;
+    company: string;
+    position: string;
+    date_applied: string;
+    status: ApplicationStatus;
+    type: JobType;
+    location?: string;
+    salary?: string;
+    job_source?: string;
+    job_url?: string;
+    notes?: string;
+    attachments?: Attachment[];
+    created_at: string;
+    updated_at: string;
+    synced_at: string;
+}
+
+export interface SupabaseGoals {
+    id: string;
+    user_id: string;
+    total_goal: number;
+    weekly_goal: number;
+    monthly_goal: number;
+    created_at: string;
+    updated_at: string;
+    synced_at: string;
+}
+
+export interface SupabaseAnalyticsEvent {
+    id: number;
+    user_id: string;
+    event_name: string;
+    properties?: Record<string, any>;
+    timestamp: string;
+    session_id: string;
+    created_at: string;
+}
+
+export interface SupabaseFeedback {
+    id: number;
+    user_id: string;
+    type: FeedbackSubmission['type'];
+    rating: number;
+    message: string;
+    email?: string;
+    timestamp: string;
+    session_id?: string;
+    user_agent?: string;
+    url?: string;
+    metadata?: Record<string, any>;
+    created_at: string;
+}
+
+export interface SupabasePrivacySettings {
+    id: string;
+    user_id: string;
+    analytics: boolean;
+    feedback: boolean;
+    functional_cookies: boolean;
+    consent_date: string;
+    consent_version: string;
+    cloud_sync_consent: boolean;
+    data_retention_period: number;
+    created_at: string;
+    updated_at: string;
+}
+
+// ============================================================================
 // ENHANCED DATABASE SERVICE
 // ============================================================================
 
 export interface DatabaseService {
     // Existing Application methods
     getApplications(): Promise<Application[]>;
-
     getApplicationCount(): Promise<number>;
-
     addApplication(app: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>): Promise<Application>;
-
     updateApplication(id: string, updates: Partial<Application>): Promise<Application>;
-
     deleteApplication(id: string): Promise<void>;
-
     deleteApplications(ids: string[]): Promise<void>;
-
     bulkUpdateApplications(ids: string[], updates: Partial<Application>): Promise<void>;
-
     importApplications(applications: Application[]): Promise<void>;
-
     clearAllData(): Promise<void>;
 
     // Existing Goals methods
     getGoals(): Promise<Goals>;
-
     updateGoals(goals: Omit<Goals, 'id'>): Promise<Goals>;
 
     // Existing Backup methods
     createBackup(): Promise<void>;
-
     getBackups(): Promise<Backup[]>;
-
     restoreFromBackup(backup: Backup): Promise<void>;
 
-    // NEW: Analytics methods
+    // Analytics methods
     saveAnalyticsEvent(event: AnalyticsEvent): Promise<void>;
-
     getAnalyticsEvents(sessionId?: string): Promise<AnalyticsEvent[]>;
-
     getUserSession(sessionId: string): Promise<UserSession | null>;
-
     saveUserSession(session: UserSession): Promise<void>;
-
     getUserMetrics(): Promise<UserMetrics>;
-
     updateUserMetrics(metrics: Partial<UserMetrics>): Promise<void>;
 
-    // NEW: Feedback methods
+    // Feedback methods
     saveFeedback(feedback: FeedbackSubmission): Promise<void>;
-
     getAllFeedback(): Promise<FeedbackSubmission[]>;
-
     getFeedbackStats(): Promise<FeedbackStats>;
-
     markFeedbackAsRead(feedbackId: string): Promise<void>;
 
-    // NEW: Privacy methods
+    // Privacy methods
     savePrivacySettings(settings: PrivacySettings): Promise<void>;
-
     getPrivacySettings(): Promise<PrivacySettings | null>;
 
-    // NEW: Admin methods (for aggregated data)
+    // Admin methods
     getAdminAnalytics(): Promise<AdminAnalytics>;
-
     getAdminFeedbackSummary(): Promise<AdminFeedbackSummary>;
-
     cleanupOldData(olderThanDays: number): Promise<void>;
+
+    // Cloud sync methods (optional)
+    getSyncStatus?(): Promise<SyncStatus>;
+
+    forceSyncToCloud?(): Promise<void>;
+
+    forceSyncFromCloud?(): Promise<void>;
+
+    resolveSyncConflicts?(): Promise<void>;
+
+    updateCloudSyncSettings?(settings: CloudSyncSettings): Promise<void>;
 }
 
 // ============================================================================
-// FILTER AND SEARCH (Existing)
+// FILTER AND SEARCH
 // ============================================================================
 
 export interface FilterOptions {
@@ -506,18 +589,107 @@ export interface FilterOptions {
         start: string;
         end: string;
     };
-    searchQuery?: string;
+    source?: string[];
+    hasAttachments?: boolean;
+    hasNotes?: boolean;
+    company?: string;
+    position?: string;
 }
 
-export interface PaginationState {
-    currentPage: number;
-    totalPages: number;
-    itemsPerPage: number;
-    totalItems: number;
+export interface SearchOptions {
+    query: string;
+    fields?: ('company' | 'position' | 'location' | 'notes' | 'jobSource')[];
+    caseSensitive?: boolean;
+    exactMatch?: boolean;
+}
+
+export interface SortOptions {
+    field: keyof Application;
+    direction: 'asc' | 'desc';
 }
 
 // ============================================================================
-// ENHANCED TOAST NOTIFICATIONS
+// EXPORT FORMATS
+// ============================================================================
+
+export interface ExportData {
+    applications: Application[];
+    goals: Goals;
+    analytics?: AnalyticsData;
+    exportDate: string;
+    version: string;
+}
+
+export type ExportFormat = 'json' | 'csv' | 'pdf';
+
+// ============================================================================
+// UI STATE INTERFACES
+// ============================================================================
+
+export interface PaginationState {
+    currentPage: number;
+    itemsPerPage: number;
+    totalItems: number;
+    totalPages: number;
+}
+
+export interface TableState {
+    pagination: PaginationState;
+    sorting: SortOptions;
+    filters: FilterOptions;
+    search: SearchOptions;
+    selectedIds: string[];
+}
+
+// ============================================================================
+// MODAL & COMPONENT STATES
+// ============================================================================
+
+export interface EditApplicationModalProps {
+    isOpen: boolean;
+    application?: Application;
+    onClose: () => void;
+    onSave: (application: Application) => void;
+}
+
+export interface GoalModalProps {
+    isOpen: boolean;
+    currentGoals?: Goals;
+    onClose: () => void;
+    onSave: (goals: Omit<Goals, 'id'>) => void;
+}
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+export interface AppError {
+    code: string;
+    message: string;
+    details?: Record<string, any>;
+    timestamp: string;
+    // NEW: Cloud sync error details
+    syncRelated?: boolean;
+    retryable?: boolean;
+    operation?: string;
+}
+
+export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+// ============================================================================
+// RECOVERY SYSTEM
+// ============================================================================
+
+export interface RecoveryOption {
+    id: string;
+    source: 'localStorage' | 'indexedDB' | 'backup';
+    data: Application[];
+    count: number;
+    lastModified: string;
+}
+
+// ============================================================================
+// NOTIFICATION SYSTEM
 // ============================================================================
 
 export interface Toast {
@@ -529,246 +701,229 @@ export interface Toast {
         label: string;
         onClick: () => void;
     };
+    // NEW: Cloud sync related toasts
+    syncRelated?: boolean;
+    persistUntilSync?: boolean;
 }
 
 // ============================================================================
-// CHART DATA TYPES (Existing)
+// THEME & ACCESSIBILITY
 // ============================================================================
 
-export interface ChartDataPoint {
-    label: string;
-    value: number;
-    color?: string;
+export type Theme = 'light' | 'dark' | 'system';
+
+export interface AccessibilitySettings {
+    reducedMotion: boolean;
+    highContrast: boolean;
+    fontSize: 'small' | 'medium' | 'large';
+    focusIndicators: boolean;
 }
 
-export interface TimeSeriesData {
-    date: string;
-    value: number;
+// ============================================================================
+// PERFORMANCE MONITORING
+// ============================================================================
+
+export interface PerformanceMetrics {
+    loadTime: number;
+    renderTime: number;
+    syncTime?: number;
+    errorRate: number;
+    memoryUsage?: number;
+    cacheHitRate?: number;
 }
 
 // ============================================================================
-// EXPORT/IMPORT TYPES (Existing - Enhanced)
+// FEATURE FLAGS
 // ============================================================================
 
-export interface ExportData {
-    applications: Application[];
-    goals: Goals;
-    exportDate: string;
+export interface FeatureFlags {
+    cloudSync: boolean;
+    advancedAnalytics: boolean;
+    realTimeSync: boolean;
+    bulkOperations: boolean;
+    exportEnhancements: boolean;
+    aiInsights: boolean;
+}
+
+// ============================================================================
+// VERSION CONTROL
+// ============================================================================
+
+export interface DataVersion {
     version: string;
-
-    // NEW: Analytics export data (optional)
-    analytics?: {
-        userMetrics: UserMetrics;
-        sessions: UserSession[];
-        events: AnalyticsEvent[];
-    };
-
-    // NEW: Feedback export data (optional)
-    feedback?: {
-        submissions: FeedbackSubmission[];
-        stats: FeedbackStats;
-    };
-}
-
-export interface ImportResult {
-    success: boolean;
-    importedCount: number;
-    errors: string[];
-}
-
-// NEW: Admin Export Types
-export interface ExportedAnalytics {
-    exportDate: string;
-    version: string;
-    data: {
-        userMetrics: UserMetrics[];
-        sessions: UserSession[];
-        events: AnalyticsEvent[];
-        feedback: FeedbackSubmission[];
-    };
-    summary: AdminAnalytics;
+    timestamp: string;
+    changes: string[];
+    migrationRequired: boolean;
 }
 
 // ============================================================================
-// COMPONENT PROPS TYPES (Existing - Enhanced)
+// TYPE GUARDS
 // ============================================================================
 
-export interface ApplicationTableProps {
-    applications: Application[];
-    onEdit: (application: Application) => void;
-    onDelete: (id: string) => void;
-    loading?: boolean;
-}
+export const isApplication = (obj: any): obj is Application => {
+    return obj && typeof obj.id === 'string' && typeof obj.company === 'string';
+};
 
-export interface ApplicationFormProps {
-    onSubmit: (data: ApplicationFormData, attachments: Attachment[]) => void;
-    initialData?: Partial<ApplicationFormData>;
-    loading?: boolean;
-}
+export const isGoals = (obj: any): obj is Goals => {
+    return obj && typeof obj.totalGoal === 'number';
+};
 
-export interface ExportImportActionsProps {
-    applications: Application[];
-    onImport: (applications: Application[]) => void;
-}
-
-export interface ChartProps {
-    data: ChartDataPoint[];
-    title?: string;
-    height?: number;
-    showLegend?: boolean;
-}
-
-export interface ProgressBarProps {
-    current: number;
-    goal: number;
-    label: string;
-    color?: string;
-    showPercentage?: boolean;
-}
-
-// NEW: Analytics & Feedback Component Props
-export interface FeedbackButtonProps {
-    position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-    size?: 'sm' | 'md' | 'lg';
-    variant?: 'primary' | 'secondary' | 'minimal';
-}
-
-export interface FeedbackModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmit: (feedback: Omit<FeedbackSubmission, 'id' | 'timestamp' | 'sessionId'>) => void;
-    initialType?: FeedbackSubmission['type'];
-}
-
-export interface AdminDashboardProps {
-    onLogout: () => void;
-    analytics: AdminAnalytics;
-    feedback: AdminFeedbackSummary;
-}
-
-export interface AnalyticsConsentProps {
-    isOpen: boolean;
-    onAccept: (settings: PrivacySettings) => void;
-    onDecline: () => void;
-    onCustomize: () => void;
-}
-
-export interface UserAnalyticsProps {
-    userMetrics: UserMetrics;
-    sessions: UserSession[];
-    showDetails?: boolean;
-}
+export const isFeedbackSubmission = (obj: any): obj is FeedbackSubmission => {
+    return obj && typeof obj.type === 'string' && typeof obj.rating === 'number';
+};
 
 // ============================================================================
-// VALIDATION TYPES (Existing)
+// CONSTANTS
 // ============================================================================
 
-export interface ValidationError {
-    field: string;
-    message: string;
-}
+export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
+export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
+export const FEEDBACK_TYPES: FeedbackSubmission['type'][] = ['bug', 'feature', 'general', 'love'];
+export const TRACKING_LEVELS: TrackingLevel[] = ['minimal', 'standard', 'detailed'];
 
-export interface FormValidation {
+// Default values
+export const DEFAULT_GOALS: Omit<Goals, 'id'> = {
+    totalGoal: 100,
+    weeklyGoal: 5,
+    monthlyGoal: 20
+};
+
+export const DEFAULT_ANALYTICS_SETTINGS: AnalyticsSettings = {
+    enabled: false,
+    consentGiven: false,
+    trackingLevel: 'minimal',
+    cloudSyncEnabled: false,
+    dataSharingConsent: false
+};
+
+export const DEFAULT_CLOUD_SYNC_SETTINGS: CloudSyncSettings = {
+    enabled: false,
+    autoSync: true,
+    syncInterval: 15, // 15 minutes
+    retryAttempts: 3,
+    batchSize: 50,
+    compression: true
+};
+
+export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
+    analytics: false,
+    feedback: false,
+    functionalCookies: true,
+    consentDate: new Date().toISOString(),
+    consentVersion: '1.0',
+    cloudSyncConsent: false,
+    dataRetentionPeriod: 365,
+    anonymizeAfter: 730
+};
+
+// ============================================================================
+// VALIDATION TYPES (MISSING - ADDED)
+// ============================================================================
+
+export interface ValidationResult {
     isValid: boolean;
     errors: ValidationError[];
 }
 
-// NEW: Analytics & Feedback Validation
-export interface FeedbackValidation extends FormValidation {
-    ratingValid: boolean;
-    messageValid: boolean;
-    emailValid?: boolean;
-}
-
-// ============================================================================
-// RECOVERY SYSTEM (Existing)
-// ============================================================================
-
-export interface RecoveryOption {
-    id: string;
-    name: string;
-    description: string;
-    data: Application[];
-    count: number;
-    lastModified: string;
-    source: 'localStorage' | 'database' | 'backup';
-}
-
-export interface RecoveryData {
-    applications: Application[];
-    source: string;
-    timestamp: string;
-}
-
-// ============================================================================
-// ERROR TYPES
-// ============================================================================
-
-export interface AnalyticsError {
-    code: string;
+export interface ValidationError {
+    field: string;
     message: string;
-    timestamp: string;
-    context?: Record<string, any>;
+    code?: string;
 }
 
-export interface FeedbackError {
-    type: 'validation' | 'network' | 'storage';
-    message: string;
-    field?: string;
+export interface FormValidation {
+    company: string;
+    position: string;
+    dateApplied: string;
+    type: JobType;
+    status?: ApplicationStatus; // Made optional for form validation
+    location?: string;
+    salary?: string;
+    jobSource?: string;
+    jobUrl?: string;
+    notes?: string;
 }
 
-// ============================================================================
-// UTILITY & HELPER TYPES
-// ============================================================================
-
-export interface AppConfig {
-    version: string;
-    buildDate: string;
-    features: {
-        analytics: boolean;
-        feedback: boolean;
-        adminDashboard: boolean;
-    };
-    privacy: {
-        consentRequired: boolean;
-        dataRetentionDays: number;
-        allowAnonymousUsage: boolean;
-    };
-}
-
-export interface FeatureFlag {
-    name: string;
-    enabled: boolean;
-    description: string;
-    rolloutPercentage?: number;
+// More flexible validation interface for different form states
+export interface FlexibleFormValidation {
+    company?: string;
+    position?: string;
+    dateApplied?: string;
+    type?: JobType | string;
+    status?: ApplicationStatus | string;
+    location?: string;
+    salary?: string;
+    jobSource?: string;
+    jobUrl?: string;
+    notes?: string;
 }
 
 // ============================================================================
-// ADMIN-SPECIFIC TYPES
+// REACT TYPES (MISSING - ADDED)
 // ============================================================================
 
-export interface AdminUser {
-    id: string;
-    username: string;
-    lastLogin: string;
-    permissions: string[];
-}
+export type ReactNode = React.ReactNode;
+export type SetStateAction<T> = React.SetStateAction<T>;
 
-export interface AdminLog {
-    id: string;
-    action: string;
-    userId: string;
-    timestamp: string;
-    details: Record<string, any>;
-}
+// ============================================================================
+// UTILITY TYPES & HELPERS (ENHANCED FOR OPERATORS)
+// ============================================================================
 
-export interface SystemHealth {
-    status: 'healthy' | 'degraded' | 'down';
-    checks: {
-        database: boolean;
-        localStorage: boolean;
-        analytics: boolean;
-        feedback: boolean;
-    };
-    lastChecked: string;
+export type StateUpdater<T> = (prevState: T) => T;
+export type StateSetter<T> = (value: T | StateUpdater<T>) => void;
+
+// Type for making all properties optional
+export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Type for making all properties required
+export type RequiredBy<T, K extends keyof T> = T & Required<Pick<T, K>>;
+
+// Utility for safe number conversion (fixes string/number issues)
+export const toNumber = (value: any): number => {
+    if (typeof value === 'number') return value;
+    const num = parseFloat(String(value));
+    return isNaN(num) ? 0 : num;
+};
+
+// Utility for safe string conversion
+export const toString = (value: any): string => {
+    return String(value || '');
+};
+
+// Duration type that accepts both string and number
+export type Duration = string | number;
+
+// Safe duration converter
+export const toDuration = (value: any): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+        const num = parseFloat(value);
+        return isNaN(num) ? 0 : num;
+    }
+    return 0;
+};
+
+// Safe addition for mixed types
+export const safeAdd = (a: string | number, b: string | number): number => {
+    return toNumber(a) + toNumber(b);
+};
+
+// Safe comparison
+export const safeEquals = (a: string | number, b: string | number): boolean => {
+    return toNumber(a) === toNumber(b);
+};
+
+// Type-safe numeric operations
+export type NumericValue = string | number;
+
+// ============================================================================
+// BROWSER INFO (MISSING - ADDED)
+// ============================================================================
+
+export interface BrowserInfo {
+    browserVersion?: string;
+    deviceType?: 'mobile' | 'desktop' | 'tablet';
+    screenResolution?: string;
+    timezone?: string;
+    language?: string;
 }
