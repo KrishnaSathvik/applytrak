@@ -208,10 +208,18 @@ const AdminDashboard: React.FC = () => {
     // Move the useMemo hook before any conditional returns
     useEffect(() => {
         if (isDashboardOpen && isAuthenticated) {
-            // 🔄 UPDATED: Use refreshAdminData for both local and real-time
-            refreshAdminData();
+            // Subscribe to application changes
+            const unsubscribe = useAppStore.subscribe(
+                (state) => state.applications,
+                (applications) => {
+                    console.log('📊 Applications changed, refreshing admin data...');
+                    loadAdminAnalytics();
+                }
+            );
+
+            return unsubscribe;
         }
-    }, [isDashboardOpen, isAuthenticated, refreshAdminData]);
+    }, [isDashboardOpen, isAuthenticated, loadAdminAnalytics]);
 
     // Calculate ApplyTrak-specific metrics
     const jobMetrics = useMemo(() => {
@@ -602,6 +610,17 @@ const AdminDashboard: React.FC = () => {
                                         <option value="all">All time</option>
                                     </select>
                                 </div>
+                                <button
+                                    onClick={() => {
+                                        console.log('🔄 Manual refresh triggered');
+                                        refreshAdminData();
+                                    }}
+                                    disabled={isRefreshing}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
+                                    {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                                </button>
                                 <button
                                     onClick={closeAdminDashboard}
                                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

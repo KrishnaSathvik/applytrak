@@ -1,5 +1,6 @@
-// src/services/analyticsService.ts - Privacy-First Analytics System
+// src/services/analyticsService.ts - FIXED TO USE DATABASE SERVICE
 import {AnalyticsEvent, AnalyticsEventType, AnalyticsSettings, UserMetrics, UserSession} from '../types';
+import {databaseService} from './databaseService'; // ADDED: Import database service
 
 class AnalyticsService {
     private sessionId: string;
@@ -30,11 +31,11 @@ class AnalyticsService {
         console.log('🔍 Analytics Service initialized with consent');
 
         try {
-            // Load existing user metrics
+            // FIXED: Load existing user metrics from databaseService
             await this.loadUserMetrics();
 
-            // Track session start
-            this.trackEvent('session_start', {
+            // FIXED: Track session start using databaseService
+            await this.trackEvent('session_start', {
                 deviceType: this.getDeviceType(),
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 language: navigator.language,
@@ -46,6 +47,7 @@ class AnalyticsService {
             this.setupSessionEndTracking();
 
             this.isInitialized = true;
+            console.log('✅ Analytics initialized with databaseService integration');
         } catch (error) {
             console.warn('Analytics initialization failed:', error);
         }
@@ -88,10 +90,10 @@ class AnalyticsService {
     }
 
     // ============================================================================
-    // EVENT TRACKING
+    // EVENT TRACKING - FIXED TO USE DATABASE SERVICE
     // ============================================================================
 
-    trackEvent(event: AnalyticsEventType, properties?: Record<string, any>): void {
+    async trackEvent(event: AnalyticsEventType, properties?: Record<string, any>): Promise<void> {
         if (!this.isEnabled()) return;
 
         const analyticsEvent: AnalyticsEvent = {
@@ -103,83 +105,98 @@ class AnalyticsService {
         };
 
         this.events.push(analyticsEvent);
-        this.updateUserMetrics(event, properties);
+        await this.updateUserMetrics(event, properties);
 
-        // Store events locally (respecting privacy)
-        this.storeEvent(analyticsEvent);
-
-        // Send to your analytics endpoint if you have one
-        this.sendEventToServer(analyticsEvent);
-
-        console.log('📊 Event tracked:', event, properties);
+        // FIXED: Store events using databaseService (which syncs to Supabase)
+        try {
+            await databaseService.saveAnalyticsEvent(analyticsEvent);
+            console.log('📊 Event tracked and synced:', event, properties);
+        } catch (error) {
+            console.warn('Failed to save analytics event:', error);
+            // Fallback to localStorage if database fails
+            this.storeEventLocally(analyticsEvent);
+        }
     }
 
     // Track page/component views
-    trackPageView(page: string): void {
-        this.trackEvent('page_view', {page});
+    async trackPageView(page: string): Promise<void> {
+        await this.trackEvent('page_view', {page});
     }
 
     // Track feature usage
-    trackFeatureUsage(feature: string, context?: Record<string, any>): void {
-        this.trackEvent('feature_used', {feature, ...context});
+    async trackFeatureUsage(feature: string, context?: Record<string, any>): Promise<void> {
+        await this.trackEvent('feature_used', {feature, ...context});
     }
 
     // Track application-specific events
-    trackApplicationCreated(): void {
-        this.trackEvent('application_created');
+    async trackApplicationCreated(): Promise<void> {
+        await this.trackEvent('application_created');
     }
 
-    trackApplicationUpdated(): void {
-        this.trackEvent('application_updated');
+    async trackApplicationUpdated(): Promise<void> {
+        await this.trackEvent('application_updated');
     }
 
-    trackApplicationDeleted(): void {
-        this.trackEvent('application_deleted');
+    async trackApplicationDeleted(): Promise<void> {
+        await this.trackEvent('application_deleted');
     }
 
-    trackGoalSet(goalType: string): void {
-        this.trackEvent('goal_set', {goalType});
+    async trackGoalSet(goalType: string): Promise<void> {
+        await this.trackEvent('goal_set', {goalType});
     }
 
-    trackAttachmentAdded(): void {
-        this.trackEvent('attachment_added');
+    async trackAttachmentAdded(): Promise<void> {
+        await this.trackEvent('attachment_added');
     }
 
-    trackExportData(format: string): void {
-        this.trackEvent('export_data', {format});
+    async trackExportData(format: string): Promise<void> {
+        await this.trackEvent('export_data', {format});
     }
 
-    trackImportData(itemCount: number): void {
-        this.trackEvent('import_data', {itemCount});
+    async trackImportData(itemCount: number): Promise<void> {
+        await this.trackEvent('import_data', {itemCount});
     }
 
-    trackSearchPerformed(query: string): void {
+    async trackSearchPerformed(query: string): Promise<void> {
         // Don't store the actual query for privacy
-        this.trackEvent('search_performed', {
+        await this.trackEvent('search_performed', {
             queryLength: query.length,
             hasResults: query.length > 0
         });
     }
 
     // ============================================================================
-    // USER METRICS & SESSION MANAGEMENT
+    // USER METRICS & SESSION MANAGEMENT - FIXED TO USE DATABASE SERVICE
     // ============================================================================
 
-    getUserMetrics(): UserMetrics | null {
-        return this.userMetrics;
+    async getUserMetrics(): Promise<UserMetrics | null> {
+        try {
+            // FIXED: Get metrics from databaseService
+            return await databaseService.getUserMetrics();
+        } catch (error) {
+            console.warn('Failed to get user metrics from database:', error);
+            return this.userMetrics;
+        }
     }
 
-    getAllEvents(): AnalyticsEvent[] {
-        return this.getStoredEvents();
+    async getAllEvents(): Promise<AnalyticsEvent[]> {
+        try {
+            // FIXED: Get events from databaseService
+            return await databaseService.getAnalyticsEvents();
+        } catch (error) {
+            console.warn('Failed to get events from database:', error);
+            return this.getStoredEventsLocally();
+        }
     }
 
     getAllSessions(): UserSession[] {
+        // Keep this as localStorage for now since it's more complex
         return this.getStoredSessions();
     }
 
-    getAnalyticsSummary() {
-        const metrics = this.getUserMetrics();
-        const events = this.getAllEvents();
+    async getAnalyticsSummary() {
+        const metrics = await this.getUserMetrics();
+        const events = await this.getAllEvents();
         const sessions = this.getAllSessions();
 
         return {
@@ -195,76 +212,118 @@ class AnalyticsService {
     }
 
     // ============================================================================
-    // SESSION MANAGEMENT
+    // SESSION MANAGEMENT - ENHANCED WITH DATABASE SERVICE
     // ============================================================================
 
     // Export all analytics data (for admin)
-    exportAnalyticsData() {
+    async exportAnalyticsData() {
+        const metrics = await this.getUserMetrics();
+        const events = await this.getAllEvents();
+        const sessions = this.getAllSessions();
+
         return {
             settings: this.settings,
-            userMetrics: this.userMetrics,
-            events: this.getAllEvents(),
-            sessions: this.getAllSessions(),
+            userMetrics: metrics,
+            events: events,
+            sessions: sessions,
             exportDate: new Date().toISOString()
         };
     }
 
+    // FIXED: Load user metrics from databaseService
     private async loadUserMetrics(): Promise<void> {
         try {
-            const stored = localStorage.getItem('applytrak_user_metrics');
-            if (stored) {
-                this.userMetrics = JSON.parse(stored);
-            } else {
-                this.userMetrics = {
-                    sessionsCount: 1,
-                    totalTimeSpent: 0,
-                    applicationsCreated: 0,
-                    featuresUsed: [],
-                    lastActiveDate: new Date().toISOString(),
-                    deviceType: this.getDeviceType(),
-                    firstVisit: new Date().toISOString(),
-                    totalEvents: 0
-                };
-            }
+            this.userMetrics = await databaseService.getUserMetrics();
+            console.log('✅ User metrics loaded from databaseService');
         } catch (error) {
-            console.warn('Failed to load user metrics:', error);
-            this.userMetrics = null;
+            console.warn('Failed to load user metrics from database, creating default:', error);
+            this.userMetrics = {
+                sessionsCount: 1,
+                totalTimeSpent: 0,
+                applicationsCreated: 0,
+                applicationsUpdated: 0,
+                applicationsDeleted: 0,
+                goalsSet: 0,
+                attachmentsAdded: 0,
+                exportsPerformed: 0,
+                importsPerformed: 0,
+                searchesPerformed: 0,
+                featuresUsed: [],
+                lastActiveDate: new Date().toISOString(),
+                deviceType: this.getDeviceType(),
+                firstVisit: new Date().toISOString(),
+                totalEvents: 0
+            };
         }
     }
 
-    private updateUserMetrics(event: AnalyticsEventType, properties?: Record<string, any>): void {
+    // FIXED: Update user metrics using databaseService
+    private async updateUserMetrics(event: AnalyticsEventType, properties?: Record<string, any>): Promise<void> {
         if (!this.userMetrics) return;
 
-        this.userMetrics.totalEvents++;
+        // Update local copy
+        this.userMetrics.totalEvents = (this.userMetrics.totalEvents || 0) + 1;
         this.userMetrics.lastActiveDate = new Date().toISOString();
 
         // Update specific metrics based on event type
+        const updates: Partial<UserMetrics> = {};
+
         switch (event) {
             case 'application_created':
-                this.userMetrics.applicationsCreated++;
+                updates.applicationsCreated = (this.userMetrics.applicationsCreated || 0) + 1;
+                break;
+            case 'application_updated':
+                updates.applicationsUpdated = (this.userMetrics.applicationsUpdated || 0) + 1;
+                break;
+            case 'application_deleted':
+                updates.applicationsDeleted = (this.userMetrics.applicationsDeleted || 0) + 1;
+                break;
+            case 'goal_set':
+                updates.goalsSet = (this.userMetrics.goalsSet || 0) + 1;
+                break;
+            case 'attachment_added':
+                updates.attachmentsAdded = (this.userMetrics.attachmentsAdded || 0) + 1;
+                break;
+            case 'export_data':
+                updates.exportsPerformed = (this.userMetrics.exportsPerformed || 0) + 1;
+                break;
+            case 'import_data':
+                updates.importsPerformed = (this.userMetrics.importsPerformed || 0) + 1;
+                break;
+            case 'search_performed':
+                updates.searchesPerformed = (this.userMetrics.searchesPerformed || 0) + 1;
                 break;
             case 'feature_used':
-                if (properties?.feature && !this.userMetrics.featuresUsed.includes(properties.feature)) {
-                    this.userMetrics.featuresUsed.push(properties.feature);
+                if (properties?.feature) {
+                    const currentFeatures = this.userMetrics.featuresUsed || [];
+                    if (!currentFeatures.includes(properties.feature)) {
+                        updates.featuresUsed = [...currentFeatures, properties.feature];
+                    }
                 }
                 break;
             case 'session_start':
-                this.userMetrics.sessionsCount++;
+                updates.sessionsCount = (this.userMetrics.sessionsCount || 0) + 1;
                 break;
         }
 
-        this.saveUserMetrics();
-    }
+        // Apply updates to local copy
+        Object.assign(this.userMetrics, updates, {
+            totalEvents: this.userMetrics.totalEvents,
+            lastActiveDate: this.userMetrics.lastActiveDate
+        });
 
-    // ============================================================================
-    // DATA MANAGEMENT & PRIVACY
-    // ============================================================================
-
-    private saveUserMetrics(): void {
-        if (this.userMetrics && this.isEnabled()) {
-            localStorage.setItem('applytrak_user_metrics', JSON.stringify(this.userMetrics));
+        // FIXED: Save to databaseService (which syncs to Supabase)
+        try {
+            await databaseService.updateUserMetrics(this.userMetrics);
+            console.log('✅ User metrics updated and synced');
+        } catch (error) {
+            console.warn('Failed to update user metrics in database:', error);
         }
     }
+
+    // ============================================================================
+    // SESSION END TRACKING - ENHANCED WITH DATABASE SERVICE
+    // ============================================================================
 
     private setupSessionEndTracking(): void {
         // Track session end on page unload
@@ -295,29 +354,31 @@ class AnalyticsService {
         resetIdleTimer();
     }
 
-    private trackSessionEnd(): void {
+    private async trackSessionEnd(): Promise<void> {
         const sessionDuration = Date.now() - this.sessionStart;
 
-        this.trackEvent('session_end', {
+        await this.trackEvent('session_end', {
             duration: sessionDuration,
             eventsCount: this.events.length
         });
 
         // Update total time spent
         if (this.userMetrics) {
-            this.userMetrics.totalTimeSpent += sessionDuration;
-            this.saveUserMetrics();
+            this.userMetrics.totalTimeSpent = (this.userMetrics.totalTimeSpent || 0) + sessionDuration;
+
+            try {
+                await databaseService.updateUserMetrics(this.userMetrics);
+            } catch (error) {
+                console.warn('Failed to update session duration:', error);
+            }
         }
 
-        // Save session data
-        this.saveSession(sessionDuration);
+        // FIXED: Save session using databaseService
+        await this.saveSession(sessionDuration);
     }
 
-    // ============================================================================
-    // UTILITY METHODS
-    // ============================================================================
-
-    private saveSession(duration: number): void {
+    // FIXED: Save session using databaseService
+    private async saveSession(duration: number): Promise<void> {
         if (!this.isEnabled()) return;
 
         const session: UserSession = {
@@ -332,14 +393,46 @@ class AnalyticsService {
             language: navigator.language
         };
 
-        // Store session locally
-        const sessions = this.getStoredSessions();
-        sessions.push(session);
-
-        // Keep only last 10 sessions for storage efficiency
-        const recentSessions = sessions.slice(-10);
-        localStorage.setItem('applytrak_sessions', JSON.stringify(recentSessions));
+        try {
+            // FIXED: Save session using databaseService (syncs to Supabase)
+            await databaseService.saveUserSession(session);
+            console.log('✅ Session saved and synced');
+        } catch (error) {
+            console.warn('Failed to save session to database:', error);
+            // Fallback to localStorage
+            this.saveSessionLocally(session);
+        }
     }
+
+    // ============================================================================
+    // FALLBACK METHODS (localStorage) - Keep for backup
+    // ============================================================================
+
+    private storeEventLocally(event: AnalyticsEvent): void {
+        try {
+            const events = this.getStoredEventsLocally();
+            events.push(event);
+            const recentEvents = events.slice(-100);
+            localStorage.setItem('applytrak_events', JSON.stringify(recentEvents));
+        } catch (error) {
+            console.warn('Failed to store analytics event locally:', error);
+        }
+    }
+
+    private saveSessionLocally(session: UserSession): void {
+        try {
+            const sessions = this.getStoredSessions();
+            sessions.push(session);
+            const recentSessions = sessions.slice(-10);
+            localStorage.setItem('applytrak_sessions', JSON.stringify(recentSessions));
+        } catch (error) {
+            console.warn('Failed to save session locally:', error);
+        }
+    }
+
+    // ============================================================================
+    // UTILITY METHODS - UNCHANGED
+    // ============================================================================
 
     private sanitizeProperties(properties?: Record<string, any>): Record<string, any> {
         if (!properties) return {};
@@ -355,37 +448,6 @@ class AnalyticsService {
         });
 
         return sanitized;
-    }
-
-    private storeEvent(event: AnalyticsEvent): void {
-        if (!this.isEnabled()) return;
-
-        try {
-            const events = this.getStoredEvents();
-            events.push(event);
-
-            // Keep only last 100 events for storage efficiency
-            const recentEvents = events.slice(-100);
-            localStorage.setItem('applytrak_events', JSON.stringify(recentEvents));
-        } catch (error) {
-            console.warn('Failed to store analytics event:', error);
-        }
-    }
-
-    private async sendEventToServer(event: AnalyticsEvent): Promise<void> {
-        // Only send if user consents to detailed tracking
-        if (this.settings.trackingLevel !== 'detailed') return;
-
-        try {
-            // You can implement your own analytics endpoint here
-            // await fetch('/api/analytics/events', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(event)
-            // });
-        } catch (error) {
-            console.warn('Failed to send analytics event to server:', error);
-        }
     }
 
     private generateSessionId(): string {
@@ -422,15 +484,11 @@ class AnalyticsService {
         };
     }
 
-    // ============================================================================
-    // PUBLIC DATA ACCESS (For Admin Dashboard)
-    // ============================================================================
-
     private saveSettings(): void {
         localStorage.setItem('applytrak_analytics_settings', JSON.stringify(this.settings));
     }
 
-    private getStoredEvents(): AnalyticsEvent[] {
+    private getStoredEventsLocally(): AnalyticsEvent[] {
         try {
             const stored = localStorage.getItem('applytrak_events');
             return stored ? JSON.parse(stored) : [];
@@ -462,20 +520,20 @@ class AnalyticsService {
 // Singleton instance
 export const analyticsService = new AnalyticsService();
 
-// Convenience functions for easy tracking
-export const trackEvent = (event: AnalyticsEventType, properties?: Record<string, any>) => {
-    analyticsService.trackEvent(event, properties);
+// FIXED: Updated convenience functions to be async
+export const trackEvent = async (event: AnalyticsEventType, properties?: Record<string, any>) => {
+    await analyticsService.trackEvent(event, properties);
 };
 
-export const trackPageView = (page: string) => analyticsService.trackPageView(page);
-export const trackFeatureUsage = (feature: string) => analyticsService.trackFeatureUsage(feature);
-export const trackApplicationCreated = () => analyticsService.trackApplicationCreated();
-export const trackApplicationUpdated = () => analyticsService.trackApplicationUpdated();
-export const trackApplicationDeleted = () => analyticsService.trackApplicationDeleted();
-export const trackGoalSet = (goalType: string) => analyticsService.trackGoalSet(goalType);
-export const trackAttachmentAdded = () => analyticsService.trackAttachmentAdded();
-export const trackExportData = (format: string) => analyticsService.trackExportData(format);
-export const trackImportData = (itemCount: number) => analyticsService.trackImportData(itemCount);
-export const trackSearchPerformed = (query: string) => analyticsService.trackSearchPerformed(query);
+export const trackPageView = async (page: string) => await analyticsService.trackPageView(page);
+export const trackFeatureUsage = async (feature: string) => await analyticsService.trackFeatureUsage(feature);
+export const trackApplicationCreated = async () => await analyticsService.trackApplicationCreated();
+export const trackApplicationUpdated = async () => await analyticsService.trackApplicationUpdated();
+export const trackApplicationDeleted = async () => await analyticsService.trackApplicationDeleted();
+export const trackGoalSet = async (goalType: string) => await analyticsService.trackGoalSet(goalType);
+export const trackAttachmentAdded = async () => await analyticsService.trackAttachmentAdded();
+export const trackExportData = async (format: string) => await analyticsService.trackExportData(format);
+export const trackImportData = async (itemCount: number) => await analyticsService.trackImportData(itemCount);
+export const trackSearchPerformed = async (query: string) => await analyticsService.trackSearchPerformed(query);
 
 export default analyticsService;

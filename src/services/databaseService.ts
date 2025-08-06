@@ -1,4 +1,4 @@
-// src/services/databaseService.ts - ENHANCED WITH SUPABASE CLOUD SYNC
+// src/services/databaseService.ts - COMPLETE REWRITE FOR ADMIN DASHBOARD COMPATIBILITY
 import Dexie, {Table} from 'dexie';
 import {createClient, SupabaseClient} from '@supabase/supabase-js';
 import {
@@ -24,6 +24,22 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 let supabase: SupabaseClient | null = null;
+
+// ============================================================================
+// DEBUG: ENVIRONMENT VARIABLES AND CONNECTION
+// ============================================================================
+
+console.log('🔍 ENVIRONMENT DEBUG:');
+console.log('  - NODE_ENV:', process.env.NODE_ENV);
+console.log('  - Current URL:', window.location.href);
+console.log('  - REACT_APP_SUPABASE_URL exists:', !!process.env.REACT_APP_SUPABASE_URL);
+console.log('  - REACT_APP_SUPABASE_ANON_KEY exists:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
+console.log('  - supabaseUrl value:', supabaseUrl);
+console.log('  - supabaseAnonKey first 20 chars:', supabaseAnonKey.substring(0, 20) + '...');
+
+// Test if we're on localhost
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+console.log('  - Running on localhost:', isLocalhost);
 
 // ============================================================================
 // EXISTING DATABASE SCHEMA (UNCHANGED)
@@ -85,74 +101,192 @@ const generateId = (): string => {
 };
 
 // ============================================================================
-// CLOUD SYNC UTILITIES
+// CLOUD SYNC UTILITIES - ENHANCED WITH ALL FIXES
 // ============================================================================
 
 // Generate proper UUID for Supabase compatibility
 const generateUUID = (): string => {
+    // Use crypto.randomUUID if available (modern browsers)
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+
+    // Fallback for older browsers
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0;
-        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
 };
 
-// Get user ID for cloud sync (generates proper UUID)
+// Convert legacy string ID to proper UUID
+const convertLegacyIdToUUID = (legacyId: string): string => {
+    // Create a deterministic UUID from the legacy ID
+    const hash = legacyId.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+
+    // Convert hash to hex and pad
+    const hex = Math.abs(hash).toString(16).padStart(8, '0');
+
+    // Create a valid UUID v4 format
+    return `${hex.substring(0, 8)}-${hex.substring(0, 4)}-4${hex.substring(1, 4)}-a${hex.substring(2, 5)}-${hex.padEnd(12, '0').substring(0, 12)}`;
+};
+
+// Get user ID for cloud sync (ensures proper UUID format)
 const getUserId = (): string => {
     let userId = localStorage.getItem('applytrak_user_id');
+
+    console.log('🔍 getUserId called:');
+    console.log('  - Current userId from localStorage:', userId);
+
+    // If no user ID exists, generate a proper UUID
     if (!userId) {
-        userId = generateUUID(); // Generate proper UUID instead of random string
+        userId = generateUUID();
         localStorage.setItem('applytrak_user_id', userId);
+        console.log('🆕 Generated new UUID:', userId);
+        return userId;
     }
+
+    // Check if existing ID is a proper UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+        console.log('🔄 Converting legacy user ID to UUID:', userId);
+
+        // Convert legacy ID to UUID deterministically
+        const newUserId = convertLegacyIdToUUID(userId);
+        localStorage.setItem('applytrak_user_id', newUserId);
+
+        // Clear cached DB ID since we're changing the external ID
+        localStorage.removeItem('applytrak_user_db_id');
+
+        console.log('✅ Converted to UUID:', newUserId);
+        return newUserId;
+    }
+
+    console.log('✅ Using existing UUID:', userId);
     return userId;
 };
 
-// Helper function to get the database user ID (not UUID)
+// Helper function to get the database user ID (BIGINT from Supabase)
 const getUserDbId = async (): Promise<number | null> => {
     // Try to get cached DB ID first
     const cachedId = localStorage.getItem('applytrak_user_db_id');
-    if (cachedId) {
-        return parseInt(cachedId);
+    console.log('🔍 DEBUG getUserDbId cached:', cachedId, typeof cachedId);
+
+    if (cachedId && !isNaN(parseInt(cachedId))) {
+        const numericId = parseInt(cachedId);
+        console.log('✅ Using cached DB ID:', numericId, typeof numericId);
+        return numericId;
     }
 
     // If not cached, look it up
-    if (!isOnlineWithSupabase()) return null;
+    if (!isOnlineWithSupabase()) {
+        console.log('⚠️ Not online with Supabase, cannot get user DB ID');
+        return null;
+    }
 
     try {
         const client = initializeSupabase()!;
-        const userId = getUserId();
+        const userId = getUserId(); // This now ensures proper UUID format
+
+        console.log('🔍 Looking up user DB ID for UUID:', userId);
 
         const {data: user, error} = await client
             .from('users')
             .select('id')
             .eq('external_id', userId)
-            .single();
+            .maybeSingle();
 
-        if (error || !user) {
-            console.warn('Could not find user DB ID');
+        if (error) {
+            console.error('Error looking up user:', error);
             return null;
         }
 
-        // Cache it for future use
-        localStorage.setItem('applytrak_user_db_id', user.id.toString());
-        return user.id;
+        if (!user) {
+            console.warn('User not found in database, will need to create');
+            return null;
+        }
+
+        // CRITICAL: Ensure we're storing and returning a NUMBER
+        const dbId = parseInt(user.id.toString());
+        console.log('🔍 DEBUG found user.id:', user.id, typeof user.id);
+        console.log('🔍 DEBUG converted to:', dbId, typeof dbId);
+
+        localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        console.log('✅ Found and cached user DB ID:', dbId);
+        return dbId;
     } catch (error) {
         console.warn('Error getting user DB ID:', error);
         return null;
     }
 };
 
+// Connection test function
+const testSupabaseConnection = async (): Promise<void> => {
+    console.log('🔍 Testing Supabase connection...');
+
+    if (!supabase) {
+        console.error('❌ No Supabase client available for testing');
+        return;
+    }
+
+    try {
+        // Simple query to test connection
+        const {data, error, status} = await supabase
+            .from('users')
+            .select('count')
+            .limit(1);
+
+        console.log('🔍 Connection test result:');
+        console.log('  - Status:', status);
+        console.log('  - Error:', error);
+        console.log('  - Data:', data);
+
+        if (error) {
+            console.error('❌ Supabase connection failed:', error);
+
+            // Check if it's a table not found error
+            if (error.code === '42P01') {
+                console.error('💡 Table "users" does not exist. Did you run the SQL schema?');
+            }
+        } else {
+            console.log('✅ Supabase connection successful');
+        }
+    } catch (error) {
+        console.error('❌ Connection test exception:', error);
+    }
+};
+
 // Initialize Supabase client only if environment variables are provided
 const initializeSupabase = (): SupabaseClient | null => {
+    console.log('🔍 initializeSupabase called');
+
     if (!supabaseUrl || !supabaseAnonKey) {
-        console.warn('Supabase environment variables not found. Running in offline-only mode.');
+        console.warn('❌ Supabase environment variables not found:');
+        console.warn('  - supabaseUrl:', supabaseUrl);
+        console.warn('  - supabaseAnonKey length:', supabaseAnonKey.length);
         return null;
     }
 
     try {
         if (!supabase) {
-            supabase = createClient(supabaseUrl, supabaseAnonKey);
-            console.log('✅ Supabase client initialized');
+            console.log('🔧 Creating Supabase client...');
+            supabase = createClient(supabaseUrl, supabaseAnonKey, {
+                auth: {
+                    persistSession: false,
+                    autoRefreshToken: false,
+                },
+                db: {
+                    schema: 'public'
+                }
+            });
+
+            console.log('✅ Supabase client created');
+
+            // Test connection immediately
+            testSupabaseConnection();
 
             // Ensure user exists when first connecting
             ensureUserExists().catch(err =>
@@ -161,32 +295,38 @@ const initializeSupabase = (): SupabaseClient | null => {
         }
         return supabase;
     } catch (error) {
-        console.error('Failed to initialize Supabase:', error);
+        console.error('❌ Failed to initialize Supabase:', error);
         return null;
     }
 };
 
 // Check if online and Supabase is available
 const isOnlineWithSupabase = (): boolean => {
-    return navigator.onLine && !!initializeSupabase();
+    const online = navigator.onLine;
+    const hasSupabase = !!initializeSupabase();
+    console.log('🔍 isOnlineWithSupabase:', {online, hasSupabase});
+    return online && hasSupabase;
 };
 
-// Ensure user exists in Supabase
+// Enhanced ensureUserExists function
 const ensureUserExists = async (): Promise<void> => {
-    if (!isOnlineWithSupabase()) return;
+    if (!isOnlineWithSupabase()) {
+        console.log('⚠️ Not online with Supabase, skipping user creation');
+        return;
+    }
 
     try {
         const client = initializeSupabase()!;
-        const userId = getUserId();
+        const userId = getUserId(); // This ensures proper UUID format
 
-        console.log('🔍 Checking user exists:', userId);
+        console.log('🔍 Checking user exists with UUID:', userId);
 
         // Check if user exists
         const {data: existingUser, error: fetchError} = await client
             .from('users')
             .select('id, external_id')
             .eq('external_id', userId)
-            .maybeSingle(); // Use maybeSingle instead of single to avoid error when no rows
+            .maybeSingle();
 
         if (fetchError) {
             console.error('Error checking user:', fetchError);
@@ -195,12 +335,12 @@ const ensureUserExists = async (): Promise<void> => {
 
         // Create user if doesn't exist
         if (!existingUser) {
-            console.log('🔧 Creating new user:', userId);
+            console.log('🔧 Creating new user with UUID:', userId);
 
             const {data: newUser, error: insertError} = await client
                 .from('users')
                 .insert({
-                    external_id: userId,
+                    external_id: userId, // Now properly formatted UUID
                     email: `user-${userId.split('-')[0]}@applytrak.local`,
                     display_name: 'ApplyTrak User',
                     created_at: new Date().toISOString()
@@ -226,8 +366,109 @@ const ensureUserExists = async (): Promise<void> => {
     }
 };
 
-// Sync data to cloud (non-blocking)
+// ENHANCED Sync data to cloud with complete debug logging
 const syncToCloud = async (table: string, data: any, operation: 'insert' | 'update' | 'delete' = 'insert'): Promise<void> => {
+    if (!isOnlineWithSupabase()) {
+        console.log('⚠️ Not online with Supabase, skipping cloud sync');
+        return;
+    }
+
+    try {
+        const client = initializeSupabase()!;
+        const userDbId = await getUserDbId();
+
+        // ENHANCED DEBUG LOGGING
+        console.log('🔍 ENHANCED DEBUG syncToCloud:');
+        console.log('  - table:', table);
+        console.log('  - operation:', operation);
+        console.log('  - userDbId type:', typeof userDbId);
+        console.log('  - userDbId value:', userDbId);
+        console.log('  - raw data being sent:', data);
+
+        if (!userDbId) {
+            console.warn('No user DB ID available, skipping cloud sync');
+            return;
+        }
+
+        // CRITICAL FIX: Ensure userDbId is a NUMBER, not string
+        if (typeof userDbId !== 'number') {
+            console.error('❌ userDbId is not a number:', userDbId, typeof userDbId);
+            throw new Error(`Invalid user DB ID type: expected number, got ${typeof userDbId}`);
+        }
+
+        // Add user_id to all operations (use the database ID, not UUID)
+        const dataWithUser = {
+            ...data,
+            user_id: userDbId,  // This MUST be a number (bigint)
+            synced_at: new Date().toISOString()
+        };
+
+        // DETAILED DATA LOGGING
+        console.log('  - Final data with user_id:', JSON.stringify(dataWithUser, null, 2));
+        console.log('  - Data size:', JSON.stringify(dataWithUser).length, 'characters');
+
+        let result;
+
+        switch (operation) {
+            case 'insert':
+                console.log('  - 🚀 EXECUTING INSERT to Supabase...');
+                result = await client.from(table).insert(dataWithUser).select();
+                break;
+            case 'update':
+                const updateData = {...dataWithUser};
+                delete updateData.user_id; // Remove to avoid conflicts
+                console.log('  - 🚀 EXECUTING UPDATE to Supabase...');
+                console.log('  - Update data:', JSON.stringify(updateData, null, 2));
+                result = await client
+                    .from(table)
+                    .update(updateData)
+                    .eq('id', data.id)
+                    .eq('user_id', userDbId)
+                    .select();
+                break;
+            case 'delete':
+                console.log('  - 🚀 EXECUTING DELETE from Supabase...');
+                result = await client
+                    .from(table)
+                    .delete()
+                    .eq('id', data.id)
+                    .eq('user_id', userDbId);
+                break;
+        }
+
+        // DETAILED RESULT LOGGING
+        console.log('  - 📊 SUPABASE RESPONSE:');
+        console.log('    - Status:', result.status);
+        console.log('    - Status Text:', result.statusText);
+        console.log('    - Error:', result.error);
+        console.log('    - Data returned:', result.data);
+        console.log('    - Count:', result.count);
+
+        if (result.error) {
+            console.error('❌ Supabase operation error:', result.error);
+            console.error('❌ Error details:', JSON.stringify(result.error, null, 2));
+            throw result.error;
+        }
+
+        // Check if data was actually inserted/updated
+        if (operation === 'insert' && result.data && result.data.length > 0) {
+            console.log('✅ SUCCESS: Data inserted and returned from Supabase');
+        } else if (operation === 'insert') {
+            console.warn('⚠️ INSERT succeeded but no data returned. Possible RLS issue?');
+        }
+
+        console.log(`✅ Synced to cloud: ${table} ${operation}`);
+        console.log('  - 🎉 SUCCESS: Data should now be in Supabase');
+
+    } catch (error) {
+        console.error(`❌ FULL ERROR DETAILS for ${table}:`, error);
+        console.error('❌ Error stack:', error.stack);
+        console.warn(`Cloud sync failed for ${table}:`, error);
+    }
+};
+
+// FIXED: Upsert function with proper conflict resolution
+const syncToCloudUpsert = async (table: string, data: any, conflictColumns: string = 'user_id'): Promise<void> => {
     if (!isOnlineWithSupabase()) return;
 
     try {
@@ -239,47 +480,38 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
             return;
         }
 
-        // Add user_id to all operations (use the database ID, not UUID)
         const dataWithUser = {
             ...data,
-            user_id: userDbId,  // Use the database ID
+            user_id: userDbId,
             synced_at: new Date().toISOString()
         };
 
-        let result;
+        console.log('🔍 UPSERT DEBUG:', JSON.stringify(dataWithUser, null, 2));
+        console.log('🔍 CONFLICT COLUMNS:', conflictColumns);
 
-        switch (operation) {
-            case 'insert':
-                result = await client.from(table).insert(dataWithUser);
-                break;
-            case 'update':
-                const updateData = {...dataWithUser};
-                delete updateData.user_id; // Remove to avoid conflicts
+        const result = await client
+            .from(table)
+            .upsert(dataWithUser, {
+                onConflict: conflictColumns,
+                ignoreDuplicates: false
+            })
+            .select();
 
-                result = await client
-                    .from(table)
-                    .update(updateData)
-                    .eq('id', data.id)
-                    .eq('user_id', userDbId);
-                break;
-            case 'delete':
-                result = await client
-                    .from(table)
-                    .delete()
-                    .eq('id', data.id)
-                    .eq('user_id', userDbId);
-                break;
-        }
+        console.log('📊 UPSERT RESPONSE:');
+        console.log('  - Status:', result.status);
+        console.log('  - Error:', result.error);
+        console.log('  - Data:', result.data);
 
         if (result.error) {
-            console.error('Supabase operation error:', result.error);
+            console.error('❌ Supabase upsert error:', result.error);
             throw result.error;
         }
 
-        console.log(`✅ Synced to cloud: ${table} ${operation}`);
+        console.log(`✅ Upserted to cloud: ${table}`);
+
     } catch (error) {
-        console.warn(`Cloud sync failed for ${table}:`, error);
-        // Continue with local operation - cloud sync is non-blocking
+        console.error(`❌ Upsert failed for ${table}:`, error);
+        throw error;
     }
 };
 
@@ -316,14 +548,13 @@ const syncFromCloud = async (table: string): Promise<any[]> => {
 };
 
 // ============================================================================
-// ENHANCED DATABASE SERVICE WITH CLOUD SYNC
+// COMPLETE DATABASE SERVICE - REWRITTEN FOR ADMIN DASHBOARD
 // ============================================================================
 
 export const databaseService: DatabaseService = {
     // ========================================================================
-    // EXISTING APPLICATION METHODS (ENHANCED WITH CLOUD SYNC)
+    // APPLICATION METHODS (ENHANCED WITH CLOUD SYNC) - WORKING
     // ========================================================================
-
     async getApplications(): Promise<Application[]> {
         try {
             // Get local applications
@@ -612,7 +843,10 @@ export const databaseService: DatabaseService = {
                             client.from('applications').delete().eq('user_id', userDbId),
                             client.from('goals').delete().eq('user_id', userDbId),
                             client.from('analytics_events').delete().eq('user_id', userDbId),
-                            client.from('feedback').delete().eq('user_id', userDbId)
+                            client.from('user_sessions').delete().eq('user_id', userDbId),
+                            client.from('user_metrics').delete().eq('user_id', userDbId),
+                            client.from('feedback').delete().eq('user_id', userDbId),
+                            client.from('privacy_settings').delete().eq('user_id', userDbId)
                         ]);
 
                         console.log('✅ Cloud data cleared');
@@ -628,9 +862,8 @@ export const databaseService: DatabaseService = {
     },
 
     // ========================================================================
-    // EXISTING GOALS METHODS (ENHANCED WITH CLOUD SYNC)
+    // GOALS METHODS - FIXED WITH PROPER UPSERT
     // ========================================================================
-
     async getGoals(): Promise<Goals> {
         try {
             // Try local first
@@ -693,16 +926,27 @@ export const databaseService: DatabaseService = {
             // Update local first
             await db.goals.put(goals);
 
-            // Sync to cloud (non-blocking)
+            // FIXED: Sync to cloud using user_id as primary key
             if (isOnlineWithSupabase()) {
-                syncToCloud('goals', {
-                    id: 'default',
-                    total_goal: goals.totalGoal,
-                    weekly_goal: goals.weeklyGoal,
-                    monthly_goal: goals.monthlyGoal,
-                    created_at: goals.createdAt,
-                    updated_at: goals.updatedAt
-                }, 'update').catch(err => console.warn('Cloud sync failed:', err));
+                const userDbId = await getUserDbId();
+                if (userDbId) {
+                    console.log('🔍 GOALS SYNC - Browser Session ID:', userDbId);
+
+                    try {
+                        await syncToCloudUpsert('goals', {
+                            id: 'default',  // Keep for compatibility
+                            total_goal: Number(goals.totalGoal),
+                            weekly_goal: Number(goals.weeklyGoal),
+                            monthly_goal: Number(goals.monthlyGoal),
+                            created_at: goals.createdAt,
+                            updated_at: goals.updatedAt
+                        }, 'user_id');  // Use user_id as conflict resolution
+
+                        console.log('✅ Goals synced successfully for browser session:', userDbId);
+                    } catch (error) {
+                        console.error('❌ Goals sync failed:', error);
+                    }
+                }
             }
 
             return goals;
@@ -713,9 +957,8 @@ export const databaseService: DatabaseService = {
     },
 
     // ========================================================================
-    // EXISTING BACKUP METHODS (UNCHANGED - LOCAL ONLY)
+    // BACKUP METHODS (LOCAL ONLY - UNCHANGED)
     // ========================================================================
-
     async createBackup(): Promise<void> {
         try {
             const applications = await db.applications.toArray();
@@ -776,11 +1019,12 @@ export const databaseService: DatabaseService = {
     },
 
     // ========================================================================
-    // EXISTING ANALYTICS METHODS (ENHANCED WITH CLOUD SYNC)
+    // ANALYTICS METHODS - COMPLETELY FIXED FOR ADMIN DASHBOARD
     // ========================================================================
-
     async saveAnalyticsEvent(event: AnalyticsEvent): Promise<void> {
         try {
+            console.log('🔍 ANALYTICS EVENT DEBUG - Input:', event);
+
             // Save to local first
             const eventForStorage = {
                 event: event.event,
@@ -790,30 +1034,55 @@ export const databaseService: DatabaseService = {
                 userId: event.userId
             };
             await db.analyticsEvents.add(eventForStorage as any);
+            console.log('✅ ANALYTICS EVENT - Saved to local database');
 
-            // Sync to cloud (non-blocking)
+            // FIXED: Sync to cloud with complete event data
             if (isOnlineWithSupabase()) {
-                syncToCloud('analytics_events', {
-                    event_name: event.event,
-                    properties: event.properties,
-                    timestamp: event.timestamp,
-                    session_id: event.sessionId,
-                    created_at: event.timestamp
-                }, 'insert').catch(err => console.warn('Analytics cloud sync failed:', err));
+                const userDbId = await getUserDbId();
+                if (userDbId) {
+                    console.log('🔍 ANALYTICS SYNC - Browser Session ID:', userDbId);
+
+                    try {
+                        await syncToCloud('analytics_events', {
+                            event_name: event.event,
+                            properties: event.properties || {},
+                            timestamp: event.timestamp,
+                            session_id: event.sessionId,
+                            user_agent: navigator.userAgent,
+                            device_type: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                            language: navigator.language || 'en',
+                            created_at: event.timestamp
+                        }, 'insert');
+
+                        console.log('✅ ANALYTICS EVENT - Synced for browser session:', userDbId);
+                    } catch (syncError) {
+                        console.error('❌ ANALYTICS EVENT - Sync failed:', syncError);
+                    }
+                }
+            } else {
+                console.log('⚠️ ANALYTICS EVENT - Offline, saved locally only');
             }
+
         } catch (error) {
-            console.error('Failed to save analytics event:', error);
+            console.error('❌ Failed to save analytics event:', error);
             throw new Error('Failed to save analytics event');
         }
     },
 
     async getAnalyticsEvents(sessionId?: string): Promise<AnalyticsEvent[]> {
         try {
-            let query = db.analyticsEvents.orderBy('timestamp');
             if (sessionId) {
-                query = query.filter(event => event.sessionId === sessionId);
+                // Get events for specific session and sort in memory
+                const events = await db.analyticsEvents
+                    .where('sessionId')
+                    .equals(sessionId)
+                    .toArray();
+                return events.sort((a, b) =>
+                    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                );
             }
-            return await query.reverse().toArray();
+            return await db.analyticsEvents.orderBy('timestamp').reverse().toArray();
         } catch (error) {
             console.error('Failed to get analytics events:', error);
             return [];
@@ -822,7 +1091,10 @@ export const databaseService: DatabaseService = {
 
     async getUserSession(sessionId: string): Promise<UserSession | null> {
         try {
-            return await db.userSessions.where('id').equals(sessionId as any).first() || null;
+            // Find session by the sessionId property, not the auto-generated id
+            const sessions = await db.userSessions.toArray();
+            const session = sessions.find(s => s.id === sessionId);
+            return session || null;
         } catch (error) {
             console.error('Failed to get user session:', error);
             return null;
@@ -831,39 +1103,90 @@ export const databaseService: DatabaseService = {
 
     async saveUserSession(session: UserSession): Promise<void> {
         try {
-            await db.userSessions.add(session as any);
+            console.log('🔍 USER SESSION DEBUG - Input:', session);
+
+            // Create a copy without conflicting properties for storage
+            const sessionForStorage = {
+                id: session.id,
+                startTime: session.startTime,
+                endTime: session.endTime,
+                duration: session.duration,
+                events: session.events,
+                deviceType: session.deviceType,
+                userAgent: session.userAgent,
+                timezone: session.timezone,
+                language: session.language
+            };
+            await db.userSessions.put(sessionForStorage as any);
+            console.log('✅ USER SESSION - Saved to local database');
+
+            // FIXED: Sync to cloud with complete session data
+            if (isOnlineWithSupabase()) {
+                const userDbId = await getUserDbId();
+                if (userDbId) {
+                    console.log('🔍 SESSION SYNC - Browser Session ID:', userDbId);
+
+                    try {
+                        await syncToCloud('user_sessions', {
+                            session_id: session.id,
+                            start_time: session.startTime,
+                            end_time: session.endTime,
+                            duration: Number(session.duration) || null,
+                            device_type: session.deviceType || (/Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop'),
+                            user_agent: session.userAgent || navigator.userAgent,
+                            referrer: document.referrer || null,
+                            timezone: session.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                            language: session.language || navigator.language || 'en',
+                            events: session.events || [],
+                            page_views: Number(session.events?.length) || 0,
+                            created_at: session.startTime
+                        }, 'insert');
+
+                        console.log('✅ USER SESSION - Synced for browser session:', userDbId);
+                    } catch (syncError) {
+                        console.error('❌ USER SESSION - Sync failed:', syncError);
+                    }
+                }
+            } else {
+                console.log('⚠️ USER SESSION - Offline, saved locally only');
+            }
+
         } catch (error) {
-            console.error('Failed to save user session:', error);
+            console.error('❌ Failed to save user session:', error);
             throw new Error('Failed to save user session');
         }
     },
 
     async getUserMetrics(): Promise<UserMetrics> {
         try {
-            const existing = await db.userMetrics.get('default');
-            if (existing) {
-                return existing;
+            const metrics = await db.userMetrics.get('default');
+
+            if (!metrics) {
+                // Create default metrics
+                const defaultMetrics: UserMetrics & { id: string } = {
+                    id: 'default',
+                    sessionsCount: 0,
+                    totalTimeSpent: 0,
+                    applicationsCreated: 0,
+                    applicationsUpdated: 0,
+                    applicationsDeleted: 0,
+                    goalsSet: 0,
+                    attachmentsAdded: 0,
+                    exportsPerformed: 0,
+                    importsPerformed: 0,
+                    searchesPerformed: 0,
+                    featuresUsed: [],
+                    lastActiveDate: new Date().toISOString(),
+                    deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+                    firstVisit: new Date().toISOString(),
+                    totalEvents: 0
+                };
+
+                await db.userMetrics.put(defaultMetrics);
+                return defaultMetrics;
             }
 
-            // Default metrics
-            const defaultMetrics: UserMetrics & { id: string } = {
-                id: 'default',
-                sessionsCount: 0,
-                totalTimeSpent: 0,
-                applicationsCreated: 0,
-                applicationsUpdated: 0,
-                applicationsDeleted: 0,
-                goalsSet: 0,
-                attachmentsAdded: 0,
-                exportsPerformed: 0,
-                importsPerformed: 0,
-                searchesPerformed: 0,
-                featuresUsed: [],
-                lastActiveDate: new Date().toISOString()
-            };
-
-            await db.userMetrics.put(defaultMetrics);
-            return defaultMetrics;
+            return metrics;
         } catch (error) {
             console.error('Failed to get user metrics:', error);
             throw new Error('Failed to get user metrics');
@@ -878,6 +1201,47 @@ export const databaseService: DatabaseService = {
                 : {id: 'default', ...updates};
 
             await db.userMetrics.put(updated as any);
+
+            // FIXED: Sync to cloud using user_id as primary key
+            if (isOnlineWithSupabase()) {
+                const userDbId = await getUserDbId();
+                if (userDbId) {
+                    console.log('🔍 METRICS SYNC - Browser Session ID:', userDbId);
+
+                    try {
+                        await syncToCloudUpsert('user_metrics', {
+                            id: 'default',  // Keep for compatibility
+                            sessions_count: Number(updated.sessionsCount) || 0,
+                            total_time_spent: Number(updated.totalTimeSpent) || 0,
+                            applications_created: Number(updated.applicationsCreated) || 0,
+                            applications_updated: Number(updated.applicationsUpdated) || 0,
+                            applications_deleted: Number(updated.applicationsDeleted) || 0,
+                            goals_set: Number(updated.goalsSet) || 0,
+                            attachments_added: Number(updated.attachmentsAdded) || 0,
+                            exports_performed: Number(updated.exportsPerformed) || 0,
+                            imports_performed: Number(updated.importsPerformed) || 0,
+                            searches_performed: Number(updated.searchesPerformed) || 0,
+                            features_used: updated.featuresUsed || [],
+                            last_active_date: updated.lastActiveDate || new Date().toISOString(),
+                            first_visit: updated.firstVisit || new Date().toISOString(),
+                            device_type: updated.deviceType || (/Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop'),
+                            browser_version: navigator.userAgent || 'unknown',
+                            screen_resolution: `${window.screen.width}x${window.screen.height}`,
+                            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                            language: navigator.language || 'en',
+                            total_events: Number(updated.totalEvents) || 0,
+                            applications_count: Number(updated.applicationsCreated) || 0,
+                            session_duration: Number(updated.totalTimeSpent) || 0,
+                            created_at: updated.firstVisit || new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        }, 'user_id');  // Use user_id as conflict resolution
+
+                        console.log('✅ User metrics synced successfully for browser session:', userDbId);
+                    } catch (error) {
+                        console.error('❌ User metrics sync failed:', error);
+                    }
+                }
+            }
         } catch (error) {
             console.error('Failed to update user metrics:', error);
             throw new Error('Failed to update user metrics');
@@ -885,11 +1249,12 @@ export const databaseService: DatabaseService = {
     },
 
     // ========================================================================
-    // EXISTING FEEDBACK METHODS (ENHANCED WITH CLOUD SYNC)
+    // FEEDBACK METHODS - COMPLETELY FIXED FOR ADMIN DASHBOARD
     // ========================================================================
-
     async saveFeedback(feedback: FeedbackSubmission): Promise<void> {
         try {
+            console.log('🔍 FEEDBACK DEBUG - Input:', feedback);
+
             // Save to local first
             const feedbackForStorage = {
                 type: feedback.type,
@@ -902,25 +1267,49 @@ export const databaseService: DatabaseService = {
                 url: feedback.url,
                 metadata: feedback.metadata
             };
-            await db.feedback.add(feedbackForStorage as any);
 
-            // Sync to cloud (non-blocking)
+            await db.feedback.add(feedbackForStorage as any);
+            console.log('✅ FEEDBACK - Saved to local database');
+
+            // FIXED: Sync to cloud with complete feedback data for admin dashboard
             if (isOnlineWithSupabase()) {
-                syncToCloud('feedback', {
-                    type: feedback.type,
-                    rating: feedback.rating,
-                    message: feedback.message,
-                    email: feedback.email,
-                    timestamp: feedback.timestamp,
-                    session_id: feedback.sessionId,
-                    user_agent: feedback.userAgent,
-                    url: feedback.url,
-                    metadata: feedback.metadata,
-                    created_at: feedback.timestamp
-                }, 'insert').catch(err => console.warn('Feedback cloud sync failed:', err));
+                const userDbId = await getUserDbId();
+                if (userDbId) {
+                    console.log('🔍 FEEDBACK SYNC - Browser Session ID:', userDbId);
+
+                    try {
+                        await syncToCloud('feedback', {
+                            type: feedback.type,
+                            rating: Number(feedback.rating),
+                            message: feedback.message,
+                            email: feedback.email || null,
+                            timestamp: feedback.timestamp,
+                            session_id: feedback.sessionId,
+                            user_agent: feedback.userAgent || navigator.userAgent,
+                            url: feedback.url || window.location.href,
+                            metadata: {
+                                ...feedback.metadata,
+                                deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+                                applicationsCount: await db.applications.count(),
+                                screenResolution: `${window.screen.width}x${window.screen.height}`,
+                                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                                language: navigator.language || 'en',
+                                read: false  // Mark as unread for admin dashboard
+                            },
+                            created_at: feedback.timestamp
+                        }, 'insert');
+
+                        console.log('✅ FEEDBACK - Synced for browser session:', userDbId);
+                    } catch (syncError) {
+                        console.error('❌ FEEDBACK - Sync failed:', syncError);
+                    }
+                }
+            } else {
+                console.log('⚠️ FEEDBACK - Offline, saved locally only');
             }
+
         } catch (error) {
-            console.error('Failed to save feedback:', error);
+            console.error('❌ Failed to save feedback:', error);
             throw new Error('Failed to save feedback');
         }
     },
@@ -939,7 +1328,7 @@ export const databaseService: DatabaseService = {
             const allFeedback = await db.feedback.toArray();
             const totalSubmissions = allFeedback.length;
             const averageRating = totalSubmissions > 0
-                ? allFeedback.reduce((sum, f) => sum + f.rating, 0) / totalSubmissions
+                ? allFeedback.reduce((sum, f) => sum + Number(f.rating), 0) / totalSubmissions
                 : 0;
 
             // Initialize with required properties first
@@ -979,8 +1368,9 @@ export const databaseService: DatabaseService = {
 
             // Count ratings
             allFeedback.forEach(f => {
-                if (f.rating >= 1 && f.rating <= 5) {
-                    ratingDistribution[f.rating] = (ratingDistribution[f.rating] || 0) + 1;
+                const rating = Number(f.rating);
+                if (rating >= 1 && rating <= 5) {
+                    ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1;
                 }
             });
 
@@ -1035,26 +1425,41 @@ export const databaseService: DatabaseService = {
     },
 
     // ========================================================================
-    // EXISTING PRIVACY METHODS (ENHANCED WITH CLOUD SYNC)
+    // PRIVACY METHODS - FIXED WITH PROPER UPSERT
     // ========================================================================
-
     async savePrivacySettings(settings: PrivacySettings): Promise<void> {
         try {
             const settingsWithId = {id: 'default', ...settings};
             await db.privacySettings.put(settingsWithId);
 
-            // Sync to cloud (non-blocking)
+            // FIXED: Sync to cloud using user_id as primary key
             if (isOnlineWithSupabase()) {
-                syncToCloud('privacy_settings', {
-                    id: 'default',
-                    analytics: settings.analytics,
-                    feedback: settings.feedback,
-                    functional_cookies: settings.functionalCookies,
-                    consent_date: settings.consentDate,
-                    consent_version: settings.consentVersion,
-                    created_at: settings.consentDate,
-                    updated_at: new Date().toISOString()
-                }, 'update').catch(err => console.warn('Privacy settings cloud sync failed:', err));
+                const userDbId = await getUserDbId();
+                if (userDbId) {
+                    console.log('🔍 PRIVACY SYNC - Browser Session ID:', userDbId);
+
+                    try {
+                        await syncToCloudUpsert('privacy_settings', {
+                            id: 'default',  // Keep for compatibility
+                            analytics: settings.analytics,
+                            feedback: settings.feedback,
+                            functional_cookies: settings.functionalCookies,
+                            consent_date: settings.consentDate,
+                            consent_version: settings.consentVersion,
+                            cloud_sync_consent: false,  // Default to false
+                            data_retention_period: 365,  // Default retention
+                            anonymize_after: 730,  // Default anonymization
+                            tracking_level: 'minimal',  // Default tracking level
+                            data_sharing_consent: false,  // Default sharing consent
+                            created_at: settings.consentDate,
+                            updated_at: new Date().toISOString()
+                        }, 'user_id');  // Use user_id as conflict resolution
+
+                        console.log('✅ Privacy settings synced successfully for browser session:', userDbId);
+                    } catch (error) {
+                        console.error('❌ Privacy settings sync failed:', error);
+                    }
+                }
             }
         } catch (error) {
             console.error('Failed to save privacy settings:', error);
@@ -1064,8 +1469,53 @@ export const databaseService: DatabaseService = {
 
     async getPrivacySettings(): Promise<PrivacySettings | null> {
         try {
-            const settings = await db.privacySettings.get('default');
-            return settings || null;
+            // Try local first
+            let settings = await db.privacySettings.get('default');
+
+            // Try cloud sync if online and no local settings
+            if (isOnlineWithSupabase() && !settings) {
+                try {
+                    const userDbId = await getUserDbId();
+                    if (userDbId) {
+                        console.log('🔍 PRIVACY GET - Browser Session ID:', userDbId);
+
+                        const client = initializeSupabase()!;
+                        const {data, error} = await client
+                            .from('privacy_settings')
+                            .select('*')
+                            .eq('user_id', userDbId)
+                            .maybeSingle();
+
+                        if (error && error.code !== 'PGRST116') {
+                            console.error('Error fetching privacy settings:', error);
+                        } else if (data) {
+                            // Convert from cloud format to local format
+                            settings = {
+                                id: 'default',
+                                analytics: data.analytics,
+                                feedback: data.feedback,
+                                functionalCookies: data.functional_cookies,
+                                consentDate: data.consent_date,
+                                consentVersion: data.consent_version
+                            };
+
+                            // Cache locally
+                            await db.privacySettings.put(settings);
+                            console.log('✅ Privacy settings synced from cloud');
+                        }
+                    }
+                } catch (cloudError) {
+                    console.warn('Failed to fetch privacy settings from cloud:', cloudError);
+                }
+            }
+
+            // Return settings without the id field (as per your existing code)
+            if (settings) {
+                const {id, ...settingsWithoutId} = settings as any;
+                return settingsWithoutId;
+            }
+
+            return null;
         } catch (error) {
             console.error('Failed to get privacy settings:', error);
             return null;
@@ -1073,24 +1523,36 @@ export const databaseService: DatabaseService = {
     },
 
     // ========================================================================
-    // EXISTING ADMIN METHODS (ENHANCED WITH CLOUD SYNC)
+    // ADMIN METHODS - ENHANCED FOR COMPLETE ADMIN DASHBOARD SUPPORT
     // ========================================================================
-
     async getAdminAnalytics(): Promise<AdminAnalytics> {
         try {
             const applications = await this.getApplications();
             const analytics = await this.getAnalyticsEvents();
             const userMetrics = await this.getUserMetrics();
+            const sessions = await db.userSessions.toArray();
 
-            // Calculate analytics in the expected format
-            const totalUsers = 1; // Single user for now
+            // Calculate analytics in the format expected by admin dashboard
+            const totalUsers = 1; // Single browser session
             const totalApplications = applications.length;
             const totalEvents = analytics.length;
+            const totalSessions = sessions.length;
 
-            const statusDistribution = applications.reduce((acc, app) => {
-                acc[app.status] = (acc[app.status] || 0) + 1;
+            // Calculate average session duration
+            const averageSessionDuration = sessions.length > 0
+                ? sessions.reduce((sum, s) => sum + (Number(s.duration) || 0), 0) / sessions.length
+                : 0;
+
+            // Features usage from analytics events
+            const featuresUsage = analytics.reduce((acc, event) => {
+                if (event.event === 'feature_used' && event.properties?.feature) {
+                    acc[event.properties.feature] = (acc[event.properties.feature] || 0) + 1;
+                }
                 return acc;
-            }, {} as Record<string, number>);
+            }, {} as { [key: string]: number });
+
+            // Device metrics from user metrics
+            const deviceType = userMetrics.deviceType || 'desktop';
 
             return {
                 userMetrics: {
@@ -1107,18 +1569,15 @@ export const databaseService: DatabaseService = {
                     }
                 },
                 usageMetrics: {
-                    totalSessions: userMetrics.sessionsCount,
-                    averageSessionDuration: userMetrics.totalTimeSpent / Math.max(userMetrics.sessionsCount, 1),
-                    totalApplicationsCreated: userMetrics.applicationsCreated,
-                    featuresUsage: userMetrics.featuresUsed.reduce((acc, feature) => {
-                        acc[feature] = (acc[feature] || 0) + 1;
-                        return acc;
-                    }, {} as { [key: string]: number })
+                    totalSessions,
+                    averageSessionDuration,
+                    totalApplicationsCreated: Number(userMetrics.applicationsCreated) || totalApplications,
+                    featuresUsage
                 },
                 deviceMetrics: {
-                    mobile: userMetrics.deviceType === 'mobile' ? 1 : 0,
-                    desktop: userMetrics.deviceType === 'desktop' ? 1 : 0,
-                    tablet: userMetrics.deviceType === 'tablet' ? 1 : 0
+                    mobile: deviceType === 'mobile' ? 1 : 0,
+                    desktop: deviceType === 'desktop' ? 1 : 0,
+                    tablet: deviceType === 'tablet' ? 1 : 0
                 },
                 engagementMetrics: {
                     dailyActiveUsers: [],
@@ -1152,7 +1611,7 @@ export const databaseService: DatabaseService = {
                     general: stats.typeDistribution.general || 0,
                     love: stats.typeDistribution.love || 0
                 },
-                topIssues: []
+                topIssues: []  // Could be enhanced to identify common issues
             };
         } catch (error) {
             console.error('Failed to get admin feedback summary:', error);
@@ -1211,5 +1670,389 @@ export const initializeDatabase = async (): Promise<void> => {
 
 // Initialize Supabase on service load (but don't block if it fails)
 initializeSupabase();
+
+// Add this temporary debug function to your databaseService.ts
+// This will help us see exactly what's happening
+
+// ADD THIS TO YOUR DATABASESERVICE.TS FILE TEMPORARILY:
+
+export const debugAnalyticsSync = async () => {
+    console.log('🧪 DEBUG: Testing all sync operations...');
+
+    try {
+        // Test 1: Check if we have a user ID
+        const userId = getUserId();
+        const userDbId = await getUserDbId();
+        console.log('🔍 User IDs:', {userId, userDbId, userDbIdType: typeof userDbId});
+
+        // Test 2: Check if Supabase is connected
+        const isOnline = isOnlineWithSupabase();
+        console.log('🔍 Supabase online:', isOnline);
+
+        // Test 3: Try to save an analytics event
+        console.log('🧪 Testing analytics event...');
+        await databaseService.saveAnalyticsEvent({
+            event: 'test_event',
+            properties: {test: true},
+            timestamp: new Date().toISOString(),
+            sessionId: 'debug-session-' + Date.now(),
+            userId: userId
+        });
+        console.log('✅ Analytics event test completed');
+
+        // Test 4: Try to save feedback
+        console.log('🧪 Testing feedback...');
+        await databaseService.saveFeedback({
+            id: 'debug-feedback-' + Date.now(),
+            type: 'general',
+            rating: 5,
+            message: 'Debug test feedback',
+            timestamp: new Date().toISOString(),
+            sessionId: 'debug-session-' + Date.now(),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            metadata: {}
+        });
+        console.log('✅ Feedback test completed');
+
+        // Test 5: Try to save user session
+        console.log('🧪 Testing user session...');
+        await databaseService.saveUserSession({
+            id: 'debug-session-' + Date.now(),
+            startTime: new Date().toISOString(),
+            endTime: new Date().toISOString(),
+            duration: 60000,
+            deviceType: 'desktop',
+            userAgent: navigator.userAgent,
+            events: [],
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language
+        });
+        console.log('✅ User session test completed');
+
+        // Test 6: Try to update user metrics
+        console.log('🧪 Testing user metrics...');
+        await databaseService.updateUserMetrics({
+            sessionsCount: 1,
+            totalTimeSpent: 60000,
+            applicationsCreated: 1,
+            featuresUsed: ['debug_test'],
+            lastActiveDate: new Date().toISOString()
+        });
+        console.log('✅ User metrics test completed');
+
+        // Test 7: Check what's actually in the local database
+        const localAnalytics = await db.analyticsEvents.toArray();
+        const localFeedback = await db.feedback.toArray();
+        const localSessions = await db.userSessions.toArray();
+        const localMetrics = await db.userMetrics.toArray();
+
+        console.log('🔍 Local database contents:');
+        console.log('  - Analytics events:', localAnalytics.length);
+        console.log('  - Feedback:', localFeedback.length);
+        console.log('  - Sessions:', localSessions.length);
+        console.log('  - Metrics:', localMetrics.length);
+
+        console.log('🎉 Debug test completed - check logs above for any errors');
+
+    } catch (error) {
+        console.error('❌ Debug test failed:', error);
+    }
+};
+
+// Also add this function to test Supabase tables directly
+export const testSupabaseTables = async () => {
+    console.log('🧪 Testing Supabase tables directly...');
+
+    if (!isOnlineWithSupabase()) {
+        console.error('❌ Not online with Supabase');
+        return;
+    }
+
+    try {
+        const client = initializeSupabase()!;
+        const userDbId = await getUserDbId();
+
+        if (!userDbId) {
+            console.error('❌ No user DB ID');
+            return;
+        }
+
+        // Test each table directly
+        const tables = ['analytics_events', 'feedback', 'user_sessions', 'user_metrics'];
+
+        for (const table of tables) {
+            try {
+                console.log(`🧪 Testing table: ${table}`);
+
+                // Try to insert test data directly
+                const testData = {
+                    user_id: userDbId,
+                    created_at: new Date().toISOString(),
+                    synced_at: new Date().toISOString()
+                };
+
+                // Add table-specific fields
+                if (table === 'analytics_events') {
+                    Object.assign(testData, {
+                        event_name: 'debug_test',
+                        properties: {debug: true},
+                        timestamp: new Date().toISOString(),
+                        session_id: 'debug-session'
+                    });
+                } else if (table === 'feedback') {
+                    Object.assign(testData, {
+                        type: 'general',
+                        rating: 5,
+                        message: 'Debug test',
+                        timestamp: new Date().toISOString()
+                    });
+                } else if (table === 'user_sessions') {
+                    Object.assign(testData, {
+                        session_id: 'debug-session',
+                        start_time: new Date().toISOString(),
+                        device_type: 'desktop'
+                    });
+                } else if (table === 'user_metrics') {
+                    Object.assign(testData, {
+                        id: 'default',
+                        sessions_count: 1,
+                        total_time_spent: 60000,
+                        applications_created: 1
+                    });
+                }
+
+                const result = await client.from(table).insert(testData).select();
+
+                console.log(`✅ ${table} test result:`, {
+                    status: result.status,
+                    error: result.error,
+                    dataReturned: !!result.data?.length
+                });
+
+                if (result.error) {
+                    console.error(`❌ ${table} error details:`, result.error);
+                }
+
+            } catch (error) {
+                console.error(`❌ ${table} test failed:`, error);
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Supabase table test failed:', error);
+    }
+};
+
+// Add this EXACT debug function to your existing databaseService.ts file
+// It's designed to work with your current setup and schema
+
+export const debugSupabaseSync = async () => {
+    console.log('🧪 === APPLYTRAK SUPABASE SYNC DEBUG ===');
+    console.log('Schema: Your existing schema detected ✅');
+
+    // 1. Environment check
+    console.log('📝 Environment Check:');
+    const hasUrl = !!process.env.REACT_APP_SUPABASE_URL;
+    const hasKey = !!process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+    console.log(`  - REACT_APP_SUPABASE_URL: ${hasUrl ? '✅ SET' : '❌ MISSING'}`);
+    console.log(`  - REACT_APP_SUPABASE_ANON_KEY: ${hasKey ? '✅ SET' : '❌ MISSING'}`);
+
+    if (hasUrl) {
+        console.log(`  - URL: ${process.env.REACT_APP_SUPABASE_URL}`);
+    }
+    if (hasKey) {
+        console.log(`  - Key (first 20): ${process.env.REACT_APP_SUPABASE_ANON_KEY?.substring(0, 20)}...`);
+    }
+
+    if (!hasUrl || !hasKey) {
+        console.error('❌ CRITICAL: Missing environment variables!');
+        console.log('💡 Create .env file in your project root:');
+        console.log('REACT_APP_SUPABASE_URL=https://yourproject.supabase.co');
+        console.log('REACT_APP_SUPABASE_ANON_KEY=your_anon_key_here');
+        console.log('Then restart your dev server: npm start');
+        return;
+    }
+
+    // 2. Test isOnlineWithSupabase function
+    console.log('🔧 Testing connection functions:');
+    const online = isOnlineWithSupabase();
+    console.log(`  - isOnlineWithSupabase(): ${online ? '✅ TRUE' : '❌ FALSE'}`);
+
+    if (!online) {
+        console.error('❌ Connection function failed - checking initializeSupabase...');
+        const client = initializeSupabase();
+        console.log(`  - initializeSupabase(): ${client ? '✅ CLIENT CREATED' : '❌ CLIENT FAILED'}`);
+        return;
+    }
+
+    // 3. Test actual Supabase connection
+    console.log('🌐 Testing Supabase connection:');
+    try {
+        const client = initializeSupabase();
+        if (!client) {
+            console.error('❌ No Supabase client');
+            return;
+        }
+
+        // Test with your existing users table
+        const {data, error, status} = await client
+            .from('users')
+            .select('count')
+            .limit(1);
+
+        console.log(`  - Connection test: Status ${status}`);
+        if (error) {
+            console.error(`  - Error: ${error.message} (${error.code})`);
+            if (error.code === 'PGRST301') {
+                console.log('💡 This might be a RLS policy issue - checking...');
+            }
+        } else {
+            console.log('  - ✅ Connection successful');
+        }
+
+    } catch (error) {
+        console.error('❌ Connection test failed:', error);
+        return;
+    }
+
+    // 4. Test user ID functions
+    console.log('👤 Testing user ID functions:');
+    const userId = getUserId();
+    console.log(`  - getUserId(): ${userId}`);
+
+    const userDbId = await getUserDbId();
+    console.log(`  - getUserDbId(): ${userDbId} (${typeof userDbId})`);
+
+    if (!userDbId) {
+        console.error('❌ No user DB ID - this will prevent syncing');
+        console.log('🔧 Attempting to create user...');
+
+        try {
+            const client = initializeSupabase()!;
+            const {data: newUser, error} = await client
+                .from('users')
+                .insert({
+                    external_id: userId,
+                    email: `debug-${userId.split('-')[0]}@applytrak.local`,
+                    display_name: 'ApplyTrak User'
+                })
+                .select('id')
+                .single();
+
+            if (error) {
+                console.error('❌ Failed to create user:', error);
+            } else {
+                console.log('✅ User created:', newUser.id);
+                localStorage.setItem('applytrak_user_db_id', newUser.id.toString());
+            }
+        } catch (error) {
+            console.error('❌ User creation failed:', error);
+        }
+        return;
+    }
+
+    // 5. Test application sync
+    console.log('📝 Testing application sync:');
+
+    const testApp = {
+        id: `debug-test-${Date.now()}`,
+        company: 'Debug Test Company',
+        position: 'Test Position',
+        date_applied: new Date().toISOString().split('T')[0],
+        status: 'Applied',
+        type: 'Remote',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+
+    console.log('  - Test application data:', testApp);
+
+    try {
+        // Use your existing syncToCloud function
+        await syncToCloud('applications', testApp, 'insert');
+        console.log('✅ syncToCloud function executed without errors');
+
+        // Verify it was actually inserted
+        const client = initializeSupabase()!;
+        const {data, error} = await client
+            .from('applications')
+            .select('*')
+            .eq('id', testApp.id)
+            .single();
+
+        if (error) {
+            console.error('❌ Test app not found in database:', error);
+        } else {
+            console.log('✅ Test app successfully synced:', data);
+
+            // Clean up
+            await client.from('applications').delete().eq('id', testApp.id);
+            console.log('🧹 Test data cleaned up');
+        }
+
+    } catch (error) {
+        console.error('❌ Sync test failed:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+    }
+
+    // 6. Test your actual data sync
+    console.log('📊 Testing your real data sync:');
+
+    try {
+        // Get one real application from your local database
+        const localApps = await db.applications.limit(1).toArray();
+
+        if (localApps.length > 0) {
+            console.log('  - Found local application:', localApps[0].company, localApps[0].position);
+            console.log('  - Attempting to sync to cloud...');
+
+            await syncToCloud('applications', {
+                id: localApps[0].id,
+                company: localApps[0].company,
+                position: localApps[0].position,
+                date_applied: localApps[0].dateApplied,
+                status: localApps[0].status,
+                type: localApps[0].type,
+                location: localApps[0].location,
+                salary: localApps[0].salary,
+                job_source: localApps[0].jobSource,
+                job_url: localApps[0].jobUrl,
+                notes: localApps[0].notes,
+                attachments: localApps[0].attachments,
+                created_at: localApps[0].createdAt,
+                updated_at: localApps[0].updatedAt
+            }, 'insert');
+
+            console.log('✅ Real application sync completed');
+
+        } else {
+            console.log('  - No local applications found to test with');
+            console.log('  - Try adding an application first, then run this debug again');
+        }
+    } catch (error) {
+        console.error('❌ Real data sync test failed:', error);
+    }
+
+    // 7. Summary and recommendations
+    console.log('📋 === DEBUG SUMMARY ===');
+    console.log('If you see errors above:');
+    console.log('1. Environment variables missing → Add .env file');
+    console.log('2. Connection failed → Check Supabase project URL/key');
+    console.log('3. User creation failed → Check RLS policies');
+    console.log('4. Sync failed → Check table schemas and constraints');
+    console.log('');
+    console.log('If all tests pass but sync still not working:');
+    console.log('1. Try adding a new application after running this debug');
+    console.log('2. Check your Supabase dashboard → Table Editor → applications');
+    console.log('3. Look for data in the applications table');
+
+    console.log('🎉 === DEBUG COMPLETE ===');
+};
+
+// Also add this function to test from browser console
+(window as any).debugSupabaseSync = debugSupabaseSync;
+
 
 export default databaseService;

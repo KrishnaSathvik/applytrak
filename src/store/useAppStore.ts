@@ -148,9 +148,9 @@ export interface AppState {
     initializeAnalytics: () => Promise<void>;
     enableAnalytics: (settings?: Partial<AnalyticsSettings>) => Promise<void>;
     disableAnalytics: () => void;
-    trackEvent: (event: string, properties?: Record<string, any>) => void;
-    trackPageView: (page: string) => void;
-    trackFeatureUsage: (feature: string, context?: Record<string, any>) => void;
+    trackEvent: (event: string, properties?: Record<string, any>) => Promise<void>;
+    trackPageView: (page: string) => Promise<void>;
+    trackFeatureUsage: (feature: string, context?: Record<string, any>) => Promise<void>;
     openAnalyticsConsent: (type?: 'first-visit' | 'settings-change') => void;
     closeAnalyticsConsent: () => void;
     openFeedbackModal: (initialType?: 'bug' | 'feature' | 'general' | 'love') => void;
@@ -198,6 +198,15 @@ const createOptimizedCache = () => {
                 .forEach(key => cache.delete(key));
         }
     };
+};
+const safeParseInt = (value: any): number => {
+    const parsed = parseInt(String(value || '0'));
+    return isNaN(parsed) ? 0 : parsed;
+};
+
+const ensureNumber = (value: any): number => {
+    if (typeof value === 'number') return value;
+    return safeParseInt(value);
 };
 
 const optimizedCache = createOptimizedCache();
@@ -646,6 +655,13 @@ export const useAppStore = create<AppState>()(
                                 get().calculateAnalytics();
                                 get().calculateProgress();
                                 get().checkMilestones();
+
+                                // FIX: Refresh admin data if dashboard is open
+                                const {ui} = get();
+                                if (ui.admin?.dashboardOpen && ui.admin?.authenticated) {
+                                    console.log('🔄 Auto-refreshing admin dashboard...');
+                                    get().loadAdminAnalytics(); // Refresh admin data
+                                }
                             });
                         } catch (error) {
                             get().showToast({
@@ -704,18 +720,35 @@ export const useAppStore = create<AppState>()(
                     },
 
                     deleteApplication: async (id) => {
+                        const state = get();
+
+                        // Prevent multiple deletes of the same ID
+                        if (state.ui.isLoading) {
+                            console.log('🚫 Delete prevented - operation in progress');
+                            return;
+                        }
+
                         try {
+                            // Set loading state to prevent multiple calls
+                            set(state => ({
+                                ...state,
+                                ui: {...state.ui, isLoading: true}
+                            }));
+
                             await databaseService.deleteApplication(id);
+
                             set(state => {
-                                const applications = state.applications.filter(app => app.id !== id);
-                                const filteredApplications = state.filteredApplications.filter(app => app.id !== id);
+                                const applications = (state.applications || []).filter(app => app && app.id !== id);
+                                const filteredApplications = (state.filteredApplications || []).filter(app => app && app.id !== id);
+
                                 return {
                                     ...state,
                                     applications,
                                     filteredApplications,
                                     ui: {
                                         ...state.ui,
-                                        selectedApplicationIds: state.ui.selectedApplicationIds.filter(selectedId => selectedId !== id)
+                                        isLoading: false, // Reset loading state
+                                        selectedApplicationIds: (state.ui?.selectedApplicationIds || []).filter(selectedId => selectedId !== id)
                                     }
                                 };
                             });
@@ -725,13 +758,21 @@ export const useAppStore = create<AppState>()(
                                 message: 'Application deleted successfully!'
                             });
 
-                            get().trackEvent('application_deleted', {applicationId: id});
+                            await get().trackEvent('application_deleted', {applicationId: id});
 
                             startTransition(() => {
                                 get().calculateAnalytics();
                                 get().calculateProgress();
                             });
                         } catch (error) {
+                            console.error('Delete application error:', error);
+
+                            // Reset loading state on error
+                            set(state => ({
+                                ...state,
+                                ui: {...state.ui, isLoading: false}
+                            }));
+
                             get().showToast({
                                 type: 'error',
                                 message: 'Failed to delete application: ' + (error as Error).message
@@ -1102,32 +1143,47 @@ export const useAppStore = create<AppState>()(
                     },
 
                     showToast: (toast) => {
+                        const now = Date.now();
+                        const DUPLICATE_THRESHOLD = 2000; // 2 seconds
                         const currentToasts = get().toasts;
-                        const isDuplicate = currentToasts.some(t =>
-                            t.message === toast.message &&
-                            t.type === toast.type &&
-                            Date.now() - parseInt(t.id.split('-')[0], 36) < 2000
-                        );
+
+                        // Check for duplicate toasts (same message and type within threshold)
+                        const isDuplicate = currentToasts.some(t => {
+                            // Parse timestamp from the ID (first part before the dash)
+                            const toastTimestamp = parseInt(t.id.substring(0, 8), 36) * 1000; // Convert back to milliseconds
+                            const timeDiff = now - toastTimestamp;
+
+                            return t.message === toast.message &&
+                                t.type === toast.type &&
+                                timeDiff < DUPLICATE_THRESHOLD;
+                        });
 
                         if (isDuplicate) {
+                            console.log('🚫 Duplicate toast prevented:', toast.message);
                             return;
                         }
 
-                        const id = generateId();
+                        // Generate timestamp-based ID for better tracking
+                        const timestamp = Math.floor(now / 1000).toString(36); // Convert to base36 for shorter ID
+                        const random = Math.random().toString(36).substr(2, 5);
+                        const id = `${timestamp}-${random}`;
+
                         const newToast = {...toast, id};
 
                         set(state => {
+                            // Clean up old toasts (keep only recent ones)
                             const filteredToasts = state.toasts.filter(t => {
-                                const toastTime = parseInt(t.id.split('-')[0], 36);
-                                return Date.now() - toastTime < 30000;
+                                const toastTimestamp = parseInt(t.id.substring(0, 8), 36) * 1000;
+                                return (now - toastTimestamp) < 30000; // Keep toasts for max 30 seconds
                             });
 
                             return {
                                 ...state,
-                                toasts: [newToast, ...filteredToasts.slice(0, 2)]
+                                toasts: [newToast, ...filteredToasts.slice(0, 2)] // Limit to 3 total toasts
                             };
                         });
 
+                        // Auto-remove toast after duration
                         const duration = toast.duration || 5000;
                         setTimeout(() => {
                             get().removeToast(id);
@@ -1140,11 +1196,97 @@ export const useAppStore = create<AppState>()(
 
                     calculateAnalytics: () => {
                         const {applications} = get();
-                        const analytics = calculateAnalytics(applications);
+
+                        // Fix 1: Add explicit type annotations for reduce functions
+                        const statusDistribution = applications.reduce((acc: Record<string, number>, app) => {
+                            acc[app.status] = (acc[app.status] || 0) + 1;
+                            return acc;
+                        }, {} as Record<string, number>);
+
+                        const completeStatusDistribution = {
+                            Applied: statusDistribution['Applied'] || 0,
+                            Interview: statusDistribution['Interview'] || 0,
+                            Offer: statusDistribution['Offer'] || 0,
+                            Rejected: statusDistribution['Rejected'] || 0
+                        };
+
+                        const typeDistribution = applications.reduce((acc: Record<string, number>, app) => {
+                            acc[app.type] = (acc[app.type] || 0) + 1;
+                            return acc;
+                        }, {} as Record<string, number>);
+
+                        const completeTypeDistribution = {
+                            Onsite: typeDistribution['Onsite'] || 0,
+                            Remote: typeDistribution['Remote'] || 0,
+                            Hybrid: typeDistribution['Hybrid'] || 0
+                        };
+
+                        const sourceDistribution = applications.reduce((acc: Record<string, number>, app) => {
+                            const source = app.jobSource || 'Unknown';
+                            acc[source] = (acc[source] || 0) + 1;
+                            return acc;
+                        }, {} as Record<string, number>);
+
+                        const sourceSuccessRates: SourceSuccessRate[] = Object.keys(sourceDistribution).map(source => {
+                            const sourceApps = applications.filter(app => (app.jobSource || 'Unknown') === source);
+                            const total = sourceApps.length;
+                            const offers = sourceApps.filter(app => app.status === 'Offer').length;
+                            const interviews = sourceApps.filter(app => app.status === 'Interview' || app.status === 'Offer').length;
+
+                            return {
+                                source,
+                                total,
+                                offers,
+                                interviews,
+                                successRate: total > 0 ? (offers / total) * 100 : 0,
+                                interviewRate: total > 0 ? (interviews / total) * 100 : 0
+                            };
+                        });
+
+                        const offers = completeStatusDistribution.Offer;
+                        const successRate = applications.length > 0 ? (offers / applications.length) * 100 : 0;
+
+                        const interviewApps = applications.filter(app => app.status === 'Interview');
+                        const responseTimes = interviewApps.map(app => {
+                            const appliedDate = new Date(app.dateApplied);
+                            const now = new Date();
+                            return (now.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24);
+                        });
+                        const averageResponseTime = responseTimes.length > 0
+                            ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+                            : 0;
+
+                        const monthlyTrend = applications.reduce((acc: Array<{
+                            month: string;
+                            count: number
+                        }>, app) => {
+                            const date = new Date(app.dateApplied);
+                            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                            const existing = acc.find(item => item.month === monthKey);
+
+                            if (existing) {
+                                existing.count++;
+                            } else {
+                                acc.push({month: monthKey, count: 1});
+                            }
+
+                            return acc;
+                        }, [] as Array<{ month: string; count: number }>);
+
+                        const analytics = {
+                            statusDistribution: completeStatusDistribution,
+                            typeDistribution: completeTypeDistribution,
+                            sourceDistribution,
+                            sourceSuccessRates,
+                            successRate,
+                            averageResponseTime,
+                            totalApplications: applications.length,
+                            monthlyTrend: monthlyTrend.sort((a, b) => a.month.localeCompare(b.month))
+                        };
+
                         set(state => ({...state, analytics}));
                     },
 
-                    // Analytics Actions
                     initializeAnalytics: async () => {
                         try {
                             const settings: AnalyticsSettings = analyticsService.isEnabled() ? {
@@ -1161,7 +1303,8 @@ export const useAppStore = create<AppState>()(
 
                             if (settings.consentGiven) {
                                 await analyticsService.initialize();
-                                const userMetrics = analyticsService.getUserMetrics();
+                                // Fix: Add await to getUserMetrics call
+                                const userMetrics = await analyticsService.getUserMetrics();
                                 set(state => ({...state, userMetrics}));
                             } else {
                                 get().openAnalyticsConsent('first-visit');
@@ -1171,7 +1314,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    enableAnalytics: async (settings = {}) => {
+                    enableAnalytics: async (settings: Partial<AnalyticsSettings> = {}) => {
                         try {
                             await analyticsService.enableAnalytics(settings);
                             const analyticsSettings: AnalyticsSettings = {
@@ -1183,7 +1326,8 @@ export const useAppStore = create<AppState>()(
 
                             set(state => ({...state, analyticsSettings}));
 
-                            const userMetrics = analyticsService.getUserMetrics();
+                            // Fix the getUserMetrics call
+                            const userMetrics = await analyticsService.getUserMetrics();
                             set(state => ({...state, userMetrics}));
 
                             get().showToast({
@@ -1223,21 +1367,21 @@ export const useAppStore = create<AppState>()(
                         });
                     },
 
-                    trackEvent: (event, properties) => {
+                    trackEvent: async (event: string, properties?: Record<string, any>) => {
                         if (analyticsService.isEnabled()) {
-                            analyticsService.trackEvent(event as any, properties);
+                            await analyticsService.trackEvent(event as any, properties);
                         }
                     },
 
-                    trackPageView: (page) => {
+                    trackPageView: async (page: string) => {
                         if (analyticsService.isEnabled()) {
-                            analyticsService.trackPageView(page);
+                            await analyticsService.trackPageView(page);
                         }
                     },
 
-                    trackFeatureUsage: (feature, context) => {
+                    trackFeatureUsage: async (feature: string, context?: Record<string, any>) => {
                         if (analyticsService.isEnabled()) {
-                            analyticsService.trackFeatureUsage(feature, context);
+                            await analyticsService.trackFeatureUsage(feature, context);
                         }
                     },
 
@@ -1364,12 +1508,14 @@ export const useAppStore = create<AppState>()(
                             duration: 2000
                         });
                     },
-
                     loadAdminAnalytics: async () => {
                         try {
-                            const userMetrics = analyticsService.getUserMetrics();
+                            // FIX: Get fresh data from store, not analytics service
+                            const {applications, userMetrics} = get(); // Get current state
+
+                            // Get analytics data from analytics service
                             const sessions = analyticsService.getAllSessions();
-                            const events = analyticsService.getAllEvents();
+                            const events = await analyticsService.getAllEvents();
 
                             const adminAnalytics: AdminAnalytics = {
                                 userMetrics: {
@@ -1390,13 +1536,14 @@ export const useAppStore = create<AppState>()(
                                     averageSessionDuration: sessions.length > 0
                                         ? sessions.reduce((sum, s) => sum + Number(s.duration || 0), 0) / sessions.length
                                         : 0,
-                                    totalApplicationsCreated: userMetrics?.applicationsCreated || 0,
-                                    featuresUsage: events.reduce((acc, event) => {
+                                    // FIX: Use current applications count from store
+                                    totalApplicationsCreated: applications.length, // Changed from userMetrics?.applicationsCreated
+                                    featuresUsage: events.reduce((acc: Record<string, number>, event) => {
                                         if (event.event === 'feature_used' && event.properties?.feature) {
                                             acc[event.properties.feature] = (acc[event.properties.feature] || 0) + 1;
                                         }
                                         return acc;
-                                    }, {} as { [key: string]: number })
+                                    }, {} as Record<string, number>)
                                 },
                                 deviceMetrics: {
                                     mobile: userMetrics?.deviceType === 'mobile' ? 1 : 0,
@@ -1414,6 +1561,7 @@ export const useAppStore = create<AppState>()(
                             };
 
                             set(state => ({...state, adminAnalytics}));
+                            console.log('✅ Admin analytics loaded with', applications.length, 'applications');
                         } catch (error) {
                             console.error('Failed to load admin analytics:', error);
                         }
