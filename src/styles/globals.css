@@ -1226,5 +1226,185 @@ thead th {
 }
 
 /* =============================================================================
+   SELECT DROPDOWN FIX - For EditApplicationModal Job Type and Status dropdowns
+   ============================================================================= */
+
+/* Target the specific select elements in the EditApplicationModal */
+select.form-input-enhanced {
+    /* Remove all browser default styling */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+
+    /* Force proper display and positioning */
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+
+    /* Background and styling */
+    background-color: var(--color-background) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 1rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.25em 1.25em !important;
+
+    /* Ensure proper text and typography */
+    color: var(--color-text-primary) !important;
+    font-family: var(--font-family-primary) !important;
+    font-size: 1rem !important;
+    font-weight: var(--font-weight-medium) !important;
+    line-height: 1.5 !important;
+    letter-spacing: -0.01em !important;
+
+    /* Border and dimensions */
+    border: 2px solid var(--color-border) !important;
+    border-radius: var(--radius-xl) !important;
+    min-height: 3.25rem !important;
+    height: 3rem !important;
+
+    /* Padding - ensure space for dropdown arrow */
+    padding: 0.75rem 3rem 0.75rem 1.25rem !important;
+
+    /* Prevent text selection and ensure cursor */
+    cursor: pointer !important;
+    user-select: none !important;
+
+    /* Z-index to prevent blocking */
+    z-index: 10 !important;
+
+    /* Smooth transitions */
+    transition: all var(--duration-fast) ease !important;
+}
+
+/* Focus states for selects */
+select.form-input-enhanced:focus {
+    outline: none !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+    transform: translateY(-1px) !important;
+    background-color: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Hover states for selects */
+select.form-input-enhanced:hover:not(:focus) {
+    border-color: var(--color-text-muted) !important;
+    transform: translateY(-1px) !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Option styling for better visibility */
+select.form-input-enhanced option {
+    background-color: var(--color-background) !important;
+    color: var(--color-text-primary) !important;
+    padding: 0.75rem 1rem !important;
+    font-family: var(--font-family-primary) !important;
+    font-size: 1rem !important;
+    font-weight: var(--font-weight-medium) !important;
+}
+
+/* Dark mode specific fixes */
+:root.dark select.form-input-enhanced {
+    background-color: var(--color-background) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-primary) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+:root.dark select.form-input-enhanced:focus {
+    background-color: rgba(15, 23, 42, 0.98) !important;
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+:root.dark select.form-input-enhanced:hover:not(:focus) {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+    border-color: var(--color-text-muted) !important;
+}
+
+:root.dark select.form-input-enhanced option {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text-primary) !important;
+}
+
+/* Mobile specific optimizations */
+@media (max-width: 768px) {
+    select.form-input-enhanced {
+        font-size: 1.0625rem !important; /* 17px prevents iOS zoom */
+        min-height: 3.5rem !important;
+        height: 3.5rem !important;
+        padding: 1rem 3rem 1rem 1.25rem !important;
+        border-width: 2px !important;
+    }
+}
+
+/* Desktop specific optimizations */
+@media (min-width: 768px) {
+    select.form-input-enhanced {
+        font-size: 0.9375rem !important;
+        min-height: 3rem !important;
+        height: 3rem !important;
+        padding: 0.75rem 3rem 0.75rem 1.125rem !important;
+        border-width: 1.5px !important;
+    }
+}
+
+/* Large desktop specific optimizations */
+@media (min-width: 1024px) {
+    select.form-input-enhanced {
+        font-size: 1rem !important;
+        min-height: 3.25rem !important;
+        height: 3rem !important;
+        padding: 0.75rem 3rem 0.75rem 1.25rem !important;
+        border-width: 2px !important;
+    }
+}
+
+/* Additional browser-specific fixes */
+select.form-input-enhanced::-ms-expand {
+    display: none !important;
+}
+
+/* Firefox specific fixes */
+@-moz-document url-prefix() {
+    select.form-input-enhanced {
+        text-indent: 0.01px !important;
+        text-overflow: '' !important;
+    }
+}
+
+/* Safari specific fixes */
+@supports (-webkit-appearance: none) {
+    select.form-input-enhanced {
+        -webkit-appearance: none !important;
+        background-attachment: scroll !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    select.form-input-enhanced {
+        border-width: 3px !important;
+        border-color: var(--color-text-primary) !important;
+    }
+
+    select.form-input-enhanced:focus {
+        border-width: 4px !important;
+        box-shadow: 0 0 0 2px var(--color-primary) !important;
+    }
+}
+
+/* Motion reduction support */
+@media (prefers-reduced-motion: reduce) {
+    select.form-input-enhanced {
+        transition: none !important;
+        transform: none !important;
+    }
+
+    select.form-input-enhanced:focus,
+    select.form-input-enhanced:hover {
+        transform: none !important;
+    }
+}
+/* =============================================================================
    END OF STYLES - Total: ~1000+ lines optimized for performance and maintainability
    ============================================================================= */

@@ -1,4 +1,4 @@
-// src/components/admin/FeedbackManagement.tsx - FIXED TypeScript Errors
+// src/components/admin/FeedbackManagement.tsx - UPDATED: Uses Unified Global Refresh System
 import React, {useMemo, useState} from 'react';
 import {
     Bug,
@@ -11,10 +11,10 @@ import {
     Mail,
     MessageSquare,
     Monitor,
-    RefreshCw,
     Search,
     Smartphone,
-    Star
+    Star,
+    Info
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 
@@ -22,8 +22,15 @@ type FeedbackFilter = 'all' | 'love' | 'bug' | 'feature' | 'general';
 type SortBy = 'newest' | 'oldest' | 'rating-high' | 'rating-low';
 type StatusFilter = 'all' | 'unread' | 'read' | 'flagged';
 
+// ✅ UPDATED: Feedback Management Component with Unified Global Refresh
 export const FeedbackManagement: React.FC = () => {
-    const {adminFeedback, loadAdminFeedback, showToast} = useAppStore();
+    const {
+        adminFeedback,
+        // ✅ REMOVED: loadAdminFeedback - now uses unified global refresh
+        showToast,
+        // ✅ NEW: Using global refresh status instead of local state
+        getGlobalRefreshStatus
+    } = useAppStore();
 
     // Filters and search
     const [typeFilter, setTypeFilter] = useState<FeedbackFilter>('all');
@@ -31,30 +38,16 @@ export const FeedbackManagement: React.FC = () => {
     const [sortBy, setSortBy] = useState<SortBy>('newest');
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    // ✅ REMOVED: Individual refresh state - now uses global refresh status
 
     // UI state
     const [selectedFeedback, setSelectedFeedback] = useState<string[]>([]);
     const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
 
-    const handleRefresh = async () => {
-        setIsRefreshing(true);
-        try {
-            await loadAdminFeedback();
-            showToast({
-                type: 'success',
-                message: 'Feedback data refreshed',
-                duration: 2000
-            });
-        } catch (error) {
-            showToast({
-                type: 'error',
-                message: 'Failed to refresh feedback data'
-            });
-        } finally {
-            setIsRefreshing(false);
-        }
-    };
+    // ✅ NEW: Get global refresh status
+    const globalRefreshStatus = getGlobalRefreshStatus();
+
+    // ✅ REMOVED: Individual refresh handler - now uses unified global refresh from AdminDashboard header
 
     const handleExportFeedback = () => {
         if (!adminFeedback?.recentFeedback) return;
@@ -73,8 +66,15 @@ export const FeedbackManagement: React.FC = () => {
                 url: fb.url,
                 timestamp: fb.timestamp,
                 deviceType: fb.metadata?.deviceType,
-                userAgent: fb.userAgent // 🔧 FIXED: Access userAgent from root level
-            }))
+                userAgent: fb.userAgent // Access userAgent from root level
+            })),
+            // ✅ NEW: Include global refresh metadata in export
+            refreshMetadata: {
+                lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
+                refreshStatus: globalRefreshStatus.refreshStatus,
+                autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
+                refreshErrors: globalRefreshStatus.refreshErrors
+            }
         };
 
         const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
@@ -179,6 +179,10 @@ export const FeedbackManagement: React.FC = () => {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-400">Loading feedback data...</p>
+                    {/* ✅ NEW: Show global refresh status in loading state */}
+                    {globalRefreshStatus.isRefreshing && (
+                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">Global refresh in progress...</p>
+                    )}
                 </div>
             </div>
         );
@@ -186,7 +190,17 @@ export const FeedbackManagement: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header with Stats */}
+            {/* ✅ NEW: Global refresh status indicator */}
+            {globalRefreshStatus.isRefreshing && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm font-medium">Refreshing feedback data via global refresh...</span>
+                    </div>
+                </div>
+            )}
+
+            {/* ✅ ENHANCED: Header with Stats - includes refresh status */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
@@ -194,10 +208,16 @@ export const FeedbackManagement: React.FC = () => {
                             className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
                             <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
                         </div>
-                        <div>
+                        <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Feedback</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {adminFeedback.totalFeedback}
+                            </p>
+                            {/* ✅ NEW: Show last refresh timestamp */}
+                            <p className="text-xs text-gray-500 dark:text-gray-500">
+                                Updated: {globalRefreshStatus.lastRefreshTimestamp
+                                ? new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()
+                                : 'Never'}
                             </p>
                         </div>
                     </div>
@@ -209,11 +229,18 @@ export const FeedbackManagement: React.FC = () => {
                             className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
                             <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400"/>
                         </div>
-                        <div>
+                        <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Rating</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {adminFeedback.averageRating?.toFixed(1) || '0.0'}
                             </p>
+                            {/* ✅ NEW: Show refresh status indicator */}
+                            {globalRefreshStatus.refreshStatus === 'success' && (
+                                <div className="flex items-center gap-1 mt-1">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span className="text-xs text-green-600 dark:text-green-400">Current</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -249,7 +276,7 @@ export const FeedbackManagement: React.FC = () => {
                 </div>
             </div>
 
-            {/* Controls */}
+            {/* ✅ UPDATED: Controls without individual refresh button */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
@@ -291,14 +318,13 @@ export const FeedbackManagement: React.FC = () => {
                             <option value="rating-low">Lowest Rating</option>
                         </select>
 
-                        {/* Actions */}
-                        <button
-                            onClick={handleRefresh}
-                            disabled={isRefreshing}
-                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-                        >
-                            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                        </button>
+                        {/* ✅ REMOVED: Individual refresh button - uses unified refresh from AdminDashboard header */}
+
+                        {/* ✅ NEW: Info about unified refresh */}
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <Info className="h-4 w-4" />
+                            <span>Use global refresh in header</span>
+                        </div>
 
                         <button
                             onClick={handleExportFeedback}
@@ -312,15 +338,24 @@ export const FeedbackManagement: React.FC = () => {
                 {/* Results Info */}
                 <div
                     className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Showing {filteredAndSortedFeedback.length} of {adminFeedback.totalFeedback} feedback items
-                    </p>
+                    <div className="flex items-center gap-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Showing {filteredAndSortedFeedback.length} of {adminFeedback.totalFeedback} feedback items
+                        </p>
+                        {/* ✅ NEW: Show global refresh status */}
+                        {globalRefreshStatus.autoRefreshEnabled && (
+                            <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span>Auto-refresh: {globalRefreshStatus.autoRefreshInterval}s</span>
+                            </div>
+                        )}
+                    </div>
 
                     {selectedFeedback.length > 0 && (
                         <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedFeedback.length} selected
-              </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {selectedFeedback.length} selected
+                            </span>
                             <button
                                 onClick={() => setSelectedFeedback([])}
                                 className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
@@ -346,21 +381,48 @@ export const FeedbackManagement: React.FC = () => {
                                 : 'No feedback has been received yet'
                             }
                         </p>
+                        {/* ✅ NEW: Show refresh info in empty state */}
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                            Last refreshed: {globalRefreshStatus.lastRefreshTimestamp
+                            ? new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleString()
+                            : 'Never'}
+                        </p>
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
                         {/* Header */}
                         <div className="p-4 bg-gray-50 dark:bg-gray-800/50">
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedFeedback.length === filteredAndSortedFeedback.length && filteredAndSortedFeedback.length > 0}
-                                    onChange={selectAllFeedback}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Select All
-                </span>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedFeedback.length === filteredAndSortedFeedback.length && filteredAndSortedFeedback.length > 0}
+                                        onChange={selectAllFeedback}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Select All
+                                    </span>
+                                </div>
+                                {/* ✅ NEW: Show data freshness in header */}
+                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    {globalRefreshStatus.refreshStatus === 'success' ? (
+                                        <>
+                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                            <span>Data current</span>
+                                        </>
+                                    ) : globalRefreshStatus.refreshStatus === 'error' ? (
+                                        <>
+                                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            <span>Refresh error</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                            <span>Data may be stale</span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -390,9 +452,9 @@ export const FeedbackManagement: React.FC = () => {
                                             {/* Header */}
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">
-                            {feedback.type} Feedback
-                          </span>
+                                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">
+                                                        {feedback.type} Feedback
+                                                    </span>
                                                     <div className="flex items-center gap-1">
                                                         {[...Array(5)].map((_, i) => (
                                                             <Star
@@ -406,10 +468,10 @@ export const FeedbackManagement: React.FC = () => {
                                                 </div>
 
                                                 <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            <Clock className="h-3 w-3"/>
-                              {new Date(feedback.timestamp).toLocaleString()}
-                          </span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                        <Clock className="h-3 w-3"/>
+                                                        {new Date(feedback.timestamp).toLocaleString()}
+                                                    </span>
                                                     <button
                                                         onClick={() => setExpandedFeedback(isExpanded ? null : feedback.id)}
                                                         className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -429,22 +491,22 @@ export const FeedbackManagement: React.FC = () => {
                                                 className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
                                                 {feedback.email && (
                                                     <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3"/>
+                                                        <Mail className="h-3 w-3"/>
                                                         {feedback.email}
-                          </span>
+                                                    </span>
                                                 )}
                                                 <span className="flex items-center gap-1">
-                          <Globe className="h-3 w-3"/>
+                                                    <Globe className="h-3 w-3"/>
                                                     {feedback.url}
-                        </span>
+                                                </span>
                                                 <span className="flex items-center gap-1">
-                          {feedback.metadata?.deviceType === 'mobile' ? (
-                              <Smartphone className="h-3 w-3"/>
-                          ) : (
-                              <Monitor className="h-3 w-3"/>
-                          )}
+                                                    {feedback.metadata?.deviceType === 'mobile' ? (
+                                                        <Smartphone className="h-3 w-3"/>
+                                                    ) : (
+                                                        <Monitor className="h-3 w-3"/>
+                                                    )}
                                                     {feedback.metadata?.deviceType || 'Unknown'}
-                        </span>
+                                                </span>
                                             </div>
 
                                             {/* Expanded Details */}
@@ -458,7 +520,6 @@ export const FeedbackManagement: React.FC = () => {
                                                         <div>
                                                             <span className="font-medium">User Agent:</span>
                                                             <br/>
-                                                            {/* 🔧 FIXED: Access userAgent from root level */}
                                                             <span
                                                                 className="break-all">{feedback.userAgent || 'Not available'}</span>
                                                         </div>
@@ -481,11 +542,11 @@ export const FeedbackManagement: React.FC = () => {
                                                             <span className="font-medium">Session Duration:</span>
                                                             <br/>
                                                             <span>
-                                {feedback.metadata?.sessionDuration
-                                    ? `${Math.round(feedback.metadata.sessionDuration / 1000 / 60)}m`
-                                    : 'Not available'
-                                }
-                              </span>
+                                                                {feedback.metadata?.sessionDuration
+                                                                    ? `${Math.round(feedback.metadata.sessionDuration / 1000 / 60)}m`
+                                                                    : 'Not available'
+                                                                }
+                                                            </span>
                                                         </div>
                                                         <div>
                                                             <span className="font-medium">Applications Count:</span>
@@ -504,10 +565,19 @@ export const FeedbackManagement: React.FC = () => {
                 )}
             </div>
 
-            {/* Feedback Trends */}
+            {/* ✅ ENHANCED: Feedback Trends with refresh status */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Feedback Trends</h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Feedback Trends</h3>
+                        {/* ✅ NEW: Show refresh status for trends */}
+                        {globalRefreshStatus.refreshStatus === 'success' && (
+                            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span>Updated: {new Date(globalRefreshStatus.lastRefreshTimestamp!).toLocaleTimeString()}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="p-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

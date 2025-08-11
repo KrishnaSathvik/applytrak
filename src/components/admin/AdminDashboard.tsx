@@ -1,4 +1,4 @@
-// src/components/admin/AdminDashboard.tsx - COMPLETE FIXED VERSION (1249+ lines)
+// src/components/admin/AdminDashboard.tsx - PHASE 2: UNIFIED GLOBAL REFRESH SYSTEM
 import React, {useEffect, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {
@@ -9,56 +9,72 @@ import {
     Calendar,
     CheckCircle,
     Clock,
+    Database,
     Download,
     Eye,
     FileText,
     Filter,
     Globe,
     Heart,
+    HelpCircle,
     Lightbulb,
-    Mail,
     MessageSquare,
-    Monitor,
     RefreshCw,
     Search,
+    Settings,
     Shield,
-    Smartphone,
     Star,
     Target,
     TrendingUp,
     Users,
     X,
-    Zap
+    Zap,
+    Play,
+    Pause,
+    AlertCircle
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {feedbackService} from '../../services/feedbackService';
 import {analyticsService} from '../../services/analyticsService';
+import AdminSettings from './AdminSettings';
+import SupportTools from './SupportTools';
 
-// 🔧 FIXED: Define SectionId type and sections array
-type SectionId = 'overview' | 'analytics' | 'feedback' | 'users';
+// ✅ COMPLETE: All section types including Settings and Support
+type SectionId = 'overview' | 'analytics' | 'feedback' | 'users' | 'settings' | 'support';
 type FeedbackFilter = 'all' | 'love' | 'bug' | 'feature' | 'general';
 type SortBy = 'newest' | 'oldest' | 'rating-high' | 'rating-low';
 type StatusFilter = 'all' | 'unread' | 'read' | 'flagged';
 
+// ✅ COMPLETE: All sections including Settings and Support
 const sections = [
     {id: 'overview' as const, label: 'Overview', icon: BarChart3},
     {id: 'analytics' as const, label: 'Analytics', icon: TrendingUp},
     {id: 'feedback' as const, label: 'Feedback', icon: MessageSquare},
-    {id: 'users' as const, label: 'Users', icon: Users}
+    {id: 'users' as const, label: 'Users', icon: Users},
+    {id: 'settings' as const, label: 'Settings', icon: Settings},
+    {id: 'support' as const, label: 'Support', icon: HelpCircle}
 ];
 
-// 🔄 NEW: Real-Time Status Indicator Component
+// ✅ PHASE 2: Enhanced Real-Time Status Indicator with Global Refresh Status
 const RealtimeStatusIndicator: React.FC = () => {
-    const {getAdminConnectionStatus} = useAppStore();
+    const {getAdminConnectionStatus, getGlobalRefreshStatus, isAdminRealtime} = useAppStore();
     const [status, setStatus] = useState(getAdminConnectionStatus());
+    const [refreshStatus, setRefreshStatus] = useState(getGlobalRefreshStatus());
+    const [userCount, setUserCount] = useState(1);
 
     useEffect(() => {
         const interval = setInterval(() => {
             setStatus(getAdminConnectionStatus());
+            setRefreshStatus(getGlobalRefreshStatus());
+
+            const store = useAppStore.getState();
+            const realUserCount = store.auth?.isAuthenticated ?
+                (store.adminAnalytics?.userMetrics?.totalUsers || 1) : 1;
+            setUserCount(realUserCount);
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [getAdminConnectionStatus]);
+    }, [getAdminConnectionStatus, getGlobalRefreshStatus]);
 
     const getStatusColor = () => {
         if (!status.isConnected) return 'text-gray-400';
@@ -74,54 +90,83 @@ const RealtimeStatusIndicator: React.FC = () => {
 
     const getStatusText = () => {
         if (!status.isConnected) return 'Offline';
-        if (status.isRealtime) return 'Real-time';
-        return 'Local Only';
+        if (status.isRealtime) return 'Live SaaS Mode';
+        return 'Local Mode';
     };
 
     const formatLastUpdate = () => {
-        if (!status.lastUpdate) return 'Never';
+        const timestamp = refreshStatus.lastRefreshTimestamp || status.lastUpdate;
+        if (!timestamp) return 'Never';
 
-        const diff = Date.now() - new Date(status.lastUpdate).getTime();
+        const diff = Date.now() - new Date(timestamp).getTime();
         const seconds = Math.floor(diff / 1000);
         const minutes = Math.floor(seconds / 60);
 
         if (seconds < 60) return `${seconds}s ago`;
         if (minutes < 60) return `${minutes}m ago`;
-        return new Date(status.lastUpdate).toLocaleTimeString();
+        return new Date(timestamp).toLocaleTimeString();
+    };
+
+    const getRefreshStatusIcon = () => {
+        if (refreshStatus.isRefreshing) return <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />;
+        if (refreshStatus.refreshStatus === 'error') return <AlertCircle className="h-3 w-3 text-red-500" />;
+        if (refreshStatus.refreshStatus === 'success') return <CheckCircle className="h-3 w-3 text-green-500" />;
+        return null;
     };
 
     return (
-        <div
-            className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
                 <span className="text-lg">{getStatusIcon()}</span>
                 <div className="flex flex-col">
-                    <span className={`text-sm font-medium ${getStatusColor()}`}>
-                        {getStatusText()}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                        Updated: {formatLastUpdate()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${getStatusColor()}`}>
+                            {getStatusText()}
+                        </span>
+                        {getRefreshStatusIcon()}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>
+                            {isAdminRealtime ? `${userCount} users • ` : ''}Updated: {formatLastUpdate()}
+                        </span>
+                        {refreshStatus.autoRefreshEnabled && (
+                            <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                Auto: {refreshStatus.autoRefreshInterval}s
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {status.isRealtime && (
                 <div className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
-                    <span className="text-xs text-green-600 font-medium">LIVE</span>
+                    <span className="text-xs text-green-600 font-medium">
+                        MULTI-USER
+                    </span>
+                </div>
+            )}
+
+            {refreshStatus.refreshErrors.length > 0 && (
+                <div className="flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 text-red-500" />
+                    <span className="text-xs text-red-600 font-medium">
+                        {refreshStatus.refreshErrors.length} errors
+                    </span>
                 </div>
             )}
         </div>
     );
 };
 
-// 🔄 NEW: Real-Time Toggle Button Component
+// ✅ PHASE 2: Enhanced Real-Time Toggle with Auto-Refresh
 const RealtimeToggle: React.FC = () => {
     const {
         isAdminRealtime,
         enableRealtimeAdmin,
         disableRealtimeAdmin,
-        showToast
+        showToast,
+        auth
     } = useAppStore();
 
     const handleToggle = () => {
@@ -129,13 +174,15 @@ const RealtimeToggle: React.FC = () => {
             disableRealtimeAdmin();
             showToast({
                 type: 'info',
-                message: '📊 Switched to local data mode'
+                message: '📊 Switched to local-only analytics mode'
             });
         } else {
             enableRealtimeAdmin();
             showToast({
                 type: 'success',
-                message: '🔄 Real-time mode enabled'
+                message: auth.isAuthenticated ?
+                    '🔄 Multi-user analytics enabled' :
+                    '🔄 Real-time mode enabled'
             });
         }
     };
@@ -154,15 +201,276 @@ const RealtimeToggle: React.FC = () => {
             {isAdminRealtime ? (
                 <>
                     <Activity className="h-4 w-4"/>
-                    <span className="text-sm font-medium">Real-time ON</span>
+                    <span className="text-sm font-medium">
+                        {auth.isAuthenticated ? 'SaaS Mode ON' : 'Real-time ON'}
+                    </span>
                 </>
             ) : (
                 <>
                     <RefreshCw className="h-4 w-4"/>
-                    <span className="text-sm font-medium">Enable Real-time</span>
+                    <span className="text-sm font-medium">Enable SaaS Mode</span>
                 </>
             )}
         </button>
+    );
+};
+
+// ✅ PHASE 2: New Auto-Refresh Control Component
+const AutoRefreshControl: React.FC = () => {
+    const {
+        getGlobalRefreshStatus,
+        enableAutoRefresh,
+        disableAutoRefresh,
+        showToast
+    } = useAppStore();
+
+    const [refreshStatus, setRefreshStatus] = useState(getGlobalRefreshStatus());
+    const [intervalInput, setIntervalInput] = useState('30');
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setRefreshStatus(getGlobalRefreshStatus());
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [getGlobalRefreshStatus]);
+
+    const handleToggleAutoRefresh = () => {
+        if (refreshStatus.autoRefreshEnabled) {
+            disableAutoRefresh();
+        } else {
+            const intervalSeconds = parseInt(intervalInput) || 30;
+            if (intervalSeconds < 5) {
+                showToast({
+                    type: 'warning',
+                    message: 'Minimum auto-refresh interval is 5 seconds'
+                });
+                return;
+            }
+            enableAutoRefresh(intervalSeconds);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={handleToggleAutoRefresh}
+                    className={`
+                        flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+                        ${refreshStatus.autoRefreshEnabled
+                        ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
+                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
+                    }
+                    `}
+                >
+                    {refreshStatus.autoRefreshEnabled ? (
+                        <>
+                            <Pause className="h-4 w-4"/>
+                            <span className="text-sm font-medium">Stop Auto</span>
+                        </>
+                    ) : (
+                        <>
+                            <Play className="h-4 w-4"/>
+                            <span className="text-sm font-medium">Auto Refresh</span>
+                        </>
+                    )}
+                </button>
+
+                {!refreshStatus.autoRefreshEnabled && (
+                    <div className="flex items-center gap-1">
+                        <input
+                            type="number"
+                            value={intervalInput}
+                            onChange={(e) => setIntervalInput(e.target.value)}
+                            min="5"
+                            max="300"
+                            className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-center"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">sec</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ✅ ENHANCED: User Metrics Component (unchanged from existing)
+const UserMetricsCard: React.FC<{
+    title: string;
+    value: number | string;
+    subtitle?: string;
+    trend?: { value: number; isPositive: boolean };
+    icon: React.ElementType;
+    color: string;
+    bgColor: string;
+}> = ({title, value, subtitle, trend, icon: Icon, color, bgColor}) => {
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}>
+                    <Icon className={`h-6 w-6 ${color}`}/>
+                </div>
+                <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+                </div>
+                {trend && (
+                    <div className={`flex items-center gap-1 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                        <TrendingUp className={`h-4 w-4 ${trend.isPositive ? '' : 'transform rotate-180'}`}/>
+                        <span className="text-xs font-medium">{trend.isPositive ? '+' : ''}{trend.value}%</span>
+                    </div>
+                )}
+            </div>
+            {subtitle && (
+                <div className="mt-3 flex items-center text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">{subtitle}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ✅ ENHANCED: Metrics Overview (unchanged from existing)
+const EnhancedMetricsOverview: React.FC<{ isRealtime: boolean; isAuthenticated: boolean }> = ({
+                                                                                                  isRealtime,
+                                                                                                  isAuthenticated
+                                                                                              }) => {
+    const {adminAnalytics, applications} = useAppStore();
+
+    const enhancedMetrics = useMemo(() => {
+        const totalUsers = adminAnalytics?.userMetrics?.totalUsers || 1;
+        const activeDaily = adminAnalytics?.userMetrics?.activeUsers?.daily || (isAuthenticated ? 1 : 0);
+        const activeWeekly = adminAnalytics?.userMetrics?.activeUsers?.weekly || (isAuthenticated ? 1 : 0);
+        const activeMonthly = adminAnalytics?.userMetrics?.activeUsers?.monthly || (isAuthenticated ? 1 : 0);
+
+        const totalSessions = adminAnalytics?.usageMetrics?.totalSessions || 0;
+        const avgSessionDuration = adminAnalytics?.usageMetrics?.averageSessionDuration || 0;
+        const totalAppsCreated = adminAnalytics?.usageMetrics?.totalApplicationsCreated || applications.length;
+
+        const conversionRate = isAuthenticated ? 100 : 0;
+
+        return {
+            totalUsers,
+            activeDaily,
+            activeWeekly,
+            activeMonthly,
+            totalSessions,
+            avgSessionDuration,
+            totalAppsCreated,
+            conversionRate
+        };
+    }, [isRealtime, isAuthenticated, adminAnalytics, applications.length]);
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <UserMetricsCard
+                title={isRealtime && isAuthenticated ? "Platform Users" : "Total Users"}
+                value={enhancedMetrics.totalUsers}
+                subtitle={isRealtime && isAuthenticated ? "Registered accounts" : "Current session"}
+                trend={{value: 12, isPositive: true}}
+                icon={Users}
+                color="text-blue-600 dark:text-blue-400"
+                bgColor="bg-blue-100 dark:bg-blue-900/20"
+            />
+
+            <UserMetricsCard
+                title="Active Today"
+                value={enhancedMetrics.activeDaily}
+                subtitle={`${enhancedMetrics.activeWeekly} this week`}
+                trend={{value: 8, isPositive: true}}
+                icon={Activity}
+                color="text-green-600 dark:text-green-400"
+                bgColor="bg-green-100 dark:bg-green-900/20"
+            />
+
+            <UserMetricsCard
+                title="Total Sessions"
+                value={enhancedMetrics.totalSessions}
+                subtitle={`${Math.round(enhancedMetrics.avgSessionDuration / (1000 * 60))}min avg`}
+                trend={{value: 15, isPositive: true}}
+                icon={Clock}
+                color="text-purple-600 dark:text-purple-400"
+                bgColor="bg-purple-100 dark:bg-purple-900/20"
+            />
+
+            <UserMetricsCard
+                title="Applications"
+                value={enhancedMetrics.totalAppsCreated}
+                subtitle={isRealtime && isAuthenticated ? "Platform total" : "Current user"}
+                trend={{value: 5, isPositive: true}}
+                icon={FileText}
+                color="text-orange-600 dark:text-orange-400"
+                bgColor="bg-orange-100 dark:bg-orange-900/20"
+            />
+        </div>
+    );
+};
+
+// ✅ ENHANCED: System Health (unchanged from existing)
+const SystemHealthPanel: React.FC<{ isRealtime: boolean; isAuthenticated: boolean }> = ({
+                                                                                            isRealtime,
+                                                                                            isAuthenticated
+                                                                                        }) => {
+    const {adminAnalytics} = useAppStore();
+
+    const healthMetrics = useMemo(() => {
+        const sessionsCount = adminAnalytics?.usageMetrics?.totalSessions || 0;
+        const featuresUsed = adminAnalytics?.usageMetrics?.featuresUsage ?
+            Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0;
+
+        return {
+            analyticsService: 'Active',
+            dataStorage: isRealtime ? 'Cloud + Local' : 'Local Storage',
+            userSessions: `${sessionsCount} tracked`,
+            featuresActive: `${featuresUsed} features`,
+            authService: isAuthenticated ? 'Authenticated' : 'Guest Mode',
+            systemMode: isRealtime ?
+                (isAuthenticated ? 'Multi-User SaaS' : 'Real-time Local') :
+                'Single-User Local'
+        };
+    }, [isRealtime, isAuthenticated, adminAnalytics]);
+
+    const getStatusColor = (key: string, value: string) => {
+        if (key === 'systemMode') {
+            if (value.includes('Multi-User')) return 'text-blue-600 dark:text-blue-400';
+            if (value.includes('Real-time')) return 'text-green-600 dark:text-green-400';
+            return 'text-gray-600 dark:text-gray-400';
+        }
+        if (value.includes('Active') || value.includes('Authenticated') || value === 'Cloud + Local') {
+            return 'text-green-600 dark:text-green-400';
+        }
+        if (value.includes('Guest') || value === 'Local Storage') {
+            return 'text-yellow-600 dark:text-yellow-400';
+        }
+        return 'text-gray-600 dark:text-gray-400';
+    };
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Database className="h-5 w-5"/>
+                System Health
+                {isRealtime && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">LIVE</span>}
+            </h3>
+            <div className="space-y-4">
+                {Object.entries(healthMetrics).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <span className={`text-sm font-medium flex items-center gap-1 ${getStatusColor(key, value)}`}>
+                            <div className={`w-2 h-2 rounded-full ${
+                                getStatusColor(key, value).includes('green') ? 'bg-green-500' :
+                                    getStatusColor(key, value).includes('blue') ? 'bg-blue-500' :
+                                        getStatusColor(key, value).includes('yellow') ? 'bg-yellow-500' : 'bg-gray-500'
+                            }`}></div>
+                            {value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 };
 
@@ -181,14 +489,21 @@ const AdminDashboard: React.FC = () => {
         loadAdminAnalytics,
         loadAdminFeedback,
         showToast,
-        // 🔄 NEW: Real-time methods
-        refreshAdminData,
-        isAdminRealtime
+        refreshAllAdminData,
+        resetRefreshErrors,    // ✅ ADD THIS
+        getGlobalRefreshStatus,
+        enableAutoRefresh,     // ✅ ADD THIS
+        disableAutoRefresh,    // ✅ ADD THIS
+        enableRealtimeAdmin,     // ✅ ADD THIS
+        disableRealtimeAdmin,    // ✅ ADD THIS
+        isAdminRealtime,
+        auth
     } = useAppStore();
 
     const [isExporting, setIsExporting] = useState(false);
     const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
-    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // ✅ PHASE 2: Removed individual refresh state - now using global refresh status
 
     // Feedback management state
     const [typeFilter, setTypeFilter] = useState<FeedbackFilter>('all');
@@ -199,16 +514,18 @@ const AdminDashboard: React.FC = () => {
     const [selectedFeedback, setSelectedFeedback] = useState<string[]>([]);
     const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
 
-    // 🔧 CRITICAL FIX: Safety checks before accessing admin properties
+    // Safety checks
     const adminState = ui?.admin;
     const isDashboardOpen = adminState?.dashboardOpen ?? false;
     const isAuthenticated = adminState?.authenticated ?? false;
     const currentSection = adminState?.currentSection ?? 'overview';
 
-    // Move the useMemo hook before any conditional returns
+    // ✅ PHASE 2: Get global refresh status
+    const globalRefreshStatus = getGlobalRefreshStatus();
+
+    // Subscribe to application changes
     useEffect(() => {
         if (isDashboardOpen && isAuthenticated) {
-            // Subscribe to application changes
             const unsubscribe = useAppStore.subscribe(
                 (state) => state.applications,
                 (applications) => {
@@ -221,6 +538,39 @@ const AdminDashboard: React.FC = () => {
         }
     }, [isDashboardOpen, isAuthenticated, loadAdminAnalytics]);
 
+    // ✅ PHASE 2 FIX: Auto-refresh lifecycle management
+    useEffect(() => {
+        // Auto-start moderate auto-refresh when dashboard opens
+        if (isDashboardOpen && isAuthenticated && !globalRefreshStatus.autoRefreshEnabled) {
+            console.log('🔄 Auto-starting refresh for admin dashboard');
+            enableAutoRefresh(30); // Start with 30-second intervals
+        }
+
+        // Cleanup on dashboard close
+        return () => {
+            if (globalRefreshStatus.autoRefreshEnabled) {
+                console.log('⏹️ Stopping auto-refresh - dashboard closing');
+                disableAutoRefresh();
+            }
+        };
+    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]);
+
+// ✅ PHASE 2 FIX: Handle page visibility changes
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && globalRefreshStatus.autoRefreshEnabled) {
+                console.log('⏸️ Page hidden - pausing auto-refresh');
+                disableAutoRefresh();
+            } else if (!document.hidden && isDashboardOpen && isAuthenticated && !globalRefreshStatus.autoRefreshEnabled) {
+                console.log('▶️ Page visible - resuming auto-refresh');
+                enableAutoRefresh(30);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]);
+
     // Calculate ApplyTrak-specific metrics
     const jobMetrics = useMemo(() => {
         const totalApps = applications.length;
@@ -232,7 +582,6 @@ const AdminDashboard: React.FC = () => {
         const successRate = totalApps > 0 ? ((interviewCount + offerCount) / totalApps * 100) : 0;
         const responseRate = totalApps > 0 ? ((totalApps - appliedCount) / totalApps * 100) : 0;
 
-        // Time-based metrics
         const now = new Date();
         const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const thisMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -240,11 +589,9 @@ const AdminDashboard: React.FC = () => {
         const weeklyApps = applications.filter(app => new Date(app.dateApplied) >= thisWeek).length;
         const monthlyApps = applications.filter(app => new Date(app.dateApplied) >= thisMonth).length;
 
-        // Company and location insights
         const companyCount = new Set(applications.map(app => app.company)).size;
         const locationCount = new Set(applications.filter(app => app.location).map(app => app.location)).size;
 
-        // Job type distribution
         const remoteJobs = applications.filter(app => app.type === 'Remote').length;
         const onsiteJobs = applications.filter(app => app.type === 'Onsite').length;
         const hybridJobs = applications.filter(app => app.type === 'Hybrid').length;
@@ -267,18 +614,16 @@ const AdminDashboard: React.FC = () => {
         };
     }, [applications]);
 
-    // Filtered feedback for management
+    // Filtered feedback logic
     const filteredFeedback = useMemo(() => {
         if (!adminFeedback?.recentFeedback) return [];
 
         let filtered = adminFeedback.recentFeedback;
 
-        // Apply type filter
         if (typeFilter !== 'all') {
             filtered = filtered.filter(feedback => feedback.type === typeFilter);
         }
 
-        // Apply status filter
         if (statusFilter !== 'all') {
             filtered = filtered.filter(feedback => {
                 const isRead = feedback.metadata?.read ?? false;
@@ -288,14 +633,13 @@ const AdminDashboard: React.FC = () => {
                     case 'unread':
                         return !isRead;
                     case 'flagged':
-                        return false; // Implement flagging logic if needed
+                        return false;
                     default:
                         return true;
                 }
             });
         }
 
-        // Apply search filter
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(feedback =>
@@ -305,7 +649,6 @@ const AdminDashboard: React.FC = () => {
             );
         }
 
-        // Apply sorting
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'newest':
@@ -324,7 +667,7 @@ const AdminDashboard: React.FC = () => {
         return filtered;
     }, [adminFeedback?.recentFeedback, typeFilter, statusFilter, searchQuery, sortBy]);
 
-    // Early return with safety check - MOVED AFTER all hooks
+    // Early return with safety check
     if (!adminState) {
         console.error('Admin state not initialized in store');
         return createPortal(
@@ -343,23 +686,27 @@ const AdminDashboard: React.FC = () => {
         );
     }
 
-    // Don't render if not open or not authenticated
     if (!isDashboardOpen || !isAuthenticated) {
         return null;
     }
 
-    // 🔄 UPDATED: Enhanced refresh handler
-    const handleRefresh = async () => {
-        setIsRefreshing(true);
+    // ✅ PHASE 2: Enhanced unified refresh handler
+    const handleUnifiedRefresh = async () => {
+        console.log('🔄 Unified global refresh initiated from UI');
+
+        // Clear any previous errors
+        if (globalRefreshStatus.refreshErrors.length > 0) {
+            resetRefreshErrors();
+        }
+
         try {
-            await refreshAdminData();
+            await refreshAllAdminData();
         } catch (error) {
+            console.error('❌ Unified refresh failed from UI:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to refresh dashboard data.'
+                message: 'Global refresh failed from UI layer'
             });
-        } finally {
-            setIsRefreshing(false);
         }
     };
 
@@ -372,7 +719,9 @@ const AdminDashboard: React.FC = () => {
             const exportData = {
                 exportDate: new Date().toISOString(),
                 timeRange,
-                mode: isAdminRealtime ? 'Real-time Cloud' : 'Local Only',
+                mode: isAdminRealtime ?
+                    (auth.isAuthenticated ? 'Multi-User SaaS Cloud' : 'Real-time Local') :
+                    'Single-User Local',
                 analytics: analyticsData,
                 feedback: feedbackData,
                 applyTrakData: {
@@ -381,14 +730,26 @@ const AdminDashboard: React.FC = () => {
                     goalProgress,
                     analytics
                 },
-                version: '1.0.0'
+                saasMetrics: isAdminRealtime && auth.isAuthenticated ? {
+                    totalUsers: adminAnalytics?.userMetrics?.totalUsers || 1,
+                    activeUsersDaily: adminAnalytics?.userMetrics?.activeUsers?.daily || 0,
+                    totalSessions: adminAnalytics?.usageMetrics?.totalSessions || 0
+                } : null,
+                // ✅ PHASE 2: Include global refresh metadata
+                refreshMetadata: {
+                    lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
+                    refreshStatus: globalRefreshStatus.refreshStatus,
+                    autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
+                    refreshErrors: globalRefreshStatus.refreshErrors
+                },
+                version: '2.0.0-Phase2'
             };
 
             const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `applytrak-admin-export-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `applytrak-saas-export-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -396,7 +757,7 @@ const AdminDashboard: React.FC = () => {
 
             showToast({
                 type: 'success',
-                message: 'Admin data exported successfully!',
+                message: isAdminRealtime ? 'SaaS analytics exported successfully!' : 'Admin data exported successfully!',
                 duration: 3000
             });
         } catch (error) {
@@ -410,11 +771,63 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleLogout = () => {
-        logoutAdmin();
-        closeAdminDashboard();
+    // ✅ PHASE 2: Fixed admin logout function
+    const handleLogout = async () => {
+        console.log('🔓 Admin logout initiated');
+
+        try {
+            // 1. First reset admin state in the store
+            useAppStore.setState(state => ({
+                ui: {
+                    ...state.ui,
+                    admin: {
+                        authenticated: false,
+                        dashboardOpen: false,
+                        currentSection: 'overview'
+                    }
+                }
+            }));
+
+            // 2. Clear admin session (FIXED IMPORT PATH)
+            const { adminLogout } = await import('../../utils/adminAuth');
+            await adminLogout();
+
+            // 3. Sign out from regular auth
+            const { signOut } = useAppStore.getState();
+            await signOut();
+
+            // 4. Show success message
+            showToast({
+                type: 'success',
+                message: '👋 Logged out successfully',
+                duration: 3000
+            });
+
+            console.log('✅ Admin logout completed successfully');
+        } catch (error) {
+            console.error('❌ Error during admin logout:', error);
+
+            // Force reset admin state even if other steps fail
+            useAppStore.setState(state => ({
+                ui: {
+                    ...state.ui,
+                    admin: {
+                        authenticated: false,
+                        dashboardOpen: false,
+                        currentSection: 'overview'
+                    }
+                }
+            }));
+
+            showToast({
+                type: 'error',
+                message: 'Logout completed with errors',
+                duration: 3000
+            });
+        }
     };
 
+    // Helper functions
     const getFeedbackTypeIcon = (type: string) => {
         switch (type) {
             case 'love':
@@ -441,23 +854,10 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    // ✅ PHASE 2: Removed individual feedback refresh - now uses unified refresh
     const handleRefreshFeedback = async () => {
-        setIsRefreshing(true);
-        try {
-            await loadAdminFeedback();
-            showToast({
-                type: 'success',
-                message: 'Feedback data refreshed',
-                duration: 2000
-            });
-        } catch (error) {
-            showToast({
-                type: 'error',
-                message: 'Failed to refresh feedback data'
-            });
-        } finally {
-            setIsRefreshing(false);
-        }
+        console.log('🔄 Feedback refresh redirected to unified refresh');
+        await handleUnifiedRefresh();
     };
 
     const handleExportFeedback = () => {
@@ -465,7 +865,9 @@ const AdminDashboard: React.FC = () => {
 
         const exportData = {
             exportDate: new Date().toISOString(),
-            mode: isAdminRealtime ? 'Real-time Cloud' : 'Local Only',
+            mode: isAdminRealtime ?
+                (auth.isAuthenticated ? 'Multi-User SaaS Cloud' : 'Real-time Local') :
+                'Single-User Local',
             totalFeedback: adminFeedback.totalFeedback,
             averageRating: adminFeedback.averageRating,
             feedbackData: filteredFeedback.map(feedback => ({
@@ -494,18 +896,16 @@ const AdminDashboard: React.FC = () => {
         });
     };
 
-    // 🔧 FIX: Define the admin content that will be rendered in the portal
+    // ✅ PHASE 2: Main admin content with unified refresh system
     const adminContent = (
         <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm overflow-hidden">
             <div className="flex h-full">
                 {/* Sidebar */}
-                <div
-                    className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                     {/* Header */}
                     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
-                            <div
-                                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                                 <Shield className="h-6 w-6 text-white"/>
                             </div>
                             <div>
@@ -513,13 +913,13 @@ const AdminDashboard: React.FC = () => {
                                     ApplyTrak Admin
                                 </h2>
                                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                                    Job Application Analytics
+                                    {isAdminRealtime && auth.isAuthenticated ? 'SaaS Analytics' : 'Job Application Analytics'}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Navigation */}
+                    {/* ✅ COMPLETE: Navigation with ALL sections */}
                     <nav className="flex-1 p-4 space-y-2">
                         {sections.map(({id, label, icon: Icon}) => (
                             <button
@@ -539,16 +939,8 @@ const AdminDashboard: React.FC = () => {
                         ))}
                     </nav>
 
-                    {/* Footer Actions */}
+                    {/* ✅ PHASE 2: Enhanced Footer Actions with Unified Refresh */}
                     <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-                        <button
-                            onClick={handleRefresh}
-                            disabled={isRefreshing}
-                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-                        </button>
 
                         <button
                             onClick={handleExportData}
@@ -571,56 +963,116 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Main Content */}
                 <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-auto relative z-10">
-                    {/* 🔄 UPDATED: Enhanced Header with Real-time Indicators */}
+                    {/* ✅ CLEAN: Simplified Header matching main app design */}
                     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                         <div className="flex items-center justify-between">
+                            {/* Left: Title Section */}
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 capitalize">
+                                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                                     {currentSection === 'overview' && 'ApplyTrak Overview'}
-                                    {currentSection === 'analytics' && 'Job Application Analytics'}
-                                    {currentSection === 'feedback' && 'User Feedback'}
-                                    {currentSection === 'users' && 'User Insights'}
+                                    {currentSection === 'analytics' && 'Analytics'}
+                                    {currentSection === 'feedback' && 'Feedback'}
+                                    {currentSection === 'users' && 'Users'}
+                                    {currentSection === 'settings' && 'Settings'}
+                                    {currentSection === 'support' && 'Support'}
                                 </h1>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                     {currentSection === 'overview' && 'System overview and key job application metrics'}
                                     {currentSection === 'analytics' && 'Deep dive into job application patterns and trends'}
                                     {currentSection === 'feedback' && 'User feedback and system improvement suggestions'}
                                     {currentSection === 'users' && 'User behavior and engagement analytics'}
+                                    {currentSection === 'settings' && 'System configuration and administrator management'}
+                                    {currentSection === 'support' && 'User support and troubleshooting tools'}
                                 </p>
                             </div>
 
-                            {/* 🔄 NEW: Real-time status indicator and controls */}
-                            <div className="flex items-center gap-4">
-                                <RealtimeStatusIndicator/>
-
-                                {/* Real-time Toggle */}
-                                <RealtimeToggle/>
-
-                                {/* Existing time range and refresh controls */}
-                                <div className="flex items-center gap-2">
-                                    <label className="text-sm text-gray-600 dark:text-gray-400">Period:</label>
-                                    <select
-                                        value={timeRange}
-                                        onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d' | 'all')}
-                                        className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                    >
-                                        <option value="7d">Last 7 days</option>
-                                        <option value="30d">Last 30 days</option>
-                                        <option value="90d">Last 90 days</option>
-                                        <option value="all">All time</option>
-                                    </select>
+                            {/* Right: Clean Control Bar */}
+                            <div className="flex items-center gap-3">
+                                {/* Status Indicator */}
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                        isAdminRealtime
+                                            ? (auth.isAuthenticated ? 'bg-green-500 animate-pulse' : 'bg-blue-500 animate-pulse')
+                                            : 'bg-gray-400'
+                                    }`}></div>
+                                    <span className="text-gray-600 dark:text-gray-400">
+                        {isAdminRealtime
+                            ? (auth.isAuthenticated ? 'SaaS Mode' : 'Live Mode')
+                            : 'Local Mode'
+                        }
+                    </span>
+                                    {globalRefreshStatus.autoRefreshEnabled && (
+                                        <span className="text-blue-600 dark:text-blue-400 font-medium ml-2">
+                            Auto: {globalRefreshStatus.autoRefreshInterval}s
+                        </span>
+                                    )}
                                 </div>
+
+                                {/* Mode Toggle */}
                                 <button
                                     onClick={() => {
-                                        console.log('🔄 Manual refresh triggered');
-                                        refreshAdminData();
+                                        if (isAdminRealtime) {
+                                            disableRealtimeAdmin();
+                                        } else {
+                                            enableRealtimeAdmin();
+                                        }
                                     }}
-                                    disabled={isRefreshing}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                    className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                                        isAdminRealtime
+                                            ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
+                                            : 'border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700'
+                                    }`}
                                 >
-                                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                                    {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                                    {isAdminRealtime ? 'Live ON' : 'Enable Live'}
                                 </button>
+
+                                {/* Auto-Refresh Toggle */}
+                                <button
+                                    onClick={() => {
+                                        if (globalRefreshStatus.autoRefreshEnabled) {
+                                            disableAutoRefresh();
+                                        } else {
+                                            enableAutoRefresh(30);
+                                        }
+                                    }}
+                                    className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                                        globalRefreshStatus.autoRefreshEnabled
+                                            ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
+                                            : 'border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    {globalRefreshStatus.autoRefreshEnabled ? 'Auto ON' : 'Auto Refresh'}
+                                </button>
+
+                                {/* Period Selector */}
+                                <select
+                                    value={timeRange}
+                                    onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d' | 'all')}
+                                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="7d">Last 7 days</option>
+                                    <option value="30d">Last 30 days</option>
+                                    <option value="90d">Last 90 days</option>
+                                    <option value="all">All time</option>
+                                </select>
+
+                                {/* Main Refresh Button */}
+                                <button
+                                    onClick={handleUnifiedRefresh}
+                                    disabled={globalRefreshStatus.isRefreshing}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                    title={globalRefreshStatus.refreshErrors.length > 0 ?
+                                        `Last refresh had ${globalRefreshStatus.refreshErrors.length} errors` :
+                                        'Refresh all admin data'}
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${globalRefreshStatus.isRefreshing ? 'animate-spin' : ''}`}/>
+                                    <span>Refresh All</span>
+                                    {globalRefreshStatus.refreshErrors.length > 0 && (
+                                        <AlertCircle className="h-4 w-4 text-red-200" />
+                                    )}
+                                </button>
+
+                                {/* Close Button */}
                                 <button
                                     onClick={closeAdminDashboard}
                                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -629,132 +1081,119 @@ const AdminDashboard: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Error Banner - Simplified */}
+                        {globalRefreshStatus.refreshErrors.length > 0 && (
+                            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                        <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                            {globalRefreshStatus.refreshErrors.length} refresh errors occurred
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={resetRefreshErrors}
+                                        className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 underline"
+                                    >
+                                        Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Content */}
+                    {/* ✅ COMPLETE: Content sections with ALL sections implemented */}
                     <div className="p-6">
                         {/* Overview Section */}
                         {currentSection === 'overview' && (
                             <div className="space-y-6">
-                                {/* 🔄 NEW: Real-time Data Status Banner */}
+                                {/* SaaS Mode Banner */}
                                 {isAdminRealtime && (
-                                    <div
-                                        className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 border border-green-200/50 dark:border-green-700/50">
+                                    <div className={`rounded-lg p-4 border ${
+                                        auth.isAuthenticated ?
+                                            'bg-gradient-to-r from-blue-50 to-purple-100 dark:from-blue-900/20 dark:to-purple-800/20 border-blue-200/50 dark:border-blue-700/50' :
+                                            'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200/50 dark:border-green-700/50'
+                                    }`}>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
+                                            <div className={`w-2 h-2 rounded-full animate-pulse ${
+                                                auth.isAuthenticated ? 'bg-blue-500' : 'bg-green-500'
+                                            }`}/>
                                             <div>
-                                                <p className="font-medium text-green-900 dark:text-green-100">Live Data
-                                                    Mode Active</p>
-                                                <p className="text-sm text-green-700 dark:text-green-300">
-                                                    Dashboard automatically updates with real-time job application
-                                                    insights
+                                                <p className={`font-medium ${
+                                                    auth.isAuthenticated ?
+                                                        'text-blue-900 dark:text-blue-100' :
+                                                        'text-green-900 dark:text-green-100'
+                                                }`}>
+                                                    {auth.isAuthenticated ? 'Multi-User SaaS Mode Active' : 'Live Data Mode Active'}
+                                                </p>
+                                                <p className={`text-sm ${
+                                                    auth.isAuthenticated ?
+                                                        'text-blue-700 dark:text-blue-300' :
+                                                        'text-green-700 dark:text-green-300'
+                                                }`}>
+                                                    {auth.isAuthenticated ?
+                                                        'Dashboard shows real-time analytics across all authenticated users' :
+                                                        'Dashboard automatically updates with real-time job application insights'
+                                                    }
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Key ApplyTrak Metrics */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {/* Total Applications */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                                                <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total
-                                                    Applications</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {jobMetrics.totalApps}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center text-sm">
-                                            <span className="text-green-600 dark:text-green-400 font-medium">
-                                                +{jobMetrics.weeklyApps} this week
-                                            </span>
-                                        </div>
-                                    </div>
+                                {/* Enhanced SaaS metrics using existing types */}
+                                {isAdminRealtime ? (
+                                    <EnhancedMetricsOverview isRealtime={isAdminRealtime}
+                                                             isAuthenticated={auth.isAuthenticated}/>
+                                ) : (
+                                    /* Original Key ApplyTrak Metrics for local mode */
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <UserMetricsCard
+                                            title="Total Applications"
+                                            value={jobMetrics.totalApps}
+                                            subtitle={`+${jobMetrics.weeklyApps} this week`}
+                                            icon={FileText}
+                                            color="text-blue-600 dark:text-blue-400"
+                                            bgColor="bg-blue-100 dark:bg-blue-900/20"
+                                        />
 
-                                    {/* Success Rate */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                                                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Success
-                                                    Rate</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {jobMetrics.successRate.toFixed(1)}%
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center text-sm">
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                {jobMetrics.interviewCount + jobMetrics.offerCount} positive responses
-                                            </span>
-                                        </div>
-                                    </div>
+                                        <UserMetricsCard
+                                            title="Success Rate"
+                                            value={`${jobMetrics.successRate.toFixed(1)}%`}
+                                            subtitle={`${jobMetrics.interviewCount + jobMetrics.offerCount} positive responses`}
+                                            icon={CheckCircle}
+                                            color="text-green-600 dark:text-green-400"
+                                            bgColor="bg-green-100 dark:bg-green-900/20"
+                                        />
 
-                                    {/* Active Companies */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                                                <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Companies</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {jobMetrics.companyCount}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center text-sm">
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                {jobMetrics.locationCount} unique locations
-                                            </span>
-                                        </div>
-                                    </div>
+                                        <UserMetricsCard
+                                            title="Companies"
+                                            value={jobMetrics.companyCount}
+                                            subtitle={`${jobMetrics.locationCount} unique locations`}
+                                            icon={Building2}
+                                            color="text-purple-600 dark:text-purple-400"
+                                            bgColor="bg-purple-100 dark:bg-purple-900/20"
+                                        />
 
-                                    {/* Goal Progress */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                                                <Target className="h-6 w-6 text-orange-600 dark:text-orange-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly
-                                                    Goal</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {goalProgress.monthlyProgress || 0}%
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center text-sm">
-                                            <span className="text-gray-600 dark:text-gray-400">
-                                                {goalProgress.monthlyApplications || 0} / {goals.monthlyGoal || 0} apps
-                                            </span>
-                                        </div>
+                                        <UserMetricsCard
+                                            title="Monthly Goal"
+                                            value={`${Math.round(goalProgress.monthlyProgress || 0)}%`}  // ✅ FIXED: Rounded percentage
+                                            subtitle={`${goalProgress.monthlyApplications || 0} / ${goals.monthlyGoal || 0} apps`}
+                                            icon={Target}
+                                            color="text-orange-600 dark:text-orange-400"
+                                            bgColor="bg-orange-100 dark:bg-orange-900/20"
+                                        />
                                     </div>
-                                </div>
+                                )}
 
-                                {/* Application Status Breakdown & Activity */}
+                                {/* Application Status Breakdown & System Health */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Status Distribution */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Application
-                                            Status Distribution</h3>
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                            {isAdminRealtime && auth.isAuthenticated ? 'Cross-User Application Status' : 'Application Status Distribution'}
+                                        </h3>
                                         <div className="space-y-4">
                                             {[
                                                 {
@@ -788,18 +1227,14 @@ const AdminDashboard: React.FC = () => {
                                                         <div className="flex items-center justify-between mb-2">
                                                             <div className="flex items-center gap-2">
                                                                 <div className={`w-3 h-3 rounded-full ${color}`}></div>
-                                                                <span
-                                                                    className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+                                                                <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <span
-                                                                    className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
-                                                                <span
-                                                                    className={`text-xs ${textColor}`}>({percentage.toFixed(1)}%)</span>
+                                                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
+                                                                <span className={`text-xs ${textColor}`}>({percentage.toFixed(1)}%)</span>
                                                             </div>
                                                         </div>
-                                                        <div
-                                                            className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                                             <div
                                                                 className={`h-2 rounded-full transition-all duration-300 ${color}`}
                                                                 style={{width: `${percentage}%`}}
@@ -811,11 +1246,17 @@ const AdminDashboard: React.FC = () => {
                                         </div>
                                     </div>
 
+                                    {/* System Health Panel */}
+                                    <SystemHealthPanel isRealtime={isAdminRealtime} isAuthenticated={auth.isAuthenticated}/>
+                                </div>
+
+                                {/* Job Type Distribution & Feedback Overview */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Job Type Distribution */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Job
-                                            Type Preferences</h3>
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                                            {isAdminRealtime && auth.isAuthenticated ? 'Platform Job Type Trends' : 'Job Type Preferences'}
+                                        </h3>
                                         <div className="space-y-4">
                                             {[
                                                 {
@@ -839,18 +1280,14 @@ const AdminDashboard: React.FC = () => {
                                             ].map(({label, count, color, icon: Icon}) => {
                                                 const percentage = jobMetrics.totalApps > 0 ? (count / jobMetrics.totalApps * 100) : 0;
                                                 return (
-                                                    <div key={label}
-                                                         className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                    <div key={label} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                                         <div className="flex items-center gap-3">
-                                                            <div
-                                                                className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} bg-opacity-20`}>
-                                                                <Icon
-                                                                    className={`h-4 w-4 ${color.replace('bg-', 'text-')}`}/>
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} bg-opacity-20`}>
+                                                                <Icon className={`h-4 w-4 ${color.replace('bg-', 'text-')}`}/>
                                                             </div>
                                                             <div>
                                                                 <p className="font-medium text-gray-900 dark:text-gray-100">{label}</p>
-                                                                <p className="text-sm text-gray-600 dark:text-gray-400">{percentage.toFixed(1)}%
-                                                                    of applications</p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">{percentage.toFixed(1)}% of applications</p>
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
@@ -861,84 +1298,35 @@ const AdminDashboard: React.FC = () => {
                                             })}
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* System Health & User Feedback Overview */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* System Health */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">System
-                                            Health</h3>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">Analytics Service</span>
-                                                <span
-                                                    className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                    Active
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span
-                                                    className="text-sm text-gray-600 dark:text-gray-400">Data Storage</span>
-                                                <span
-                                                    className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                    Operational
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span
-                                                    className="text-sm text-gray-600 dark:text-gray-400">User Sessions</span>
-                                                <span
-                                                    className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
-                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                    {adminAnalytics?.usageMetrics.totalSessions || 0} tracked
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span
-                                                    className="text-sm text-gray-600 dark:text-gray-400">Last Backup</span>
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                                    {new Date().toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
 
                                     {/* Quick Feedback Overview */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">User
-                                            Feedback Overview</h3>
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                            {isAdminRealtime && auth.isAuthenticated ? 'Platform Feedback Overview' : 'User Feedback Overview'}
+                                        </h3>
                                         {adminFeedback?.recentFeedback && adminFeedback.recentFeedback.length > 0 ? (
                                             <div className="space-y-3">
                                                 <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div
-                                                        className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                                    <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                                                         <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                                                             {adminFeedback.averageRating?.toFixed(1) || 'N/A'}
                                                         </p>
-                                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">Avg
-                                                            Rating</p>
+                                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">Avg Rating</p>
                                                     </div>
-                                                    <div
-                                                        className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                                             {adminFeedback.totalFeedback || 0}
                                                         </p>
-                                                        <p className="text-sm text-blue-700 dark:text-blue-300">Total
-                                                            Feedback</p>
+                                                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                                                            {isAdminRealtime && auth.isAuthenticated ? 'Platform Total' : 'Total Feedback'}
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 {adminFeedback.recentFeedback.slice(0, 2).map((feedback) => {
                                                     const Icon = getFeedbackTypeIcon(feedback.type);
                                                     return (
-                                                        <div key={feedback.id}
-                                                             className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                            <Icon
-                                                                className={`h-5 w-5 flex-shrink-0 ${getFeedbackTypeColor(feedback.type)}`}/>
+                                                        <div key={feedback.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                            <Icon className={`h-5 w-5 flex-shrink-0 ${getFeedbackTypeColor(feedback.type)}`}/>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                                                                     {feedback.message}
@@ -954,8 +1342,9 @@ const AdminDashboard: React.FC = () => {
                                         ) : (
                                             <div className="text-center py-8">
                                                 <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4"/>
-                                                <p className="text-gray-600 dark:text-gray-400">No feedback received
-                                                    yet</p>
+                                                <p className="text-gray-600 dark:text-gray-400">
+                                                    {isAdminRealtime && auth.isAuthenticated ? 'No platform feedback yet' : 'No feedback received yet'}
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -963,1030 +1352,495 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         )}
 
-                        {/* 📊 COMPLETE ANALYTICS SECTION */}
+                        {/* Analytics Section */}
                         {currentSection === 'analytics' && (
                             <div className="space-y-6">
                                 {/* Analytics Overview Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {/* Response Rate */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between">
-                                            <div
-                                                className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                                                <Activity className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-green-600">
-                                                <TrendingUp className="h-4 w-4"/>
-                                                <span
-                                                    className="text-xs font-medium">+{Math.round(jobMetrics.responseRate - 45)}%</span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4">
-                                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                {jobMetrics.responseRate.toFixed(1)}%
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Response Rate</p>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Response Rate"
+                                        value={`${jobMetrics.responseRate.toFixed(1)}%`}
+                                        trend={{
+                                            value: Math.round(jobMetrics.responseRate - 45),
+                                            isPositive: jobMetrics.responseRate > 45
+                                        }}
+                                        icon={Activity}
+                                        color="text-blue-600 dark:text-blue-400"
+                                        bgColor="bg-blue-100 dark:bg-blue-900/20"
+                                    />
 
-                                    {/* Monthly Applications */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between">
-                                            <div
-                                                className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                                                <Calendar className="h-6 w-6 text-green-600 dark:text-green-400"/>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-green-600">
-                                                <TrendingUp className="h-4 w-4"/>
-                                                <span
-                                                    className="text-xs font-medium">+{Math.max(0, jobMetrics.monthlyApps - 10)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4">
-                                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                {jobMetrics.monthlyApps}
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">This Month</p>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Monthly Applications"
+                                        value={jobMetrics.monthlyApps}
+                                        trend={{value: Math.max(0, jobMetrics.monthlyApps - 10), isPositive: true}}
+                                        icon={Calendar}
+                                        color="text-green-600 dark:text-green-400"
+                                        bgColor="bg-green-100 dark:bg-green-900/20"
+                                    />
 
-                                    {/* Average Weekly */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between">
-                                            <div
-                                                className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                                                <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400"/>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-green-600">
-                                                <TrendingUp className="h-4 w-4"/>
-                                                <span className="text-xs font-medium">+12%</span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4">
-                                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                {Math.round(jobMetrics.totalApps / Math.max(1, Math.ceil(jobMetrics.totalApps / 7)))}
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Avg Weekly</p>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Average Weekly"
+                                        value={Math.round(jobMetrics.totalApps / Math.max(1, Math.ceil(jobMetrics.totalApps / 7)))}
+                                        trend={{value: 12, isPositive: true}}
+                                        icon={BarChart3}
+                                        color="text-purple-600 dark:text-purple-400"
+                                        bgColor="bg-purple-100 dark:bg-purple-900/20"
+                                    />
 
-                                    {/* Interview Rate */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between">
-                                            <div
-                                                className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                                                <Users className="h-6 w-6 text-orange-600 dark:text-orange-400"/>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-green-600">
-                                                <TrendingUp className="h-4 w-4"/>
-                                                <span
-                                                    className="text-xs font-medium">+{Math.round((jobMetrics.interviewCount / Math.max(1, jobMetrics.totalApps)) * 100 - 15)}%</span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4">
-                                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                {((jobMetrics.interviewCount / Math.max(1, jobMetrics.totalApps)) * 100).toFixed(1)}%
-                                            </h3>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">Interview Rate</p>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Interview Rate"
+                                        value={`${((jobMetrics.interviewCount / Math.max(1, jobMetrics.totalApps)) * 100).toFixed(1)}%`}
+                                        trend={{
+                                            value: Math.round((jobMetrics.interviewCount / Math.max(1, jobMetrics.totalApps)) * 100 - 15),
+                                            isPositive: true
+                                        }}
+                                        icon={Users}
+                                        color="text-orange-600 dark:text-orange-400"
+                                        bgColor="bg-orange-100 dark:bg-orange-900/20"
+                                    />
                                 </div>
 
-                                {/* Goal Performance and Performance Metrics combined */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Weekly Goal */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                                                    <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Weekly
-                                                        Goal</h3>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Current week
-                                                        progress</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {Math.round(goalProgress.weeklyProgress || 0)}%
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                                                <span
-                                                    className="font-medium">{goalProgress.weeklyApplications || 0} / {goals.weeklyGoal || 0}</span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                                <div
-                                                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                                    style={{width: `${Math.min(100, goalProgress.weeklyProgress || 0)}%`}}
-                                                ></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Monthly Goal */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                                                    <Target className="h-6 w-6 text-green-600 dark:text-green-400"/>
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Monthly
-                                                        Goal</h3>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Current
-                                                        month progress</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {Math.round(goalProgress.monthlyProgress || 0)}%
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                                                <span
-                                                    className="font-medium">{goalProgress.monthlyApplications || 0} / {goals.monthlyGoal || 0}</span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                                <div
-                                                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                                                    style={{width: `${Math.min(100, goalProgress.monthlyProgress || 0)}%`}}
-                                                ></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Overall Goal */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                                                    <Star className="h-6 w-6 text-purple-600 dark:text-purple-400"/>
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">Total
-                                                        Goal</h3>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">Overall
-                                                        progress</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {Math.round(goalProgress.totalProgress || 0)}%
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                                                <span
-                                                    className="font-medium">{goalProgress.totalApplications || 0} / {goals.totalGoal || 0}</span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                                <div
-                                                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                                                    style={{width: `${Math.min(100, goalProgress.totalProgress || 0)}%`}}
-                                                ></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Enhanced Analytics Content */}
+                                {/* Advanced Analytics Charts */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Application Timeline */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Application
-                                            Activity Timeline</h3>
-
-                                        {/* Simple Timeline Chart */}
+                                    {/* Application Trends Chart */}
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                                            <TrendingUp className="h-5 w-5"/>
+                                            {isAdminRealtime && auth.isAuthenticated ? 'Platform Application Trends' : 'Application Trends'}
+                                        </h3>
                                         <div className="space-y-4">
-                                            <div className="flex items-end justify-between h-32 gap-2">
-                                                {/* Generate last 7 days of activity */}
-                                                {Array.from({length: 7}, (_, i) => {
-                                                    const date = new Date();
-                                                    date.setDate(date.getDate() - (6 - i));
-                                                    const dayApps = applications.filter(app => {
-                                                        const appDate = new Date(app.dateApplied);
-                                                        return appDate.toDateString() === date.toDateString();
-                                                    }).length;
-                                                    const height = Math.max(10, (dayApps / Math.max(1, jobMetrics.weeklyApps)) * 100);
-
-                                                    return (
-                                                        <div key={i}
-                                                             className="flex-1 flex flex-col items-center gap-1">
-                                                            <div
-                                                                className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-400 relative group cursor-pointer"
-                                                                style={{height: `${height}%`}}
-                                                            >
-                                                                <div
-                                                                    className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    {dayApps} apps
-                                                                </div>
-                                                            </div>
-                                                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                                {date.toLocaleDateString('en', {weekday: 'short'})}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">This Week</span>
+                                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{jobMetrics.weeklyApps}</span>
                                             </div>
-
-                                            <div
-                                                className="flex items-center justify-between text-sm pt-4 border-t border-gray-200 dark:border-gray-700">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                                    <span className="text-gray-600 dark:text-gray-400">Daily Applications</span>
-                                                </div>
-                                                <span className="font-medium text-gray-900 dark:text-gray-100">
-                                                    {jobMetrics.weeklyApps} this week
-                                                </span>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">This Month</span>
+                                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{jobMetrics.monthlyApps}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">Success Rate</span>
+                                                <span className="text-lg font-bold text-green-600 dark:text-green-400">{jobMetrics.successRate.toFixed(1)}%</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Success Rate Analysis */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Success
-                                            Rate Analysis</h3>
-
+                                    {/* Success Metrics */}
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                                            <Target className="h-5 w-5"/>
+                                            Success Metrics
+                                        </h3>
                                         <div className="space-y-4">
-                                            {/* Application Success Funnel */}
                                             {[
                                                 {
-                                                    stage: 'Applications',
-                                                    count: jobMetrics.totalApps,
-                                                    percentage: 100,
-                                                    color: 'bg-blue-500'
-                                                },
-                                                {
-                                                    stage: 'Responses',
-                                                    count: jobMetrics.totalApps - jobMetrics.appliedCount,
-                                                    percentage: jobMetrics.responseRate,
-                                                    color: 'bg-yellow-500'
-                                                },
-                                                {
-                                                    stage: 'Interviews',
+                                                    label: 'Interviews',
                                                     count: jobMetrics.interviewCount,
-                                                    percentage: (jobMetrics.interviewCount / Math.max(1, jobMetrics.totalApps)) * 100,
-                                                    color: 'bg-orange-500'
+                                                    color: 'text-yellow-600'
                                                 },
                                                 {
-                                                    stage: 'Offers',
+                                                    label: 'Offers',
                                                     count: jobMetrics.offerCount,
-                                                    percentage: (jobMetrics.offerCount / Math.max(1, jobMetrics.totalApps)) * 100,
-                                                    color: 'bg-green-500'
+                                                    color: 'text-green-600'
+                                                },
+                                                {
+                                                    label: 'Companies Applied',
+                                                    count: jobMetrics.companyCount,
+                                                    color: 'text-blue-600'
                                                 }
-                                            ].map((stage, index) => (
-                                                <div key={stage.stage} className="relative">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span
-                                                            className="text-sm font-medium text-gray-900 dark:text-gray-100">{stage.stage}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span
-                                                                className="text-sm text-gray-600 dark:text-gray-400">{stage.count}</span>
-                                                            <span
-                                                                className="text-xs text-gray-500 dark:text-gray-500">({stage.percentage.toFixed(1)}%)</span>
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        className="relative h-6 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${stage.color} transition-all duration-500 flex items-center justify-center text-white text-sm font-medium`}
-                                                            style={{width: `${stage.percentage}%`}}
-                                                        >
-                                                            {stage.count > 0 && stage.percentage > 15 && (
-                                                                <span className="text-xs">{stage.count}</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                            ].map(({label, count, color}) => (
+                                                <div key={label} className="flex items-center justify-between">
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+                                                    <span className={`text-lg font-bold ${color}`}>{count}</span>
                                                 </div>
                                             ))}
                                         </div>
-
-                                        <div
-                                            className="mt-6 p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
-                                            <div className="flex items-center gap-3">
-                                                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400"/>
-                                                <div>
-                                                    <p className="font-medium text-green-900 dark:text-green-100">Overall
-                                                        Success Rate</p>
-                                                    <p className="text-sm text-green-700 dark:text-green-300">
-                                                        {jobMetrics.successRate.toFixed(1)}% of applications get
-                                                        positive responses
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Application Trends & Top Companies */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Top Companies Applied To */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Top
-                                            Companies</h3>
-
-                                        <div className="space-y-3">
-                                            {applications.length > 0 ? (
-                                                Object.entries(
-                                                    applications.reduce((acc, app) => {
-                                                        acc[app.company] = (acc[app.company] || 0) + 1;
-                                                        return acc;
-                                                    }, {} as Record<string, number>)
-                                                )
-                                                    .sort(([, a], [, b]) => b - a)
-                                                    .slice(0, 8)
-                                                    .map(([company, count], index) => {
-                                                        const percentage = (count / jobMetrics.totalApps) * 100;
-                                                        const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-indigo-500', 'bg-pink-500', 'bg-yellow-500'];
-
-                                                        return (
-                                                            <div key={company} className="flex items-center gap-3">
-                                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                                    <div
-                                                                        className={`w-2 h-2 rounded-full ${colors[index % colors.length]}`}></div>
-                                                                    <span
-                                                                        className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                                                        {company}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                                    <div
-                                                                        className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                                                        <div
-                                                                            className={`h-1.5 rounded-full transition-all duration-300 ${colors[index % colors.length]}`}
-                                                                            style={{width: `${percentage}%`}}
-                                                                        ></div>
-                                                                    </div>
-                                                                    <span
-                                                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 w-8 text-right">
-                                                                        {count}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })
-                                            ) : (
-                                                <div className="text-center py-8">
-                                                    <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4"/>
-                                                    <p className="text-gray-600 dark:text-gray-400">No applications
-                                                        yet</p>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Company
-                                                        insights will appear here</p>
-                                                </div>
-                                            )}
-                                        </div>
+                                {/* Detailed Analytics Table */}
+                                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                            {isAdminRealtime && auth.isAuthenticated ? 'Platform Performance Breakdown' : 'Performance Breakdown'}
+                                        </h3>
+                                        <button
+                                            onClick={handleExportData}
+                                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        >
+                                            <Download className="h-4 w-4"/>
+                                            Export Analytics
+                                        </button>
                                     </div>
 
-                                    {/* Success Rate Analysis */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Performance
-                                            Insights</h3>
-
-                                        <div className="space-y-4">
-                                            {/* By Job Type */}
-                                            <div>
-                                                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Success
-                                                    by Job Type</h4>
-                                                <div className="space-y-3">
-                                                    {[
-                                                        {
-                                                            type: 'Remote',
-                                                            apps: jobMetrics.remoteJobs,
-                                                            color: 'bg-green-500'
-                                                        },
-                                                        {
-                                                            type: 'Hybrid',
-                                                            apps: jobMetrics.hybridJobs,
-                                                            color: 'bg-purple-500'
-                                                        },
-                                                        {
-                                                            type: 'Onsite',
-                                                            apps: jobMetrics.onsiteJobs,
-                                                            color: 'bg-blue-500'
-                                                        }
-                                                    ].map(({type, apps, color}) => {
-                                                        const successCount = applications.filter(app =>
-                                                            app.type === type && (app.status === 'Interview' || app.status === 'Offer')
-                                                        ).length;
-                                                        const successRate = apps > 0 ? (successCount / apps * 100) : 0;
-
-                                                        return (
-                                                            <div key={type}
-                                                                 className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                    <span
-                                                                        className="text-sm font-medium text-gray-900 dark:text-gray-100">{type}</span>
-                                                                    <span
-                                                                        className="text-sm text-gray-600 dark:text-gray-400">{successRate.toFixed(1)}%</span>
-                                                                </div>
-                                                                <div
-                                                                    className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                                                    <div
-                                                                        className={`h-2 rounded-full ${color}`}
-                                                                        style={{width: `${successRate}%`}}
-                                                                    ></div>
-                                                                </div>
-                                                                <div
-                                                                    className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                                    {successCount} / {apps} applications
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{jobMetrics.totalApps}</p>
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">Total Applications</p>
+                                        </div>
+                                        <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{jobMetrics.responseRate.toFixed(1)}%</p>
+                                            <p className="text-sm text-green-700 dark:text-green-300">Response Rate</p>
+                                        </div>
+                                        <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{jobMetrics.companyCount}</p>
+                                            <p className="text-sm text-purple-700 dark:text-purple-300">Companies</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* 💬 COMPLETE FEEDBACK SECTION */}
+                        {/* Feedback Section */}
                         {currentSection === 'feedback' && (
                             <div className="space-y-6">
                                 {/* Feedback Overview Cards */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                                                <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total
-                                                    Feedback</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminFeedback?.totalFeedback || 0}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Total Feedback"
+                                        value={adminFeedback?.totalFeedback || 0}
+                                        subtitle={isAdminRealtime && auth.isAuthenticated ? "Across all users" : "Current session"}
+                                        icon={MessageSquare}
+                                        color="text-blue-600 dark:text-blue-400"
+                                        bgColor="bg-blue-100 dark:bg-blue-900/20"
+                                    />
 
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
-                                                <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg
-                                                    Rating</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminFeedback?.averageRating?.toFixed(1) || 'N/A'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Avg Rating"
+                                        value={adminFeedback?.averageRating?.toFixed(1) || 'N/A'}
+                                        icon={Star}
+                                        color="text-yellow-600 dark:text-yellow-400"
+                                        bgColor="bg-yellow-100 dark:bg-yellow-900/20"
+                                    />
 
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                                                <Eye className="h-6 w-6 text-green-600 dark:text-green-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Unread</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminFeedback?.unreadFeedback || 0}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Unread"
+                                        value={adminFeedback?.unreadFeedback || 0}
+                                        icon={Eye}
+                                        color="text-green-600 dark:text-green-400"
+                                        bgColor="bg-green-100 dark:bg-green-900/20"
+                                    />
 
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
-                                                <Bug className="h-6 w-6 text-red-600 dark:text-red-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Bug
-                                                    Reports</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminFeedback?.feedbackTrends?.bugs || 0}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <UserMetricsCard
+                                        title="Bug Reports"
+                                        value={adminFeedback?.feedbackTrends?.bugs || 0}
+                                        icon={Bug}
+                                        color="text-red-600 dark:text-red-400"
+                                        bgColor="bg-red-100 dark:bg-red-900/20"
+                                    />
                                 </div>
 
-                                {/* Feedback Management */}
-                                <div
-                                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                                    {/* Feedback Header with Filters */}
-                                    <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                                Feedback Management
-                                            </h3>
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={handleRefreshFeedback}
-                                                    disabled={isRefreshing}
-                                                    className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                                                >
-                                                    <RefreshCw
-                                                        className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                                                    Refresh
-                                                </button>
-                                                <button
-                                                    onClick={handleExportFeedback}
-                                                    className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                                                >
-                                                    <Download className="h-4 w-4"/>
-                                                    Export
-                                                </button>
-                                                <button
-                                                    onClick={() => setShowFilters(!showFilters)}
-                                                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-                                                >
-                                                    <Filter className="h-4 w-4"/>
-                                                    Filters
-                                                </button>
-                                            </div>
+                                {/* ✅ PHASE 2: Updated Feedback Controls - Removed Individual Refresh */}
+                                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                            {isAdminRealtime && auth.isAuthenticated ? 'Platform Feedback Management' : 'Feedback Management'}
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setShowFilters(!showFilters)}
+                                                className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                            >
+                                                <Filter className="h-4 w-4"/>
+                                                Filters
+                                            </button>
+                                            {/* ✅ PHASE 2: Note - Individual refresh removed, now uses global refresh */}
+                                            <button
+                                                onClick={handleExportFeedback}
+                                                className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                            >
+                                                <Download className="h-4 w-4"/>
+                                                Export
+                                            </button>
                                         </div>
-
-                                        {/* Search Bar */}
-                                        <div className="relative">
-                                            <Search
-                                                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"/>
-                                            <input
-                                                type="text"
-                                                placeholder="Search feedback..."
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        </div>
-
-                                        {/* Filter Controls */}
-                                        {showFilters && (
-                                            <div
-                                                className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                {/* Type Filter */}
-                                                <div>
-                                                    <label
-                                                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        Feedback Type
-                                                    </label>
-                                                    <select
-                                                        value={typeFilter}
-                                                        onChange={(e) => setTypeFilter(e.target.value as FeedbackFilter)}
-                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                                    >
-                                                        <option value="all">All Types</option>
-                                                        <option value="bug">Bug Reports</option>
-                                                        <option value="feature">Feature Requests</option>
-                                                        <option value="love">Love Notes</option>
-                                                        <option value="general">General</option>
-                                                    </select>
-                                                </div>
-
-                                                {/* Status Filter */}
-                                                <div>
-                                                    <label
-                                                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        Status
-                                                    </label>
-                                                    <select
-                                                        value={statusFilter}
-                                                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                                    >
-                                                        <option value="all">All Status</option>
-                                                        <option value="unread">Unread</option>
-                                                        <option value="read">Read</option>
-                                                        <option value="flagged">Flagged</option>
-                                                    </select>
-                                                </div>
-
-                                                {/* Sort By */}
-                                                <div>
-                                                    <label
-                                                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        Sort By
-                                                    </label>
-                                                    <select
-                                                        value={sortBy}
-                                                        onChange={(e) => setSortBy(e.target.value as SortBy)}
-                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                                    >
-                                                        <option value="newest">Newest First</option>
-                                                        <option value="oldest">Oldest First</option>
-                                                        <option value="rating-high">Highest Rating</option>
-                                                        <option value="rating-low">Lowest Rating</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
+                                    {/* Feedback Filters */}
+                                    {showFilters && (
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                                                <select
+                                                    value={typeFilter}
+                                                    onChange={(e) => setTypeFilter(e.target.value as FeedbackFilter)}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
+                                                >
+                                                    <option value="all">All Types</option>
+                                                    <option value="love">Love</option>
+                                                    <option value="bug">Bug Reports</option>
+                                                    <option value="feature">Feature Requests</option>
+                                                    <option value="general">General</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                                                <select
+                                                    value={statusFilter}
+                                                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
+                                                >
+                                                    <option value="all">All Status</option>
+                                                    <option value="unread">Unread</option>
+                                                    <option value="read">Read</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
+                                                <select
+                                                    value={sortBy}
+                                                    onChange={(e) => setSortBy(e.target.value as SortBy)}
+                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
+                                                >
+                                                    <option value="newest">Newest First</option>
+                                                    <option value="oldest">Oldest First</option>
+                                                    <option value="rating-high">Highest Rating</option>
+                                                    <option value="rating-low">Lowest Rating</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"/>
+                                                    <input
+                                                        type="text"
+                                                        value={searchQuery}
+                                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                                        placeholder="Search feedback..."
+                                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Feedback List */}
-                                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <div className="space-y-4">
                                         {filteredFeedback && filteredFeedback.length > 0 ? (
-                                            filteredFeedback.map((feedback) => {
+                                            filteredFeedback.slice(0, 10).map((feedback) => {
                                                 const Icon = getFeedbackTypeIcon(feedback.type);
                                                 const isExpanded = expandedFeedback === feedback.id;
-                                                const isRead = feedback.metadata?.read ?? false;
 
                                                 return (
-                                                    <div
-                                                        key={feedback.id}
-                                                        className={`p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
-                                                    >
+                                                    <div key={feedback.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                                         <div className="flex items-start gap-4">
-                                                            {/* Feedback Type Icon */}
-                                                            <div
-                                                                className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                                                    feedback.type === 'love' ? 'bg-red-100 dark:bg-red-900/20' :
-                                                                        feedback.type === 'bug' ? 'bg-red-100 dark:bg-red-900/20' :
-                                                                            feedback.type === 'feature' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
-                                                                                'bg-blue-100 dark:bg-blue-900/20'
+                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                                                feedback.type === 'love' ? 'bg-red-100 dark:bg-red-900/20' :
+                                                                    feedback.type === 'bug' ? 'bg-red-100 dark:bg-red-900/20' :
+                                                                        feedback.type === 'feature' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+                                                                            'bg-blue-100 dark:bg-blue-900/20'
+                                                            }`}>
+                                                                <Icon className={`h-5 w-5 ${getFeedbackTypeColor(feedback.type)}`}/>
+                                                            </div>
+
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-3 mb-2">
+                                                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                                                                        {feedback.type}
+                                                                    </span>
+                                                                    <div className="flex items-center gap-1">
+                                                                        {[...Array(5)].map((_, i) => (
+                                                                            <Star
+                                                                                key={i}
+                                                                                className={`h-4 w-4 ${
+                                                                                    i < feedback.rating
+                                                                                        ? 'text-yellow-400 fill-current'
+                                                                                        : 'text-gray-300 dark:text-gray-600'
+                                                                                }`}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        {new Date(feedback.timestamp).toLocaleDateString()}
+                                                                    </span>
+                                                                </div>
+
+                                                                <p className={`text-gray-700 dark:text-gray-300 ${
+                                                                    isExpanded ? '' : 'line-clamp-2'
                                                                 }`}>
-                                                                <Icon
-                                                                    className={`h-5 w-5 ${getFeedbackTypeColor(feedback.type)}`}/>
-                                                            </div>
+                                                                    {feedback.message}
+                                                                </p>
 
-                                                            {/* Feedback Content */}
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center justify-between mb-2">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span
-                                                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize ${
-                                                                                feedback.type === 'love' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                                                                                    feedback.type === 'bug' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                                                                                        feedback.type === 'feature' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                                                                                            'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                                                                            }`}>
-                                                                            {feedback.type}
-                                                                        </span>
-
-                                                                        {/* Star Rating */}
-                                                                        <div className="flex items-center">
-                                                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                                                <Star
-                                                                                    key={star}
-                                                                                    className={`h-4 w-4 ${
-                                                                                        star <= feedback.rating
-                                                                                            ? 'text-yellow-400 fill-current'
-                                                                                            : 'text-gray-300 dark:text-gray-600'
-                                                                                    }`}
-                                                                                />
-                                                                            ))}
-                                                                            <span
-                                                                                className="text-sm text-gray-600 dark:text-gray-400 ml-1">
-                                                                                ({feedback.rating}/5)
-                                                                            </span>
-                                                                        </div>
-
-                                                                        {!isRead && (
-                                                                            <span
-                                                                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                                                                                New
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span
-                                                                            className="text-sm text-gray-500 dark:text-gray-400">
-                                                                            {new Date(feedback.timestamp).toLocaleDateString('en-US', {
-                                                                                month: 'short',
-                                                                                day: 'numeric',
-                                                                                hour: '2-digit',
-                                                                                minute: '2-digit'
-                                                                            })}
-                                                                        </span>
-                                                                        <button
-                                                                            onClick={() => setExpandedFeedback(isExpanded ? null : feedback.id)}
-                                                                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                                                                        >
-                                                                            {isExpanded ? 'Collapse' : 'Expand'}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Feedback Message */}
-                                                                <div className="mb-3">
-                                                                    <p className={`text-gray-900 dark:text-gray-100 ${
-                                                                        isExpanded ? '' : 'line-clamp-2'
-                                                                    }`}>
-                                                                        {feedback.message}
-                                                                    </p>
-                                                                </div>
-
-                                                                {/* Contact Email */}
                                                                 {feedback.email && (
-                                                                    <div
-                                                                        className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                                                        <Mail className="h-4 w-4"/>
-                                                                        <span>{feedback.email}</span>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* Expanded Details */}
-                                                                {isExpanded && (
-                                                                    <div
-                                                                        className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                                        <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Technical
-                                                                            Details</h5>
-                                                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                                                            <div>
-                                                                                <span
-                                                                                    className="text-gray-600 dark:text-gray-400">Session ID:</span>
-                                                                                <span
-                                                                                    className="ml-2 font-mono text-gray-900 dark:text-gray-100">
-                                                                                    {feedback.sessionId.substring(0, 8)}...
-                                                                                </span>
-                                                                            </div>
-                                                                            <div>
-                                                                                <span
-                                                                                    className="text-gray-600 dark:text-gray-400">Page:</span>
-                                                                                <span
-                                                                                    className="ml-2 text-gray-900 dark:text-gray-100">
-                                                                                    {feedback.url || 'Unknown'}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div>
-                                                                                <span
-                                                                                    className="text-gray-600 dark:text-gray-400">Device:</span>
-                                                                                <span
-                                                                                    className="ml-2 text-gray-900 dark:text-gray-100 flex items-center gap-1">
-                                                                                    {feedback.metadata?.deviceType === 'mobile' ? (
-                                                                                        <Smartphone
-                                                                                            className="h-4 w-4"/>
-                                                                                    ) : (
-                                                                                        <Monitor className="h-4 w-4"/>
-                                                                                    )}
-                                                                                    {feedback.metadata?.deviceType || 'Unknown'}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div>
-                                                                                <span
-                                                                                    className="text-gray-600 dark:text-gray-400">Applications:</span>
-                                                                                <span
-                                                                                    className="ml-2 text-gray-900 dark:text-gray-100">
-                                                                                    {feedback.metadata?.applicationsCount || 0}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+                                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                                                        From: {feedback.email}
+                                                                    </p>
                                                                 )}
                                                             </div>
+
+                                                            <button
+                                                                onClick={() => setExpandedFeedback(isExpanded ? null : feedback.id!)}
+                                                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                                            >
+                                                                <Eye className="h-4 w-4"/>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 );
                                             })
                                         ) : (
                                             <div className="text-center py-12">
-                                                <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4"/>
-                                                <p className="text-gray-600 dark:text-gray-400 text-lg">No feedback
-                                                    received yet</p>
-                                                <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-                                                    User feedback will appear here once submitted
+                                                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4"/>
+                                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No feedback found</h3>
+                                                <p className="text-gray-500 dark:text-gray-400">
+                                                    {searchQuery || typeFilter !== 'all' || statusFilter !== 'all'
+                                                        ? 'Try adjusting your filters to see more feedback.'
+                                                        : isAdminRealtime && auth.isAuthenticated
+                                                            ? 'No feedback has been submitted to the platform yet.'
+                                                            : 'No feedback has been submitted yet.'
+                                                    }
                                                 </p>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* 👥 COMPLETE USERS SECTION */}
-                        {currentSection === 'users' && (
-                            <div className="space-y-6">
-                                {/* User Overview Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                                                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total
-                                                    Users</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminAnalytics?.userMetrics.totalUsers || 1}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                                                <Activity className="h-6 w-6 text-green-600 dark:text-green-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active
-                                                    Sessions</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminAnalytics?.usageMetrics.totalSessions || 0}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                                                <Clock className="h-6 w-6 text-purple-600 dark:text-purple-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg
-                                                    Session</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {Math.round((adminAnalytics?.usageMetrics.averageSessionDuration || 0) / (1000 * 60))}min
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                                                <TrendingUp className="h-6 w-6 text-orange-600 dark:text-orange-400"/>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Features
-                                                    Used</p>
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                                    {adminAnalytics?.usageMetrics.featuresUsage ? Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Privacy Notice */}
-                                <div
-                                    className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200/50 dark:border-blue-700/50">
-                                    <div className="flex items-start gap-3">
-                                        <Shield
-                                            className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1"/>
-                                        <div>
-                                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                                                Privacy-First ApplyTrak Analytics
-                                            </h4>
-                                            <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
-                                                All user data is anonymized and stored locally. No personal information
-                                                is tracked
-                                                or transmitted. Users can opt-out of analytics at any time. Data
-                                                includes job application patterns,
-                                                feature usage, and session information only to improve the ApplyTrak
-                                                experience.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* User Engagement Metrics */}
+                                {/* Feedback Trends */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Device Usage */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Device
-                                            Usage</h3>
-                                        <div className="space-y-4">
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Feedback Types</h3>
+                                        <div className="space-y-3">
                                             {[
                                                 {
-                                                    label: 'Desktop',
-                                                    count: adminAnalytics?.deviceMetrics.desktop || 0,
-                                                    icon: Monitor,
-                                                    color: 'bg-blue-500'
+                                                    type: 'love',
+                                                    count: adminFeedback?.feedbackTrends?.love || 0,
+                                                    color: 'bg-red-500'
                                                 },
                                                 {
-                                                    label: 'Mobile',
-                                                    count: adminAnalytics?.deviceMetrics.mobile || 0,
-                                                    icon: Smartphone,
-                                                    color: 'bg-green-500'
+                                                    type: 'feature',
+                                                    count: adminFeedback?.feedbackTrends?.features || 0,
+                                                    color: 'bg-yellow-500'
+                                                },
+                                                {
+                                                    type: 'bug',
+                                                    count: adminFeedback?.feedbackTrends?.bugs || 0,
+                                                    color: 'bg-red-600'
+                                                },
+                                                {
+                                                    type: 'general',
+                                                    count: adminFeedback?.feedbackTrends?.general || 0,
+                                                    color: 'bg-blue-500'
                                                 }
-                                            ].map(({label, count, icon: Icon, color}) => {
-                                                const total = (adminAnalytics?.deviceMetrics.desktop || 0) + (adminAnalytics?.deviceMetrics.mobile || 0);
+                                            ].map(({type, count, color}) => {
+                                                const total = (adminFeedback?.feedbackTrends?.love || 0) +
+                                                    (adminFeedback?.feedbackTrends?.features || 0) +
+                                                    (adminFeedback?.feedbackTrends?.bugs || 0) +
+                                                    (adminFeedback?.feedbackTrends?.general || 0);
                                                 const percentage = total > 0 ? (count / total * 100) : 0;
 
                                                 return (
-                                                    <div key={label}
-                                                         className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                        <div className="flex items-center gap-3">
-                                                            <div
-                                                                className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} bg-opacity-20`}>
-                                                                <Icon
-                                                                    className={`h-4 w-4 ${color.replace('bg-', 'text-')}`}/>
-                                                            </div>
-                                                            <span
-                                                                className="font-medium text-gray-900 dark:text-gray-100">{label}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <div
-                                                                className="w-20 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                                                                <div
-                                                                    className={`h-2 rounded-full transition-all duration-300 ${color}`}
-                                                                    style={{width: `${percentage}%`}}
-                                                                ></div>
-                                                            </div>
-                                                            <span
-                                                                className="text-sm font-medium text-gray-900 dark:text-gray-100 w-12 text-right">
-                                                                {count}
-                                                            </span>
-                                                        </div>
+                                                    <div key={type} className="flex items-center gap-3">
+                                                        <div className={`w-3 h-3 rounded-full ${color}`}></div>
+                                                        <span className="text-sm text-gray-600 dark:text-gray-400 capitalize flex-1">{type}</span>
+                                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
+                                                            {percentage.toFixed(0)}%
+                                                        </span>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
 
-                                    {/* Feature Usage */}
-                                    <div
-                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Popular
-                                            Features</h3>
+                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Activity</h3>
                                         <div className="space-y-3">
-                                            {adminAnalytics?.usageMetrics.featuresUsage && Object.keys(adminAnalytics.usageMetrics.featuresUsage).length > 0 ? (
-                                                Object.entries(adminAnalytics.usageMetrics.featuresUsage)
-                                                    .sort(([, a], [, b]) => b - a)
-                                                    .slice(0, 6)
-                                                    .map(([feature, usage], index) => {
-                                                        const maxUsage = Math.max(...Object.values(adminAnalytics.usageMetrics.featuresUsage));
-                                                        const percentage = maxUsage > 0 ? (usage / maxUsage * 100) : 0;
-                                                        const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-indigo-500'];
-
-                                                        return (
-                                                            <div key={feature} className="flex items-center gap-3">
-                                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                                    <div
-                                                                        className={`w-2 h-2 rounded-full ${colors[index % colors.length]}`}></div>
-                                                                    <span
-                                                                        className="text-sm text-gray-600 dark:text-gray-400 truncate capitalize">
-                                                                        {feature.replace(/_/g, ' ')}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                                    <div
-                                                                        className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                                                        <div
-                                                                            className={`h-1.5 rounded-full transition-all duration-300 ${colors[index % colors.length]}`}
-                                                                            style={{width: `${percentage}%`}}
-                                                                        ></div>
-                                                                    </div>
-                                                                    <span
-                                                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 w-6 text-right">
-                                                                        {usage}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })
-                                            ) : (
-                                                <div className="text-center py-8">
-                                                    <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4"/>
-                                                    <p className="text-gray-600 dark:text-gray-400">No feature usage
-                                                        data available</p>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                                                        Data will appear as users interact with ApplyTrak
-                                                    </p>
+                                            {filteredFeedback.slice(0, 5).map((feedback, index) => (
+                                                <div key={feedback.id} className="flex items-center gap-3">
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">
+                                                        New {feedback.type} feedback received
+                                                    </span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {new Date(feedback.timestamp).toLocaleDateString()}
+                                                    </span>
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Users Section */}
+                        {currentSection === 'users' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <UserMetricsCard
+                                        title={isAdminRealtime && auth.isAuthenticated ? "Platform Users" : "Total Users"}
+                                        value={adminAnalytics?.userMetrics.totalUsers || 1}
+                                        subtitle={isAdminRealtime && auth.isAuthenticated ? "Registered accounts" : "Current browser session"}
+                                        icon={Users}
+                                        color="text-blue-600 dark:text-blue-400"
+                                        bgColor="bg-blue-100 dark:bg-blue-900/20"
+                                    />
+
+                                    <UserMetricsCard
+                                        title={isAdminRealtime && auth.isAuthenticated ? "Active Sessions" : "Active Sessions"}
+                                        value={adminAnalytics?.usageMetrics.totalSessions || 0}
+                                        subtitle={isAdminRealtime && auth.isAuthenticated ? "Cross-platform" : "Current session"}
+                                        icon={Activity}
+                                        color="text-green-600 dark:text-green-400"
+                                        bgColor="bg-green-100 dark:bg-green-900/20"
+                                    />
+
+                                    <UserMetricsCard
+                                        title="Avg Session"
+                                        value={`${Math.round((adminAnalytics?.usageMetrics.averageSessionDuration || 0) / (1000 * 60))}min`}
+                                        icon={Clock}
+                                        color="text-purple-600 dark:text-purple-400"
+                                        bgColor="bg-purple-100 dark:bg-purple-900/20"
+                                    />
+
+                                    <UserMetricsCard
+                                        title="Features Used"
+                                        value={adminAnalytics?.usageMetrics.featuresUsage ? Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0}
+                                        subtitle={isAdminRealtime && auth.isAuthenticated ? "Platform-wide" : "This session"}
+                                        icon={TrendingUp}
+                                        color="text-orange-600 dark:text-orange-400"
+                                        bgColor="bg-orange-100 dark:bg-orange-900/20"
+                                    />
+                                </div>
+
+                                {/* Privacy Notice */}
+                                <div className={`rounded-lg p-6 border ${
+                                    isAdminRealtime && auth.isAuthenticated ?
+                                        'bg-blue-50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-700/50' :
+                                        'bg-blue-50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-700/50'
+                                }`}>
+                                    <div className="flex items-start gap-3">
+                                        <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1"/>
+                                        <div>
+                                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                                                {isAdminRealtime && auth.isAuthenticated ?
+                                                    'Enterprise-Grade SaaS Privacy & Security' :
+                                                    'Privacy-First ApplyTrak Analytics'
+                                                }
+                                            </h4>
+                                            <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
+                                                {isAdminRealtime && auth.isAuthenticated ?
+                                                    'Multi-user data is encrypted, isolated per user account, and stored securely in the cloud. Full GDPR compliance with user data portability and deletion rights. Admin analytics are aggregated and anonymized for business intelligence.' :
+                                                    'All user data is anonymized and stored locally. No personal information is tracked or transmitted. Users can opt-out of analytics at any time. Data includes job application patterns, feature usage, and session information only to improve the ApplyTrak experience.'
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ✅ NEW: Settings Section */}
+                        {currentSection === 'settings' && (
+                            <div className="space-y-6">
+                                <AdminSettings/>
+                            </div>
+                        )}
+
+                        {/* ✅ NEW: Support Section */}
+                        {currentSection === 'support' && (
+                            <div className="space-y-6">
+                                <SupportTools/>
                             </div>
                         )}
                     </div>
@@ -1995,7 +1849,6 @@ const AdminDashboard: React.FC = () => {
         </div>
     );
 
-    // Render in portal to escape main app layout
     return createPortal(adminContent, document.body);
 };
 

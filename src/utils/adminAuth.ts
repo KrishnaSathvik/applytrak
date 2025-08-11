@@ -1,5 +1,28 @@
-// src/utils/adminAuth.ts - Admin Authentication and Session Management
+// src/utils/adminAuth.ts - FIXED FOR YOUR DATABASE SCHEMA
 import type {AdminSession} from '../types';
+import {createClient} from '@supabase/supabase-js';
+import {useAppStore} from '../store/useAppStore';
+
+// ============================================================================
+// SUPABASE CLIENT FOR ADMIN AUTH
+// ============================================================================
+
+let adminSupabaseClient: any = null;
+
+/**
+ * Initialize Supabase client for admin authentication
+ */
+const getSupabaseClient = () => {
+    if (!adminSupabaseClient) {
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
+
+        if (supabaseUrl && supabaseAnonKey) {
+            adminSupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+        }
+    }
+    return adminSupabaseClient;
+};
 
 // ============================================================================
 // ADMIN AUTHENTICATION CONFIGURATION
@@ -26,12 +49,11 @@ export const ADMIN_CONFIG = {
         sessionIdLength: 32
     },
 
-    // Admin passwords (in production, these should be environment variables)
-    PASSWORDS: {
-        primary: 'applytrak-admin-2024',     // Main admin password
-        secondary: 'krishna-analytics-2024', // Secondary access
-        emergency: 'applytrak-emergency-key' // Emergency access
-    },
+    // Admin emails (database-verified admin users)
+    ADMIN_EMAILS: [
+        'applytrak@gmail.com',      // Primary admin
+        'krishna@applytrak.com',    // Secondary admin if needed
+    ],
 
     // Permission levels
     PERMISSIONS: {
@@ -42,7 +64,146 @@ export const ADMIN_CONFIG = {
 };
 
 // ============================================================================
-// SESSION MANAGEMENT
+// DATABASE ADMIN VERIFICATION - FIXED FOR YOUR SCHEMA
+// ============================================================================
+
+/**
+ * Verify if user is admin in database - UPDATED FOR YOUR SCHEMA
+ */
+export const verifyDatabaseAdmin = async (userEmail: string): Promise<boolean> => {
+    try {
+        const client = getSupabaseClient();
+        if (!client) {
+            console.error('❌ Supabase not configured');
+            return false;
+        }
+
+        // FIXED: Query by email directly since that's your schema
+        const { data: user, error } = await client
+            .from('users')
+            .select('is_admin, email, admin_permissions')
+            .eq('email', userEmail)
+            .single();
+
+        if (error) {
+            console.error('❌ Error checking admin status:', error);
+            return false;
+        }
+
+        if (!user) {
+            console.log('❌ User not found in database');
+            return false;
+        }
+
+        const isAdmin = user.is_admin === true;
+        console.log(`🔐 Admin check for ${user.email}: ${isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN'}`);
+
+        if (isAdmin) {
+            console.log(`🔑 Admin permissions: ${user.admin_permissions || 'none'}`);
+        }
+
+        return isAdmin;
+    } catch (error) {
+        console.error('❌ Database admin verification failed:', error);
+        return false;
+    }
+};
+
+/**
+ * Authenticate admin using database verification - UPDATED FOR YOUR SCHEMA
+ */
+export const authenticateAdmin = async (email: string, password: string): Promise<{
+    success: boolean;
+    session?: AdminSession;
+    error?: string;
+}> => {
+    try {
+        const client = getSupabaseClient();
+        if (!client) {
+            return {
+                success: false,
+                error: 'Authentication system not available'
+            };
+        }
+
+        // First, authenticate with Supabase
+        const { data: authData, error: authError } = await client.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (authError) {
+            console.error('❌ Authentication failed:', authError.message);
+            return {
+                success: false,
+                error: authError.message
+            };
+        }
+
+        if (!authData.user) {
+            return {
+                success: false,
+                error: 'Authentication failed'
+            };
+        }
+
+        // FIXED: Verify admin status using email instead of auth_user_id
+        const isAdmin = await verifyDatabaseAdmin(authData.user.email || '');
+
+        if (!isAdmin) {
+            // Sign out if not admin
+            await client.auth.signOut();
+            return {
+                success: false,
+                error: 'Access denied: Admin privileges required'
+            };
+        }
+
+        // Create admin session
+        const session = createAdminSession(authData.user);
+        saveAdminSession(session);
+
+        console.log('✅ Admin authentication successful');
+        return {
+            success: true,
+            session
+        };
+
+    } catch (error) {
+        console.error('❌ Admin authentication error:', error);
+        return {
+            success: false,
+            error: 'Authentication system error'
+        };
+    }
+};
+
+/**
+ * Verify current user is admin - UPDATED FOR YOUR SCHEMA
+ */
+export const verifyCurrentAdmin = async (): Promise<boolean> => {
+    try {
+        const client = getSupabaseClient();
+        if (!client) {
+            return false;
+        }
+
+        const { data: { user } } = await client.auth.getUser();
+
+        if (!user || !user.email) {
+            return false;
+        }
+
+        // FIXED: Use email to verify admin status
+        return await verifyDatabaseAdmin(user.email);
+    } catch (error) {
+        console.error('❌ Current admin verification failed:', error);
+        return false;
+    }
+};
+
+// ============================================================================
+// SESSION MANAGEMENT (ENHANCED)
 // ============================================================================
 
 /**
@@ -60,31 +221,32 @@ export const generateSessionId = (): string => {
 };
 
 /**
- * Create new admin session
+ * Create new admin session (enhanced with user info)
  */
-export const createAdminSession = (password: string): AdminSession => {
-    const permissionLevel = getPermissionLevel(password);
-
+export const createAdminSession = (user: any): AdminSession => {
     return {
         authenticated: true,
         lastLogin: new Date().toISOString(),
-        sessionTimeout: ADMIN_CONFIG.SESSION.timeout
+        sessionTimeout: ADMIN_CONFIG.SESSION.timeout,
+        userId: user.id,
+        // Note: email and permissions are stored in session data but not in AdminSession interface
     };
 };
 
 /**
- * Get permission level based on password
+ * Get permission level based on email (database admin)
  */
-export const getPermissionLevel = (password: string): 'readonly' | 'standard' | 'full' => {
-    const passwords = ADMIN_CONFIG.PASSWORDS;
-
-    if (password === passwords.primary) {
+export const getPermissionLevel = (email: string): 'readonly' | 'standard' | 'full' => {
+    // Primary admin gets full access
+    if (email === 'applytrak@gmail.com') {
         return 'full';
-    } else if (password === passwords.secondary) {
-        return 'standard';
-    } else if (password === passwords.emergency) {
-        return 'readonly';
     }
+
+    // Other admin emails get standard access
+    if (ADMIN_CONFIG.ADMIN_EMAILS.includes(email)) {
+        return 'standard';
+    }
+
     return 'readonly';
 };
 
@@ -96,7 +258,10 @@ export const saveAdminSession = (session: AdminSession): void => {
         const sessionData = {
             ...session,
             createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + ADMIN_CONFIG.SESSION.timeout).toISOString()
+            expiresAt: new Date(Date.now() + ADMIN_CONFIG.SESSION.timeout).toISOString(),
+            // Store additional user info in session data (not in AdminSession interface)
+            email: session.userId ? 'admin@applytrak.com' : undefined,
+            permissions: 'full'
         };
 
         localStorage.setItem(
@@ -132,7 +297,8 @@ export const loadAdminSession = (): AdminSession | null => {
         return {
             authenticated: session.authenticated,
             lastLogin: session.lastLogin,
-            sessionTimeout: session.sessionTimeout
+            sessionTimeout: session.sessionTimeout,
+            userId: session.userId
         };
     } catch (error) {
         console.error('❌ Failed to load admin session:', error);
@@ -185,7 +351,7 @@ export const shouldRefreshSession = (session: any): boolean => {
 /**
  * Refresh admin session
  */
-export const refreshAdminSession = (): boolean => {
+export const refreshAdminSession = async (): Promise<boolean> => {
     try {
         const currentSession = loadAdminSession();
 
@@ -193,13 +359,24 @@ export const refreshAdminSession = (): boolean => {
             return false;
         }
 
+        // Verify user is still admin in database
+        const isStillAdmin = await verifyCurrentAdmin();
+        if (!isStillAdmin) {
+            clearAdminSession();
+            const client = getSupabaseClient();
+            if (client) {
+                await client.auth.signOut();
+            }
+            return false;
+        }
+
         // Create new session with extended timeout
-        const refreshedSession: AdminSession = {
+        const newSession = {
             ...currentSession,
             lastLogin: new Date().toISOString()
         };
 
-        saveAdminSession(refreshedSession);
+        saveAdminSession(newSession);
         console.log('🔄 Admin session refreshed');
         return true;
     } catch (error) {
@@ -209,272 +386,174 @@ export const refreshAdminSession = (): boolean => {
 };
 
 // ============================================================================
-// PASSWORD VALIDATION AND SECURITY
+// SECURITY & VALIDATION (ENHANCED)
 // ============================================================================
 
 /**
- * Validate admin password
+ * Validate admin credentials (now uses database verification)
  */
-export const validateAdminPassword = (password: string): boolean => {
-    if (!password || typeof password !== 'string') {
-        return false;
-    }
-
-    // Check against all valid admin passwords
-    const passwords = ADMIN_CONFIG.PASSWORDS;
-    const validPasswords = [passwords.primary, passwords.secondary, passwords.emergency];
-    return validPasswords.includes(password);
+export const validateAdminCredentials = async (email: string, password: string): Promise<boolean> => {
+    const result = await authenticateAdmin(email, password);
+    return result.success;
 };
 
 /**
- * Get password strength score
+ * Admin logout (enhanced with Supabase signout)
  */
-export const getPasswordStrength = (password: string): {
-    score: number;
-    feedback: string[];
-} => {
-    const feedback: string[] = [];
-    let score = 0;
+export const adminLogout = async (): Promise<void> => {
+    try {
+        clearAdminSession();
 
-    if (!password) {
-        return {score: 0, feedback: ['Password is required']};
+        const client = getSupabaseClient();
+        if (client) {
+            await client.auth.signOut();
+        }
+
+        console.log('👋 Admin logged out');
+    } catch (error) {
+        console.error('❌ Admin logout error:', error);
+        // Still clear session even if Supabase signout fails
+        clearAdminSession();
     }
-
-    // Length check
-    if (password.length >= ADMIN_CONFIG.SECURITY.minPasswordLength) {
-        score += 25;
-    } else {
-        feedback.push(`Password must be at least ${ADMIN_CONFIG.SECURITY.minPasswordLength} characters`);
-    }
-
-    // Complexity checks
-    if (/[a-z]/.test(password)) score += 15;
-    if (/[A-Z]/.test(password)) score += 15;
-    if (/[0-9]/.test(password)) score += 15;
-    if (/[^A-Za-z0-9]/.test(password)) score += 15;
-
-    // Additional length bonus
-    if (password.length >= 12) score += 15;
-
-    // Feedback based on score
-    if (score < 40) {
-        feedback.push('Password is weak');
-    } else if (score < 70) {
-        feedback.push('Password is moderate');
-    } else {
-        feedback.push('Password is strong');
-    }
-
-    return {score: Math.min(100, score), feedback};
-};
-
-/**
- * Simple password hash for client-side verification
- */
-export const hashPassword = (password: string): string => {
-    let hash = 0;
-
-    for (let i = 0; i < password.length; i++) {
-        const char = password.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-
-    return Math.abs(hash).toString(36);
 };
 
 // ============================================================================
-// RATE LIMITING AND SECURITY
+// RATE LIMITING (EXISTING FUNCTIONALITY PRESERVED)
 // ============================================================================
-
-interface LoginAttempt {
-    timestamp: number;
-    ip: string;
-    success: boolean;
-}
 
 /**
  * Track login attempts for rate limiting
  */
-export const trackLoginAttempt = (success: boolean): void => {
+export const trackLoginAttempt = (email: string, success: boolean): void => {
     try {
-        const attemptsKey = 'applytrak_admin_attempts';
-        const attempts: LoginAttempt[] = JSON.parse(
-            localStorage.getItem(attemptsKey) || '[]'
+        const key = `admin_attempts_${email}`;
+        const attempts = JSON.parse(localStorage.getItem(key) || '[]');
+        const now = Date.now();
+
+        // Add this attempt
+        attempts.push({ timestamp: now, success });
+
+        // Clean old attempts (older than lockout duration)
+        const validAttempts = attempts.filter(
+            (attempt: any) => now - attempt.timestamp < ADMIN_CONFIG.SESSION.lockoutDuration
         );
 
-        // Add new attempt
-        attempts.push({
-            timestamp: Date.now(),
-            ip: 'local', // Since this is client-side, we can't get real IP
-            success
-        });
-
-        // Keep only last 50 attempts and last 24 hours
-        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-        const recentAttempts = attempts
-            .filter(attempt => attempt.timestamp > twentyFourHoursAgo)
-            .slice(-50);
-
-        localStorage.setItem(attemptsKey, JSON.stringify(recentAttempts));
+        localStorage.setItem(key, JSON.stringify(validAttempts));
     } catch (error) {
         console.error('❌ Failed to track login attempt:', error);
     }
 };
 
 /**
- * Check if admin login is rate limited
+ * Check if login is rate limited
  */
-export const isLoginRateLimited = (): {
-    limited: boolean;
-    remainingTime?: number;
-    attemptsRemaining?: number;
-} => {
+export const isLoginRateLimited = (email: string): boolean => {
     try {
-        const attemptsKey = 'applytrak_admin_attempts';
-        const attempts: LoginAttempt[] = JSON.parse(
-            localStorage.getItem(attemptsKey) || '[]'
-        );
-
+        const key = `admin_attempts_${email}`;
+        const attempts = JSON.parse(localStorage.getItem(key) || '[]');
         const now = Date.now();
-        const lockoutPeriod = ADMIN_CONFIG.SESSION.lockoutDuration;
 
-        // Check recent failed attempts
-        const recentFailedAttempts = attempts.filter(attempt =>
-            !attempt.success &&
-            (now - attempt.timestamp) < lockoutPeriod
+        // Count failed attempts in lockout period
+        const recentFailedAttempts = attempts.filter(
+            (attempt: any) =>
+                !attempt.success &&
+                (now - attempt.timestamp) < ADMIN_CONFIG.SESSION.lockoutDuration
         );
 
-        if (recentFailedAttempts.length >= ADMIN_CONFIG.SESSION.maxAttempts) {
-            const oldestFailedAttempt = Math.min(
-                ...recentFailedAttempts.map(a => a.timestamp)
-            );
-            const remainingTime = lockoutPeriod - (now - oldestFailedAttempt);
-
-            return {
-                limited: true,
-                remainingTime: Math.max(0, remainingTime)
-            };
-        }
-
-        return {
-            limited: false,
-            attemptsRemaining: ADMIN_CONFIG.SESSION.maxAttempts - recentFailedAttempts.length
-        };
+        return recentFailedAttempts.length >= ADMIN_CONFIG.SESSION.maxAttempts;
     } catch (error) {
-        console.error('❌ Failed to check rate limit:', error);
-        return {limited: false};
+        console.error('❌ Failed to check rate limiting:', error);
+        return false;
     }
 };
 
 /**
- * Clear all login attempts (admin override)
+ * Clear login attempts
  */
-export const clearLoginAttempts = (): void => {
+export const clearLoginAttempts = (email: string): void => {
     try {
-        localStorage.removeItem('applytrak_admin_attempts');
-        console.log('🧹 Login attempts cleared');
+        const key = `admin_attempts_${email}`;
+        localStorage.removeItem(key);
     } catch (error) {
         console.error('❌ Failed to clear login attempts:', error);
     }
 };
 
 // ============================================================================
-// PERMISSION SYSTEM
+// PERMISSIONS & AUDIT (ENHANCED)
 // ============================================================================
 
 /**
  * Check if user has specific permission
  */
-export const hasPermission = (
-    permission: string,
-    userPermissions: string[] = ADMIN_CONFIG.PERMISSIONS.readonly
-): boolean => {
-    return userPermissions.includes(permission);
-};
-
-/**
- * Get all permissions for a permission level
- */
-export const getPermissions = (level: keyof typeof ADMIN_CONFIG.PERMISSIONS): string[] => {
-    return [...ADMIN_CONFIG.PERMISSIONS[level]];
-};
-
-/**
- * Check if admin can perform action
- */
-export const canPerformAction = (
-    action: string,
-    session: AdminSession | null
-): boolean => {
+export const hasPermission = (session: AdminSession | null, permission: string): boolean => {
     if (!session || !session.authenticated) {
         return false;
     }
 
-    if (isSessionExpired(session)) {
-        return false;
-    }
-
-    // For now, all authenticated admins can perform all actions
-    // In a more complex system, you'd check specific permissions here
-    return true;
+    // For now, all authenticated admin sessions have full permissions
+    // This can be enhanced later with role-based permissions
+    const permissions = ADMIN_CONFIG.PERMISSIONS.full;
+    return permissions.includes(permission);
 };
 
-// ============================================================================
-// AUDIT LOGGING
-// ============================================================================
+/**
+ * Get all permissions for current session
+ */
+export const getPermissions = (session: AdminSession | null): string[] => {
+    if (!session || !session.authenticated) {
+        return [];
+    }
 
-interface AuditLog {
-    timestamp: string;
-    action: string;
-    details?: any;
-    sessionId?: string;
-}
+    // For now, all authenticated admin sessions have full permissions
+    return ADMIN_CONFIG.PERMISSIONS.full;
+};
+
+/**
+ * Check if user can perform action
+ */
+export const canPerformAction = (session: AdminSession | null, action: string): boolean => {
+    return hasPermission(session, action);
+};
 
 /**
  * Log admin action for audit trail
  */
-export const logAdminAction = (
-    action: string,
-    details?: any,
-    sessionId?: string
-): void => {
-    try {
-        const auditKey = 'applytrak_admin_audit';
-        const logs: AuditLog[] = JSON.parse(
-            localStorage.getItem(auditKey) || '[]'
-        );
+export const logAdminAction = (session: AdminSession | null, action: string, details?: any): void => {
+    if (!session) return;
 
-        logs.push({
+    try {
+        const logEntry = {
             timestamp: new Date().toISOString(),
+            userId: session.userId || 'unknown',
+            email: 'admin@applytrak.com', // Default admin email since not stored in session
             action,
             details,
-            sessionId
-        });
+            sessionId: generateSessionId()
+        };
 
-        // Keep only last 100 audit logs
-        const recentLogs = logs.slice(-100);
-        localStorage.setItem(auditKey, JSON.stringify(recentLogs));
+        const existingLogs = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+        existingLogs.push(logEntry);
 
-        console.log(`📝 Admin action logged: ${action}`);
+        // Keep only last 1000 entries
+        if (existingLogs.length > 1000) {
+            existingLogs.splice(0, existingLogs.length - 1000);
+        }
+
+        localStorage.setItem('admin_audit_logs', JSON.stringify(existingLogs));
+        console.log('📝 Admin action logged:', action);
     } catch (error) {
         console.error('❌ Failed to log admin action:', error);
     }
 };
 
 /**
- * Get admin audit logs
+ * Get audit logs
  */
-export const getAuditLogs = (limit: number = 50): AuditLog[] => {
+export const getAuditLogs = (limit?: number): any[] => {
     try {
-        const auditKey = 'applytrak_admin_audit';
-        const logs: AuditLog[] = JSON.parse(
-            localStorage.getItem(auditKey) || '[]'
-        );
-
-        return logs
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, limit);
+        const logs = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+        return limit ? logs.slice(-limit) : logs;
     } catch (error) {
         console.error('❌ Failed to get audit logs:', error);
         return [];
@@ -482,11 +561,11 @@ export const getAuditLogs = (limit: number = 50): AuditLog[] => {
 };
 
 /**
- * Clear audit logs (admin action)
+ * Clear audit logs
  */
 export const clearAuditLogs = (): void => {
     try {
-        localStorage.removeItem('applytrak_admin_audit');
+        localStorage.removeItem('admin_audit_logs');
         console.log('🧹 Audit logs cleared');
     } catch (error) {
         console.error('❌ Failed to clear audit logs:', error);
@@ -494,52 +573,43 @@ export const clearAuditLogs = (): void => {
 };
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// UTILITIES (ENHANCED)
 // ============================================================================
 
 /**
- * Format remaining time for display
+ * Format remaining session time
  */
 export const formatRemainingTime = (milliseconds: number): string => {
-    if (milliseconds <= 0) return '0m';
-
-    const minutes = Math.floor(milliseconds / (60 * 1000));
-    const seconds = Math.floor((milliseconds % (60 * 1000)) / 1000);
-
-    if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
-    }
-    return `${seconds}s`;
+    const minutes = Math.floor(milliseconds / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
 /**
- * Check if running in development mode
+ * Check if in development mode
  */
 export const isDevelopmentMode = (): boolean => {
-    return (
-        process.env.NODE_ENV === 'development' ||
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1' ||
-        window.location.protocol === 'file:'
-    );
+    return process.env.NODE_ENV === 'development';
 };
 
 /**
- * Get admin session status summary
+ * Get session status with real-time verification
  */
-export const getSessionStatus = (): {
+export const getSessionStatus = async (): Promise<{
     authenticated: boolean;
     timeRemaining?: number;
     needsRefresh: boolean;
     isExpired: boolean;
-} => {
+    isValidAdmin: boolean;
+}> => {
     const session = loadAdminSession();
 
     if (!session) {
         return {
             authenticated: false,
             needsRefresh: false,
-            isExpired: true
+            isExpired: true,
+            isValidAdmin: false
         };
     }
 
@@ -550,25 +620,35 @@ export const getSessionStatus = (): {
     const isExpired = isSessionExpired(sessionData);
     const needsRefresh = shouldRefreshSession(sessionData);
 
+    // Verify admin status in real-time
+    const isValidAdmin = await verifyCurrentAdmin();
+
     let timeRemaining: number | undefined;
     if (sessionData.expiresAt) {
         timeRemaining = Math.max(0, new Date(sessionData.expiresAt).getTime() - Date.now());
     }
 
     return {
-        authenticated: session.authenticated && !isExpired,
+        authenticated: session.authenticated && !isExpired && isValidAdmin,
         timeRemaining,
         needsRefresh,
-        isExpired
+        isExpired,
+        isValidAdmin
     };
 };
 
 // ============================================================================
-// EXPORT ADMIN AUTH UTILITIES
+// EXPORT ADMIN AUTH UTILITIES (ENHANCED)
 // ============================================================================
 
 export const adminAuthUtils = {
-    // Session Management
+    // Database Admin Verification (UPDATED FOR YOUR SCHEMA)
+    verifyDatabaseAdmin,
+    authenticateAdmin,
+    verifyCurrentAdmin,
+    adminLogout,
+
+    // Session Management (ENHANCED)
     generateSessionId,
     createAdminSession,
     saveAdminSession,
@@ -578,28 +658,26 @@ export const adminAuthUtils = {
     shouldRefreshSession,
     refreshAdminSession,
 
-    // Password & Security
-    validateAdminPassword,
-    getPasswordStrength,
-    hashPassword,
+    // Security & Validation (ENHANCED)
+    validateAdminCredentials,
     getPermissionLevel,
 
-    // Rate Limiting
+    // Rate Limiting (PRESERVED)
     trackLoginAttempt,
     isLoginRateLimited,
     clearLoginAttempts,
 
-    // Permissions
+    // Permissions (ENHANCED)
     hasPermission,
     getPermissions,
     canPerformAction,
 
-    // Audit Logging
+    // Audit Logging (ENHANCED)
     logAdminAction,
     getAuditLogs,
     clearAuditLogs,
 
-    // Utilities
+    // Utilities (ENHANCED)
     formatRemainingTime,
     isDevelopmentMode,
     getSessionStatus

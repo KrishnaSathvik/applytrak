@@ -1,4 +1,4 @@
-// src/components/admin/AnalyticsOverview.tsx - Detailed Analytics Component
+// src/components/admin/AnalyticsOverview.tsx - UPDATED: Uses Unified Global Refresh System
 import React, {useMemo, useState} from 'react';
 import {
     Activity,
@@ -11,9 +11,9 @@ import {
     Download,
     Minus,
     Monitor,
-    RefreshCw,
     Smartphone,
-    Users
+    Users,
+    Info
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 
@@ -30,30 +30,24 @@ const timeRanges: TimeRange[] = [
     {label: 'All Time', value: 'all', days: 365}
 ];
 
+// ✅ UPDATED: Analytics Overview Component with Unified Global Refresh
 export const AnalyticsOverview: React.FC = () => {
-    const {adminAnalytics, loadAdminAnalytics, showToast} = useAppStore();
+    const {
+        adminAnalytics,
+        // ✅ REMOVED: loadAdminAnalytics - now uses unified global refresh
+        showToast,
+        // ✅ NEW: Using global refresh status instead of local state
+        getGlobalRefreshStatus
+    } = useAppStore();
+
     const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>(timeRanges[2]); // Default to month
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    // ✅ REMOVED: Individual refresh state - now uses global refresh status
     const [showFilters, setShowFilters] = useState(false);
 
-    const handleRefresh = async () => {
-        setIsRefreshing(true);
-        try {
-            await loadAdminAnalytics();
-            showToast({
-                type: 'success',
-                message: 'Analytics data refreshed successfully',
-                duration: 2000
-            });
-        } catch (error) {
-            showToast({
-                type: 'error',
-                message: 'Failed to refresh analytics data'
-            });
-        } finally {
-            setIsRefreshing(false);
-        }
-    };
+    // ✅ NEW: Get global refresh status
+    const globalRefreshStatus = getGlobalRefreshStatus();
+
+    // ✅ REMOVED: Individual refresh handler - now uses unified global refresh from AdminDashboard header
 
     const handleExportAnalytics = () => {
         if (!adminAnalytics) return;
@@ -69,6 +63,13 @@ export const AnalyticsOverview: React.FC = () => {
                 mostUsedFeatures: Object.entries(adminAnalytics.usageMetrics.featuresUsage || {})
                     .sort(([, a], [, b]) => b - a)
                     .slice(0, 5)
+            },
+            // ✅ NEW: Include global refresh metadata in export
+            refreshMetadata: {
+                lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
+                refreshStatus: globalRefreshStatus.refreshStatus,
+                autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
+                refreshErrors: globalRefreshStatus.refreshErrors
             }
         };
 
@@ -139,6 +140,10 @@ export const AnalyticsOverview: React.FC = () => {
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-400">Loading analytics data...</p>
+                    {/* ✅ NEW: Show global refresh status in loading state */}
+                    {globalRefreshStatus.isRefreshing && (
+                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">Global refresh in progress...</p>
+                    )}
                 </div>
             </div>
         );
@@ -146,7 +151,7 @@ export const AnalyticsOverview: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header with Controls */}
+            {/* ✅ UPDATED: Header with Controls - no individual refresh button */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Analytics Overview</h2>
@@ -187,16 +192,15 @@ export const AnalyticsOverview: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Action Buttons */}
-                    <button
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}/>
-                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                    </button>
+                    {/* ✅ REMOVED: Individual refresh button - uses unified refresh from AdminDashboard header */}
 
+                    {/* ✅ NEW: Info about unified refresh */}
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Info className="h-4 w-4" />
+                        <span>Use global refresh in header</span>
+                    </div>
+
+                    {/* Export Button */}
                     <button
                         onClick={handleExportAnalytics}
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -207,7 +211,17 @@ export const AnalyticsOverview: React.FC = () => {
                 </div>
             </div>
 
-            {/* Key Metrics Grid */}
+            {/* ✅ NEW: Global refresh status indicator */}
+            {globalRefreshStatus.isRefreshing && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm font-medium">Refreshing analytics overview via global refresh...</span>
+                    </div>
+                </div>
+            )}
+
+            {/* ✅ ENHANCED: Key Metrics Grid with global refresh integration */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Total Users */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
@@ -224,8 +238,8 @@ export const AnalyticsOverview: React.FC = () => {
                                 userTrend.direction === 'up' ? 'text-green-500' :
                                     userTrend.direction === 'down' ? 'text-red-500' : 'text-gray-400'
                             }`}>
-                {userTrend.percentage.toFixed(1)}%
-              </span>
+                                {userTrend.percentage.toFixed(1)}%
+                            </span>
                         </div>
                     </div>
                     <div>
@@ -233,6 +247,12 @@ export const AnalyticsOverview: React.FC = () => {
                             {adminAnalytics.userMetrics.totalUsers.toLocaleString()}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Total Users</p>
+                        {/* ✅ NEW: Show last refresh timestamp */}
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Updated: {globalRefreshStatus.lastRefreshTimestamp
+                            ? new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()
+                            : 'Never'}
+                        </p>
                     </div>
                 </div>
 
@@ -243,6 +263,10 @@ export const AnalyticsOverview: React.FC = () => {
                             className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
                             <Activity className="h-6 w-6 text-green-600 dark:text-green-400"/>
                         </div>
+                        {/* ✅ NEW: Show refresh status indicator */}
+                        {globalRefreshStatus.refreshStatus === 'success' && (
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
                     </div>
                     <div>
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -267,8 +291,8 @@ export const AnalyticsOverview: React.FC = () => {
                                 sessionTrend.direction === 'up' ? 'text-green-500' :
                                     sessionTrend.direction === 'down' ? 'text-red-500' : 'text-gray-400'
                             }`}>
-                {sessionTrend.percentage.toFixed(1)}%
-              </span>
+                                {sessionTrend.percentage.toFixed(1)}%
+                            </span>
                         </div>
                     </div>
                     <div>
@@ -286,6 +310,10 @@ export const AnalyticsOverview: React.FC = () => {
                             className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
                             <Clock className="h-6 w-6 text-yellow-600 dark:text-yellow-400"/>
                         </div>
+                        {/* ✅ NEW: Show refresh status indicator */}
+                        {globalRefreshStatus.refreshStatus === 'success' && (
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
                     </div>
                     <div>
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -301,7 +329,16 @@ export const AnalyticsOverview: React.FC = () => {
                 {/* Device Usage */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Device Usage</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Device Usage</h3>
+                            {/* ✅ NEW: Show refresh status */}
+                            {globalRefreshStatus.refreshStatus === 'success' && (
+                                <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>Live</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="p-6">
                         <div className="space-y-4">
@@ -369,39 +406,48 @@ export const AnalyticsOverview: React.FC = () => {
                 {/* User Activity Timeline */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">User Activity</h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">User Activity</h3>
+                            {/* ✅ NEW: Show auto-refresh status */}
+                            {globalRefreshStatus.autoRefreshEnabled && (
+                                <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                    <span>Auto-refresh: {globalRefreshStatus.autoRefreshInterval}s</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="p-6">
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Daily Active Users</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {adminAnalytics.userMetrics.activeUsers.daily}
-                </span>
+                                    {adminAnalytics.userMetrics.activeUsers.daily}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Weekly Active Users</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {adminAnalytics.userMetrics.activeUsers.weekly}
-                </span>
+                                    {adminAnalytics.userMetrics.activeUsers.weekly}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Monthly Active Users</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {adminAnalytics.userMetrics.activeUsers.monthly}
-                </span>
+                                    {adminAnalytics.userMetrics.activeUsers.monthly}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">New Users (This Month)</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {adminAnalytics.userMetrics.newUsers.thisMonth}
-                </span>
+                                    {adminAnalytics.userMetrics.newUsers.thisMonth}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-sm text-gray-600 dark:text-gray-400">Applications Created</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {adminAnalytics.usageMetrics.totalApplicationsCreated}
-                </span>
+                                    {adminAnalytics.usageMetrics.totalApplicationsCreated}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -412,8 +458,19 @@ export const AnalyticsOverview: React.FC = () => {
             {topFeatures.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top Features</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Most used features by your users</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top Features</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Most used features by your users</p>
+                            </div>
+                            {/* ✅ NEW: Show refresh status for feature data */}
+                            {globalRefreshStatus.refreshStatus === 'success' && (
+                                <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>Current</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="p-6">
                         <div className="space-y-4">
@@ -444,7 +501,7 @@ export const AnalyticsOverview: React.FC = () => {
                 </div>
             )}
 
-            {/* Data Quality Info */}
+            {/* ✅ ENHANCED: Data Quality Info with global refresh information */}
             <div
                 className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200/50 dark:border-blue-700/50">
                 <div className="flex items-start gap-3">
@@ -461,7 +518,15 @@ export const AnalyticsOverview: React.FC = () => {
                             <span>• Data retention: 30 days</span>
                             <span>• Privacy compliant</span>
                             <span>• User consent required</span>
+                            {/* ✅ NEW: Global refresh info */}
+                            <span>• Auto-refresh: {globalRefreshStatus.autoRefreshEnabled ? 'Enabled' : 'Manual'}</span>
                         </div>
+                        {/* ✅ NEW: Last refresh timestamp */}
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                            Last updated: {globalRefreshStatus.lastRefreshTimestamp
+                            ? new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleString()
+                            : 'Never refreshed'}
+                        </p>
                     </div>
                 </div>
             </div>
