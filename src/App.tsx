@@ -600,7 +600,7 @@ const App: React.FC = () => {
 
                 try {
                     // Check if user is admin in database
-                    const isAdmin = await verifyDatabaseAdmin(auth.user.email);
+                    const isAdmin = await verifyDatabaseAdmin(auth.user.id, auth.user.email);
 
                     if (isAdmin) {
                         console.log('✅ Admin detected! Auto-redirecting to admin dashboard...');
