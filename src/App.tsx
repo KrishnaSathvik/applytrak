@@ -9,6 +9,7 @@ import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
 import {verifyDatabaseAdmin} from './utils/adminAuth';
 import './styles/globals.css';
+import RealtimeSyncDebugger from './components/RealtimeSyncDebugger';
 
 // ============================================================================
 // LAZY LOADED COMPONENTS - Performance optimization
@@ -890,6 +891,7 @@ const App: React.FC = () => {
                     /* 🎯 AUTOMATIC ADMIN ACCESS: Admin dashboard via login detection */
                     <React.Suspense fallback={<LoadingScreen/>}>
                         <AdminDashboard/>
+                        <RealtimeSyncDebugger />
                     </React.Suspense>
                 ) : (
                     /* 📱 MAIN APPLICATION MODE - Standard user interface */

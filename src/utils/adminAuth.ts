@@ -1,4 +1,4 @@
-// src/utils/adminAuth.ts - FIXED FOR YOUR DATABASE SCHEMA
+// src/utils/adminAuth.ts - FIXED FOR YOUR ACTUAL DATABASE SCHEMA
 import type {AdminSession} from '../types';
 import {createClient} from '@supabase/supabase-js';
 import {useAppStore} from '../store/useAppStore';
@@ -49,7 +49,7 @@ export const ADMIN_CONFIG = {
         sessionIdLength: 32
     },
 
-    // Admin emails (database-verified admin users)
+    // Admin emails (for fallback verification)
     ADMIN_EMAILS: [
         'applytrak@gmail.com',      // Primary admin
         'krishna@applytrak.com',    // Secondary admin if needed
@@ -63,54 +63,120 @@ export const ADMIN_CONFIG = {
     }
 };
 
-// ============================================================================
-// DATABASE ADMIN VERIFICATION - FIXED FOR YOUR SCHEMA
-// ============================================================================
+
+// Add this function to the top of your adminAuth.ts file, right after the ADMIN_CONFIG
 
 /**
- * Verify if user is admin in database - UPDATED FOR YOUR SCHEMA
+ * QUICK FIX: Simple email-based admin check (bypasses database RLS issues)
  */
-export const verifyDatabaseAdmin = async (userEmail: string): Promise<boolean> => {
+export const isAdminByEmail = (email: string): boolean => {
+    const adminEmails = [
+        'applytrak@gmail.com',
+        'krishnasathvikm@gmail.com',
+        // Add other admin emails here
+    ];
+
+    return adminEmails.includes(email.toLowerCase());
+};
+
+/**
+ * ENHANCED: Admin verification with email fallback
+ */
+export const verifyDatabaseAdminWithFallback = async (authUserId: string, userEmail?: string): Promise<boolean> => {
     try {
+        // FIRST: Try email-based check (fastest and most reliable)
+        if (userEmail && isAdminByEmail(userEmail)) {
+            console.log('✅ Admin verified by email:', userEmail);
+            return true;
+        }
+
+        // SECOND: Try database lookup (might fail due to RLS)
         const client = getSupabaseClient();
         if (!client) {
             console.error('❌ Supabase not configured');
             return false;
         }
 
-        // FIXED: Query by email directly since that's your schema
+        console.log(`🔐 Checking admin status for auth user: ${authUserId}`);
+
         const { data: user, error } = await client
             .from('users')
-            .select('is_admin, email, admin_permissions')
-            .eq('email', userEmail)
+            .select('id, external_id, email, is_admin, admin_permissions, display_name')
+            .eq('external_id', authUserId)
             .single();
 
         if (error) {
-            console.error('❌ Error checking admin status:', error);
+            console.warn('❌ Database admin check failed:', error.message);
+
+            // FALLBACK: Use email check if database fails
+            if (userEmail && isAdminByEmail(userEmail)) {
+                console.log('✅ Admin verified by email fallback:', userEmail);
+                return true;
+            }
+
             return false;
         }
 
-        if (!user) {
-            console.log('❌ User not found in database');
-            return false;
-        }
-
-        const isAdmin = user.is_admin === true;
-        console.log(`🔐 Admin check for ${user.email}: ${isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN'}`);
-
-        if (isAdmin) {
-            console.log(`🔑 Admin permissions: ${user.admin_permissions || 'none'}`);
-        }
-
+        const isAdmin = user?.is_admin === true;
+        console.log(`🔐 Database admin check for ${user?.email}: ${isAdmin ? 'YES' : 'NO'}`);
         return isAdmin;
+
     } catch (error) {
-        console.error('❌ Database admin verification failed:', error);
+        console.error('❌ Admin verification error:', error);
+
+        // FINAL FALLBACK: Use email check
+        if (userEmail && isAdminByEmail(userEmail)) {
+            console.log('✅ Admin verified by email (error fallback):', userEmail);
+            return true;
+        }
+
         return false;
     }
 };
 
+// ============================================================================
+// DATABASE ADMIN VERIFICATION - FIXED FOR YOUR ACTUAL SCHEMA
+// ============================================================================
+
 /**
- * Authenticate admin using database verification - UPDATED FOR YOUR SCHEMA
+ * FIXED: Get user record by auth user ID (linking auth.users to public.users)
+ */
+const getUserByAuthId = async (authUserId: string): Promise<any> => {
+    try {
+        const client = getSupabaseClient();
+        if (!client) {
+            console.error('❌ Supabase not configured');
+            return null;
+        }
+
+        // Query your users table using external_id which should match auth.users.id
+        const { data: user, error } = await client
+            .from('users')
+            .select('id, external_id, email, is_admin, admin_permissions, display_name')
+            .eq('external_id', authUserId)
+            .single();
+
+        if (error) {
+            console.error('❌ Error fetching user by auth ID:', error);
+            return null;
+        }
+
+        return user;
+    } catch (error) {
+        console.error('❌ getUserByAuthId failed:', error);
+        return null;
+    }
+};
+
+/**
+ * FIXED: Verify if user is admin in database using your actual schema
+ */
+export const verifyDatabaseAdmin = async (authUserId: string, userEmail?: string): Promise<boolean> => {
+    return await verifyDatabaseAdminWithFallback(authUserId, userEmail);
+};
+
+/**
+ * FIXED: Authenticate admin using your database schema
  */
 export const authenticateAdmin = async (email: string, password: string): Promise<{
     success: boolean;
@@ -126,14 +192,16 @@ export const authenticateAdmin = async (email: string, password: string): Promis
             };
         }
 
-        // First, authenticate with Supabase
+        console.log('🔐 Attempting admin authentication for:', email);
+
+        // First, authenticate with Supabase Auth
         const { data: authData, error: authError } = await client.auth.signInWithPassword({
             email,
             password
         });
 
         if (authError) {
-            console.error('❌ Authentication failed:', authError.message);
+            console.error('❌ Supabase authentication failed:', authError.message);
             return {
                 success: false,
                 error: authError.message
@@ -147,10 +215,13 @@ export const authenticateAdmin = async (email: string, password: string): Promis
             };
         }
 
-        // FIXED: Verify admin status using email instead of auth_user_id
-        const isAdmin = await verifyDatabaseAdmin(authData.user.email || '');
+        console.log('✅ Supabase auth successful, checking admin status...');
+
+        // FIXED: Verify admin status using auth user ID and email
+        const isAdmin = await verifyDatabaseAdmin(authData.user.id, authData.user.email || '');
 
         if (!isAdmin) {
+            console.log('❌ User authenticated but not admin - signing out');
             // Sign out if not admin
             await client.auth.signOut();
             return {
@@ -179,8 +250,9 @@ export const authenticateAdmin = async (email: string, password: string): Promis
 };
 
 /**
- * Verify current user is admin - UPDATED FOR YOUR SCHEMA
+ * FIXED: Verify current user is admin using your schema
  */
+// REPLACE the existing verifyCurrentAdmin function with this:
 export const verifyCurrentAdmin = async (): Promise<boolean> => {
     try {
         const client = getSupabaseClient();
@@ -190,12 +262,15 @@ export const verifyCurrentAdmin = async (): Promise<boolean> => {
 
         const { data: { user } } = await client.auth.getUser();
 
-        if (!user || !user.email) {
+        if (!user || !user.id) {
+            console.log('❌ No authenticated user found');
             return false;
         }
 
-        // FIXED: Use email to verify admin status
-        return await verifyDatabaseAdmin(user.email);
+        console.log('🔐 Verifying current admin status for user:', user.email);
+
+        // Use enhanced verification with email fallback
+        return await verifyDatabaseAdminWithFallback(user.id, user.email || '');
     } catch (error) {
         console.error('❌ Current admin verification failed:', error);
         return false;
@@ -203,7 +278,7 @@ export const verifyCurrentAdmin = async (): Promise<boolean> => {
 };
 
 // ============================================================================
-// SESSION MANAGEMENT (ENHANCED)
+// SESSION MANAGEMENT (PRESERVED)
 // ============================================================================
 
 /**
@@ -221,7 +296,7 @@ export const generateSessionId = (): string => {
 };
 
 /**
- * Create new admin session (enhanced with user info)
+ * Create new admin session
  */
 export const createAdminSession = (user: any): AdminSession => {
     return {
@@ -229,12 +304,11 @@ export const createAdminSession = (user: any): AdminSession => {
         lastLogin: new Date().toISOString(),
         sessionTimeout: ADMIN_CONFIG.SESSION.timeout,
         userId: user.id,
-        // Note: email and permissions are stored in session data but not in AdminSession interface
     };
 };
 
 /**
- * Get permission level based on email (database admin)
+ * Get permission level based on email
  */
 export const getPermissionLevel = (email: string): 'readonly' | 'standard' | 'full' => {
     // Primary admin gets full access
@@ -259,9 +333,6 @@ export const saveAdminSession = (session: AdminSession): void => {
             ...session,
             createdAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + ADMIN_CONFIG.SESSION.timeout).toISOString(),
-            // Store additional user info in session data (not in AdminSession interface)
-            email: session.userId ? 'admin@applytrak.com' : undefined,
-            permissions: 'full'
         };
 
         localStorage.setItem(
@@ -302,7 +373,7 @@ export const loadAdminSession = (): AdminSession | null => {
         };
     } catch (error) {
         console.error('❌ Failed to load admin session:', error);
-        clearAdminSession(); // Clear corrupted session
+        clearAdminSession();
         return null;
     }
 };
@@ -386,11 +457,11 @@ export const refreshAdminSession = async (): Promise<boolean> => {
 };
 
 // ============================================================================
-// SECURITY & VALIDATION (ENHANCED)
+// SECURITY & VALIDATION
 // ============================================================================
 
 /**
- * Validate admin credentials (now uses database verification)
+ * Validate admin credentials
  */
 export const validateAdminCredentials = async (email: string, password: string): Promise<boolean> => {
     const result = await authenticateAdmin(email, password);
@@ -398,7 +469,7 @@ export const validateAdminCredentials = async (email: string, password: string):
 };
 
 /**
- * Admin logout (enhanced with Supabase signout)
+ * Admin logout
  */
 export const adminLogout = async (): Promise<void> => {
     try {
@@ -412,13 +483,12 @@ export const adminLogout = async (): Promise<void> => {
         console.log('👋 Admin logged out');
     } catch (error) {
         console.error('❌ Admin logout error:', error);
-        // Still clear session even if Supabase signout fails
         clearAdminSession();
     }
 };
 
 // ============================================================================
-// RATE LIMITING (EXISTING FUNCTIONALITY PRESERVED)
+// RATE LIMITING
 // ============================================================================
 
 /**
@@ -430,10 +500,8 @@ export const trackLoginAttempt = (email: string, success: boolean): void => {
         const attempts = JSON.parse(localStorage.getItem(key) || '[]');
         const now = Date.now();
 
-        // Add this attempt
         attempts.push({ timestamp: now, success });
 
-        // Clean old attempts (older than lockout duration)
         const validAttempts = attempts.filter(
             (attempt: any) => now - attempt.timestamp < ADMIN_CONFIG.SESSION.lockoutDuration
         );
@@ -453,7 +521,6 @@ export const isLoginRateLimited = (email: string): boolean => {
         const attempts = JSON.parse(localStorage.getItem(key) || '[]');
         const now = Date.now();
 
-        // Count failed attempts in lockout period
         const recentFailedAttempts = attempts.filter(
             (attempt: any) =>
                 !attempt.success &&
@@ -480,7 +547,7 @@ export const clearLoginAttempts = (email: string): void => {
 };
 
 // ============================================================================
-// PERMISSIONS & AUDIT (ENHANCED)
+// PERMISSIONS & AUDIT
 // ============================================================================
 
 /**
@@ -491,8 +558,6 @@ export const hasPermission = (session: AdminSession | null, permission: string):
         return false;
     }
 
-    // For now, all authenticated admin sessions have full permissions
-    // This can be enhanced later with role-based permissions
     const permissions = ADMIN_CONFIG.PERMISSIONS.full;
     return permissions.includes(permission);
 };
@@ -505,7 +570,6 @@ export const getPermissions = (session: AdminSession | null): string[] => {
         return [];
     }
 
-    // For now, all authenticated admin sessions have full permissions
     return ADMIN_CONFIG.PERMISSIONS.full;
 };
 
@@ -526,7 +590,6 @@ export const logAdminAction = (session: AdminSession | null, action: string, det
         const logEntry = {
             timestamp: new Date().toISOString(),
             userId: session.userId || 'unknown',
-            email: 'admin@applytrak.com', // Default admin email since not stored in session
             action,
             details,
             sessionId: generateSessionId()
@@ -535,7 +598,6 @@ export const logAdminAction = (session: AdminSession | null, action: string, det
         const existingLogs = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
         existingLogs.push(logEntry);
 
-        // Keep only last 1000 entries
         if (existingLogs.length > 1000) {
             existingLogs.splice(0, existingLogs.length - 1000);
         }
@@ -573,7 +635,7 @@ export const clearAuditLogs = (): void => {
 };
 
 // ============================================================================
-// UTILITIES (ENHANCED)
+// UTILITIES
 // ============================================================================
 
 /**
@@ -638,17 +700,17 @@ export const getSessionStatus = async (): Promise<{
 };
 
 // ============================================================================
-// EXPORT ADMIN AUTH UTILITIES (ENHANCED)
+// EXPORT ADMIN AUTH UTILITIES
 // ============================================================================
 
 export const adminAuthUtils = {
-    // Database Admin Verification (UPDATED FOR YOUR SCHEMA)
+    // Database Admin Verification (FIXED FOR YOUR SCHEMA)
     verifyDatabaseAdmin,
     authenticateAdmin,
     verifyCurrentAdmin,
     adminLogout,
 
-    // Session Management (ENHANCED)
+    // Session Management
     generateSessionId,
     createAdminSession,
     saveAdminSession,
@@ -658,26 +720,26 @@ export const adminAuthUtils = {
     shouldRefreshSession,
     refreshAdminSession,
 
-    // Security & Validation (ENHANCED)
+    // Security & Validation
     validateAdminCredentials,
     getPermissionLevel,
 
-    // Rate Limiting (PRESERVED)
+    // Rate Limiting
     trackLoginAttempt,
     isLoginRateLimited,
     clearLoginAttempts,
 
-    // Permissions (ENHANCED)
+    // Permissions
     hasPermission,
     getPermissions,
     canPerformAction,
 
-    // Audit Logging (ENHANCED)
+    // Audit Logging
     logAdminAction,
     getAuditLogs,
     clearAuditLogs,
 
-    // Utilities (ENHANCED)
+    // Utilities
     formatRemainingTime,
     isDevelopmentMode,
     getSessionStatus

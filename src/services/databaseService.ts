@@ -193,10 +193,12 @@ const getUserDbId = async (): Promise<number | null> => {
 
     try {
         const client = initializeSupabase()!;
+
+        // FIXED: Use external_id instead of auth_user_id
         const {data: user, error} = await client
             .from('users')
             .select('id')
-            .eq('auth_user_id', userId)  // Use auth_user_id instead of external_id
+            .eq('external_id', userId)  // ✅ FIXED: Use external_id (matches your schema)
             .maybeSingle();
 
         if (error) {
@@ -209,7 +211,7 @@ const getUserDbId = async (): Promise<number | null> => {
             const {data: newUser, error: createError} = await client
                 .from('users')
                 .insert({
-                    auth_user_id: userId,
+                    external_id: userId,  // ✅ FIXED: Use external_id
                     email: authState.user?.email || `user-${userId}@applytrak.local`,
                     display_name: authState.user?.user_metadata?.full_name || 'ApplyTrak User',
                     created_at: new Date().toISOString()
