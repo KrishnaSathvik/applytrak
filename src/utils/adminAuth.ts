@@ -82,6 +82,8 @@ export const isAdminByEmail = (email: string): boolean => {
 /**
  * ENHANCED: Admin verification with email fallback
  */
+// REPLACE your verifyDatabaseAdminWithFallback function in adminAuth.ts with this:
+
 export const verifyDatabaseAdminWithFallback = async (authUserId: string, userEmail?: string): Promise<boolean> => {
     try {
         // FIRST: Try email-based check (fastest and most reliable)
@@ -90,23 +92,49 @@ export const verifyDatabaseAdminWithFallback = async (authUserId: string, userEm
             return true;
         }
 
-        // SECOND: Try database lookup (might fail due to RLS)
+        // SECOND: Try database lookup with proper UUID
         const client = getSupabaseClient();
         if (!client) {
             console.error('❌ Supabase not configured');
             return false;
         }
 
-        console.log(`🔐 Checking admin status for auth user: ${authUserId}`);
+        console.log(`🔐 Checking admin status for auth user UUID: ${authUserId}`);
 
+        // FIXED: Query by UUID (external_id), not email
         const { data: user, error } = await client
             .from('users')
             .select('id, external_id, email, is_admin, admin_permissions, display_name')
-            .eq('external_id', authUserId)
+            .eq('external_id', authUserId)  // Use UUID, not email
             .single();
 
         if (error) {
             console.warn('❌ Database admin check failed:', error.message);
+
+            // If user not found by UUID but we have email, try email lookup
+            if (error.code === 'PGRST116' && userEmail) {
+                console.log('🔍 User not found by UUID, trying email lookup...');
+
+                const { data: emailUser, error: emailError } = await client
+                    .from('users')
+                    .select('id, external_id, email, is_admin, admin_permissions, display_name')
+                    .eq('email', userEmail)  // Query by email
+                    .single();
+
+                if (!emailError && emailUser) {
+                    console.log('✅ Found user by email, updating external_id...');
+
+                    // Update the external_id to match the auth UUID
+                    await client
+                        .from('users')
+                        .update({ external_id: authUserId })
+                        .eq('id', emailUser.id);
+
+                    const isAdmin = emailUser.is_admin === true;
+                    console.log(`🔐 Admin check for ${emailUser.email}: ${isAdmin ? 'YES' : 'NO'}`);
+                    return isAdmin;
+                }
+            }
 
             // FALLBACK: Use email check if database fails
             if (userEmail && isAdminByEmail(userEmail)) {
