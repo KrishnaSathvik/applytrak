@@ -200,7 +200,16 @@ const getUserByAuthId = async (authUserId: string): Promise<any> => {
  * FIXED: Verify if user is admin in database using your actual schema
  */
 export const verifyDatabaseAdmin = async (authUserId: string, userEmail?: string): Promise<boolean> => {
-    return await verifyDatabaseAdminWithFallback(authUserId, userEmail);
+    console.log('🔐 Admin check - authUserId:', authUserId, 'userEmail:', userEmail);
+
+    // Use email-only check (bypass database issues)
+    if (userEmail && isAdminByEmail(userEmail)) {
+        console.log('✅ Admin verified by email:', userEmail);
+        return true;
+    }
+
+    console.log('❌ Not admin email:', userEmail);
+    return false;
 };
 
 /**
@@ -290,15 +299,15 @@ export const verifyCurrentAdmin = async (): Promise<boolean> => {
 
         const { data: { user } } = await client.auth.getUser();
 
-        if (!user || !user.id) {
+        if (!user || !user.email) {
             console.log('❌ No authenticated user found');
             return false;
         }
 
-        console.log('🔐 Verifying current admin status for user:', user.email);
+        console.log('🔐 Verifying current admin status for email:', user.email);
 
-        // Use enhanced verification with email fallback
-        return await verifyDatabaseAdminWithFallback(user.id, user.email || '');
+        // Use email-only check
+        return isAdminByEmail(user.email);
     } catch (error) {
         console.error('❌ Current admin verification failed:', error);
         return false;
