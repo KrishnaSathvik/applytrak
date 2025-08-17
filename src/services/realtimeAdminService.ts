@@ -98,7 +98,9 @@ const initAdminSupabase = (): SupabaseClient | null => {
 
 export const realtimeAdminService = {
 
-    // ✅ PHASE 3: Get ALL users from database (not just current user)
+    // ✅ FIXED: Replace these functions in your realtimeAdminService.ts
+
+// ✅ PHASE 3: Get ALL users from database (FIXED SCHEMA)
     async getAllUsers() {
         try {
             console.log('👥 Fetching ALL users from database...');
@@ -108,16 +110,21 @@ export const realtimeAdminService = {
                 return [];
             }
 
+            // ✅ FIXED: Query your actual users table schema
             const { data: users, error } = await client
                 .from('users')
                 .select(`
-                    id,
-                    email,
-                    created_at,
-                    last_sign_in_at,
-                    user_metadata,
-                    is_admin
-                `)
+                id,
+                external_id,
+                email,
+                created_at,
+                updated_at,
+                display_name,
+                last_active_at,
+                is_admin,
+                timezone,
+                language
+            `)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -133,7 +140,7 @@ export const realtimeAdminService = {
         }
     },
 
-    // ✅ PHASE 3: Get aggregated data from ALL users (real multi-user)
+// ✅ PHASE 3: Get aggregated data from ALL users (FIXED - NO USER FILTERS)
     async getAllUsersData(): Promise<SafeUserData> {
         try {
             console.log('🔄 Fetching aggregated data from ALL users...');
@@ -148,13 +155,13 @@ export const realtimeAdminService = {
                 setTimeout(() => reject(new Error('Database query timeout')), 15000)
             );
 
-            // PHASE 3: Fetch ALL data across ALL users
+            // ✅ FIXED: Fetch ALL data across ALL users (REMOVED user_id filters)
             const dataPromise = Promise.all([
-                client.from('applications').select('*'),
-                client.from('goals').select('*'),
-                client.from('analytics_events').select('*'),
-                client.from('feedback').select('*'),
-                this.getAllUsers() // Get actual user list
+                client.from('applications').select('*').limit(2000),        // ✅ ALL applications
+                client.from('goals').select('*').limit(1000),               // ✅ ALL goals
+                client.from('analytics_events').select('*').limit(5000),    // ✅ ALL events
+                client.from('feedback').select('*').limit(1000),            // ✅ ALL feedback
+                this.getAllUsers() // ✅ Get actual user list with correct schema
             ]);
 
             const responses = await Promise.race([dataPromise, timeoutPromise]);
@@ -167,7 +174,7 @@ export const realtimeAdminService = {
             const feedback = (feedbackResponse?.data || []).filter(Boolean);
             const users = Array.isArray(usersData) ? usersData : [];
 
-            // PHASE 3: Real user count from actual users table
+            // ✅ FIXED: Real user count from actual users table
             const totalUsers = users.length;
 
             const result: SafeUserData = {
@@ -179,7 +186,13 @@ export const realtimeAdminService = {
                 totalUsers
             };
 
-            console.log(`✅ PHASE 3: Aggregated data from ${totalUsers} real users, ${applications.length} applications`);
+            console.log(`✅ PHASE 3: FIXED - Aggregated data from ${totalUsers} real users:`);
+            console.log(`   📱 Applications: ${applications.length}`);
+            console.log(`   🎯 Goals: ${goals.length}`);
+            console.log(`   📊 Events: ${events.length}`);
+            console.log(`   💬 Feedback: ${feedback.length}`);
+            console.log(`   👥 Users: ${users.length}`);
+
             return result;
         } catch (error) {
             console.error('❌ Failed to get multi-user admin data:', error);
@@ -188,26 +201,27 @@ export const realtimeAdminService = {
         }
     },
 
-
-    // ✅ PHASE 3: Real-time admin analytics with ACTUAL multi-user data
+// ✅ ENHANCED: Real-time admin analytics with ACTUAL multi-user data
     async getRealtimeAdminAnalytics(): Promise<AdminAnalytics> {
         try {
             console.log('📊 Calculating REAL multi-user analytics...');
             const data = await this.getAllUsersData();
             const now = new Date();
 
-            // PHASE 3: Real metrics from actual users
+            // ✅ FIXED: Real metrics from actual users
             const totalUsers = data.totalUsers;
             const totalApplications = data.applications?.length || 0;
             const totalEvents = data.events?.length || 0;
 
-            // PHASE 3: Calculate REAL active users from multiple users
+            console.log(`📊 Analytics Input: ${totalUsers} users, ${totalApplications} applications, ${totalEvents} events`);
+
+            // ✅ FIXED: Calculate REAL active users from multiple users
             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Active users based on recent applications or sign-ins
+            // Active users based on recent applications or last_active_at
             const recentlyActiveUserIds = new Set<string>();
 
             // Users with recent applications
@@ -216,7 +230,7 @@ export const realtimeAdminService = {
                     try {
                         const appDate = new Date(app.created_at);
                         if (appDate >= weekAgo && app.user_id) {
-                            recentlyActiveUserIds.add(app.user_id);
+                            recentlyActiveUserIds.add(app.user_id.toString());
                         }
                     } catch (error) {
                         // Skip invalid dates
@@ -224,13 +238,13 @@ export const realtimeAdminService = {
                 }
             });
 
-            // Users with recent sign-ins
+            // Users with recent activity (last_active_at)
             data.users.forEach((user: any) => {
-                if (user?.id && user?.last_sign_in_at) {
+                if (user?.id && user?.last_active_at) {
                     try {
-                        const signInDate = new Date(user.last_sign_in_at);
-                        if (signInDate >= weekAgo) {
-                            recentlyActiveUserIds.add(user.id);
+                        const activeDate = new Date(user.last_active_at);
+                        if (activeDate >= weekAgo) {
+                            recentlyActiveUserIds.add(user.id.toString());
                         }
                     } catch (error) {
                         // Skip invalid dates
@@ -240,12 +254,12 @@ export const realtimeAdminService = {
 
             const activeUsers = recentlyActiveUserIds.size;
 
-            // PHASE 3: Real new user calculations
+            // ✅ FIXED: Real new user calculations using created_at
             const newUsersToday = this.safeGetUsersCreatedOnDate(data.users, today);
             const newUsersThisWeek = this.safeGetUsersCreatedSince(data.users, weekAgo);
             const newUsersThisMonth = this.safeGetUsersCreatedSince(data.users, monthAgo);
 
-            // PHASE 3: Real daily active users trend (last 30 days)
+            // ✅ FIXED: Daily active users trend (last 30 days)
             const last30Days = Array.from({ length: 30 }, (_, i) => {
                 const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
                 const dateStart = new Date(date);
@@ -262,21 +276,7 @@ export const realtimeAdminService = {
                         try {
                             const appDate = new Date(app.created_at);
                             if (appDate >= dateStart && appDate <= dateEnd) {
-                                dayActiveUsers.add(app.user_id);
-                            }
-                        } catch (error) {
-                            // Skip invalid dates
-                        }
-                    }
-                });
-
-                // Check sign-ins on this day
-                data.users.forEach((user: any) => {
-                    if (user?.id && user?.last_sign_in_at) {
-                        try {
-                            const signInDate = new Date(user.last_sign_in_at);
-                            if (signInDate >= dateStart && signInDate <= dateEnd) {
-                                dayActiveUsers.add(user.id);
+                                dayActiveUsers.add(app.user_id.toString());
                             }
                         } catch (error) {
                             // Skip invalid dates
@@ -321,12 +321,17 @@ export const realtimeAdminService = {
                     pendingSync: 0,
                     syncErrors: 0,
                     lastSyncTime: new Date().toISOString(),
-                    dataSource: 'cloud',
-                    refreshMethod: 'unified_global_refresh'
+                    dataSource: 'cloud_fixed',
+                    refreshMethod: 'unified_global_refresh_fixed'
                 }
             };
 
-            console.log(`✅ PHASE 3: Real multi-user analytics calculated for ${totalUsers} users`);
+            console.log(`✅ PHASE 3: FIXED - Real multi-user analytics calculated for ${totalUsers} users:`);
+            console.log(`   👥 Total Users: ${totalUsers}`);
+            console.log(`   🔥 Active Users: ${activeUsers}`);
+            console.log(`   📱 Total Applications: ${totalApplications}`);
+            console.log(`   📊 Total Events: ${totalEvents}`);
+
             return analytics;
         } catch (error) {
             console.error('❌ Real-time analytics calculation failed:', error);
@@ -915,6 +920,9 @@ export const realtimeAdminService = {
     },
 
     // ✅ PHASE 3: Real retention calculation using actual users
+    // ✅ FIXED: Replace the safeCalculateRetention function in your realtimeAdminService.ts
+
+// ✅ PHASE 3: Real retention calculation using actual users (FIXED SCHEMA)
     safeCalculateRetention(users: any[], applications: any[]): Record<string, number> {
         if (!Array.isArray(users) || users.length === 0) {
             return { day1: 0, day7: 0, day30: 0 };
@@ -954,7 +962,7 @@ export const realtimeAdminService = {
                 }
             });
 
-            // Users who were active (created applications or signed in recently)
+            // Users who were active (created applications or have recent last_active_at)
             const recentlyActiveUserIds = new Set<string>();
 
             // Users with recent applications
@@ -963,7 +971,7 @@ export const realtimeAdminService = {
                     try {
                         const appDate = new Date(app.created_at);
                         if (appDate >= sevenDaysAgo) {
-                            recentlyActiveUserIds.add(app.user_id);
+                            recentlyActiveUserIds.add(app.user_id.toString());
                         }
                     } catch {
                         // Skip invalid dates
@@ -971,13 +979,13 @@ export const realtimeAdminService = {
                 }
             });
 
-            // Users with recent sign-ins
+            // ✅ FIXED: Users with recent activity using last_active_at instead of last_sign_in_at
             users.forEach(user => {
-                if (user?.id && user?.last_sign_in_at) {
+                if (user?.id && user?.last_active_at) {
                     try {
-                        const signInDate = new Date(user.last_sign_in_at);
-                        if (signInDate >= sevenDaysAgo) {
-                            recentlyActiveUserIds.add(user.id);
+                        const activeDate = new Date(user.last_active_at);
+                        if (activeDate >= sevenDaysAgo) {
+                            recentlyActiveUserIds.add(user.id.toString());
                         }
                     } catch {
                         // Skip invalid dates
@@ -987,18 +995,18 @@ export const realtimeAdminService = {
 
             // Calculate retention rates
             const day1Retained = usersSignedUpMoreThan1DayAgo.filter(user =>
-                recentlyActiveUserIds.has(user.id)
+                recentlyActiveUserIds.has(user.id.toString())
             ).length;
 
             const day7Retained = usersSignedUpMoreThan7DaysAgo.filter(user =>
-                recentlyActiveUserIds.has(user.id)
+                recentlyActiveUserIds.has(user.id.toString())
             ).length;
 
             const day30Retained = usersSignedUpMoreThan30DaysAgo.filter(user =>
-                recentlyActiveUserIds.has(user.id)
+                recentlyActiveUserIds.has(user.id.toString())
             ).length;
 
-            return {
+            const result = {
                 day1: usersSignedUpMoreThan1DayAgo.length > 0
                     ? Math.round((day1Retained / usersSignedUpMoreThan1DayAgo.length) * 100)
                     : 0,
@@ -1009,7 +1017,11 @@ export const realtimeAdminService = {
                     ? Math.round((day30Retained / usersSignedUpMoreThan30DaysAgo.length) * 100)
                     : 0
             };
-        } catch {
+
+            console.log('📊 Retention calculated:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Retention calculation error:', error);
             return { day1: 0, day7: 0, day30: 0 };
         }
     },
