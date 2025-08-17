@@ -7,9 +7,9 @@ import LoadingScreen from './components/ui/LoadingScreen';
 import {setupAutoBackup} from './utils/backup';
 import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
-import {verifyDatabaseAdmin} from './utils/adminAuth';
 import './styles/globals.css';
 import RealtimeSyncDebugger from './components/RealtimeSyncDebugger';
+import {verifyDatabaseAdmin} from './utils/adminAuth';
 
 // ============================================================================
 // LAZY LOADED COMPONENTS - Performance optimization

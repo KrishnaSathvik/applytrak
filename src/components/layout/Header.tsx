@@ -10,7 +10,6 @@ import {
     Menu,
     Monitor,
     Moon,
-    Settings,
     Smartphone,
     Sun,
     TrendingUp,
@@ -20,6 +19,8 @@ import {
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
+import {createPortal} from 'react-dom';
+
 
 // ============================================================================
 // 🔐 USER MENU DROPDOWN COMPONENT - Authentication user interface
@@ -33,11 +34,26 @@ interface UserMenuProps {
     onSignOut: () => void;
 }
 
+// Replace your UserMenu component with this debug version temporarily
+// Add this to your Header.tsx file
+// Replace your entire UserMenu component with this ULTRA SIMPLE version:
+
+// Final working UserMenu component - replace your current one with this:
+
+// Let's go back to the simple version that was working and improve it gradually:
+
+// Final working UserMenu with proper positioning:
+// Final professional UserMenu - replace the debug version with this:
+
 const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onSignOut}) => {
+    const [buttonRef, setButtonRef] = useState<HTMLButtonElement | null>(null);
+    const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+    const email = user?.email || '';
+
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (isOpen && !(event.target as Element).closest('.user-menu-container')) {
+            if (isOpen && !(event.target as Element).closest('.user-menu-container') && !(event.target as Element).closest('.user-dropdown-portal')) {
                 onClose();
             }
         };
@@ -46,14 +62,22 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen, onClose]);
 
-    // Get user display name and email
-    const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
-    const email = user?.email || '';
+    // Calculate dropdown position
+    const getDropdownPosition = () => {
+        if (!buttonRef) return {top: 0, right: 0};
+
+        const rect = buttonRef.getBoundingClientRect();
+        return {
+            top: rect.bottom + 8,
+            right: window.innerWidth - rect.right
+        };
+    };
 
     return (
         <div className="user-menu-container relative">
             {/* User Menu Button */}
             <button
+                ref={setButtonRef}
                 onClick={onToggle}
                 className="
                     flex items-center gap-3 p-2.5 rounded-xl
@@ -86,18 +110,19 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
                     className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}/>
             </button>
 
-            {/* Dropdown Menu */}
-            {isOpen && (
-                <div className="
-                    absolute right-0 mt-2 w-80
-                    bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl
-                    border border-gray-200/50 dark:border-gray-700/50
-                    rounded-2xl shadow-2xl z-50
-                    animate-slideDown origin-top-right
-                ">
+            {/* Portal-based Dropdown - Renders at document body level */}
+            {isOpen && buttonRef && createPortal(
+                <div
+                    className="user-dropdown-portal fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl w-80"
+                    style={{
+                        top: getDropdownPosition().top,
+                        right: getDropdownPosition().right,
+                        zIndex: 99999
+                    }}
+                >
                     {/* User Info Header */}
                     <div
-                        className="p-4 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-green-50/50 to-emerald-50/50 dark:from-green-900/10 dark:to-emerald-900/10">
+                        className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-2xl">
                         <div className="flex items-center gap-3">
                             <div
                                 className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
@@ -122,22 +147,9 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
 
                     {/* Menu Items */}
                     <div className="p-2">
-                        {/* Account Settings */}
-                        <button
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-gray-700 dark:text-gray-300"
-                            onClick={() => {
-                                onClose();
-                                // TODO: Implement account settings
-                                console.log('Account settings clicked');
-                            }}
-                        >
-                            <Settings className="h-4 w-4 text-gray-500"/>
-                            <span className="text-sm font-medium">Account Settings</span>
-                        </button>
-
                         {/* Sync Status */}
                         <div
-                            className="px-3 py-2.5 border-l-2 border-green-500 bg-green-50/50 dark:bg-green-900/20 rounded-lg my-1">
+                            className="px-3 py-2.5 border-l-2 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-lg my-1">
                             <div className="flex items-center gap-2 text-sm">
                                 <Cloud className="h-4 w-4 text-green-600 dark:text-green-400"/>
                                 <span className="font-medium text-green-800 dark:text-green-200">Sync Status</span>
@@ -167,12 +179,12 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
                             <span className="text-sm font-medium">Sign Out</span>
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
 };
-
 // ============================================================================
 // 🔐 AUTHENTICATION BUTTONS COMPONENT - Consistent with Design System
 // ============================================================================
@@ -185,30 +197,44 @@ interface AuthButtonsProps {
 
 const AuthButtons: React.FC<AuthButtonsProps> = ({onLogin, onSignup, isLoading = false}) => {
     return (
-        <div className="flex items-center gap-2">
-            {/* Sign In Button - Using Design System */}
+        <div className="flex items-center gap-1 sm:gap-2">
+            {/* Sign In Button - Mobile Optimized */}
             <button
                 onClick={onLogin}
                 disabled={isLoading}
                 className="
-                    btn btn-secondary btn-sm
-                    flex items-center gap-2 text-sm font-medium
+                    flex items-center justify-center gap-1 sm:gap-2
+                    px-2 sm:px-3 py-2 sm:py-2.5
+                    text-xs sm:text-sm font-medium
+                    bg-gray-100 dark:bg-gray-800
+                    hover:bg-gray-200 dark:hover:bg-gray-700
+                    border border-gray-200 dark:border-gray-700
+                    rounded-lg sm:rounded-xl
+                    transition-all duration-200
                     disabled:opacity-50 disabled:cursor-not-allowed
+                    min-w-[44px] min-h-[44px]
                 "
                 title="Sign in to sync across devices"
             >
-                <LogIn className="h-4 w-4"/>
-                <span className="hidden sm:inline">Sign In</span>
+                <LogIn className="h-4 w-4 text-gray-600 dark:text-gray-400"/>
+                <span className="hidden sm:inline text-gray-700 dark:text-gray-300">Sign In</span>
             </button>
 
-            {/* Sign Up Button - Using Design System */}
+            {/* Sign Up Button - Mobile Optimized */}
             <button
                 onClick={onSignup}
                 disabled={isLoading}
                 className="
-                    btn btn-primary btn-sm
-                    flex items-center gap-2 text-sm font-medium
+                    flex items-center justify-center gap-1 sm:gap-2
+                    px-2 sm:px-3 py-2 sm:py-2.5
+                    text-xs sm:text-sm font-medium text-white
+                    bg-gradient-to-r from-blue-600 to-purple-600
+                    hover:from-blue-700 hover:to-purple-700
+                    border border-blue-500
+                    rounded-lg sm:rounded-xl
+                    transition-all duration-200 shadow-sm hover:shadow-md
                     disabled:opacity-50 disabled:cursor-not-allowed group
+                    min-w-[44px] min-h-[44px]
                 "
                 title="Create account for cloud sync"
             >
@@ -231,9 +257,10 @@ interface AuthStatusProps {
 const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => {
     if (isLoading) {
         return (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"/>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Loading...</span>
+            <div
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-50 dark:bg-gray-800 rounded-md sm:rounded-lg">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-pulse"/>
+                <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">Loading...</span>
             </div>
         );
     }
@@ -241,18 +268,22 @@ const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => 
     if (isAuthenticated) {
         return (
             <div
-                className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
-                <span className="text-xs text-green-600 dark:text-green-400 font-medium">Cloud Sync</span>
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-green-50 dark:bg-green-900/20 rounded-md sm:rounded-lg border border-green-200/50 dark:border-green-700/50">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse"/>
+                <span
+                    className="text-xs text-green-600 dark:text-green-400 font-medium hidden sm:inline">Cloud Sync</span>
+                <span className="text-xs text-green-600 dark:text-green-400 font-medium sm:hidden">🌐</span>
             </div>
         );
     }
 
     return (
         <div
-            className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200/50 dark:border-yellow-700/50">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full"/>
-            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Local Only</span>
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-yellow-50 dark:bg-yellow-900/20 rounded-md sm:rounded-lg border border-yellow-200/50 dark:border-yellow-700/50">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-500 rounded-full"/>
+            <span
+                className="text-xs text-yellow-600 dark:text-yellow-400 font-medium hidden sm:inline">Local Only</span>
+            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium sm:hidden">💾</span>
         </div>
     );
 };
@@ -260,6 +291,8 @@ const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => 
 // ============================================================================
 // MAIN HEADER COMPONENT - ENHANCED WITH AUTHENTICATION INTEGRATION
 // ============================================================================
+
+// Mobile-Optimized Header - Replace the main Header component structure with this:
 
 const Header: React.FC = () => {
     const {
@@ -269,20 +302,15 @@ const Header: React.FC = () => {
         applications,
         filteredApplications,
         goalProgress,
-        // ✨ NEW: Authentication state and actions
         auth,
         openAuthModal,
         signOut,
         showToast
     } = useAppStore();
 
-    // ✨ NEW: User menu state management
     const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-    // ============================================================================
-    // 🎨 THEME MANAGEMENT - Enhanced with authentication awareness
-    // ============================================================================
-
+    // Theme management
     useEffect(() => {
         const isDark = ui.theme === 'dark';
         document.documentElement.classList.toggle('dark', isDark);
@@ -292,7 +320,6 @@ const Header: React.FC = () => {
     const handleThemeToggle = () => {
         const newTheme = ui.theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
-
         const isDark = newTheme === 'dark';
         document.documentElement.classList.toggle('dark', isDark);
         document.body.classList.toggle('dark', isDark);
@@ -300,10 +327,7 @@ const Header: React.FC = () => {
         document.documentElement.style.colorScheme = newTheme;
     };
 
-    // ============================================================================
-    // ✨ NEW: Authentication handlers
-    // ============================================================================
-
+    // Authentication handlers
     const handleSignOut = async () => {
         try {
             await signOut();
@@ -327,107 +351,109 @@ const Header: React.FC = () => {
         openAuthModal('signup');
     };
 
-    // ============================================================================
-    // 📊 ENHANCED METRICS CALCULATION - Authentication-aware
-    // ============================================================================
-
-    // Calculate success metrics for enhanced stats
+    // Calculate success metrics
     const activeApplications = applications.filter(app => app.status !== 'Rejected').length;
     const successRate = applications.length > 0
         ? Math.round((applications.filter(app => app.status === 'Offer').length / applications.length) * 100)
         : 0;
 
-    // ✨ NEW: Enhanced metrics with authentication context
-    const enhancedMetrics = {
-        totalApps: applications.length,
-        activeApps: activeApplications,
-        successRate,
-        syncStatus: auth.isAuthenticated ? 'cloud' : 'local',
-        deviceCount: auth.isAuthenticated ? '📱💻' : '💻'
-    };
-
     return (
         <header
             className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-            <div className="h-full px-4 lg:px-6">
+            {/* Mobile-First Layout */}
+            <div className="h-full px-3 sm:px-4 lg:px-6">
                 <div className="flex items-center justify-between h-full">
 
-                    {/* ============================================================================
-                        🏠 LEFT SECTION - Logo, Title, and Mobile Menu
-                        ============================================================================ */}
-
-                    <div className="flex items-center space-x-4 flex-1 min-w-0">
-                        {/* Enhanced Mobile Sidebar Toggle */}
+                    {/* LEFT SECTION - Mobile Optimized */}
+                    <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+                        {/* Mobile Sidebar Toggle */}
                         <button
                             onClick={toggleSidebar}
-                            className="lg:hidden p-3 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-200 shadow-sm hover:shadow-md group"
+                            className="lg:hidden p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm"
                             aria-label="Toggle sidebar"
                         >
                             {ui.sidebarOpen ? (
-                                <X className="h-5 w-5 text-gray-700 dark:text-gray-300 group-hover:rotate-90 transition-transform duration-200"/>
+                                <X className="h-5 w-5 text-gray-700 dark:text-gray-300"/>
                             ) : (
-                                <Menu
-                                    className="h-5 w-5 text-gray-700 dark:text-gray-300 group-hover:scale-110 transition-transform duration-200"/>
+                                <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300"/>
                             )}
                         </button>
 
-                        {/* Enhanced Logo and Title Section */}
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                            {/* Logo Container with Authentication Status */}
+                        {/* Logo and Title - Mobile Optimized */}
+                        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                            {/* Compact Logo */}
                             <div className="relative">
                                 <div
-                                    className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-sm hover:shadow-md transition-all duration-300 group">
+                                    className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
                                     <ApplyTrakLogo
                                         size="sm"
-                                        className="group-hover:scale-110 transition-transform duration-300"
+                                        className="transition-transform duration-300"
                                         priority={true}
                                     />
                                 </div>
-
-                                {/* ✨ NEW: Authentication status indicator on logo */}
+                                {/* Auth indicator */}
                                 {auth.isAuthenticated && (
                                     <div
-                                        className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></div>
+                                        className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white dark:border-gray-900 animate-pulse"></div>
                                 )}
                             </div>
 
-                            {/* Title and Subtitle */}
+                            {/* Title - Responsive */}
                             <div className="min-w-0 flex-1">
-                                <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-gradient-static tracking-tight">
+                                <h1 className="font-display text-lg sm:text-xl lg:text-2xl font-extrabold text-gradient-static tracking-tight truncate">
                                     ApplyTrak
                                 </h1>
-                                <div className="flex items-center gap-2">
-                                    <p className="text-xs lg:text-sm font-medium text-gray-600 dark:text-gray-400 hidden sm:block truncate leading-tight">
-                                        Your Personal Career Dashboard
-                                    </p>
-                                    {/* ✨ NEW: Auth status in subtitle area (mobile) */}
-                                    <div className="sm:hidden">
-                                        <AuthStatus
-                                            isAuthenticated={auth.isAuthenticated}
-                                            isLoading={auth.isLoading}
-                                        />
-                                    </div>
-                                </div>
+                                {/* Subtitle - Hidden on small mobile */}
+                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hidden sm:block truncate leading-tight">
+                                    Your Personal Career Dashboard
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Mobile Stats - Compact */}
+                        <div className="hidden sm:flex md:hidden items-center space-x-2">
+                            <div
+                                className="flex items-center space-x-1.5 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200/50 dark:border-green-800/50">
+                                <span className="text-sm font-bold text-green-700 dark:text-green-300">
+                                    {applications.length}
+                                </span>
+                                <span className="text-xs text-green-600 dark:text-green-400">Apps</span>
+                                {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
                             </div>
                         </div>
                     </div>
 
-                    {/* ============================================================================
-                        📊 CENTER SECTION - Enhanced Stats with Authentication Context
-                        ============================================================================ */}
+                    {/* CENTER SECTION - Tablet/Desktop Stats */}
+                    <div className="hidden md:flex lg:hidden items-center space-x-3 px-4">
+                        <div
+                            className="flex items-center space-x-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-800/50">
+                            <Briefcase className="h-4 w-4 text-green-600 dark:text-green-400"/>
+                            <span className="text-sm font-bold text-green-700 dark:text-green-300">
+                                {applications.length} Apps
+                            </span>
+                            {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
+                        </div>
 
-                    <div className="hidden xl:flex items-center space-x-6 px-6">
-                        {/* Total Applications - Enhanced */}
+                        <div
+                            className="flex items-center space-x-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+                            <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
+                            <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                                {successRate}%
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Desktop Stats - Full Display */}
+                    <div className="hidden lg:flex items-center space-x-4 px-6">
                         <div
                             className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
                             <div className="flex items-center space-x-2">
                                 <Briefcase className="h-4 w-4 text-green-600 dark:text-green-400"/>
-                                {/* ✨ NEW: Authentication-aware icon */}
                                 {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
                             </div>
                             <div className="text-left">
                                 <div className="text-lg font-extrabold text-gradient-blue leading-none">
-                                    {enhancedMetrics.totalApps}
+                                    {applications.length}
                                 </div>
                                 <div
                                     className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest leading-none">
@@ -436,15 +462,12 @@ const Header: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Active Applications - Enhanced */}
                         <div
                             className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
-                            <div className="flex items-center space-x-2">
-                                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
-                            </div>
+                            <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                             <div className="text-left">
                                 <div className="text-lg font-extrabold text-gradient-purple leading-none">
-                                    {enhancedMetrics.activeApps}
+                                    {activeApplications}
                                 </div>
                                 <div
                                     className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none">
@@ -453,15 +476,12 @@ const Header: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Success Rate - Enhanced */}
                         <div
                             className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50 shadow-sm">
-                            <div className="flex items-center space-x-2">
-                                <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
-                            </div>
+                            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
                             <div className="text-left">
                                 <div className="text-lg font-extrabold text-gradient-static leading-none">
-                                    {enhancedMetrics.successRate}%
+                                    {successRate}%
                                 </div>
                                 <div
                                     className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest leading-none">
@@ -470,7 +490,7 @@ const Header: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* ✨ NEW: Authentication Status Card */}
+                        {/* Auth Status */}
                         <div
                             className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
                             <AuthStatus
@@ -480,38 +500,20 @@ const Header: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* ============================================================================
-                        🔧 RIGHT SECTION - Enhanced with Authentication Controls
-                        ============================================================================ */}
+                    {/* RIGHT SECTION - Mobile Optimized */}
+                    <div className="flex items-center space-x-1 sm:space-x-2">
 
-                    <div className="flex items-center space-x-2 sm:space-x-4">
-
-                        {/* Application Stats - Tablet/Small Desktop (Enhanced) */}
-                        <div className="hidden md:flex xl:hidden items-center space-x-3 text-sm">
-                            <div
-                                className="flex items-center space-x-2.5 px-3 py-2 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
-                                <span className="font-bold text-green-700 dark:text-green-300">
-                                    <span className="font-extrabold text-gradient-blue">{applications.length}</span>
-                                    <span className="text-xs font-bold uppercase tracking-wider ml-1">Apps</span>
-                                </span>
-                                {/* ✨ NEW: Sync indicator */}
-                                {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
-                            </div>
-
-                            <div
-                                className="flex items-center space-x-2.5 px-3 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
-                                <span className="font-bold text-blue-700 dark:text-blue-300">
-                                    <span
-                                        className="font-extrabold text-gradient-purple">{filteredApplications.length}</span>
-                                    <span className="text-xs font-bold uppercase tracking-wider ml-1">Shown</span>
-                                </span>
-                            </div>
+                        {/* Mobile Status Indicator */}
+                        <div className="sm:hidden">
+                            <AuthStatus
+                                isAuthenticated={auth.isAuthenticated}
+                                isLoading={auth.isLoading}
+                            />
                         </div>
 
-                        {/* ✨ NEW: Authentication Section */}
-                        <div className="flex items-center space-x-2">
+                        {/* Authentication Section */}
+                        <div className="flex items-center">
                             {auth.isAuthenticated ? (
-                                /* 👤 Authenticated User Menu */
                                 <UserMenu
                                     user={auth.user}
                                     isOpen={userMenuOpen}
@@ -520,7 +522,6 @@ const Header: React.FC = () => {
                                     onSignOut={handleSignOut}
                                 />
                             ) : (
-                                /* 🔐 Authentication Buttons */
                                 <AuthButtons
                                     onLogin={handleLogin}
                                     onSignup={handleSignup}
@@ -529,40 +530,22 @@ const Header: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Enhanced Theme Toggle */}
+                        {/* Theme Toggle */}
                         <button
                             onClick={handleThemeToggle}
-                            className="relative p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-300 group shadow-lg hover:shadow-xl"
+                            className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 shadow-sm hover:shadow-md"
                             aria-label={`Switch to ${ui.theme === 'dark' ? 'light' : 'dark'} mode`}
                         >
-                            <div className="relative z-10 flex items-center justify-center">
-                                {ui.theme === 'dark' ? (
-                                    <Sun
-                                        className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 group-hover:rotate-180 group-hover:scale-110 transition-transform duration-500 drop-shadow-sm"/>
-                                ) : (
-                                    <Moon
-                                        className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 group-hover:-rotate-12 group-hover:scale-110 transition-transform duration-500 drop-shadow-sm"/>
-                                )}
-                            </div>
-
-                            {/* Theme indicator */}
-                            <div
-                                className={`absolute -top-1 -right-1 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 ${
-                                    ui.theme === 'dark'
-                                        ? 'bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-yellow-400/50'
-                                        : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/50'
-                                }`}></div>
-
-                            {/* Hover glow effect */}
-                            <div
-                                className={`absolute inset-0 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                                    ui.theme === 'dark'
-                                        ? 'bg-gradient-to-br from-yellow-400/10 to-orange-500/10'
-                                        : 'bg-gradient-to-br from-blue-500/10 to-indigo-600/10'
-                                }`}></div>
+                            {ui.theme === 'dark' ? (
+                                <Sun
+                                    className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 transition-transform duration-500"/>
+                            ) : (
+                                <Moon
+                                    className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 transition-transform duration-500"/>
+                            )}
                         </button>
 
-                        {/* Enhanced Welcome Message - Large screens only */}
+                        {/* Welcome Message - Only on 2XL screens */}
                         <div className="hidden 2xl:flex items-center">
                             <div
                                 className="px-5 py-3 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm">

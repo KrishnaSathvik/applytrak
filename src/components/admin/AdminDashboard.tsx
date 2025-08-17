@@ -3,6 +3,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {
     Activity,
+    AlertCircle,
     BarChart3,
     Bug,
     Building2,
@@ -19,6 +20,8 @@ import {
     HelpCircle,
     Lightbulb,
     MessageSquare,
+    Pause,
+    Play,
     RefreshCw,
     Search,
     Settings,
@@ -28,16 +31,14 @@ import {
     TrendingUp,
     Users,
     X,
-    Zap,
-    Play,
-    Pause,
-    AlertCircle
+    Zap
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {feedbackService} from '../../services/feedbackService';
 import {analyticsService} from '../../services/analyticsService';
 import AdminSettings from './AdminSettings';
 import SupportTools from './SupportTools';
+import {realtimeAdminService} from '../../services/realtimeAdminService';
 
 // ✅ COMPLETE: All section types including Settings and Support
 type SectionId = 'overview' | 'analytics' | 'feedback' | 'users' | 'settings' | 'support';
@@ -497,7 +498,9 @@ const AdminDashboard: React.FC = () => {
         enableRealtimeAdmin,     // ✅ ADD THIS
         disableRealtimeAdmin,    // ✅ ADD THIS
         isAdminRealtime,
-        auth
+        auth,
+        loadRealtimeAdminAnalytics,
+        loadRealtimeFeedbackSummary
     } = useAppStore();
 
     const [isExporting, setIsExporting] = useState(false);
@@ -570,6 +573,123 @@ const AdminDashboard: React.FC = () => {
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]);
+
+    useEffect(() => {
+        const loadInitialData = async () => {
+            if (isDashboardOpen && isAuthenticated) {
+                console.log('📊 Loading initial admin data...');
+
+                try {
+                    // Load data immediately when dashboard opens
+                    await Promise.all([
+                        loadRealtimeAdminAnalytics(),
+                        loadRealtimeFeedbackSummary(),
+                        refreshAllAdminData()
+                    ]);
+
+                    console.log('✅ Initial admin data loaded successfully');
+                } catch (error) {
+                    console.error('❌ Failed to load initial admin data:', error);
+                    showToast({
+                        type: 'error',
+                        message: 'Failed to load admin data. Check your connection.'
+                    });
+                }
+            }
+        };
+
+        loadInitialData();
+    }, [isDashboardOpen, isAuthenticated]); // ✅ FIX: Remove function dependencies that cause infinite loops
+
+// ✅ FIX 2: Auto-refresh every 30 seconds when dashboard is open (CORRECTED)
+    useEffect(() => {
+        let autoRefreshInterval: NodeJS.Timeout | null = null;
+
+        if (isDashboardOpen && isAuthenticated) {
+            console.log('🔄 Starting auto-refresh for admin dashboard...');
+
+            autoRefreshInterval = setInterval(async () => {
+                console.log('⏰ Auto-refreshing admin data...');
+
+                try {
+                    await Promise.all([
+                        loadRealtimeAdminAnalytics(),
+                        loadRealtimeFeedbackSummary()
+                    ]);
+
+                    console.log('✅ Auto-refresh completed');
+                } catch (error) {
+                    console.error('❌ Auto-refresh failed:', error);
+                }
+            }, 30000); // 30 seconds
+        }
+
+        return () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                console.log('🛑 Auto-refresh stopped');
+            }
+        };
+    }, [isDashboardOpen, isAuthenticated]); // ✅ FIX: Remove function dependencies
+
+// ✅ FIX 3: Real-time subscriptions with fallback (CORRECTED)
+    useEffect(() => {
+        let cleanup: (() => void) | null = null;
+
+        const setupRealTimeOrFallback = async () => {
+            if (isDashboardOpen && isAuthenticated) {
+                try {
+                    console.log('🔌 Setting up real-time subscriptions...');
+
+                    // Try to set up real-time subscriptions
+                    cleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
+                        console.log('📡 Real-time update received:', data);
+
+                        // Refresh data when real-time updates come in
+                        loadRealtimeAdminAnalytics();
+                        loadRealtimeFeedbackSummary();
+
+                        showToast({
+                            type: 'success',
+                            message: 'Data updated in real-time',
+                            duration: 2000
+                        });
+                    });
+
+                    console.log('✅ Real-time subscriptions active');
+
+                } catch (error) {
+                    console.error('❌ Real-time setup failed, using polling fallback:', error);
+
+                    // Fallback: More frequent polling when real-time fails
+                    const pollInterval = setInterval(async () => {
+                        console.log('📋 Polling for updates (real-time fallback)...');
+
+                        try {
+                            await Promise.all([
+                                loadRealtimeAdminAnalytics(),
+                                loadRealtimeFeedbackSummary()
+                            ]);
+                        } catch (pollError) {
+                            console.error('❌ Polling failed:', pollError);
+                        }
+                    }, 15000); // 15 seconds for fallback
+
+                    cleanup = () => clearInterval(pollInterval);
+                }
+            }
+        };
+
+        setupRealTimeOrFallback();
+
+        return () => {
+            if (cleanup) {
+                cleanup();
+                console.log('🧹 Real-time/polling cleanup completed');
+            }
+        };
+    }, [isDashboardOpen, isAuthenticated]);
+
 
     // Calculate ApplyTrak-specific metrics
     const jobMetrics = useMemo(() => {

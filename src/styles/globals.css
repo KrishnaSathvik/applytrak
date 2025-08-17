@@ -1405,6 +1405,41 @@ select.form-input-enhanced::-ms-expand {
         transform: none !important;
     }
 }
+
+/* =============================================================================
+   USER DROPDOWN ANIMATIONS - Add to globals.css
+   ============================================================================= */
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-slideDown {
+    animation: slideDown 0.2s ease-out;
+}
+
+/* Hover effects for better user experience */
+.user-menu-container .animate-slideDown {
+    animation-fill-mode: both;
+    transform-origin: top right;
+}
+
+/* Ensure proper z-index for dropdown */
+.user-menu-container {
+    position: relative;
+    z-index: 50;
+}
+
+.user-menu-container > div:last-child {
+    z-index: 51;
+}
 /* =============================================================================
    END OF STYLES - Total: ~1000+ lines optimized for performance and maintainability
    ============================================================================= */

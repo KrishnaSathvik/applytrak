@@ -1,4 +1,4 @@
-// src/store/useAppStore.ts - PHASE 2: UNIFIED GLOBAL REFRESH SYSTEM
+// src/store/useAppStore.ts - PHASE 2: UNIFIED GLOBAL REFRESH SYSTEM - COMPLETE
 import {create} from 'zustand';
 import {persist, subscribeWithSelector} from 'zustand/middleware';
 import {startTransition} from 'react';
@@ -16,7 +16,7 @@ import {
     SourceSuccessRate,
     UserMetrics
 } from '../types';
-import {authService, databaseService} from '../services/databaseService'; // ✅ Added authService import
+import {authService, databaseService} from '../services/databaseService';
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
@@ -36,22 +36,21 @@ export interface Toast {
     };
 }
 
-// ✅ NEW: Authentication state interface
 export interface AuthState {
-    user: any | null;  // Supabase User type
-    session: any | null; // Supabase Session type
+    user: any | null;
+    session: any | null;
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
 }
 
-// ✅ PHASE 2: Global refresh state interface
 export interface GlobalRefreshState {
     isRefreshing: boolean;
     lastRefreshTimestamp: string | null;
     refreshStatus: 'idle' | 'refreshing' | 'success' | 'error';
     autoRefreshEnabled: boolean;
-    autoRefreshInterval: number; // in seconds
+    autoRefreshInterval: number;
+    autoRefreshIntervalSeconds: number;
     refreshErrors: string[];
 }
 
@@ -108,7 +107,6 @@ export interface ModalState {
         isOpen: boolean;
         returnPath?: string;
     };
-    // ✅ NEW: Authentication modals
     auth: {
         loginOpen: boolean;
         signupOpen: boolean;
@@ -118,7 +116,6 @@ export interface ModalState {
 }
 
 export interface AppState {
-    // ✅ EXISTING STATE (unchanged)
     applications: Application[];
     filteredApplications: Application[];
     goals: Goals;
@@ -138,20 +135,17 @@ export interface AppState {
         interval: number;
     };
 
-    // ✅ EXISTING REAL-TIME ADMIN STATE (unchanged)
     isAdminRealtime: boolean;
     adminSubscription: (() => void) | null;
     lastAdminUpdate: string | null;
 
-    // ✅ NEW: Authentication state
     auth: AuthState;
     authSubscription: (() => void) | null;
 
-    // ✅ PHASE 2: Global refresh state
     globalRefresh: GlobalRefreshState;
     autoRefreshTimer: NodeJS.Timeout | null;
 
-    // ✅ EXISTING ACTIONS (unchanged - keeping all existing functionality)
+    // ALL ACTIONS
     loadApplications: () => Promise<void>;
     addApplication: (application: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     updateApplication: (id: string, updates: Partial<Application>) => Promise<void>;
@@ -186,6 +180,8 @@ export interface AppState {
     closeGoalModal: () => void;
     openMilestone: (message: string) => void;
     closeMilestone: () => void;
+    openRecoveryModal: () => void;
+    closeRecoveryModal: () => void;
     showToast: (toast: Omit<Toast, 'id'>) => void;
     removeToast: (id: string) => void;
     calculateAnalytics: () => void;
@@ -208,8 +204,9 @@ export interface AppState {
     openAdminDashboard: () => void;
     closeAdminDashboard: () => void;
     setAdminSection: (section: 'overview' | 'analytics' | 'feedback' | 'users' | 'settings' | 'support') => void;
+    openAdminLoginModal: (returnPath?: string) => void;
+    closeAdminLoginModal: () => void;
 
-    // ✅ EXISTING REAL-TIME ADMIN ACTIONS (unchanged)
     enableRealtimeAdmin: () => void;
     disableRealtimeAdmin: () => void;
     loadRealtimeAdminAnalytics: () => Promise<void>;
@@ -222,7 +219,6 @@ export interface AppState {
         mode: string;
     };
 
-    // ✅ NEW: Authentication actions
     initializeAuth: () => Promise<void>;
     signUp: (email: string, password: string, displayName?: string) => Promise<void>;
     signIn: (email: string, password: string) => Promise<void>;
@@ -237,7 +233,6 @@ export interface AppState {
         error: string | null;
     };
 
-    // ✅ PHASE 2: Global refresh actions
     refreshAllAdminData: () => Promise<void>;
     enableAutoRefresh: (intervalSeconds?: number) => void;
     disableAutoRefresh: () => void;
@@ -245,10 +240,8 @@ export interface AppState {
     resetRefreshErrors: () => void;
 }
 
-
-
 // ============================================================================
-// UTILITY FUNCTIONS (unchanged)
+// UTILITY FUNCTIONS
 // ============================================================================
 
 const createOptimizedCache = () => {
@@ -283,7 +276,6 @@ const ensureNumber = (value: any): number => {
 
 const optimizedCache = createOptimizedCache();
 
-// ✅ EXISTING UTILITY FUNCTIONS (unchanged)
 const calculateGoalProgress = (applications: Application[], goals: Goals): GoalProgress => {
     const now = new Date();
     const totalApplications = applications.length;
@@ -456,7 +448,7 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).su
 const ADMIN_PASSWORD = 'applytrak-admin-2024';
 
 // ============================================================================
-// MAIN STORE - ENHANCED WITH PHASE 2: UNIFIED GLOBAL REFRESH SYSTEM
+// MAIN STORE - COMPLETE IMPLEMENTATION
 // ============================================================================
 
 export const useAppStore = create<AppState>()(
@@ -466,7 +458,7 @@ export const useAppStore = create<AppState>()(
                 const debouncedSearch = createDebouncedSearch(set);
 
                 return {
-                    // ✅ EXISTING INITIAL STATE (unchanged)
+                    // INITIAL STATE
                     applications: [],
                     filteredApplications: [],
                     goals: {totalGoal: 100, weeklyGoal: 5, monthlyGoal: 20},
@@ -504,7 +496,6 @@ export const useAppStore = create<AppState>()(
                         analyticsConsent: {isOpen: false, type: undefined},
                         feedback: {isOpen: false, initialType: undefined},
                         adminLogin: {isOpen: false, returnPath: undefined},
-                        // ✅ NEW: Authentication modals
                         auth: {
                             loginOpen: false,
                             signupOpen: false,
@@ -544,12 +535,10 @@ export const useAppStore = create<AppState>()(
                     adminAnalytics: null,
                     adminFeedback: null,
 
-                    // ✅ EXISTING REAL-TIME ADMIN STATE (unchanged)
                     isAdminRealtime: false,
                     adminSubscription: null,
                     lastAdminUpdate: null,
 
-                    // ✅ NEW: Authentication state
                     auth: {
                         user: null,
                         session: null,
@@ -559,22 +548,24 @@ export const useAppStore = create<AppState>()(
                     },
                     authSubscription: null,
 
-                    // ✅ PHASE 2: Global refresh state
                     globalRefresh: {
                         isRefreshing: false,
                         lastRefreshTimestamp: null,
                         refreshStatus: 'idle',
                         autoRefreshEnabled: false,
-                        autoRefreshInterval: 30, // 30 seconds default
+                        autoRefreshInterval: 30,
+                        autoRefreshIntervalSeconds: 30,
                         refreshErrors: []
                     },
                     autoRefreshTimer: null,
 
-                    // ✅ PHASE 2: Enhanced global refresh action - MAIN IMPLEMENTATION
+                    // ============================================================================
+                    // PHASE 2: Global refresh actions
+                    // ============================================================================
+
                     refreshAllAdminData: async () => {
                         console.log('🔄 Starting unified global admin refresh...');
 
-                        // Set refreshing state
                         set(state => ({
                             ...state,
                             globalRefresh: {
@@ -591,7 +582,6 @@ export const useAppStore = create<AppState>()(
                         try {
                             const {isAdminRealtime, auth} = get();
 
-                            // Define all refresh operations
                             const refreshOperations = [
                                 {
                                     name: 'Applications Data',
@@ -615,7 +605,6 @@ export const useAppStore = create<AppState>()(
                                 }
                             ];
 
-                            // Add admin-specific refresh operations
                             if (isAdminRealtime) {
                                 refreshOperations.push(
                                     {
@@ -640,7 +629,6 @@ export const useAppStore = create<AppState>()(
                                 );
                             }
 
-                            // Execute all refresh operations in parallel
                             console.log(`🔄 Executing ${refreshOperations.length} refresh operations...`);
 
                             const results = await Promise.allSettled(
@@ -657,7 +645,6 @@ export const useAppStore = create<AppState>()(
                                 })
                             );
 
-                            // Count successful operations
                             const successCount = results.filter(result =>
                                 result.status === 'fulfilled' && result.value.success
                             ).length;
@@ -665,7 +652,6 @@ export const useAppStore = create<AppState>()(
                             const refreshDuration = Date.now() - startTime;
                             console.log(`🔄 Global refresh completed: ${successCount}/${refreshOperations.length} operations successful in ${refreshDuration}ms`);
 
-                            // Update refresh state
                             const refreshStatus = errors.length === 0 ? 'success' : 'error';
 
                             set(state => ({
@@ -680,7 +666,6 @@ export const useAppStore = create<AppState>()(
                                 lastAdminUpdate: new Date().toISOString()
                             }));
 
-                            // Show appropriate toast message
                             const toastMessage = errors.length === 0
                                 ? `✅ All admin data refreshed successfully (${refreshDuration}ms)`
                                 : `⚠️ Refresh completed with ${errors.length} errors`;
@@ -691,7 +676,6 @@ export const useAppStore = create<AppState>()(
                                 duration: errors.length === 0 ? 3000 : 5000
                             });
 
-                            // Track refresh event
                             get().trackEvent('admin_global_refresh', {
                                 success: errors.length === 0,
                                 operationsCount: refreshOperations.length,
@@ -727,22 +711,19 @@ export const useAppStore = create<AppState>()(
                     enableAutoRefresh: (intervalSeconds = 30) => {
                         console.log(`🔄 Enabling auto-refresh every ${intervalSeconds} seconds`);
 
-                        // Clear existing timer
                         const {autoRefreshTimer} = get();
                         if (autoRefreshTimer) {
                             clearInterval(autoRefreshTimer);
                         }
 
-                        // Set up new timer with enhanced state checking
                         const timer = setInterval(() => {
                             const {ui, globalRefresh} = get();
 
-                            // ✅ ENHANCED: Only auto-refresh if all conditions are met
                             const shouldRefresh =
-                                ui.admin.dashboardOpen &&           // Dashboard is open
-                                !globalRefresh.isRefreshing &&      // Not currently refreshing
-                                !document.hidden &&                 // Page is visible
-                                navigator.onLine;                    // Device is online
+                                ui.admin.dashboardOpen &&
+                                !globalRefresh.isRefreshing &&
+                                !document.hidden &&
+                                navigator.onLine;
 
                             if (shouldRefresh) {
                                 console.log('🔄 Auto-refresh triggered - all conditions met');
@@ -762,7 +743,8 @@ export const useAppStore = create<AppState>()(
                             globalRefresh: {
                                 ...state.globalRefresh,
                                 autoRefreshEnabled: true,
-                                autoRefreshInterval: intervalSeconds
+                                autoRefreshInterval: intervalSeconds,
+                                autoRefreshIntervalSeconds: intervalSeconds
                             },
                             autoRefreshTimer: timer
                         }));
@@ -801,13 +783,13 @@ export const useAppStore = create<AppState>()(
                     getGlobalRefreshStatus: () => {
                         const { globalRefresh } = get();
                         return {
-                            ...globalRefresh,
-                            // Add computed properties for easier use in components
-                            hasErrors: globalRefresh.refreshErrors.length > 0,
-                            isHealthy: globalRefresh.refreshStatus === 'success' && globalRefresh.refreshErrors.length === 0,
-                            lastRefreshAgo: globalRefresh.lastRefreshTimestamp
-                                ? Date.now() - new Date(globalRefresh.lastRefreshTimestamp).getTime()
-                                : null
+                            isRefreshing: globalRefresh.isRefreshing,
+                            lastRefreshTimestamp: globalRefresh.lastRefreshTimestamp,
+                            refreshStatus: globalRefresh.refreshStatus,
+                            autoRefreshEnabled: globalRefresh.autoRefreshEnabled,
+                            autoRefreshInterval: globalRefresh.autoRefreshInterval,
+                            autoRefreshIntervalSeconds: globalRefresh.autoRefreshIntervalSeconds,
+                            refreshErrors: globalRefresh.refreshErrors
                         };
                     },
 
@@ -822,15 +804,14 @@ export const useAppStore = create<AppState>()(
                         }));
                     },
 
-                    // ✅ ALL EXISTING ACTIONS PRESERVED (keeping all existing methods exactly the same)
-                    // ... (rest of the existing actions remain unchanged)
+                    // ============================================================================
+                    // Authentication actions
+                    // ============================================================================
 
-                    // ✅ NEW: Authentication actions
                     initializeAuth: async () => {
                         console.log('🔐 Initializing authentication...');
 
                         try {
-                            // Subscribe to auth state changes
                             const unsubscribe = authService.subscribeToAuthChanges((authState) => {
                                 console.log('🔐 Auth state changed:', authState.isAuthenticated);
 
@@ -845,7 +826,6 @@ export const useAppStore = create<AppState>()(
                                     }
                                 }));
 
-                                // Reload data when authentication status changes
                                 if (authState.isAuthenticated && !authState.isLoading) {
                                     console.log('✅ User authenticated, reloading data...');
                                     get().loadApplications();
@@ -853,13 +833,11 @@ export const useAppStore = create<AppState>()(
                                 }
                             });
 
-                            // Store the subscription cleanup function
                             set(state => ({
                                 ...state,
                                 authSubscription: unsubscribe
                             }));
 
-                            // Get current auth state
                             const currentAuth = authService.getAuthState();
                             set(state => ({
                                 ...state,
@@ -903,7 +881,6 @@ export const useAppStore = create<AppState>()(
                                 duration: 6000
                             });
 
-                            // Close auth modal
                             get().closeAuthModal();
 
                             console.log('✅ User signed up successfully');
@@ -941,12 +918,10 @@ export const useAppStore = create<AppState>()(
                                 duration: 5000
                             });
 
-                            // Close auth modal
                             get().closeAuthModal();
 
                             console.log('✅ User signed in successfully');
 
-                            // Track login event
                             get().trackEvent('user_signed_in', {
                                 method: 'email',
                                 timestamp: new Date().toISOString()
@@ -987,7 +962,6 @@ export const useAppStore = create<AppState>()(
 
                             console.log('✅ User signed out successfully');
 
-                            // Track logout event
                             get().trackEvent('user_signed_out', {
                                 timestamp: new Date().toISOString()
                             });
@@ -1025,7 +999,6 @@ export const useAppStore = create<AppState>()(
                                 duration: 6000
                             });
 
-                            // Close auth modal
                             get().closeAuthModal();
 
                             console.log('✅ Password reset email sent');
@@ -1060,10 +1033,9 @@ export const useAppStore = create<AppState>()(
                                     mode
                                 }
                             },
-                            auth: {...state.auth, error: null} // Clear any previous errors
+                            auth: {...state.auth, error: null}
                         }));
 
-                        // Track modal open event
                         get().trackEvent('auth_modal_opened', {mode});
                     },
 
@@ -1079,7 +1051,7 @@ export const useAppStore = create<AppState>()(
                                     mode: undefined
                                 }
                             },
-                            auth: {...state.auth, error: null} // Clear any errors
+                            auth: {...state.auth, error: null}
                         }));
                     },
 
@@ -1093,14 +1065,28 @@ export const useAppStore = create<AppState>()(
                         };
                     },
 
-                    // ✅ ALL EXISTING ACTIONS PRESERVED (unchanged implementation)
+                    // ============================================================================
                     // Real-time admin actions
+                    // ============================================================================
+
                     enableRealtimeAdmin: () => {
                         const cleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
                             if (data.userMetrics) {
                                 set(state => ({
                                     ...state,
-                                    adminAnalytics: data,
+                                    adminAnalytics: {
+                                        ...data,
+                                        // Ensure topIssues has correct type if it exists in feedback
+                                        ...(data.adminFeedback && {
+                                            adminFeedback: {
+                                                ...data.adminFeedback,
+                                                topIssues: data.adminFeedback.topIssues?.map(issue => ({
+                                                    ...issue,
+                                                    severity: issue.severity as 'low' | 'medium' | 'high'
+                                                })) || []
+                                            }
+                                        })
+                                    },
                                     lastAdminUpdate: new Date().toISOString()
                                 }));
 
@@ -1143,7 +1129,9 @@ export const useAppStore = create<AppState>()(
                                 ui: {...state.ui, isLoading: true}
                             }));
 
-                            const analytics = await realtimeAdminService.getRealtimeAdminAnalytics();
+                            console.log('📊 Loading real-time admin analytics...');
+
+                            const analytics = await realtimeAdminService.getRealtimeAdminAnalyticsSafe();
 
                             set(state => ({
                                 ...state,
@@ -1152,35 +1140,62 @@ export const useAppStore = create<AppState>()(
                                 ui: {...state.ui, isLoading: false}
                             }));
 
-                            console.log('📊 Real-time admin analytics loaded');
+                            console.log('✅ Real-time admin analytics loaded successfully');
+
+                            get().showToast({
+                                type: 'success',
+                                message: 'Admin data updated',
+                                duration: 2000
+                            });
+
                         } catch (error) {
-                            console.error('Failed to load real-time admin analytics:', error);
-                            get().loadAdminAnalytics();
+                            console.error('❌ Failed to load real-time admin analytics:', error);
+
+                            console.log('📱 Using local analytics as fallback...');
+                            await get().loadAdminAnalytics();
+
+                            set(state => ({
+                                ...state,
+                                ui: {...state.ui, isLoading: false}
+                            }));
+
                             get().showToast({
                                 type: 'warning',
-                                message: 'Using local data - cloud unavailable'
+                                message: 'Using local data - cloud sync unavailable',
+                                duration: 3000
                             });
                         }
                     },
 
                     loadRealtimeFeedbackSummary: async () => {
                         try {
+                            console.log('💬 Loading real-time feedback summary...');
+
                             const feedback = await realtimeAdminService.getRealtimeFeedbackSummary();
 
                             set(state => ({
                                 ...state,
-                                adminFeedback: feedback,
+                                adminFeedback: {
+                                    ...feedback,
+                                    topIssues: feedback.topIssues?.map(issue => ({
+                                        ...issue,
+                                        severity: issue.severity as 'low' | 'medium' | 'high'
+                                    })) || [] as Array<{
+                                        issue: string;
+                                        count: number;
+                                        severity: 'low' | 'medium' | 'high';
+                                    }>
+                                },
                                 lastAdminUpdate: new Date().toISOString()
                             }));
 
-                            console.log('💬 Real-time feedback summary loaded');
+                            console.log('✅ Real-time feedback summary loaded');
                         } catch (error) {
-                            console.error('Failed to load real-time feedback:', error);
+                            console.error('❌ Failed to load real-time feedback:', error);
                             get().loadAdminFeedback();
                         }
                     },
 
-                    // ✅ PHASE 2: Enhanced refreshAdminData (now calls unified refresh)
                     refreshAdminData: async () => {
                         console.log('🔄 Legacy refreshAdminData called - redirecting to unified refresh...');
                         await get().refreshAllAdminData();
@@ -1197,8 +1212,10 @@ export const useAppStore = create<AppState>()(
                         };
                     },
 
-                    // ✅ ALL OTHER EXISTING ACTIONS REMAIN EXACTLY THE SAME
-                    // (All existing methods preserved with exact same implementation)
+                    // ============================================================================
+                    // Application actions
+                    // ============================================================================
+
                     loadApplications: async () => {
                         set(state => ({...state, ui: {...state.ui, isLoading: true, error: null}}));
                         try {
@@ -1277,9 +1294,6 @@ export const useAppStore = create<AppState>()(
                             });
                         }
                     },
-
-                    // ✅ CONTINUING WITH ALL OTHER EXISTING METHODS...
-                    // (All remaining methods stay exactly the same - showing just a few for brevity)
 
                     updateApplication: async (id, updates) => {
                         try {
@@ -1386,9 +1400,6 @@ export const useAppStore = create<AppState>()(
                             });
                         }
                     },
-
-                    // ✅ Implementing all remaining existing methods with exact same logic...
-                    // (Continuing with all other existing methods - truncated for space)
 
                     deleteApplications: async (ids) => {
                         try {
@@ -1603,6 +1614,10 @@ export const useAppStore = create<AppState>()(
                         return await get().bulkAddApplications(applicationsToAdd);
                     },
 
+                    // ============================================================================
+                    // Goals actions
+                    // ============================================================================
+
                     loadGoals: async () => {
                         try {
                             const goals = await databaseService.getGoals();
@@ -1650,6 +1665,10 @@ export const useAppStore = create<AppState>()(
                         checkMilestones(applications.length, showToast);
                     },
 
+                    // ============================================================================
+                    // UI actions
+                    // ============================================================================
+
                     setTheme: (theme) => {
                         set(state => ({...state, ui: {...state.ui, theme}}));
                         document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -1689,6 +1708,10 @@ export const useAppStore = create<AppState>()(
                         set(state => ({...state, ui: {...state.ui, selectedTab: tab}}));
                         get().trackPageView(tab);
                     },
+
+                    // ============================================================================
+                    // Modal actions
+                    // ============================================================================
 
                     openEditModal: (application) => {
                         set(state => ({
@@ -1752,6 +1775,52 @@ export const useAppStore = create<AppState>()(
                         }));
                     },
 
+                    openRecoveryModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                recovery: {isOpen: true}
+                            }
+                        }));
+                        get().trackFeatureUsage('recovery_modal_opened');
+                    },
+
+                    closeRecoveryModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                recovery: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    openAdminLoginModal: (returnPath?: string) => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                adminLogin: {isOpen: true, returnPath}
+                            }
+                        }));
+                        get().trackFeatureUsage('admin_login_modal_opened');
+                    },
+
+                    closeAdminLoginModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                adminLogin: {isOpen: false, returnPath: undefined}
+                            }
+                        }));
+                    },
+
+                    // ============================================================================
+                    // Toast actions
+                    // ============================================================================
+
                     showToast: (toast) => {
                         const now = Date.now();
                         const DUPLICATE_THRESHOLD = 2000;
@@ -1798,6 +1867,10 @@ export const useAppStore = create<AppState>()(
                     removeToast: (id) => {
                         set(state => ({...state, toasts: state.toasts.filter(toast => toast.id !== id)}));
                     },
+
+                    // ============================================================================
+                    // Analytics actions
+                    // ============================================================================
 
                     calculateAnalytics: () => {
                         const {applications} = get();
@@ -2007,7 +2080,10 @@ export const useAppStore = create<AppState>()(
                         }));
                     },
 
-                    // Feedback Actions
+                    // ============================================================================
+                    // Feedback actions
+                    // ============================================================================
+
                     openFeedbackModal: (initialType) => {
                         set(state => ({
                             ...state,
@@ -2059,7 +2135,10 @@ export const useAppStore = create<AppState>()(
                         set(state => ({...state, feedbackList}));
                     },
 
-                    // Admin Actions
+                    // ============================================================================
+                    // Admin actions
+                    // ============================================================================
+
                     authenticateAdmin: (password) => {
                         if (password === ADMIN_PASSWORD) {
                             set(state => ({
@@ -2090,7 +2169,6 @@ export const useAppStore = create<AppState>()(
                     },
 
                     logoutAdmin: () => {
-                        // ✅ PHASE 2: Enhanced admin logout with auto-refresh cleanup
                         const {autoRefreshTimer} = get();
                         if (autoRefreshTimer) {
                             clearInterval(autoRefreshTimer);
@@ -2108,13 +2186,13 @@ export const useAppStore = create<AppState>()(
                             },
                             adminAnalytics: null,
                             adminFeedback: null,
-                            // ✅ PHASE 2: Reset global refresh state on logout
                             globalRefresh: {
                                 isRefreshing: false,
                                 lastRefreshTimestamp: null,
                                 refreshStatus: 'idle',
                                 autoRefreshEnabled: false,
                                 autoRefreshInterval: 30,
+                                autoRefreshIntervalSeconds: 30,
                                 refreshErrors: []
                             },
                             autoRefreshTimer: null
@@ -2129,12 +2207,10 @@ export const useAppStore = create<AppState>()(
 
                     loadAdminAnalytics: async () => {
                         try {
-                            // ✅ UPDATED: Now authentication-aware admin analytics
                             const {applications, userMetrics, auth} = get();
                             const sessions = analyticsService.getAllSessions();
                             const events = await analyticsService.getAllEvents();
 
-                            // ✅ Enhanced with authentication context
                             const adminAnalytics: AdminAnalytics = {
                                 userMetrics: {
                                     totalUsers: auth.isAuthenticated ? 1 : 0,
@@ -2200,7 +2276,11 @@ export const useAppStore = create<AppState>()(
                                     general: stats.typeDistribution.general,
                                     love: stats.typeDistribution.love
                                 },
-                                topIssues: []
+                                topIssues: [] as Array<{
+                                    issue: string;
+                                    count: number;
+                                    severity: 'low' | 'medium' | 'high';
+                                }>
                             };
 
                             set(state => ({...state, adminFeedback}));
@@ -2209,7 +2289,6 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // ✅ UPDATED: Enhanced openAdminDashboard with authentication awareness
                     openAdminDashboard: () => {
                         set(state => ({
                             ...state,
@@ -2222,7 +2301,6 @@ export const useAppStore = create<AppState>()(
                             }
                         }));
 
-                        // Load real-time data if available, otherwise fallback to local
                         if (process.env.REACT_APP_SUPABASE_URL) {
                             get().loadRealtimeAdminAnalytics();
                             get().loadRealtimeFeedbackSummary();
@@ -2233,15 +2311,12 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // ✅ UPDATED: Enhanced closeAdminDashboard with cleanup
                     closeAdminDashboard: () => {
-                        // ✅ PHASE 2: Cleanup auto-refresh timer
                         const {autoRefreshTimer} = get();
                         if (autoRefreshTimer) {
                             clearInterval(autoRefreshTimer);
                         }
 
-                        // Cleanup real-time subscriptions
                         get().disableRealtimeAdmin();
 
                         set(state => ({
@@ -2253,7 +2328,6 @@ export const useAppStore = create<AppState>()(
                                     dashboardOpen: false
                                 }
                             },
-                            // ✅ PHASE 2: Reset auto-refresh state
                             globalRefresh: {
                                 ...state.globalRefresh,
                                 autoRefreshEnabled: false
@@ -2287,16 +2361,14 @@ export const useAppStore = create<AppState>()(
                             buttonVisible: state.ui?.feedback?.buttonVisible ?? true
                         },
                         admin: {
-                            authenticated: false, // ✅ Always reset admin auth on persist
+                            authenticated: false,
                             dashboardOpen: false,
                             currentSection: state.ui?.admin?.currentSection || 'overview'
                         }
                     },
                     goals: state.goals,
                     analyticsSettings: state.analyticsSettings,
-                    // ✅ NEW: Don't persist authentication state (security)
-                    // auth: undefined - Let authentication re-initialize on app load
-                    isAdminRealtime: false, // ✅ Reset real-time state on persist (security)
+                    isAdminRealtime: false,
                     autoRefreshPreferences: {
                         enabled: state.globalRefresh.autoRefreshEnabled,
                         interval: state.globalRefresh.autoRefreshInterval
@@ -2304,7 +2376,6 @@ export const useAppStore = create<AppState>()(
                 }),
                 onRehydrateStorage: () => (state: AppState | undefined) => {
                     if (state) {
-                        // ✅ EXISTING: Ensure admin state exists after rehydration
                         if (!state.ui) {
                             state.ui = {} as UIState;
                         }
@@ -2329,7 +2400,6 @@ export const useAppStore = create<AppState>()(
                             };
                         }
 
-                        // ✅ NEW: Ensure auth modal state exists
                         if (!state.modals.auth) {
                             state.modals.auth = {
                                 loginOpen: false,
@@ -2339,7 +2409,6 @@ export const useAppStore = create<AppState>()(
                             };
                         }
 
-                        // ✅ NEW: Initialize authentication state (will be updated by initializeAuth)
                         state.auth = {
                             user: null,
                             session: null,
@@ -2349,18 +2418,17 @@ export const useAppStore = create<AppState>()(
                         };
                         state.authSubscription = null;
 
-                        // ✅ EXISTING: Initialize real-time state
                         state.isAdminRealtime = false;
                         state.adminSubscription = null;
                         state.lastAdminUpdate = null;
 
-                        // ✅ PHASE 2: Initialize global refresh state
                         state.globalRefresh = {
                             isRefreshing: false,
                             lastRefreshTimestamp: null,
                             refreshStatus: 'idle',
                             autoRefreshEnabled: false,
                             autoRefreshInterval: 30,
+                            autoRefreshIntervalSeconds: 30,
                             refreshErrors: []
                         };
                         state.autoRefreshTimer = null;
@@ -2368,18 +2436,18 @@ export const useAppStore = create<AppState>()(
                         if (state.autoRefreshPreferences) {
                             state.globalRefresh = {
                                 ...state.globalRefresh,
-                                autoRefreshEnabled: false, // Always start disabled
-                                autoRefreshInterval: state.autoRefreshPreferences.interval || 30
+                                autoRefreshEnabled: false,
+                                autoRefreshInterval: state.autoRefreshPreferences.interval || 30,
+                                autoRefreshIntervalSeconds: state.autoRefreshPreferences.interval || 30
                             };
                         }
 
-                        // ✅ EXISTING: Force admin to be logged out on page refresh for security
                         if (state.ui?.admin) {
                             state.ui.admin.authenticated = false;
                             state.ui.admin.dashboardOpen = false;
                         }
 
-                        console.log('🔧 Store rehydrated with Phase 2: Unified Global Refresh System');
+                        console.log('🔧 Store rehydrated with Phase 2: Unified Global Refresh System - COMPLETE');
                     }
                 }
             }
