@@ -24,8 +24,6 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 let supabase: SupabaseClient | null = null;
-
-// Initialize Supabase client with REAL authentication
 const initializeSupabase = (): SupabaseClient | null => {
     if (!supabaseUrl || !supabaseAnonKey) {
         console.warn('❌ Supabase environment variables not configured');
@@ -33,19 +31,28 @@ const initializeSupabase = (): SupabaseClient | null => {
     }
 
     if (!supabase) {
-        console.log('🔧 Creating Supabase client with authentication enabled...');
+        console.log('🔧 Creating Supabase client with enhanced authentication...');
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
             auth: {
-                persistSession: true,        // ✅ ENABLE session persistence
-                autoRefreshToken: true,      // ✅ ENABLE automatic token refresh
-                detectSessionInUrl: true     // ✅ ENABLE OAuth callback detection
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
+                // ✅ Enhanced configuration for better error handling
+                flowType: 'pkce',
+                storage: window.localStorage,
+                storageKey: 'applytrak-auth-token',
+                debug: false // Disable debug to reduce console noise
             },
             db: {
                 schema: 'public'
+            },
+            // ✅ Add global error handling
+            global: {
+                headers: {},
             }
         });
 
-        console.log('✅ Supabase client created with authentication enabled');
+        console.log('✅ Supabase client created with enhanced authentication');
     }
     return supabase;
 };
@@ -91,9 +98,16 @@ const initializeAuth = () => {
     const client = initializeSupabase();
     if (!client) return;
 
-    // Listen for auth state changes
-    client.auth.onAuthStateChange((event, session) => {
+    // Listen for auth state changes with enhanced error handling
+    client.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth state changed:', event, session?.user?.email);
+
+        // ✅ Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+            console.warn('⚠️ Token refresh failed - clearing session');
+            await handleAuthError();
+            return;
+        }
 
         authState = {
             user: session?.user || null,
@@ -114,15 +128,21 @@ const initializeAuth = () => {
                 clearLocalStorageAuth();
                 break;
             case 'TOKEN_REFRESHED':
-                console.log('🔄 Token refreshed');
+                console.log('🔄 Token refreshed successfully');
+                break;
+            case 'PASSWORD_RECOVERY':
+                console.log('🔐 Password recovery initiated');
                 break;
         }
     });
 
-    // Check for existing session
-    client.auth.getSession().then(({data: {session}, error}) => {
+    // ✅ Enhanced session check with error handling
+    client.auth.getSession().then(({ data: { session }, error }) => {
         if (error) {
             console.error('❌ Error getting session:', error);
+            // Clear corrupted session data
+            handleAuthError();
+            return;
         }
 
         authState = {
@@ -133,13 +153,57 @@ const initializeAuth = () => {
         };
 
         notifyAuthStateChange();
+    }).catch((error) => {
+        console.error('❌ Critical auth error:', error);
+        handleAuthError();
     });
 };
 
-// Clear localStorage on sign out
+// ✅ NEW: Enhanced auth error handler
+const handleAuthError = async () => {
+    console.log('🧹 Handling authentication error...');
+
+    try {
+        // Clear all auth-related storage
+        localStorage.removeItem('applytrak-auth-token');
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('applytrak_user_id');
+        localStorage.removeItem('applytrak_user_db_id');
+
+        // Clear session cookies if any
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+
+        // Reset auth state
+        authState = {
+            user: null,
+            session: null,
+            isAuthenticated: false,
+            isLoading: false
+        };
+
+        notifyAuthStateChange();
+
+        console.log('✅ Auth error handled - session cleared');
+    } catch (error) {
+        console.error('❌ Error during auth cleanup:', error);
+    }
+};
+
+// ✅ Enhanced clear localStorage function
 const clearLocalStorageAuth = () => {
-    localStorage.removeItem('applytrak_user_id');
-    localStorage.removeItem('applytrak_user_db_id');
+    const authKeys = [
+        'applytrak_user_id',
+        'applytrak_user_db_id',
+        'applytrak-auth-token',
+        'supabase.auth.token'
+    ];
+
+    authKeys.forEach(key => {
+        localStorage.removeItem(key);
+    });
+
     console.log('🧹 Auth localStorage cleared');
 };
 
@@ -267,13 +331,28 @@ const signIn = async (email: string, password: string) => {
     const client = initializeSupabase();
     if (!client) throw new Error('Supabase not initialized');
 
-    const {data, error} = await client.auth.signInWithPassword({
-        email,
-        password
-    });
+    try {
+        const { data, error } = await client.auth.signInWithPassword({
+            email,
+            password
+        });
 
-    if (error) throw error;
-    return data;
+        if (error) {
+            // Handle specific auth errors
+            if (error.message.includes('Invalid login credentials')) {
+                throw new Error('Invalid email or password');
+            }
+            if (error.message.includes('Email not confirmed')) {
+                throw new Error('Please check your email and click the confirmation link');
+            }
+            throw error;
+        }
+
+        return data;
+    } catch (error: any) {
+        console.error('❌ Sign in failed:', error);
+        throw error;
+    }
 };
 
 // Sign out
@@ -281,8 +360,21 @@ const signOut = async () => {
     const client = initializeSupabase();
     if (!client) throw new Error('Supabase not initialized');
 
-    const {error} = await client.auth.signOut();
-    if (error) throw error;
+    try {
+        const { error } = await client.auth.signOut();
+        if (error) {
+            console.warn('⚠️ Sign out error (non-critical):', error);
+        }
+
+        // Always clear local state even if signOut API fails
+        await handleAuthError();
+
+    } catch (error) {
+        console.error('❌ Sign out error:', error);
+        // Still clear local state
+        await handleAuthError();
+        throw error;
+    }
 };
 
 // Reset password
@@ -330,6 +422,57 @@ export class JobTrackerDatabase extends Dexie {
 const db = new JobTrackerDatabase();
 const generateId = (): string => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 
+
+// ✅ NEW: Force session refresh utility
+export const forceSessionRefresh = async () => {
+    const client = initializeSupabase();
+    if (!client) return false;
+
+    try {
+        const { data, error } = await client.auth.refreshSession();
+        if (error) {
+            console.error('❌ Force refresh failed:', error);
+            await handleAuthError();
+            return false;
+        }
+
+        console.log('✅ Session forcefully refreshed');
+        return true;
+    } catch (error) {
+        console.error('❌ Force refresh error:', error);
+        await handleAuthError();
+        return false;
+    }
+};
+
+// ✅ NEW: Auth recovery utility for emergency use
+export const recoverAuthSession = async () => {
+    console.log('🚨 Attempting auth session recovery...');
+
+    try {
+        // Clear everything first
+        await handleAuthError();
+
+        // Reinitialize Supabase client
+        supabase = null;
+        const client = initializeSupabase();
+
+        if (client) {
+            // Try to get fresh session
+            const { data, error } = await client.auth.getSession();
+            if (!error && data.session) {
+                console.log('✅ Auth session recovered');
+                return true;
+            }
+        }
+
+        console.log('ℹ️ No valid session to recover - user needs to sign in');
+        return false;
+    } catch (error) {
+        console.error('❌ Auth recovery failed:', error);
+        return false;
+    }
+};
 // ============================================================================
 // CLOUD SYNC UTILITIES - AUTHENTICATION AWARE
 // ============================================================================
@@ -1349,7 +1492,10 @@ export const authService = {
     getCurrentSession,
     isAuthenticated,
     getAuthState,
-    subscribeToAuthChanges
+    subscribeToAuthChanges,
+    forceSessionRefresh,
+    recoverAuthSession,
+    handleAuthError
 };
 
 export default databaseService;
