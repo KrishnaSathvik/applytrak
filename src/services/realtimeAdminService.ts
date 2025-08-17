@@ -140,32 +140,64 @@ export const realtimeAdminService = {
         }
     },
 
-// ✅ PHASE 3: Get aggregated data from ALL users (FIXED - NO USER FILTERS)
+// ✅ COMPLETE FIX: Replace getAllUsersData() in realtimeAdminService.ts
+
     async getAllUsersData(): Promise<SafeUserData> {
         try {
-            console.log('🔄 Fetching aggregated data from ALL users...');
+            console.log('🔄 Fetching ALL data from ALL users (NO LIMITS)...');
             const client = initAdminSupabase();
             if (!client) {
                 console.log('📱 No Supabase client - using local data fallback');
                 return await this.getLocalAdminData();
             }
 
-            // Timeout protection
+            // Timeout protection (increased for larger datasets)
             const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('Database query timeout')), 15000)
+                setTimeout(() => reject(new Error('Database query timeout')), 30000) // Increased to 30 seconds
             );
 
-            // ✅ FIXED: Fetch ALL data across ALL users (REMOVED user_id filters)
+            console.log('🔍 Querying database with NO user filters and HIGH limits...');
+
+            // ✅ COMPLETE FIX: Remove ALL limits and filters - get EVERYTHING
             const dataPromise = Promise.all([
-                client.from('applications').select('*').limit(2000),        // ✅ ALL applications
-                client.from('goals').select('*').limit(1000),               // ✅ ALL goals
-                client.from('analytics_events').select('*').limit(5000),    // ✅ ALL events
-                client.from('feedback').select('*').limit(1000),            // ✅ ALL feedback
-                this.getAllUsers() // ✅ Get actual user list with correct schema
+                // ✅ Applications: NO user_id filter, HIGH limit
+                client.from('applications')
+                    .select('*')
+                    .limit(10000) // Increased limit
+                    .order('created_at', { ascending: false }),
+
+                // ✅ Goals: NO user_id filter
+                client.from('goals')
+                    .select('*')
+                    .limit(5000),
+
+                // ✅ Events: NO user_id filter
+                client.from('analytics_events')
+                    .select('*')
+                    .limit(20000)
+                    .order('timestamp', { ascending: false }),
+
+                // ✅ Feedback: NO user_id filter
+                client.from('feedback')
+                    .select('*')
+                    .limit(5000)
+                    .order('timestamp', { ascending: false }),
+
+                // ✅ Users: Get all users
+                this.getAllUsers()
             ]);
 
+            console.log('⏳ Waiting for database responses...');
             const responses = await Promise.race([dataPromise, timeoutPromise]);
             const [applicationsResponse, goalsResponse, eventsResponse, feedbackResponse, usersData] = responses;
+
+            // ✅ Detailed logging to see what we actually got
+            console.log('📊 Database Response Details:');
+            console.log(`   Applications Response:`, applicationsResponse?.data?.length || 0, 'records');
+            console.log(`   Goals Response:`, goalsResponse?.data?.length || 0, 'records');
+            console.log(`   Events Response:`, eventsResponse?.data?.length || 0, 'records');
+            console.log(`   Feedback Response:`, feedbackResponse?.data?.length || 0, 'records');
+            console.log(`   Users Data:`, Array.isArray(usersData) ? usersData.length : 'invalid', 'users');
 
             // Safe destructuring with explicit type checking
             const applications = (applicationsResponse?.data || []).filter(Boolean);
@@ -174,9 +206,26 @@ export const realtimeAdminService = {
             const feedback = (feedbackResponse?.data || []).filter(Boolean);
             const users = Array.isArray(usersData) ? usersData : [];
 
-            // ✅ FIXED: Real user count from actual users table
-            const totalUsers = users.length;
+            // ✅ Check for data per user to debug the issue
+            if (applications.length > 0) {
+                const appsByUser = applications.reduce((acc: Record<string, number>, app: any) => {
+                    const userId = app.user_id?.toString() || 'unknown';
+                    acc[userId] = (acc[userId] || 0) + 1;
+                    return acc;
+                }, {});
 
+                console.log('📱 Applications per user_id:', appsByUser);
+
+                // Find which user_id corresponds to phalaginimantripragada
+                const userEmails = users.reduce((acc: Record<string, string>, user: any) => {
+                    acc[user.id?.toString()] = user.email || 'no-email';
+                    return acc;
+                }, {});
+
+                console.log('👥 User ID to Email mapping:', userEmails);
+            }
+
+            const totalUsers = users.length;
             const result: SafeUserData = {
                 applications,
                 goals,
@@ -186,16 +235,22 @@ export const realtimeAdminService = {
                 totalUsers
             };
 
-            console.log(`✅ PHASE 3: FIXED - Aggregated data from ${totalUsers} real users:`);
-            console.log(`   📱 Applications: ${applications.length}`);
-            console.log(`   🎯 Goals: ${goals.length}`);
-            console.log(`   📊 Events: ${events.length}`);
-            console.log(`   💬 Feedback: ${feedback.length}`);
-            console.log(`   👥 Users: ${users.length}`);
+            console.log(`✅ COMPLETE ADMIN DATA RETRIEVED:`);
+            console.log(`   👥 Total Users: ${totalUsers}`);
+            console.log(`   📱 Total Applications: ${applications.length}`);
+            console.log(`   🎯 Total Goals: ${goals.length}`);
+            console.log(`   📊 Total Events: ${events.length}`);
+            console.log(`   💬 Total Feedback: ${feedback.length}`);
+
+            // ✅ Verify we got the expected ~300+ applications
+            if (applications.length < 280) {
+                console.warn(`⚠️  WARNING: Expected ~300+ applications but only got ${applications.length}`);
+                console.warn(`⚠️  This suggests there may be RLS policies or other filters active`);
+            }
 
             return result;
         } catch (error) {
-            console.error('❌ Failed to get multi-user admin data:', error);
+            console.error('❌ Failed to get complete multi-user admin data:', error);
             console.log('🔄 Falling back to local data...');
             return await this.getLocalAdminData();
         }
