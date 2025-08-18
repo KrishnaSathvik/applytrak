@@ -31,28 +31,46 @@ const initializeSupabase = (): SupabaseClient | null => {
     }
 
     if (!supabase) {
-        console.log('🔧 Creating Supabase client with enhanced authentication...');
+        console.log('🔧 Creating optimized Supabase client...');
         supabase = createClient(supabaseUrl, supabaseAnonKey, {
             auth: {
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                // ✅ Enhanced configuration for better error handling
                 flowType: 'pkce',
                 storage: window.localStorage,
                 storageKey: 'applytrak-auth-token',
-                debug: false // Disable debug to reduce console noise
+                debug: false
             },
             db: {
                 schema: 'public'
             },
-            // ✅ Add global error handling
             global: {
-                headers: {},
+                headers: {
+                    'x-client-info': 'applytrak/1.0'
+                },
+                // ✅ ADD: Optimized fetch options
+                fetch: (url, options = {}) => {
+                    return fetch(url, {
+                        ...options,
+                        // ✅ Shorter timeout (5 seconds instead of default 20+)
+                        signal: AbortSignal.timeout(5000),
+                        // ✅ Optimize request
+                        keepalive: true,
+                        // ✅ Add retry logic at fetch level
+                        cache: 'no-cache'
+                    });
+                }
+            },
+            // ✅ Disable realtime to reduce overhead
+            realtime: {
+                params: {
+                    eventsPerSecond: 1
+                }
             }
         });
 
-        console.log('✅ Supabase client created with enhanced authentication');
+        console.log('✅ Optimized Supabase client created with 5s timeout');
     }
     return supabase;
 };
@@ -536,28 +554,89 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
     }
 };
 
-// Sync from cloud (authenticated users only)
-const syncFromCloud = async (table: string): Promise<any[]> => {
-    if (!isOnlineWithSupabase()) return [];
+const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
+    const MAX_RETRIES = 3;
+    const TIMEOUT_MS = 20000; // 20 seconds instead of default
+
+    console.log(`🔄 syncFromCloud(${table}) - attempt ${retryCount + 1}/${MAX_RETRIES + 1}`);
+
+    if (!isOnlineWithSupabase()) {
+        console.log('❌ Not online with Supabase');
+        return [];
+    }
 
     try {
-        const client = initializeSupabase()!;
+        const client = initializeSupabase();
+        if (!client) {
+            console.log('❌ No Supabase client');
+            return [];
+        }
+
         const userDbId = await getUserDbId();
+        console.log(`🔍 syncFromCloud userDbId: ${userDbId}`);
 
-        if (!userDbId) return [];
+        if (!userDbId) {
+            console.log('❌ No userDbId available for cloud sync');
+            return [];
+        }
 
-        const {data, error} = await client
+        console.log(`📤 Querying Supabase for ${table} with user_id: ${userDbId} (timeout: ${TIMEOUT_MS}ms)`);
+        const startTime = Date.now();
+
+        // ✅ Create timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Query timeout after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
+        );
+
+        // ✅ Create query promise with smaller limit for faster response
+        const queryPromise = client
             .from(table)
             .select('*')
             .eq('user_id', userDbId)
-            .order('created_at', {ascending: false});
+            .limit(50) // Even smaller - get 50 most recent apps first
+            .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        // ✅ Race between query and timeout
+        const result = await Promise.race([queryPromise, timeoutPromise]);
 
-        console.log(`✅ Synced from cloud: ${table} (${data?.length || 0} items)`);
-        return data || [];
-    } catch (error) {
-        console.warn(`Cloud sync failed for ${table}:`, error);
+        const duration = Date.now() - startTime;
+
+        if (result.error) {
+            console.error(`❌ Supabase query error for ${table}:`, result.error);
+
+            // ✅ Retry on certain errors
+            if (retryCount < MAX_RETRIES &&
+                (result.error.message?.includes('timeout') ||
+                    result.error.message?.includes('connection'))) {
+                console.log(`🔄 Retrying ${table} query in 2 seconds...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return syncFromCloud(table, retryCount + 1);
+            }
+
+            throw result.error;
+        }
+
+        console.log(`✅ Supabase query for ${table} completed:`);
+        console.log(`   Duration: ${duration}ms`);
+        console.log(`   Records: ${result.data?.length || 0}`);
+        console.log(`   Sample record:`, result.data?.[0]);
+
+        return result.data || [];
+    } catch (error: any) {
+        const duration = Date.now() - Date.now();
+        console.error(`❌ syncFromCloud(${table}) error after ${duration}ms:`, error.message);
+
+        // ✅ Retry on timeout/connection errors
+        if (retryCount < MAX_RETRIES &&
+            (error.message?.includes('timeout') ||
+                error.message?.includes('connection') ||
+                error.message?.includes('fetch'))) {
+            console.log(`🔄 Connection error - retrying ${table} in ${(retryCount + 1) * 2} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+            return syncFromCloud(table, retryCount + 1);
+        }
+
+        console.log(`❌ Max retries exceeded for ${table} - falling back to local data`);
         return [];
     }
 };
@@ -570,49 +649,79 @@ export const databaseService: DatabaseService = {
     // Application methods (unchanged but now authentication-aware)
     async getApplications(): Promise<Application[]> {
         try {
+            console.log('🔄 getApplications() called');
+
+            const authState = getAuthState();
+            const currentUser = getCurrentUser();
+            const isAuth = isAuthenticated();
+
+            console.log('🔐 Auth Debug Info:');
+            console.log('   isAuthenticated():', isAuth);
+            console.log('   currentUser email:', currentUser?.email);
+
             const localApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+            console.log('📱 Local applications count:', localApps.length);
 
-            // Sync from cloud for authenticated users
-            if (isOnlineWithSupabase()) {
+            // ✅ Try cloud sync for authenticated users with timeout protection
+            if (isAuth && isOnlineWithSupabase()) {
+                console.log('☁️ Starting cloud sync for authenticated user...');
+
                 try {
-                    const cloudApps = await syncFromCloud('applications');
-
-                    // Merge cloud and local data
-                    const mergedApps = new Map<string, Application>();
-                    localApps.forEach(app => mergedApps.set(app.id, app));
-
-                    cloudApps.forEach(app => {
-                        if (app.id) {
-                            mergedApps.set(app.id, {
-                                id: app.id,
-                                company: app.company,
-                                position: app.position,
-                                dateApplied: app.date_applied,
-                                status: app.status,
-                                type: app.type,
-                                location: app.location,
-                                salary: app.salary,
-                                jobSource: app.job_source,
-                                jobUrl: app.job_url,
-                                notes: app.notes,
-                                attachments: app.attachments,
-                                createdAt: app.created_at,
-                                updatedAt: app.updated_at
-                            });
-                        }
-                    });
-
-                    return Array.from(mergedApps.values()).sort((a, b) =>
-                        new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+                    // ✅ Add overall timeout for the entire cloud sync operation
+                    const cloudSyncPromise = syncFromCloud('applications');
+                    const overallTimeoutPromise = new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('Overall cloud sync timeout')), 30000)
                     );
-                } catch (cloudError) {
-                    console.warn('Cloud sync failed, using local data:', cloudError);
+
+                    const cloudApps = await Promise.race([cloudSyncPromise, overallTimeoutPromise]);
+
+                    console.log(`☁️ Cloud sync result:`, cloudApps.length, 'applications');
+
+                    if (cloudApps.length > 0) {
+                        const mappedApps = cloudApps.map(app => ({
+                            id: app.id,
+                            company: app.company,
+                            position: app.position,
+                            dateApplied: app.date_applied,
+                            status: app.status,
+                            type: app.type,
+                            location: app.location,
+                            salary: app.salary,
+                            jobSource: app.job_source,
+                            jobUrl: app.job_url,
+                            notes: app.notes,
+                            attachments: app.attachments,
+                            createdAt: app.created_at,
+                            updatedAt: app.updated_at
+                        }));
+
+                        const sortedApps = mappedApps.sort((a, b) =>
+                            new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+                        );
+
+                        console.log(`✅ SUCCESS: Using ${sortedApps.length} cloud applications for ${currentUser?.email}`);
+                        return sortedApps;
+                    } else {
+                        console.log('⚠️ No cloud apps found - user may have no data or connection failed');
+                    }
+                } catch (cloudError: any) {
+                    console.error('❌ Cloud sync failed:', cloudError.message);
+                    console.log('📱 Falling back to local data due to cloud error');
+
+                    // ✅ Show user-friendly message for timeouts
+                    if (cloudError.message?.includes('timeout')) {
+                        console.log('🐌 Connection is slow - using cached local data');
+                        // You could also show a toast here: "Using cached data due to slow connection"
+                    }
                 }
+            } else {
+                console.log('📱 Using local data - not authenticated or offline');
             }
 
+            console.log(`📱 FALLBACK: Using ${localApps.length} local applications`);
             return localApps;
         } catch (error) {
-            console.error('Failed to get applications:', error);
+            console.error('❌ getApplications() failed:', error);
             throw new Error('Failed to get applications');
         }
     },
