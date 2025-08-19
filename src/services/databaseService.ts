@@ -151,8 +151,9 @@ const db = new JobTrackerDatabase();
 // SUPABASE CONFIGURATION
 // ============================================================================
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
+// Replace these lines in your databaseService.ts (around line 156-157):
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://ihlaenwiyxtmkehfoesg.supabase.co';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'your-actual-anon-key-here';
 
 let supabase: SupabaseClient | null = null;
 const initializeSupabase = (): SupabaseClient | null => {
