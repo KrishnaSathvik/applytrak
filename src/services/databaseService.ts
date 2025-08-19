@@ -341,10 +341,26 @@ const getAuthState = (): AuthState => {
 
 // Get user ID from authenticated user
 const getUserId = (): string | null => {
+    // ✅ FIXED: Check auth state first
     if (authState.user?.id) {
         return authState.user.id;
     }
-    // Fallback to localStorage for backward compatibility during migration
+
+    // ✅ FIXED: Fallback to localStorage token
+    try {
+        const authToken = localStorage.getItem('applytrak-auth-token');
+        if (authToken) {
+            const parsed = JSON.parse(authToken);
+            if (parsed.user?.id) {
+                console.log('📱 Using localStorage token for user ID');
+                return parsed.user.id;
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to parse auth token from localStorage:', error);
+    }
+
+    // Last resort - legacy storage
     return localStorage.getItem('applytrak_user_id');
 };
 
@@ -516,66 +532,7 @@ function initializeAuth() {
 
     console.log('🔐 Initializing authentication...');
 
-    // Listen for auth state changes with enhanced error handling
-    client.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session?.user?.email);
-
-        // Handle token refresh errors
-        if (event === 'TOKEN_REFRESHED' && !session) {
-            console.warn('⚠️ Token refresh failed - clearing session');
-            await handleAuthError();
-            return;
-        }
-
-        // Update auth state
-        authState = {
-            user: session?.user || null,
-            session,
-            isAuthenticated: !!session?.user,
-            isLoading: false
-        };
-
-        notifyAuthStateChange();
-
-        // Handle auth events
-        switch (event) {
-            case 'SIGNED_IN':
-                console.log('✅ User signed in:', session?.user?.email);
-
-                // Clear cached user DB ID to force fresh lookup
-                localStorage.removeItem('applytrak_user_db_id');
-
-                // Pre-fetch user DB ID to ensure user record exists
-                if (session?.user?.id) {
-                    try {
-                        const dbId = await getUserDbId();
-                        if (dbId) {
-                            console.log('✅ User database record ready:', dbId);
-                        } else {
-                            console.warn('⚠️ Failed to create/find user database record');
-                        }
-                    } catch (error) {
-                        console.error('❌ Error setting up user database record:', error);
-                    }
-                }
-                break;
-
-            case 'SIGNED_OUT':
-                console.log('🚪 User signed out');
-                clearLocalStorageAuth();
-                break;
-
-            case 'TOKEN_REFRESHED':
-                console.log('🔄 Token refreshed successfully');
-                break;
-
-            case 'PASSWORD_RECOVERY':
-                console.log('🔐 Password recovery initiated');
-                break;
-        }
-    });
-
-    // Enhanced session check with error handling
+    // ✅ IMPROVED: Check existing session immediately
     client.auth.getSession().then(({data: {session}, error}) => {
         if (error) {
             console.error('❌ Error getting session:', error);
@@ -583,6 +540,7 @@ function initializeAuth() {
             return;
         }
 
+        // ✅ FIXED: Force sync auth state immediately
         authState = {
             user: session?.user || null,
             session,
@@ -590,18 +548,56 @@ function initializeAuth() {
             isLoading: false
         };
 
+        // ✅ ADDED: Force sync localStorage
+        if (session?.user?.id) {
+            localStorage.setItem('applytrak_user_id', session.user.id);
+            console.log('✅ User ID synced to localStorage:', session.user.id);
+        }
+
         notifyAuthStateChange();
 
-        // If user is already signed in, ensure their database record exists
+        // Pre-fetch user DB ID if signed in
         if (session?.user?.id) {
             getUserDbId().catch(error => {
                 console.warn('⚠️ Failed to verify user database record:', error);
             });
         }
+    });
 
-    }).catch((error) => {
-        console.error('❌ Critical auth error:', error);
-        handleAuthError();
+    // Listen for auth state changes
+    client.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event, session?.user?.email);
+
+        // ✅ FIXED: Always update auth state properly
+        authState = {
+            user: session?.user || null,
+            session,
+            isAuthenticated: !!session?.user,
+            isLoading: false
+        };
+
+        // ✅ ADDED: Always sync localStorage
+        if (session?.user?.id) {
+            localStorage.setItem('applytrak_user_id', session.user.id);
+        } else {
+            localStorage.removeItem('applytrak_user_id');
+            localStorage.removeItem('applytrak_user_db_id');
+        }
+
+        notifyAuthStateChange();
+
+        // Handle specific events
+        switch (event) {
+            case 'SIGNED_IN':
+                console.log('✅ User signed in successfully');
+                // Clear cached user DB ID to force fresh lookup
+                localStorage.removeItem('applytrak_user_db_id');
+                break;
+            case 'SIGNED_OUT':
+                console.log('🚪 User signed out');
+                clearLocalStorageAuth();
+                break;
+        }
     });
 
     console.log('✅ Authentication system initialized');
@@ -807,8 +803,8 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
 };
 
 const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
-    const MAX_RETRIES = 3;
-    const TIMEOUT_MS = 10000; // Reduced to 10 seconds
+    const MAX_RETRIES = 2; // Reduced retries
+    const TIMEOUT_MS = 30000; // Increased to 30 seconds
 
     console.log(`🔄 syncFromCloud(${table}) - attempt ${retryCount + 1}/${MAX_RETRIES + 1}`);
 
@@ -835,15 +831,23 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
         console.log(`📤 Querying Supabase for ${table} with user_id: ${userDbId}`);
         const startTime = Date.now();
 
-        // Better error handling and timeout
         try {
+            // ✅ IMPROVED: Add pagination and ordering for better performance
+            const query = client
+                .from(table)
+                .select('*')
+                .eq('user_id', userDbId)
+                .order('created_at', { ascending: false });
+
+            // ✅ IMPROVED: Add pagination for large datasets
+            if (table === 'applications') {
+                query.limit(50); // Only fetch latest 50 applications initially
+            } else {
+                query.limit(100);
+            }
+
             const {data, error} = await Promise.race([
-                client
-                    .from(table)
-                    .select('*')
-                    .eq('user_id', userDbId)
-                    .limit(100)
-                    .order('created_at', {ascending: false}),
+                query,
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error(`Query timeout after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
                 )
@@ -851,7 +855,6 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
 
             const duration = Date.now() - startTime;
 
-            // Proper error checking and logging
             if (error) {
                 console.error(`❌ Supabase query error for ${table}:`, {
                     message: error.message,
@@ -860,14 +863,17 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
                     code: error.code
                 });
 
-                // Retry on certain errors
+                // ✅ IMPROVED: Don't retry on certain errors
+                if (error.code === '42501' || error.message?.includes('permission')) {
+                    throw new Error(`Permission denied: ${error.message}`);
+                }
+
+                // Retry on timeout/connection errors only
                 if (retryCount < MAX_RETRIES &&
                     (error.message?.includes('timeout') ||
-                        error.message?.includes('connection') ||
-                        error.code === 'PGRST301' || // API overloaded
-                        error.code === '08006')) {   // Connection failure
-                    console.log(`🔄 Retrying ${table} query in ${(retryCount + 1) * 2} seconds...`);
-                    await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+                        error.message?.includes('connection'))) {
+                    console.log(`🔄 Retrying ${table} query in 3 seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                     return syncFromCloud(table, retryCount + 1);
                 }
 
@@ -878,32 +884,22 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
             console.log(`   Duration: ${duration}ms`);
             console.log(`   Records: ${data?.length || 0}`);
 
-            if (data && data.length > 0) {
-                console.log(`   Sample record:`, {
-                    id: data[0].id,
-                    created_at: data[0].created_at,
-                    keys: Object.keys(data[0])
-                });
-            }
-
             return data || [];
 
         } catch (queryError: any) {
             const duration = Date.now() - startTime;
             console.error(`❌ Query execution error for ${table} after ${duration}ms:`, {
                 message: queryError.message,
-                name: queryError.name,
-                stack: queryError.stack?.split('\n')[0] // First line only
+                name: queryError.name
             });
 
-            // Retry on timeout/connection errors
+            // ✅ IMPROVED: Only retry on network/timeout errors
             if (retryCount < MAX_RETRIES &&
                 (queryError.message?.includes('timeout') ||
                     queryError.message?.includes('connection') ||
-                    queryError.message?.includes('fetch') ||
-                    queryError.message?.includes('AbortError'))) {
-                console.log(`🔄 Connection error - retrying ${table} in ${(retryCount + 1) * 2} seconds...`);
-                await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+                    queryError.message?.includes('fetch'))) {
+                console.log(`🔄 Network error - retrying ${table} in 5 seconds...`);
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 return syncFromCloud(table, retryCount + 1);
             }
 
@@ -911,14 +907,7 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
         }
 
     } catch (error: any) {
-        console.error(`❌ syncFromCloud(${table}) fatal error:`, {
-            message: error.message,
-            name: error.name,
-            retryCount,
-            maxRetries: MAX_RETRIES
-        });
-
-        console.log(`❌ Max retries exceeded for ${table} - falling back to local data`);
+        console.error(`❌ syncFromCloud(${table}) fatal error:`, error.message);
         return [];
     }
 };
@@ -933,148 +922,99 @@ export const databaseService: DatabaseService = {
         try {
             console.log('🔄 getApplications() called');
 
-            const authState = getAuthState();
-            const currentUser = getCurrentUser();
-            const isAuth = isAuthenticated();
-
-            console.log('🔐 Auth Debug Info:');
-            console.log('   isAuthenticated():', isAuth);
-            console.log('   currentUser email:', currentUser?.email);
-
-            // Always load local data first for immediate UI response
+            // ✅ IMPROVED: Always load local data first for instant UI
             const localApps = await db.applications.orderBy('dateApplied').reverse().toArray();
             console.log('📱 Local applications count:', localApps.length);
 
-            // ✅ IMPROVED: Try cloud sync for authenticated users with better error handling
-            if (isAuth && isOnlineWithSupabase()) {
-                console.log('☁️ Starting cloud sync for authenticated user...');
+            // ✅ IMPROVED: Return local data immediately if user prefers offline mode
+            const isAuth = isAuthenticated();
+            if (!isAuth || !isOnlineWithSupabase()) {
+                console.log('📱 Using local data only (offline or not authenticated)');
+                return localApps.sort((a, b) =>
+                    new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+                );
+            }
 
-                try {
-                    // ✅ FIXED: Reduced timeout and better error specificity
-                    const CLOUD_SYNC_TIMEOUT = 15000; // 15 seconds instead of 30
+            // ✅ IMPROVED: Attempt cloud sync with shorter timeout for better UX
+            console.log('☁️ Attempting background cloud sync...');
 
-                    const cloudSyncPromise = syncFromCloud('applications');
-                    const timeoutPromise = new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error(`Cloud sync timeout after ${CLOUD_SYNC_TIMEOUT / 1000}s`)), CLOUD_SYNC_TIMEOUT)
-                    );
+            try {
+                // ✅ IMPROVED: Shorter timeout for better UX
+                const CLOUD_SYNC_TIMEOUT = 8000; // Reduced to 8 seconds
 
-                    const cloudApps = await Promise.race([cloudSyncPromise, timeoutPromise]);
+                const cloudSyncPromise = syncFromCloud('applications');
+                const timeoutPromise = new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error(`Cloud sync timeout after ${CLOUD_SYNC_TIMEOUT / 1000}s`)), CLOUD_SYNC_TIMEOUT)
+                );
 
-                    console.log(`☁️ Cloud sync result: ${cloudApps.length} applications`);
+                const cloudApps = await Promise.race([cloudSyncPromise, timeoutPromise]);
 
-                    if (cloudApps && cloudApps.length > 0) {
-                        // ✅ IMPROVED: Better data validation and error handling
-                        const mappedApps = cloudApps
-                            .filter(app => app && app.id)
-                            .map(app => {
-                                try {
-                                    return {
-                                        id: String(app.id),
-                                        company: app.company || '',
-                                        position: app.position || '',
-                                        dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],  // ✅ camelCase
-                                        status: app.status || 'Applied',
-                                        type: app.type || 'Remote',
-                                        location: app.location || '',
-                                        salary: app.salary || '',
-                                        jobSource: app.jobSource || '',            // ✅ camelCase
-                                        jobUrl: app.jobUrl || '',                  // ✅ camelCase
-                                        notes: app.notes || '',
-                                        attachments: Array.isArray(app.attachments) ? app.attachments : [],
-                                        createdAt: app.createdAt || new Date().toISOString(),     // ✅ camelCase
-                                        updatedAt: app.updatedAt || new Date().toISOString()      // ✅ camelCase
-                                    };
-                                } catch (mappingError) {
-                                    console.warn('⚠️ Failed to map application:', app.id, mappingError);
-                                    return null;
-                                }
-                            })
-                            .filter(app => app !== null) as Application[];
+                if (cloudApps && cloudApps.length > 0) {
+                    console.log(`☁️ Cloud sync successful: ${cloudApps.length} applications`);
 
-                        if (mappedApps.length > 0) {
-                            const sortedApps = mappedApps.sort((a, b) =>
-                                new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
-                            );
+                    // ✅ IMPROVED: Better data mapping with error handling
+                    const mappedApps = cloudApps
+                        .filter(app => app && app.id)
+                        .map(app => ({
+                            id: String(app.id),
+                            company: app.company || '',
+                            position: app.position || '',
+                            dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
+                            status: app.status || 'Applied',
+                            type: app.type || 'Remote',
+                            location: app.location || '',
+                            salary: app.salary || '',
+                            jobSource: app.jobSource || '',
+                            jobUrl: app.jobUrl || '',
+                            notes: app.notes || '',
+                            attachments: Array.isArray(app.attachments) ? app.attachments : [],
+                            createdAt: app.createdAt || new Date().toISOString(),
+                            updatedAt: app.updatedAt || new Date().toISOString()
+                        }))
+                        .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
 
-                            console.log(`✅ SUCCESS: Using ${sortedApps.length} cloud applications for ${currentUser?.email}`);
-
-                            // ✅ IMPROVED: Sync cloud data to local storage for offline access
-                            try {
-                                await db.applications.clear();
-                                await db.applications.bulkAdd(sortedApps);
-                                console.log('💾 Cloud data synced to local storage');
-                            } catch (localSyncError) {
-                                console.warn('⚠️ Failed to sync cloud data locally:', localSyncError);
-                                // Still return cloud data even if local sync fails
-                            }
-
-                            return sortedApps;
-                        } else {
-                            console.log('⚠️ No valid applications after mapping - using local data');
-                        }
-                    } else {
-                        console.log('⚠️ No cloud apps found - user may have no data or connection failed');
+                    // ✅ IMPROVED: Update local cache in background
+                    try {
+                        await db.applications.clear();
+                        await db.applications.bulkAdd(mappedApps);
+                        console.log('💾 Cloud data cached locally');
+                    } catch (cacheError) {
+                        console.warn('⚠️ Failed to cache cloud data locally:', cacheError);
                     }
-                } catch (cloudError: any) {
-                    // ✅ IMPROVED: Detailed error logging and user-friendly messages
-                    console.error('❌ Cloud sync failed:', {
-                        message: cloudError.message,
-                        name: cloudError.name,
-                        code: cloudError.code,
-                        stack: cloudError.stack?.split('\n')[0] // First line only
-                    });
 
-                    console.log('📱 Falling back to local data due to cloud error');
-
-                    // ✅ IMPROVED: Specific error handling for different scenarios
-                    if (cloudError.message?.includes('timeout')) {
-                        console.log('🐌 Connection is slow - using cached local data');
-                        // Could show toast: "Using cached data due to slow connection"
-                    } else if (cloudError.message?.includes('permission') || cloudError.message?.includes('denied')) {
-                        console.log('🔒 Permission denied - check RLS policies or authentication');
-                        // Could show toast: "Cloud sync disabled - using local data"
-                    } else if (cloudError.message?.includes('authentication') || cloudError.message?.includes('jwt')) {
-                        console.log('🔐 Authentication issue - user may need to sign in again');
-                        // Could show toast: "Please sign in again to sync data"
-                    } else if (cloudError.message?.includes('network') || cloudError.message?.includes('fetch')) {
-                        console.log('🌐 Network error - check internet connection');
-                        // Could show toast: "Network error - using offline data"
-                    } else {
-                        console.log('❓ Unknown cloud error - using local data as fallback');
-                    }
+                    return mappedApps;
                 }
-            } else {
-                if (!isAuth) {
-                    console.log('📱 Using local data - user not authenticated');
-                } else if (!isOnlineWithSupabase()) {
-                    console.log('📱 Using local data - offline or Supabase not configured');
+            } catch (cloudError: any) {
+                // ✅ IMPROVED: Log the specific error but don't throw
+                console.warn(`⚠️ Cloud sync failed (using local data):`, cloudError.message);
+
+                // ✅ IMPROVED: Show user-friendly message based on error type
+                if (cloudError.message?.includes('timeout')) {
+                    console.log('🐌 Cloud sync timed out - using local data');
+                    // Consider showing a toast: "Sync taking longer than expected - using cached data"
+                } else if (cloudError.message?.includes('permission')) {
+                    console.log('🔒 Permission error - check database access');
+                } else {
+                    console.log('🌐 Cloud sync unavailable - using local data');
                 }
             }
 
             // ✅ IMPROVED: Always return sorted local data as fallback
-            const sortedLocalApps = localApps.sort((a, b) =>
+            console.log(`📱 Using ${localApps.length} local applications`);
+            return localApps.sort((a, b) =>
                 new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
             );
 
-            console.log(`📱 FALLBACK: Using ${sortedLocalApps.length} local applications`);
-            return sortedLocalApps;
-
         } catch (error: any) {
-            // ✅ IMPROVED: Better error logging and recovery
-            console.error('❌ getApplications() failed:', {
-                message: error.message,
-                name: error.name,
-                stack: error.stack?.split('\n').slice(0, 3) // First 3 lines
-            });
+            console.error('❌ getApplications() failed:', error.message);
 
-            // ✅ IMPROVED: Try to return empty array instead of throwing
+            // ✅ IMPROVED: Emergency fallback
             try {
                 const emergencyApps = await db.applications.orderBy('dateApplied').reverse().toArray();
-                console.log(`🚨 Emergency recovery: Found ${emergencyApps.length} applications`);
+                console.log(`🚨 Emergency recovery: ${emergencyApps.length} applications`);
                 return emergencyApps;
             } catch (emergencyError) {
                 console.error('🚨 Emergency recovery failed:', emergencyError);
-                // Return empty array as absolute last resort
                 return [];
             }
         }
