@@ -1,23 +1,36 @@
-// src/components/forms/ApplicationForm.tsx - FIXED VERSION WITH ALL STYLING IMPROVEMENTS
-import React, {useCallback, useRef, useState} from 'react';
+// src/components/forms/ApplicationForm.tsx - WITH AUTO-SAVE FUNCTIONALITY
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {SubmitHandler, useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
-import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
+import {ExternalLink, Plus, Sparkles, Upload, X, Save} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {ApplicationFormData, Attachment} from '../../types/application.types';
 import {applicationFormSchema} from '../../utils/validation';
+
+// 🆕 AUTO-SAVE CONSTANTS
+const FORM_STORAGE_KEY = 'applytrak_draft_application';
+const ATTACHMENTS_STORAGE_KEY = 'applytrak_draft_attachments';
+const AUTO_SAVE_DELAY = 2000; // 2 seconds after user stops typing
 
 const ApplicationForm: React.FC = () => {
     const {addApplication, showToast} = useAppStore();
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [isDragOver, setIsDragOver] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+
+    // 🆕 Auto-save timer ref
+    const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const {
         register,
         handleSubmit,
         reset,
         watch,
-        formState: {errors, isSubmitting}
+        setValue,
+        getValues,
+        formState: {errors, isSubmitting, isDirty}
     } = useForm<ApplicationFormData>({
         resolver: yupResolver(applicationFormSchema) as any,
         defaultValues: {
@@ -32,13 +45,140 @@ const ApplicationForm: React.FC = () => {
             notes: ''
         }
     });
+
+    // Watch all form fields for auto-save
+    const watchedValues = watch();
     const jobUrl = watch('jobUrl');
     const notesValue = watch('notes') || '';
 
-// 🔧 FIXED: Add the useRef declaration at the top of your component
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // 🆕 LOAD DRAFT DATA ON COMPONENT MOUNT
+    useEffect(() => {
+        const loadDraft = () => {
+            try {
+                // Load form data
+                const savedFormData = localStorage.getItem(FORM_STORAGE_KEY);
+                if (savedFormData) {
+                    const parsedData = JSON.parse(savedFormData);
+                    console.log('📋 Loading draft form data:', parsedData);
 
-// 🔧 FIXED: Declare handleFileSelect first, then use it in handleFileInputChange
+                    // Set form values
+                    Object.keys(parsedData).forEach(key => {
+                        if (parsedData[key] !== undefined && parsedData[key] !== '') {
+                            setValue(key as keyof ApplicationFormData, parsedData[key], { shouldDirty: true });
+                        }
+                    });
+
+                    setLastSaved(new Date(parsedData._savedAt || Date.now()));
+                }
+
+                // Load attachments
+                const savedAttachments = localStorage.getItem(ATTACHMENTS_STORAGE_KEY);
+                if (savedAttachments) {
+                    const parsedAttachments = JSON.parse(savedAttachments);
+                    console.log('📎 Loading draft attachments:', parsedAttachments.length);
+                    setAttachments(parsedAttachments);
+                }
+
+                setIsDraftLoaded(true);
+
+                // Show notification if draft was loaded
+                if (savedFormData || savedAttachments) {
+                    showToast({
+                        type: 'info',
+                        message: '📋 Draft application restored!',
+                        duration: 3000
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Error loading draft:', error);
+                setIsDraftLoaded(true);
+            }
+        };
+
+        loadDraft();
+    }, [setValue, showToast]);
+
+    // 🆕 AUTO-SAVE FUNCTION
+    const saveDraft = useCallback(() => {
+        if (!isDraftLoaded) return; // Don't save until draft is loaded
+
+        try {
+            const currentValues = getValues();
+
+            // Check if form has any meaningful data
+            const hasData = Object.values(currentValues).some(value =>
+                value && value.toString().trim() !== '' &&
+                value !== new Date().toISOString().split('T')[0] // Ignore default date
+            ) || attachments.length > 0;
+
+            if (hasData) {
+                // Save form data with timestamp
+                const dataToSave = {
+                    ...currentValues,
+                    _savedAt: new Date().toISOString()
+                };
+
+                localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(dataToSave));
+
+                // Save attachments if any
+                if (attachments.length > 0) {
+                    localStorage.setItem(ATTACHMENTS_STORAGE_KEY, JSON.stringify(attachments));
+                } else {
+                    localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
+                }
+
+                setLastSaved(new Date());
+                console.log('💾 Draft auto-saved');
+            }
+        } catch (error) {
+            console.error('❌ Error saving draft:', error);
+        }
+    }, [getValues, attachments, isDraftLoaded]);
+
+    // 🆕 AUTO-SAVE ON FORM CHANGES
+    useEffect(() => {
+        if (!isDraftLoaded) return;
+
+        // Clear existing timer
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+        }
+
+        // Set new timer
+        autoSaveTimerRef.current = setTimeout(() => {
+            saveDraft();
+        }, AUTO_SAVE_DELAY);
+
+        // Cleanup function
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+            }
+        };
+    }, [watchedValues, attachments, saveDraft, isDraftLoaded]);
+
+    // 🆕 CLEAR DRAFT FUNCTION
+    const clearDraft = useCallback(() => {
+        try {
+            localStorage.removeItem(FORM_STORAGE_KEY);
+            localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
+            setLastSaved(null);
+            console.log('🗑️ Draft cleared');
+        } catch (error) {
+            console.error('❌ Error clearing draft:', error);
+        }
+    }, []);
+
+    // 🆕 MANUAL SAVE FUNCTION
+    const manualSave = useCallback(() => {
+        saveDraft();
+        showToast({
+            type: 'success',
+            message: '💾 Draft saved successfully!',
+            duration: 2000
+        });
+    }, [saveDraft, showToast]);
+
     const handleFileSelect = useCallback((files: FileList | null) => {
         if (!files || files.length === 0) {
             console.log('📁 handleFileSelect: No files provided');
@@ -145,9 +285,8 @@ const ApplicationForm: React.FC = () => {
             // Start reading the file as data URL
             reader.readAsDataURL(file);
         });
-    }, [showToast]); // 🔧 FIXED: Only showToast in dependencies
+    }, [showToast]);
 
-// 🔧 FIXED: File input change handler (now declared after handleFileSelect)
     const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         const fileCount = files?.length || 0;
@@ -156,19 +295,15 @@ const ApplicationForm: React.FC = () => {
         console.log('📄 File names:', files ? Array.from(files).map(f => f.name) : []);
         console.log('📊 Current attachments state:', attachments.length);
 
-        // Process files if any were selected
         if (files && fileCount > 0) {
             handleFileSelect(files);
         }
 
-        // Clear the input value to allow same file selection
         e.target.value = '';
         console.log('🔄 File input value cleared immediately');
     }, [handleFileSelect]);
 
-// 🔧 FIXED: Form submission handler
     const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
-        // Track submission number for debugging
         const submissionNumber = ((window as any).formSubmissionCount = ((window as any).formSubmissionCount || 0) + 1);
 
         console.log('🚀 Form submission #', submissionNumber);
@@ -180,11 +315,9 @@ const ApplicationForm: React.FC = () => {
         })));
 
         try {
-            // Create immutable snapshot of attachments
             const attachmentsSnapshot = attachments.map(att => ({...att}));
             console.log('📤 Submitting application with', attachmentsSnapshot.length, 'attachments');
 
-            // Submit to store
             await addApplication({
                 company: data.company,
                 position: data.position,
@@ -200,6 +333,9 @@ const ApplicationForm: React.FC = () => {
             });
 
             console.log('✅ Application submitted successfully to store');
+
+            // 🆕 CLEAR DRAFT AFTER SUCCESSFUL SUBMISSION
+            clearDraft();
 
             // Reset form fields
             reset({
@@ -218,7 +354,6 @@ const ApplicationForm: React.FC = () => {
             setAttachments([]);
             console.log('🔄 Attachments state reset to empty array');
 
-            // Also reset the file input DOM element
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
                 console.log('🔄 File input DOM element reset via ref');
@@ -235,7 +370,6 @@ const ApplicationForm: React.FC = () => {
         }
     };
 
-// 🔧 FIXED: Remove attachment handler
     const removeAttachment = useCallback((index: number) => {
         console.log('🗑️ Remove attachment requested for index:', index);
 
@@ -257,7 +391,6 @@ const ApplicationForm: React.FC = () => {
         });
     }, []);
 
-// 🔧 FIXED: Drag and drop handlers
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -272,7 +405,6 @@ const ApplicationForm: React.FC = () => {
         e.preventDefault();
         e.stopPropagation();
 
-        // Only set to false if we're actually leaving the drop zone
         const rect = e.currentTarget.getBoundingClientRect();
         const x = e.clientX;
         const y = e.clientY;
@@ -298,13 +430,11 @@ const ApplicationForm: React.FC = () => {
     }, [handleFileSelect]);
 
     return (
-        <div
-            className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
-            {/* 🔧 FIXED: Enhanced Header - Better Responsive Design */}
+        <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
+            {/* Enhanced Header with Auto-Save Status */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3 sm:gap-4">
-                    <div
-                        className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
+                    <div className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
                         <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400"/>
                     </div>
                     <div>
@@ -318,10 +448,28 @@ const ApplicationForm: React.FC = () => {
                         </p>
                     </div>
                 </div>
+
+                {/* 🆕 AUTO-SAVE STATUS AND MANUAL SAVE BUTTON */}
+                <div className="flex items-center gap-3">
+                    {lastSaved && (
+                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                            Last saved: {lastSaved.toLocaleTimeString()}
+                        </div>
+                    )}
+                    <button
+                        type="button"
+                        onClick={manualSave}
+                        className="btn btn-secondary text-xs sm:text-sm px-3 py-2 h-auto"
+                        title="Save draft manually"
+                    >
+                        <Save className="h-4 w-4 mr-1"/>
+                        Save Draft
+                    </button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
-                {/* 🔧 FIXED: Row 1 - Basic Information with Enhanced Styling */}
+                {/* Row 1 - Basic Information */}
                 <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
                     <div className="space-y-3">
                         <label className="form-label-enhanced">
@@ -389,7 +537,7 @@ const ApplicationForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 🔧 FIXED: Row 2 - Job Details with Enhanced Styling */}
+                {/* Row 2 - Job Details */}
                 <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
                     <div className="space-y-3">
                         <label className="form-label-enhanced">
@@ -479,7 +627,7 @@ const ApplicationForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 🔧 FIXED: Row 3 - Job URL with Enhanced Responsive Design */}
+                {/* Row 3 - Job URL */}
                 <div className="space-y-3">
                     <label className="form-label-enhanced">
                         Job Posting URL
@@ -511,9 +659,8 @@ const ApplicationForm: React.FC = () => {
                     )}
                 </div>
 
-                {/* 🔧 MASSIVELY ENHANCED: Notes Section with Better Proportions */}
-                <div
-                    className="space-y-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl p-6 border border-blue-200/30 dark:border-blue-700/30">
+                {/* Notes Section */}
+                <div className="space-y-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl p-6 border border-blue-200/30 dark:border-blue-700/30">
                     <div className="flex items-center justify-between">
                         <label className="form-label-enhanced text-lg font-bold text-blue-900 dark:text-blue-100 mb-0">
                             📝 Notes
@@ -526,7 +673,7 @@ const ApplicationForm: React.FC = () => {
                     <div className="relative">
                         <textarea
                             {...register('notes')}
-                            rows={10} // 🔧 INCREASED: More visible area
+                            rows={10}
                             className={`
                                 w-full px-6 py-4 text-base font-medium 
                                 bg-white/90 dark:bg-gray-800/90 
@@ -541,7 +688,7 @@ const ApplicationForm: React.FC = () => {
                                 shadow-sm hover:shadow-md focus:shadow-lg
                                 leading-relaxed
                                 ${errors.notes ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-                            `} // 🔧 ENHANCED: min-height increased to 320px, better line-height
+                            `}
                             placeholder="Add any additional notes about this application...
 
 • Interview details and feedback
@@ -554,16 +701,14 @@ const ApplicationForm: React.FC = () => {
 
 Feel free to include any relevant information that will help you track this opportunity!"
                             style={{
-                                lineHeight: '1.7', // 🔧 Enhanced readability
-                                fontSize: '16px',   // 🔧 Consistent size
-                                fontFamily: 'var(--font-family-primary)' // 🔧 Consistent font
+                                lineHeight: '1.7',
+                                fontSize: '16px',
+                                fontFamily: 'var(--font-family-primary)'
                             }}
                             maxLength={2000}
                         />
 
-                        {/* 🔧 ENHANCED: Character count with better progress indicator */}
                         <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                            {/* Progress indicator */}
                             <div className="hidden sm:flex items-center gap-2">
                                 <div className="w-20 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                     <div
@@ -577,7 +722,6 @@ Feel free to include any relevant information that will help you track this oppo
                                 </div>
                             </div>
 
-                            {/* Character count badge */}
                             <div className={`
                                 px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm border
                                 ${notesValue.length > 1800
@@ -599,13 +743,12 @@ Feel free to include any relevant information that will help you track this oppo
                     )}
                 </div>
 
-                {/* 🔧 FIXED: Row 5 - Attachments with Enhanced Mobile Design */}
+                {/* Attachments */}
                 <div className="space-y-4">
                     <label className="form-label-enhanced">
                         Resume & Documents
                     </label>
 
-                    {/* Existing attachments - Enhanced Mobile Stack */}
                     {attachments.length > 0 && (
                         <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-4 mb-4">
                             {attachments.map((attachment, index) => (
@@ -615,8 +758,7 @@ Feel free to include any relevant information that will help you track this oppo
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                                            <div
-                                                className="glass rounded-lg p-2 flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                                            <div className="glass rounded-lg p-2 flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
                                                 <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -642,7 +784,7 @@ Feel free to include any relevant information that will help you track this oppo
                         </div>
                     )}
 
-                    {/* 🔧 ENHANCED: Drop zone with better mobile design */}
+                    {/* Drop zone */}
                     <div
                         className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all duration-300 ${
                             isDragOver
@@ -655,8 +797,7 @@ Feel free to include any relevant information that will help you track this oppo
                     >
                         <div className="space-y-3 sm:space-y-4">
                             <div className="flex justify-center">
-                                <div
-                                    className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                                <div className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
                                     <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400"/>
                                 </div>
                             </div>
@@ -664,8 +805,7 @@ Feel free to include any relevant information that will help you track this oppo
                             <div>
                                 <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
                                     <span className="hidden sm:inline">Drop files here, or </span>
-                                    <label
-                                        className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
+                                    <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
                                         <span className="sm:hidden">Tap to </span>browse
                                         <input
                                             ref={fileInputRef}
@@ -686,7 +826,7 @@ Feel free to include any relevant information that will help you track this oppo
                     </div>
                 </div>
 
-                {/* 🔧 ENHANCED: Submit Button with Better Styling */}
+                {/* Submit Button */}
                 <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                     <button
                         type="submit"
@@ -704,15 +844,12 @@ Feel free to include any relevant information that will help you track this oppo
                                 <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300"/>
                                 <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
                                 <span className="sm:hidden font-bold">Add Application</span>
-                                <Sparkles
-                                    className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
+                                <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
                             </>
                         )}
                     </button>
                 </div>
             </form>
-
-
         </div>
     );
 };
