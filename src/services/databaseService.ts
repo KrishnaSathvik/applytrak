@@ -2194,6 +2194,242 @@ export const recoverAuthSession = async () => {
     }
 };
 
+export const debugSupabaseSync = async () => {
+    console.group('🔍 DEBUGGING SUPABASE SYNC');
+
+    try {
+        // Check basic connection
+        console.log('🔧 1. Testing Supabase connection...');
+        const client = initializeSupabase();
+        if (!client) {
+            console.error('❌ No Supabase client - check environment variables');
+            console.log('Environment check:');
+            console.log('- SUPABASE_URL:', !!process.env.REACT_APP_SUPABASE_URL);
+            console.log('- SUPABASE_ANON_KEY:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
+            return;
+        }
+        console.log('✅ Supabase client initialized');
+
+        // Check authentication
+        console.log('🔐 2. Testing authentication...');
+        const { data: { session }, error: authError } = await client.auth.getSession();
+        if (authError) {
+            console.error('❌ Auth error:', authError);
+            return;
+        }
+        if (!session?.user) {
+            console.error('❌ No authenticated user');
+            console.log('Please sign in first');
+            return;
+        }
+        console.log('✅ User authenticated:', session.user.email);
+
+        // Check user DB ID
+        console.log('👤 3. Testing user DB ID...');
+        const userDbId = await getUserDbId();
+        if (!userDbId) {
+            console.error('❌ No user DB ID found');
+            console.log('This means the user record might not exist in the users table');
+            return;
+        }
+        console.log('✅ User DB ID found:', userDbId);
+
+        // Test table access
+        console.log('📋 4. Testing applications table access...');
+        try {
+            const { data: testQuery, error: tableError } = await client
+                .from('applications')
+                .select('*')
+                .eq('user_id', userDbId)
+                .limit(5);
+
+            if (tableError) {
+                console.error('❌ Table access error:', tableError);
+                if (tableError.code === '42501') {
+                    console.error('🚫 Permission denied - check RLS policies');
+                } else if (tableError.code === '42P01') {
+                    console.error('🚫 Table does not exist');
+                }
+                return;
+            }
+
+            console.log('✅ Applications table accessible');
+            console.log('📊 Current applications in Supabase:', testQuery?.length || 0);
+            if (testQuery && testQuery.length > 0) {
+                console.log('Sample application:', testQuery[0]);
+            }
+        } catch (tableError) {
+            console.error('❌ Table test failed:', tableError);
+            return;
+        }
+
+        // Test a manual insert
+        console.log('➕ 5. Testing manual insert...');
+        const testApp = {
+            id: 'debug-test-' + Date.now(),
+            user_id: userDbId,
+            company: 'Debug Test Company',
+            position: 'Debug Test Position',
+            dateApplied: new Date().toISOString().split('T')[0],
+            status: 'Applied',
+            type: 'Remote',
+            location: 'Debug Location',
+            salary: '$100,000',
+            jobSource: 'Debug Test',
+            jobUrl: 'https://example.com',
+            notes: 'This is a debug test application',
+            attachments: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            syncedAt: new Date().toISOString()
+        };
+
+        try {
+            const { data: insertResult, error: insertError } = await client
+                .from('applications')
+                .insert(testApp)
+                .select();
+
+            if (insertError) {
+                console.error('❌ Insert test failed:', insertError);
+                console.error('Full error details:');
+                console.error('- Code:', insertError.code);
+                console.error('- Message:', insertError.message);
+                console.error('- Details:', insertError.details);
+                console.error('- Hint:', insertError.hint);
+                return;
+            }
+
+            console.log('✅ Manual insert successful!');
+            console.log('Inserted record:', insertResult);
+
+            // Clean up test record
+            await client
+                .from('applications')
+                .delete()
+                .eq('id', testApp.id);
+            console.log('🧹 Test record cleaned up');
+
+        } catch (insertError) {
+            console.error('❌ Insert test exception:', insertError);
+        }
+
+        // Test the actual syncToCloud function
+        console.log('🔄 6. Testing syncToCloud function...');
+        try {
+            await syncToCloud('applications', {
+                id: 'debug-sync-test-' + Date.now(),
+                company: 'Sync Test Company',
+                position: 'Sync Test Position',
+                dateApplied: new Date().toISOString().split('T')[0],
+                status: 'Applied',
+                type: 'Remote',
+                location: 'Sync Test Location',
+                salary: '$120,000',
+                jobSource: 'Sync Test Source',
+                jobUrl: 'https://synctest.com',
+                notes: 'This is a sync test',
+                attachments: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }, 'insert');
+            console.log('✅ syncToCloud test completed (check console for details)');
+        } catch (syncError) {
+            console.error('❌ syncToCloud test failed:', syncError);
+        }
+
+        console.log('🎉 Debug complete! Check the logs above for issues.');
+
+    } catch (error) {
+        console.error('❌ Debug failed:', error);
+    }
+
+    console.groupEnd();
+};
+
+// 2. Add this to check your environment variables
+export const checkEnvironment = () => {
+    console.group('🌍 ENVIRONMENT CHECK');
+
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+    console.log('Environment Variables:');
+    console.log('- REACT_APP_SUPABASE_URL:', supabaseUrl ? '✅ Set' : '❌ Missing');
+    console.log('- REACT_APP_SUPABASE_ANON_KEY:', supabaseKey ? '✅ Set' : '❌ Missing');
+
+    if (supabaseUrl) {
+        console.log('Supabase URL format:', supabaseUrl.includes('.supabase.co') ? '✅ Valid' : '⚠️ Check format');
+    }
+
+    if (supabaseKey) {
+        console.log('Anon key length:', supabaseKey.length > 100 ? '✅ Looks valid' : '⚠️ Seems short');
+    }
+
+    console.groupEnd();
+};
+
+// 3. Add this to check local vs cloud data
+export const compareLocalAndCloudData = async () => {
+    console.group('📊 LOCAL VS CLOUD DATA COMPARISON');
+
+    try {
+        // Get local applications
+        const localApps = await db.applications.toArray();
+        console.log('📱 Local applications:', localApps.length);
+
+        if (localApps.length > 0) {
+            console.log('Latest local app:', {
+                id: localApps[0].id,
+                company: localApps[0].company,
+                position: localApps[0].position,
+                createdAt: localApps[0].createdAt
+            });
+        }
+
+        // Get cloud applications
+        if (isAuthenticated() && isOnlineWithSupabase()) {
+            const cloudApps = await syncFromCloud('applications');
+            console.log('☁️ Cloud applications:', cloudApps.length);
+
+            if (cloudApps.length > 0) {
+                console.log('Latest cloud app:', {
+                    id: cloudApps[0].id,
+                    company: cloudApps[0].company,
+                    position: cloudApps[0].position,
+                    createdAt: cloudApps[0].createdAt
+                });
+            }
+
+            // Compare IDs
+            const localIds = new Set(localApps.map(app => app.id));
+            const cloudIds = new Set(cloudApps.map(app => app.id));
+
+            const onlyLocal = localApps.filter(app => !cloudIds.has(app.id));
+            const onlyCloud = cloudApps.filter(app => !localIds.has(app.id));
+
+            console.log('📊 Comparison:');
+            console.log('- Only in local:', onlyLocal.length);
+            console.log('- Only in cloud:', onlyCloud.length);
+            console.log('- In both:', localApps.filter(app => cloudIds.has(app.id)).length);
+
+            if (onlyLocal.length > 0) {
+                console.log('🔍 Apps only in local (not synced):');
+                onlyLocal.forEach(app => {
+                    console.log(`  - ${app.company} - ${app.position} (${app.id})`);
+                });
+            }
+        } else {
+            console.log('❌ Cannot check cloud data - not authenticated or offline');
+        }
+
+    } catch (error) {
+        console.error('❌ Comparison failed:', error);
+    }
+
+    console.groupEnd();
+};
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
