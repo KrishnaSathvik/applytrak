@@ -183,7 +183,7 @@ const initializeSupabase = (): SupabaseClient | null => {
                 fetch: (url, options = {}) => {
                     return fetch(url, {
                         ...options,
-                        signal: AbortSignal.timeout(5000),
+                        //signal: AbortSignal.timeout(15000),//
                         keepalive: true,
                         cache: 'no-cache'
                     });
