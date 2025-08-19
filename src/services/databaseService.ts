@@ -152,8 +152,8 @@ const db = new JobTrackerDatabase();
 // ============================================================================
 
 // Replace these lines in your databaseService.ts (around line 156-157):
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://ihlaenwiyxtmkehfoesg.supabase.co';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Mjk1NDMsImV4cCI6MjA3MDAwNTU0M30.rkubJuDwXZN411f341hHvoUejy8Bj2BdjsDrZsceV_o';
+const supabaseUrl = 'https://ihlaenwiyxtmkehfoesg.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Mjk1NDMsImV4cCI6MjA3MDAwNTU0M30.rkubJuDwXZN411f341hHvoUejy8Bj2BdjsDrZsceV_o';
 
 let supabase: SupabaseClient | null = null;
 const initializeSupabase = (): SupabaseClient | null => {
@@ -184,7 +184,7 @@ const initializeSupabase = (): SupabaseClient | null => {
                 fetch: (url, options = {}) => {
                     return fetch(url, {
                         ...options,
-                        //signal: AbortSignal.timeout(15000),//
+                        signal: AbortSignal.timeout(15000),
                         keepalive: true,
                         cache: 'no-cache'
                     });
@@ -2430,6 +2430,8 @@ export const compareLocalAndCloudData = async () => {
 
     console.groupEnd();
 };
+
+
 
 // ============================================================================
 // EXPORTS
