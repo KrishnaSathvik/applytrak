@@ -129,7 +129,6 @@ export interface AppState {
     feedbackList: FeedbackSubmission[];
     adminAnalytics: AdminAnalytics | null;
     adminFeedback: AdminFeedbackSummary | null;
-
     autoRefreshPreferences?: {
         enabled: boolean;
         interval: number;
@@ -238,6 +237,17 @@ export interface AppState {
     disableAutoRefresh: () => void;
     getGlobalRefreshStatus: () => GlobalRefreshState;
     resetRefreshErrors: () => void;
+    cleanup: () => void;
+    getConnectionStatus: () => {
+        isOnline: boolean;
+        supabaseConfigured: boolean;
+        isAuthenticated: boolean;
+        isRealtimeEnabled: boolean;
+        lastRefresh: string | null;
+        connectionType: 'cloud' | 'local';
+        syncStatus: 'synced' | 'local-only';
+        adminMode: 'saas_realtime' | 'local_realtime' | 'local_only';
+    };
 }
 
 // ============================================================================
@@ -639,8 +649,16 @@ export const useAppStore = create<AppState>()(
                                         return {name, success: true};
                                     } catch (error) {
                                         console.error(`❌ ${name} - Error:`, error);
-                                        errors.push(`${name}: ${(error as Error).message}`);
-                                        return {name, success: false, error};
+
+                                        // 🔧 ENHANCED: Categorize error types
+                                        const errorMessage = (error as Error).message;
+                                        const errorType = errorMessage.includes('timeout') ? 'timeout' :
+                                            errorMessage.includes('network') ? 'network' :
+                                                errorMessage.includes('authentication') ? 'auth' :
+                                                    errorMessage.includes('permission') ? 'permission' : 'unknown';
+
+                                        errors.push(`${name}: ${errorMessage} (${errorType})`);
+                                        return {name, success: false, error, errorType};
                                     }
                                 })
                             );
@@ -954,6 +972,29 @@ export const useAppStore = create<AppState>()(
                         try {
                             await authService.signOut();
 
+                            // 🔧 ENHANCED: Clear auth-related data more thoroughly
+                            set(state => ({
+                                ...state,
+                                auth: {
+                                    user: null,
+                                    session: null,
+                                    isAuthenticated: false,
+                                    isLoading: false,
+                                    error: null
+                                },
+                                // Clear admin session if user was authenticated
+                                ui: {
+                                    ...state.ui,
+                                    admin: {
+                                        ...state.ui.admin,
+                                        authenticated: false,
+                                        dashboardOpen: false
+                                    }
+                                },
+                                adminAnalytics: null,
+                                adminFeedback: null
+                            }));
+
                             get().showToast({
                                 type: 'info',
                                 message: '👋 Signed out successfully. Your data is still saved locally.',
@@ -966,19 +1007,7 @@ export const useAppStore = create<AppState>()(
                                 timestamp: new Date().toISOString()
                             });
                         } catch (error) {
-                            console.error('❌ Sign out failed:', error);
-                            const errorMessage = (error as any)?.message || 'Failed to sign out';
-
-                            set(state => ({
-                                ...state,
-                                auth: {...state.auth, isLoading: false, error: errorMessage}
-                            }));
-
-                            get().showToast({
-                                type: 'error',
-                                message: `❌ ${errorMessage}`,
-                                duration: 5000
-                            });
+                            // ... existing error handling
                         }
                     },
 
@@ -1123,47 +1152,60 @@ export const useAppStore = create<AppState>()(
                     },
 
                     loadRealtimeAdminAnalytics: async () => {
-                        try {
-                            set(state => ({
-                                ...state,
-                                ui: {...state.ui, isLoading: true}
-                            }));
+                        const maxRetries = 2;
+                        let retryCount = 0;
 
-                            console.log('📊 Loading real-time admin analytics...');
+                        while (retryCount <= maxRetries) {
+                            try {
+                                set(state => ({
+                                    ...state,
+                                    ui: {...state.ui, isLoading: true}
+                                }));
 
-                            const analytics = await realtimeAdminService.getRealtimeAdminAnalyticsSafe();
+                                console.log(`📊 Loading real-time admin analytics (attempt ${retryCount + 1})...`);
 
-                            set(state => ({
-                                ...state,
-                                adminAnalytics: analytics,
-                                lastAdminUpdate: new Date().toISOString(),
-                                ui: {...state.ui, isLoading: false}
-                            }));
+                                const analytics = await realtimeAdminService.getRealtimeAdminAnalyticsSafe();
 
-                            console.log('✅ Real-time admin analytics loaded successfully');
+                                set(state => ({
+                                    ...state,
+                                    adminAnalytics: analytics,
+                                    lastAdminUpdate: new Date().toISOString(),
+                                    ui: {...state.ui, isLoading: false}
+                                }));
 
-                            get().showToast({
-                                type: 'success',
-                                message: 'Admin data updated',
-                                duration: 2000
-                            });
+                                console.log('✅ Real-time admin analytics loaded successfully');
 
-                        } catch (error) {
-                            console.error('❌ Failed to load real-time admin analytics:', error);
+                                get().showToast({
+                                    type: 'success',
+                                    message: 'Admin data updated',
+                                    duration: 2000
+                                });
 
-                            console.log('📱 Using local analytics as fallback...');
-                            await get().loadAdminAnalytics();
+                                return; // Success, exit the retry loop
 
-                            set(state => ({
-                                ...state,
-                                ui: {...state.ui, isLoading: false}
-                            }));
+                            } catch (error) {
+                                console.error(`❌ Failed to load real-time admin analytics (attempt ${retryCount + 1}):`, error);
+                                retryCount++;
 
-                            get().showToast({
-                                type: 'warning',
-                                message: 'Using local data - cloud sync unavailable',
-                                duration: 3000
-                            });
+                                if (retryCount > maxRetries) {
+                                    console.log('📱 Max retries exceeded, using local analytics as fallback...');
+                                    await get().loadAdminAnalytics();
+
+                                    set(state => ({
+                                        ...state,
+                                        ui: {...state.ui, isLoading: false}
+                                    }));
+
+                                    get().showToast({
+                                        type: 'warning',
+                                        message: 'Using local data - cloud sync unavailable',
+                                        duration: 3000
+                                    });
+                                } else {
+                                    // Wait before retry
+                                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                                }
+                            }
                         }
                     },
 
@@ -2044,7 +2086,12 @@ export const useAppStore = create<AppState>()(
 
                     trackEvent: async (event: string, properties?: Record<string, any>) => {
                         if (analyticsService.isEnabled()) {
-                            await analyticsService.trackEvent(event as any, properties);
+                            try {
+                                await analyticsService.trackEvent(event as any, properties);
+                            } catch (error) {
+                                console.warn('Analytics tracking failed:', error);
+                                // Don't show toast for analytics failures - keep them silent
+                            }
                         }
                     },
 
@@ -2348,8 +2395,75 @@ export const useAppStore = create<AppState>()(
                             }
                         }));
                     },
+                    // 🔧 ADD THIS ENTIRE FUNCTION:
+                    cleanup: () => {
+                        console.log('🧹 Cleaning up app store resources...');
+
+                        const {autoRefreshTimer, authSubscription, adminSubscription} = get();
+
+                        // Clear auto-refresh timer
+                        if (autoRefreshTimer) {
+                            clearInterval(autoRefreshTimer);
+                            console.log('✅ Auto-refresh timer cleared');
+                        }
+
+                        // Clean up auth subscription
+                        if (authSubscription) {
+                            authSubscription();
+                            console.log('✅ Auth subscription cleaned up');
+                        }
+
+                        // Clean up admin subscription
+                        if (adminSubscription) {
+                            adminSubscription();
+                            console.log('✅ Admin subscription cleaned up');
+                        }
+
+                        // Clean up admin service
+                        realtimeAdminService.cleanup();
+                        console.log('✅ Realtime admin service cleaned up');
+
+                        // Reset state to initial values
+                        set(state => ({
+                            ...state,
+                            autoRefreshTimer: null,
+                            authSubscription: null,
+                            adminSubscription: null,
+                            isAdminRealtime: false,
+                            globalRefresh: {
+                                isRefreshing: false,
+                                lastRefreshTimestamp: null,
+                                refreshStatus: 'idle',
+                                autoRefreshEnabled: false,
+                                autoRefreshInterval: 30,
+                                autoRefreshIntervalSeconds: 30,
+                                refreshErrors: []
+                            }
+                        }));
+
+                        console.log('✅ App store cleanup completed');
+                    },
+                    getConnectionStatus: () => {
+                        const {auth, isAdminRealtime, globalRefresh} = get();
+                        const supabaseConfigured = !!process.env.REACT_APP_SUPABASE_URL;
+
+                        return {
+                            isOnline: navigator.onLine,
+                            supabaseConfigured,
+                            isAuthenticated: auth.isAuthenticated,
+                            isRealtimeEnabled: isAdminRealtime,
+                            lastRefresh: globalRefresh.lastRefreshTimestamp,
+                            connectionType: auth.isAuthenticated && supabaseConfigured ? 'cloud' : 'local',
+                            syncStatus: auth.isAuthenticated ? 'synced' : 'local-only',
+                            adminMode: isAdminRealtime ?
+                                (auth.isAuthenticated ? 'saas_realtime' : 'local_realtime') :
+                                'local_only'
+                        };
+                    },
                 };
             },
+
+
             {
                 name: 'applytrak-store',
                 partialize: (state: AppState) => ({

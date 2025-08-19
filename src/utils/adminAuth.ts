@@ -1,7 +1,44 @@
 // src/utils/adminAuth.ts - FIXED FOR YOUR ACTUAL DATABASE SCHEMA
 import type {AdminSession} from '../types';
 import {createClient} from '@supabase/supabase-js';
-import {useAppStore} from '../store/useAppStore';
+
+interface AdminVerificationCache {
+    [userId: string]: {
+        isAdmin: boolean;
+        timestamp: number;
+        email: string;
+    };
+}
+
+const adminCache: AdminVerificationCache = {};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedAdminStatus = (userId: string, email: string): boolean | null => {
+    const cached = adminCache[userId];
+    if (!cached) return null;
+
+    const isExpired = Date.now() - cached.timestamp > CACHE_DURATION;
+    if (isExpired) {
+        delete adminCache[userId];
+        return null;
+    }
+
+    // Verify email matches (security check)
+    if (cached.email !== email) {
+        delete adminCache[userId];
+        return null;
+    }
+
+    return cached.isAdmin;
+};
+
+const setCachedAdminStatus = (userId: string, email: string, isAdmin: boolean): void => {
+    adminCache[userId] = {
+        isAdmin,
+        timestamp: Date.now(),
+        email
+    };
+};
 
 // ============================================================================
 // SUPABASE CLIENT FOR ADMIN AUTH
@@ -86,13 +123,23 @@ export const isAdminByEmail = (email: string): boolean => {
 
 export const verifyDatabaseAdminWithFallback = async (authUserId: string, userEmail?: string): Promise<boolean> => {
     try {
-        // FIRST: Try email-based check (fastest and most reliable)
+        // Check cache first
+        if (userEmail) {
+            const cachedResult = getCachedAdminStatus(authUserId, userEmail);
+            if (cachedResult !== null) {
+                console.log('✅ Admin status from cache:', cachedResult);
+                return cachedResult;
+            }
+        }
+
+        // Email-based check (fastest and most reliable)
         if (userEmail && isAdminByEmail(userEmail)) {
             console.log('✅ Admin verified by email:', userEmail);
+            setCachedAdminStatus(authUserId, userEmail, true);
             return true;
         }
 
-        // SECOND: Try database lookup with proper UUID
+        // Database lookup with better error handling
         const client = getSupabaseClient();
         if (!client) {
             console.error('❌ Supabase not configured');
@@ -101,44 +148,63 @@ export const verifyDatabaseAdminWithFallback = async (authUserId: string, userEm
 
         console.log(`🔐 Checking admin status for auth user UUID: ${authUserId}`);
 
-        // FIXED: Query by UUID (external_id), not email
-        const { data: user, error } = await client
+        // Timeout protection
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Database admin check timeout')), 10000)
+        );
+
+        const queryPromise = client
             .from('users')
             .select('id, external_id, email, is_admin, admin_permissions, display_name')
-            .eq('external_id', authUserId)  // Use UUID, not email
+            .eq('external_id', authUserId)
             .single();
+
+        const {data: user, error} = await Promise.race([queryPromise, timeoutPromise]);
 
         if (error) {
             console.warn('❌ Database admin check failed:', error.message);
 
-            // If user not found by UUID but we have email, try email lookup
+            // Enhanced fallback logic
             if (error.code === 'PGRST116' && userEmail) {
                 console.log('🔍 User not found by UUID, trying email lookup...');
 
-                const { data: emailUser, error: emailError } = await client
-                    .from('users')
-                    .select('id, external_id, email, is_admin, admin_permissions, display_name')
-                    .eq('email', userEmail)  // Query by email
-                    .single();
-
-                if (!emailError && emailUser) {
-                    console.log('✅ Found user by email, updating external_id...');
-
-                    // Update the external_id to match the auth UUID
-                    await client
+                try {
+                    const emailQueryPromise = client
                         .from('users')
-                        .update({ external_id: authUserId })
-                        .eq('id', emailUser.id);
+                        .select('id, external_id, email, is_admin, admin_permissions, display_name')
+                        .eq('email', userEmail)
+                        .single();
 
-                    const isAdmin = emailUser.is_admin === true;
-                    console.log(`🔐 Admin check for ${emailUser.email}: ${isAdmin ? 'YES' : 'NO'}`);
-                    return isAdmin;
+                    const {data: emailUser, error: emailError} = await Promise.race([
+                        emailQueryPromise,
+                        new Promise<never>((_, reject) =>
+                            setTimeout(() => reject(new Error('Email lookup timeout')), 5000)
+                        )
+                    ]);
+
+                    if (!emailError && emailUser) {
+                        console.log('✅ Found user by email, updating external_id...');
+
+                        // Update the external_id to match the auth UUID
+                        await client
+                            .from('users')
+                            .update({external_id: authUserId})
+                            .eq('id', emailUser.id);
+
+                        const isAdmin = emailUser.is_admin === true;
+                        setCachedAdminStatus(authUserId, userEmail, isAdmin);
+                        console.log(`🔐 Admin check for ${emailUser.email}: ${isAdmin ? 'YES' : 'NO'}`);
+                        return isAdmin;
+                    }
+                } catch (emailError) {
+                    console.warn('❌ Email lookup failed:', emailError);
                 }
             }
 
-            // FALLBACK: Use email check if database fails
+            // Final email fallback
             if (userEmail && isAdminByEmail(userEmail)) {
                 console.log('✅ Admin verified by email fallback:', userEmail);
+                setCachedAdminStatus(authUserId, userEmail, true);
                 return true;
             }
 
@@ -146,15 +212,19 @@ export const verifyDatabaseAdminWithFallback = async (authUserId: string, userEm
         }
 
         const isAdmin = user?.is_admin === true;
+        if (userEmail) {
+            setCachedAdminStatus(authUserId, userEmail, isAdmin);
+        }
         console.log(`🔐 Database admin check for ${user?.email}: ${isAdmin ? 'YES' : 'NO'}`);
         return isAdmin;
 
     } catch (error) {
         console.error('❌ Admin verification error:', error);
 
-        // FINAL FALLBACK: Use email check
+        // Final fallback with caching
         if (userEmail && isAdminByEmail(userEmail)) {
             console.log('✅ Admin verified by email (error fallback):', userEmail);
+            setCachedAdminStatus(authUserId, userEmail, true);
             return true;
         }
 
@@ -366,10 +436,15 @@ export const getPermissionLevel = (email: string): 'readonly' | 'standard' | 'fu
  */
 export const saveAdminSession = (session: AdminSession): void => {
     try {
+        // Clean up expired sessions first
+        cleanupExpiredSessions();
+
         const sessionData = {
             ...session,
             createdAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + ADMIN_CONFIG.SESSION.timeout).toISOString(),
+            version: '1.0', // Add version for future compatibility
+            userAgent: navigator.userAgent.substring(0, 100) // Track user agent for security
         };
 
         localStorage.setItem(
@@ -377,12 +452,109 @@ export const saveAdminSession = (session: AdminSession): void => {
             JSON.stringify(sessionData)
         );
 
-        console.log('✅ Admin session saved');
+        console.log('✅ Admin session saved with enhanced security');
     } catch (error) {
         console.error('❌ Failed to save admin session:', error);
+
+        // Try to clear corrupted data
+        try {
+            localStorage.removeItem(ADMIN_CONFIG.SESSION.storageKey);
+        } catch (clearError) {
+            console.error('❌ Failed to clear corrupted session:', clearError);
+        }
     }
 };
 
+const cleanupExpiredSessions = (): void => {
+    try {
+        // Clean up any old session keys
+        const keysToCheck = [
+            ADMIN_CONFIG.SESSION.storageKey,
+            'admin_session', // Legacy key
+            'applytrak_admin_session' // Another possible key
+        ];
+
+        keysToCheck.forEach(key => {
+            try {
+                const sessionData = localStorage.getItem(key);
+                if (sessionData) {
+                    const session = JSON.parse(sessionData);
+                    if (isSessionExpired(session)) {
+                        localStorage.removeItem(key);
+                        console.log(`🧹 Cleaned up expired session: ${key}`);
+                    }
+                }
+            } catch (error) {
+                // Remove corrupted session data
+                localStorage.removeItem(key);
+                console.log(`🧹 Cleaned up corrupted session: ${key}`);
+            }
+        });
+    } catch (error) {
+        console.error('❌ Failed to cleanup sessions:', error);
+    }
+};
+
+export const getAdminHealthStatus = async (): Promise<{
+    supabaseConnected: boolean;
+    databaseAccessible: boolean;
+    adminVerificationWorking: boolean;
+    cacheHitRate: number;
+    errorCount: number;
+}> => {
+    const startTime = Date.now();
+    let supabaseConnected = false;
+    let databaseAccessible = false;
+    let adminVerificationWorking = false;
+    let errorCount = 0;
+
+    try {
+        // Test Supabase connection
+        const client = getSupabaseClient();
+        if (client) {
+            supabaseConnected = true;
+
+            // Test database access
+            try {
+                await client.from('users').select('count').limit(1);
+                databaseAccessible = true;
+            } catch (dbError) {
+                errorCount++;
+                console.warn('Database access test failed:', dbError);
+            }
+
+            // Test admin verification
+            try {
+                const testResult = await verifyCurrentAdmin();
+                adminVerificationWorking = true;
+            } catch (adminError) {
+                errorCount++;
+                console.warn('Admin verification test failed:', adminError);
+            }
+        }
+    } catch (error) {
+        errorCount++;
+        console.error('Health check failed:', error);
+    }
+
+    // Calculate cache hit rate
+    const totalCacheEntries = Object.keys(adminCache).length;
+    const cacheHitRate = totalCacheEntries > 0 ?
+        Object.values(adminCache).filter(entry =>
+            Date.now() - entry.timestamp < CACHE_DURATION
+        ).length / totalCacheEntries : 0;
+
+    const duration = Date.now() - startTime;
+    console.log(`🏥 Admin health check completed in ${duration}ms`);
+
+    return {
+        supabaseConnected,
+        databaseAccessible,
+        adminVerificationWorking,
+        cacheHitRate: Math.round(cacheHitRate * 100),
+        errorCount
+    };
+};
 /**
  * Load admin session from storage
  */

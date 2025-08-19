@@ -1,4 +1,3 @@
-// src/services/databaseService.ts - ENHANCED WITH REAL SUPABASE AUTHENTICATION
 import Dexie, {Table} from 'dexie';
 import {createClient, Session, SupabaseClient, User} from '@supabase/supabase-js';
 import {
@@ -15,6 +14,166 @@ import {
     UserMetrics,
     UserSession
 } from '../types';
+
+// ============================================================================
+// MISSING UTILITIES - ADDED
+// ============================================================================
+
+// Generate unique ID utility
+const generateId = (): string => {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+};
+
+// ============================================================================
+// COMPLETE DATABASE SCHEMA - FIXED
+// ============================================================================
+
+export class JobTrackerDatabase extends Dexie {
+    applications!: Table<Application, string>;
+    goals!: Table<Goals, string>;
+    backups!: Table<Backup, string>;
+
+    // ✅ MISSING ANALYTICS TABLES - ADDED:
+    analyticsEvents!: Table<AnalyticsEvent, number>;
+    userSessions!: Table<UserSession, number>;
+    userMetrics!: Table<UserMetrics & { id: string }, string>;
+    feedback!: Table<FeedbackSubmission, number>;
+    privacySettings!: Table<PrivacySettings & { id: string }, string>;
+
+    constructor() {
+        super('ApplyTrakDB');
+
+        // ✅ IMPORTANT: Increment version to trigger schema update
+        this.version(3).stores({
+            // Existing tables
+            applications: 'id, company, position, dateApplied, status, type, location, jobSource, createdAt, updatedAt',
+            goals: 'id, totalGoal, weeklyGoal, monthlyGoal, createdAt, updatedAt',
+            backups: 'id, timestamp, data',
+
+            // ✅ NEW: Missing analytics tables
+            analyticsEvents: '++id, event, timestamp, sessionId, properties, userId',
+            userSessions: '++id, startTime, endTime, duration, deviceType, userAgent, timezone, language, events',
+            userMetrics: 'id, sessionsCount, totalTimeSpent, applicationsCreated, applicationsUpdated, applicationsDeleted, goalsSet, attachmentsAdded, exportsPerformed, importsPerformed, searchesPerformed, featuresUsed, lastActiveDate, deviceType, firstVisit, totalEvents',
+            feedback: '++id, type, rating, message, email, timestamp, sessionId, userAgent, url, metadata',
+            privacySettings: 'id, analytics, feedback, functionalCookies, consentDate, consentVersion'
+        });
+
+        // Add hooks for automatic timestamps
+        this.applications.hook('creating', (primKey, obj, trans) => {
+            const now = new Date().toISOString();
+            obj.createdAt = now;
+            obj.updatedAt = now;
+        });
+
+        this.applications.hook('updating', (modifications, primKey, obj, trans) => {
+            (modifications as any).updatedAt = new Date().toISOString();
+        });
+
+        // ✅ NEW: Add analytics event hooks
+        this.analyticsEvents.hook('creating', (primKey, obj, trans) => {
+            if (!obj.timestamp) {
+                obj.timestamp = new Date().toISOString();
+            }
+        });
+
+        // ✅ NEW: Add user session hooks
+        this.userSessions.hook('creating', (primKey, obj, trans) => {
+            if (!obj.startTime) {
+                obj.startTime = new Date().toISOString();
+            }
+        });
+    }
+}
+
+// ✅ DATABASE INSTANCE - ADDED
+const db = new JobTrackerDatabase();
+
+// ✅ ADD: Initialize default analytics data after database opens
+const initializeDefaultData = async () => {
+    try {
+        console.log('✅ Database opened with analytics support');
+
+        // Initialize default user metrics if they don't exist
+        const metrics = await db.userMetrics.get('default');
+        if (!metrics) {
+            // ✅ FIXED: Proper device type detection with correct types
+            const getDeviceType = (): 'mobile' | 'desktop' | 'tablet' => {
+                const userAgent = navigator.userAgent.toLowerCase();
+                if (/ipad|android(?!.*mobile)|tablet/.test(userAgent)) {
+                    return 'tablet';
+                } else if (/mobile|android|iphone|ipod|blackberry|windows phone/.test(userAgent)) {
+                    return 'mobile';
+                } else {
+                    return 'desktop';
+                }
+            };
+
+            const defaultMetrics = {
+                id: 'default',
+                sessionsCount: 0,
+                totalTimeSpent: 0,
+                applicationsCreated: 0,
+                applicationsUpdated: 0,
+                applicationsDeleted: 0,
+                goalsSet: 0,
+                attachmentsAdded: 0,
+                exportsPerformed: 0,
+                importsPerformed: 0,
+                searchesPerformed: 0,
+                featuresUsed: [],
+                lastActiveDate: new Date().toISOString(),
+                deviceType: getDeviceType(),
+                firstVisit: new Date().toISOString(),
+                totalEvents: 0
+            };
+
+            await db.userMetrics.put(defaultMetrics);
+            console.log('✅ Default user metrics initialized');
+        }
+
+        // Initialize default privacy settings if they don't exist
+        const settings = await db.privacySettings.get('default');
+        if (!settings) {
+            const defaultSettings = {
+                id: 'default',
+                analytics: true,
+                feedback: true,
+                functionalCookies: true,
+                consentDate: new Date().toISOString(),
+                consentVersion: '1.0'
+            };
+
+            await db.privacySettings.put(defaultSettings);
+            console.log('✅ Default privacy settings initialized');
+        }
+    } catch (error) {
+        console.warn('⚠️ Failed to initialize default data:', error);
+    }
+};
+
+// ✅ ADD: Error handling for database upgrades
+db.open().then(() => {
+    // Initialize default data after successful open
+    initializeDefaultData();
+}).catch(error => {
+    console.error('❌ Database failed to open:', error);
+
+    // If upgrade fails, try to delete and recreate
+    if (error.name === 'UpgradeError' || error.name === 'DatabaseClosedError') {
+        console.log('🔄 Attempting database recreation...');
+
+        db.delete().then(() => {
+            console.log('✅ Old database deleted, creating new one...');
+            return db.open();
+        }).then(() => {
+            console.log('✅ Database recreated successfully');
+            // Initialize default data after recreation
+            initializeDefaultData();
+        }).catch(recreateError => {
+            console.error('❌ Failed to recreate database:', recreateError);
+        });
+    }
+});
 
 // ============================================================================
 // SUPABASE CONFIGURATION - REAL AUTHENTICATION ENABLED
@@ -49,20 +208,15 @@ const initializeSupabase = (): SupabaseClient | null => {
                 headers: {
                     'x-client-info': 'applytrak/1.0'
                 },
-                // ✅ ADD: Optimized fetch options
                 fetch: (url, options = {}) => {
                     return fetch(url, {
                         ...options,
-                        // ✅ Shorter timeout (5 seconds instead of default 20+)
                         signal: AbortSignal.timeout(5000),
-                        // ✅ Optimize request
                         keepalive: true,
-                        // ✅ Add retry logic at fetch level
                         cache: 'no-cache'
                     });
                 }
             },
-            // ✅ Disable realtime to reduce overhead
             realtime: {
                 params: {
                     eventsPerSecond: 1
@@ -99,8 +253,6 @@ const authListeners = new Set<(state: AuthState) => void>();
 // Subscribe to authentication state changes
 const subscribeToAuthChanges = (callback: (state: AuthState) => void) => {
     authListeners.add(callback);
-
-    // Return unsubscribe function
     return () => {
         authListeners.delete(callback);
     };
@@ -111,73 +263,11 @@ const notifyAuthStateChange = () => {
     authListeners.forEach(listener => listener(authState));
 };
 
-// Initialize authentication listener
-const initializeAuth = () => {
-    const client = initializeSupabase();
-    if (!client) return;
+// ============================================================================
+// HELPER FUNCTIONS - DEFINED FIRST
+// ============================================================================
 
-    // Listen for auth state changes with enhanced error handling
-    client.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session?.user?.email);
-
-        // ✅ Handle token refresh errors
-        if (event === 'TOKEN_REFRESHED' && !session) {
-            console.warn('⚠️ Token refresh failed - clearing session');
-            await handleAuthError();
-            return;
-        }
-
-        authState = {
-            user: session?.user || null,
-            session,
-            isAuthenticated: !!session?.user,
-            isLoading: false
-        };
-
-        notifyAuthStateChange();
-
-        // Handle auth events
-        switch (event) {
-            case 'SIGNED_IN':
-                console.log('✅ User signed in:', session?.user?.email);
-                break;
-            case 'SIGNED_OUT':
-                console.log('🚪 User signed out');
-                clearLocalStorageAuth();
-                break;
-            case 'TOKEN_REFRESHED':
-                console.log('🔄 Token refreshed successfully');
-                break;
-            case 'PASSWORD_RECOVERY':
-                console.log('🔐 Password recovery initiated');
-                break;
-        }
-    });
-
-    // ✅ Enhanced session check with error handling
-    client.auth.getSession().then(({ data: { session }, error }) => {
-        if (error) {
-            console.error('❌ Error getting session:', error);
-            // Clear corrupted session data
-            handleAuthError();
-            return;
-        }
-
-        authState = {
-            user: session?.user || null,
-            session,
-            isAuthenticated: !!session?.user,
-            isLoading: false
-        };
-
-        notifyAuthStateChange();
-    }).catch((error) => {
-        console.error('❌ Critical auth error:', error);
-        handleAuthError();
-    });
-};
-
-// ✅ NEW: Enhanced auth error handler
+// Enhanced auth error handler
 const handleAuthError = async () => {
     console.log('🧹 Handling authentication error...');
 
@@ -209,7 +299,7 @@ const handleAuthError = async () => {
     }
 };
 
-// ✅ Enhanced clear localStorage function
+// Enhanced clear localStorage function
 const clearLocalStorageAuth = () => {
     const authKeys = [
         'applytrak_user_id',
@@ -254,72 +344,268 @@ const getUserId = (): string | null => {
     if (authState.user?.id) {
         return authState.user.id;
     }
-
     // Fallback to localStorage for backward compatibility during migration
     return localStorage.getItem('applytrak_user_id');
 };
 
+// Check if online and authenticated
+const isOnlineWithSupabase = (): boolean => {
+    return navigator.onLine && !!initializeSupabase() && isAuthenticated();
+};
+
+// ============================================================================
+// USER CREATION FUNCTION - DEFINED BEFORE USAGE
+// ============================================================================
+
+// Helper function to create user record
+const createUserRecord = async (authUserId: string): Promise<number | null> => {
+    try {
+        const client = initializeSupabase();
+        if (!client) return null;
+
+        const currentUser = authState.user;
+        if (!currentUser) {
+            console.log('❌ No current user for record creation');
+            return null;
+        }
+
+        console.log('📝 Creating user record for:', currentUser.email);
+
+        const {data: newUser, error: createError} = await client
+            .from('users')
+            .insert({
+                external_id: authUserId,
+                email: currentUser.email || `user-${authUserId}@applytrak.local`,
+                display_name: currentUser.user_metadata?.full_name ||
+                    currentUser.user_metadata?.name ||
+                    currentUser.email?.split('@')[0] ||
+                    'ApplyTrak User',
+                avatar_url: currentUser.user_metadata?.avatar_url || null,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                language: navigator.language || 'en',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .select('id, email, is_admin')
+            .single();
+
+        if (createError) {
+            console.error('❌ Error creating user:', createError);
+
+            // If it's a duplicate error, try to fetch the existing record
+            if (createError.code === '23505') { // Unique constraint violation
+                console.log('🔄 User already exists, fetching existing record...');
+                const {data: existingUser} = await client
+                    .from('users')
+                    .select('id, email, is_admin')
+                    .eq('external_id', authUserId)
+                    .single();
+
+                if (existingUser) {
+                    const dbId = parseInt(existingUser.id.toString());
+                    localStorage.setItem('applytrak_user_db_id', dbId.toString());
+                    return dbId;
+                }
+            }
+
+            return null;
+        }
+
+        const dbId = parseInt(newUser.id.toString());
+        localStorage.setItem('applytrak_user_db_id', dbId.toString());
+
+        console.log('✅ User created successfully:', {
+            dbId,
+            email: newUser.email,
+            isAdmin: newUser.is_admin
+        });
+
+        return dbId;
+
+    } catch (error) {
+        console.error('❌ Error creating user record:', error);
+        return null;
+    }
+};
+
+// ============================================================================
+// USER DATABASE ID FUNCTION - NOW WITH PROPER DEPENDENCIES
+// ============================================================================
+
 // Get user database ID (numeric ID from users table)
 const getUserDbId = async (): Promise<number | null> => {
     const userId = getUserId();
-    if (!userId) return null;
+    if (!userId) {
+        console.log('❌ No userId available');
+        return null;
+    }
 
     // Try cache first
     const cachedId = localStorage.getItem('applytrak_user_db_id');
     if (cachedId && !isNaN(parseInt(cachedId))) {
+        console.log('✅ Using cached user DB ID:', cachedId);
         return parseInt(cachedId);
     }
 
     // Look up in database
-    if (!isOnlineWithSupabase()) return null;
+    if (!isOnlineWithSupabase()) {
+        console.log('❌ Not online with Supabase');
+        return null;
+    }
 
     try {
-        const client = initializeSupabase()!;
+        const client = initializeSupabase();
+        if (!client) {
+            console.log('❌ No Supabase client');
+            return null;
+        }
 
-        // FIXED: Use external_id instead of auth_user_id
+        console.log('🔍 Looking up user in database with external_id:', userId);
+
+        // Better query with error handling
         const {data: user, error} = await client
             .from('users')
-            .select('id')
-            .eq('external_id', userId)  // ✅ FIXED: Use external_id (matches your schema)
-            .maybeSingle();
+            .select('id, email, is_admin')
+            .eq('external_id', userId)
+            .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no record
 
         if (error) {
-            console.error('Error looking up user:', error);
+            console.error('❌ Error looking up user:', error);
+
+            // If user doesn't exist, try to create them
+            if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
+                console.log('👤 User not found in database, creating new user record...');
+                return await createUserRecord(userId);
+            }
+
             return null;
         }
 
         if (!user) {
-            // Create user record if it doesn't exist
-            const {data: newUser, error: createError} = await client
-                .from('users')
-                .insert({
-                    external_id: userId,  // ✅ FIXED: Use external_id
-                    email: authState.user?.email || `user-${userId}@applytrak.local`,
-                    display_name: authState.user?.user_metadata?.full_name || 'ApplyTrak User',
-                    created_at: new Date().toISOString()
-                })
-                .select('id')
-                .single();
-
-            if (createError) {
-                console.error('Error creating user:', createError);
-                return null;
-            }
-
-            const dbId = parseInt(newUser.id.toString());
-            localStorage.setItem('applytrak_user_db_id', dbId.toString());
-            console.log('✅ User created in database:', dbId);
-            return dbId;
+            console.log('👤 No user found, creating new user record...');
+            return await createUserRecord(userId);
         }
 
         const dbId = parseInt(user.id.toString());
         localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        console.log('✅ Found existing user:', {
+            dbId,
+            email: user.email,
+            isAdmin: user.is_admin
+        });
+
         return dbId;
+
     } catch (error) {
-        console.warn('Error getting user DB ID:', error);
+        console.error('❌ Critical error in getUserDbId:', error);
         return null;
     }
 };
+
+// ============================================================================
+// AUTHENTICATION INITIALIZATION - MOVED BEFORE USAGE
+// ============================================================================
+
+// Initialize authentication listener
+function initializeAuth() {
+    const client = initializeSupabase();
+    if (!client) {
+        console.warn('❌ Cannot initialize auth - Supabase client not available');
+        return;
+    }
+
+    console.log('🔐 Initializing authentication...');
+
+    // Listen for auth state changes with enhanced error handling
+    client.auth.onAuthStateChange(async (event, session) => {
+        console.log('🔐 Auth state changed:', event, session?.user?.email);
+
+        // Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+            console.warn('⚠️ Token refresh failed - clearing session');
+            await handleAuthError();
+            return;
+        }
+
+        // Update auth state
+        authState = {
+            user: session?.user || null,
+            session,
+            isAuthenticated: !!session?.user,
+            isLoading: false
+        };
+
+        notifyAuthStateChange();
+
+        // Handle auth events
+        switch (event) {
+            case 'SIGNED_IN':
+                console.log('✅ User signed in:', session?.user?.email);
+
+                // Clear cached user DB ID to force fresh lookup
+                localStorage.removeItem('applytrak_user_db_id');
+
+                // Pre-fetch user DB ID to ensure user record exists
+                if (session?.user?.id) {
+                    try {
+                        const dbId = await getUserDbId();
+                        if (dbId) {
+                            console.log('✅ User database record ready:', dbId);
+                        } else {
+                            console.warn('⚠️ Failed to create/find user database record');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error setting up user database record:', error);
+                    }
+                }
+                break;
+
+            case 'SIGNED_OUT':
+                console.log('🚪 User signed out');
+                clearLocalStorageAuth();
+                break;
+
+            case 'TOKEN_REFRESHED':
+                console.log('🔄 Token refreshed successfully');
+                break;
+
+            case 'PASSWORD_RECOVERY':
+                console.log('🔐 Password recovery initiated');
+                break;
+        }
+    });
+
+    // Enhanced session check with error handling
+    client.auth.getSession().then(({data: {session}, error}) => {
+        if (error) {
+            console.error('❌ Error getting session:', error);
+            handleAuthError();
+            return;
+        }
+
+        authState = {
+            user: session?.user || null,
+            session,
+            isAuthenticated: !!session?.user,
+            isLoading: false
+        };
+
+        notifyAuthStateChange();
+
+        // If user is already signed in, ensure their database record exists
+        if (session?.user?.id) {
+            getUserDbId().catch(error => {
+                console.warn('⚠️ Failed to verify user database record:', error);
+            });
+        }
+
+    }).catch((error) => {
+        console.error('❌ Critical auth error:', error);
+        handleAuthError();
+    });
+
+    console.log('✅ Authentication system initialized');
+}
 
 // ============================================================================
 // AUTHENTICATION METHODS
@@ -408,40 +694,10 @@ const resetPassword = async (email: string) => {
 };
 
 // ============================================================================
-// LOCAL DATABASE (DEXIE) - UNCHANGED STRUCTURE
+// UTILITY FUNCTIONS
 // ============================================================================
 
-export class JobTrackerDatabase extends Dexie {
-    applications!: Table<Application, string>;
-    goals!: Table<Goals, string>;
-    backups!: Table<Backup, string>;
-    analyticsEvents!: Table<AnalyticsEvent, number>;
-    userSessions!: Table<UserSession, number>;
-    userMetrics!: Table<UserMetrics & { id: string }, string>;
-    feedback!: Table<FeedbackSubmission, number>;
-    privacySettings!: Table<PrivacySettings & { id: string }, string>;
-
-    constructor() {
-        super('JobTrackerDatabase');
-
-        this.version(2).stores({
-            applications: 'id, company, position, dateApplied, status, type, location, jobSource, createdAt, updatedAt',
-            goals: 'id, totalGoal, weeklyGoal, monthlyGoal, createdAt, updatedAt',
-            backups: 'id, timestamp',
-            analyticsEvents: '++id, event, timestamp, sessionId',
-            userSessions: '++id, startTime, endTime, deviceType',
-            userMetrics: 'id, sessionsCount, totalTimeSpent, applicationsCreated, lastActiveDate',
-            feedback: '++id, type, rating, timestamp, email',
-            privacySettings: 'id, analytics, feedback, consentDate'
-        });
-    }
-}
-
-const db = new JobTrackerDatabase();
-const generateId = (): string => Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-
-
-// ✅ NEW: Force session refresh utility
+// Force session refresh utility
 export const forceSessionRefresh = async () => {
     const client = initializeSupabase();
     if (!client) return false;
@@ -463,7 +719,7 @@ export const forceSessionRefresh = async () => {
     }
 };
 
-// ✅ NEW: Auth recovery utility for emergency use
+// Auth recovery utility for emergency use
 export const recoverAuthSession = async () => {
     console.log('🚨 Attempting auth session recovery...');
 
@@ -491,14 +747,10 @@ export const recoverAuthSession = async () => {
         return false;
     }
 };
+
 // ============================================================================
 // CLOUD SYNC UTILITIES - AUTHENTICATION AWARE
 // ============================================================================
-
-// Check if online and authenticated
-const isOnlineWithSupabase = (): boolean => {
-    return navigator.onLine && !!initializeSupabase() && isAuthenticated();
-};
 
 // Sync data to cloud (authenticated users only)
 const syncToCloud = async (table: string, data: any, operation: 'insert' | 'update' | 'delete' = 'insert'): Promise<void> => {
@@ -556,7 +808,7 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
 
 const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
     const MAX_RETRIES = 3;
-    const TIMEOUT_MS = 20000; // 20 seconds instead of default
+    const TIMEOUT_MS = 10000; // Reduced to 10 seconds
 
     console.log(`🔄 syncFromCloud(${table}) - attempt ${retryCount + 1}/${MAX_RETRIES + 1}`);
 
@@ -580,61 +832,91 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
             return [];
         }
 
-        console.log(`📤 Querying Supabase for ${table} with user_id: ${userDbId} (timeout: ${TIMEOUT_MS}ms)`);
+        console.log(`📤 Querying Supabase for ${table} with user_id: ${userDbId}`);
         const startTime = Date.now();
 
-        // ✅ Create timeout promise
-        const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Query timeout after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
-        );
+        // Better error handling and timeout
+        try {
+            const {data, error} = await Promise.race([
+                client
+                    .from(table)
+                    .select('*')
+                    .eq('user_id', userDbId)
+                    .limit(100)
+                    .order('created_at', {ascending: false}),
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error(`Query timeout after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
+                )
+            ]);
 
-        // ✅ Create query promise with smaller limit for faster response
-        const queryPromise = client
-            .from(table)
-            .select('*')
-            .eq('user_id', userDbId)
-            .limit(50) // Even smaller - get 50 most recent apps first
-            .order('created_at', { ascending: false });
+            const duration = Date.now() - startTime;
 
-        // ✅ Race between query and timeout
-        const result = await Promise.race([queryPromise, timeoutPromise]);
+            // Proper error checking and logging
+            if (error) {
+                console.error(`❌ Supabase query error for ${table}:`, {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
 
-        const duration = Date.now() - startTime;
+                // Retry on certain errors
+                if (retryCount < MAX_RETRIES &&
+                    (error.message?.includes('timeout') ||
+                        error.message?.includes('connection') ||
+                        error.code === 'PGRST301' || // API overloaded
+                        error.code === '08006')) {   // Connection failure
+                    console.log(`🔄 Retrying ${table} query in ${(retryCount + 1) * 2} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+                    return syncFromCloud(table, retryCount + 1);
+                }
 
-        if (result.error) {
-            console.error(`❌ Supabase query error for ${table}:`, result.error);
+                throw new Error(`Database error: ${error.message}`);
+            }
 
-            // ✅ Retry on certain errors
+            console.log(`✅ Supabase query for ${table} completed:`);
+            console.log(`   Duration: ${duration}ms`);
+            console.log(`   Records: ${data?.length || 0}`);
+
+            if (data && data.length > 0) {
+                console.log(`   Sample record:`, {
+                    id: data[0].id,
+                    created_at: data[0].created_at,
+                    keys: Object.keys(data[0])
+                });
+            }
+
+            return data || [];
+
+        } catch (queryError: any) {
+            const duration = Date.now() - startTime;
+            console.error(`❌ Query execution error for ${table} after ${duration}ms:`, {
+                message: queryError.message,
+                name: queryError.name,
+                stack: queryError.stack?.split('\n')[0] // First line only
+            });
+
+            // Retry on timeout/connection errors
             if (retryCount < MAX_RETRIES &&
-                (result.error.message?.includes('timeout') ||
-                    result.error.message?.includes('connection'))) {
-                console.log(`🔄 Retrying ${table} query in 2 seconds...`);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                (queryError.message?.includes('timeout') ||
+                    queryError.message?.includes('connection') ||
+                    queryError.message?.includes('fetch') ||
+                    queryError.message?.includes('AbortError'))) {
+                console.log(`🔄 Connection error - retrying ${table} in ${(retryCount + 1) * 2} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
                 return syncFromCloud(table, retryCount + 1);
             }
 
-            throw result.error;
+            throw queryError;
         }
 
-        console.log(`✅ Supabase query for ${table} completed:`);
-        console.log(`   Duration: ${duration}ms`);
-        console.log(`   Records: ${result.data?.length || 0}`);
-        console.log(`   Sample record:`, result.data?.[0]);
-
-        return result.data || [];
     } catch (error: any) {
-        const duration = Date.now() - Date.now();
-        console.error(`❌ syncFromCloud(${table}) error after ${duration}ms:`, error.message);
-
-        // ✅ Retry on timeout/connection errors
-        if (retryCount < MAX_RETRIES &&
-            (error.message?.includes('timeout') ||
-                error.message?.includes('connection') ||
-                error.message?.includes('fetch'))) {
-            console.log(`🔄 Connection error - retrying ${table} in ${(retryCount + 1) * 2} seconds...`);
-            await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-            return syncFromCloud(table, retryCount + 1);
-        }
+        console.error(`❌ syncFromCloud(${table}) fatal error:`, {
+            message: error.message,
+            name: error.name,
+            retryCount,
+            maxRetries: MAX_RETRIES
+        });
 
         console.log(`❌ Max retries exceeded for ${table} - falling back to local data`);
         return [];
@@ -659,70 +941,142 @@ export const databaseService: DatabaseService = {
             console.log('   isAuthenticated():', isAuth);
             console.log('   currentUser email:', currentUser?.email);
 
+            // Always load local data first for immediate UI response
             const localApps = await db.applications.orderBy('dateApplied').reverse().toArray();
             console.log('📱 Local applications count:', localApps.length);
 
-            // ✅ Try cloud sync for authenticated users with timeout protection
+            // ✅ IMPROVED: Try cloud sync for authenticated users with better error handling
             if (isAuth && isOnlineWithSupabase()) {
                 console.log('☁️ Starting cloud sync for authenticated user...');
 
                 try {
-                    // ✅ Add overall timeout for the entire cloud sync operation
+                    // ✅ FIXED: Reduced timeout and better error specificity
+                    const CLOUD_SYNC_TIMEOUT = 15000; // 15 seconds instead of 30
+
                     const cloudSyncPromise = syncFromCloud('applications');
-                    const overallTimeoutPromise = new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error('Overall cloud sync timeout')), 30000)
+                    const timeoutPromise = new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error(`Cloud sync timeout after ${CLOUD_SYNC_TIMEOUT / 1000}s`)), CLOUD_SYNC_TIMEOUT)
                     );
 
-                    const cloudApps = await Promise.race([cloudSyncPromise, overallTimeoutPromise]);
+                    const cloudApps = await Promise.race([cloudSyncPromise, timeoutPromise]);
 
-                    console.log(`☁️ Cloud sync result:`, cloudApps.length, 'applications');
+                    console.log(`☁️ Cloud sync result: ${cloudApps.length} applications`);
 
-                    if (cloudApps.length > 0) {
-                        const mappedApps = cloudApps.map(app => ({
-                            id: app.id,
-                            company: app.company,
-                            position: app.position,
-                            dateApplied: app.date_applied,
-                            status: app.status,
-                            type: app.type,
-                            location: app.location,
-                            salary: app.salary,
-                            jobSource: app.job_source,
-                            jobUrl: app.job_url,
-                            notes: app.notes,
-                            attachments: app.attachments,
-                            createdAt: app.created_at,
-                            updatedAt: app.updated_at
-                        }));
+                    if (cloudApps && cloudApps.length > 0) {
+                        // ✅ IMPROVED: Better data validation and error handling
+                        const mappedApps = cloudApps
+                            .filter(app => app && app.id)
+                            .map(app => {
+                                try {
+                                    return {
+                                        id: String(app.id),
+                                        company: app.company || '',
+                                        position: app.position || '',
+                                        dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],  // ✅ camelCase
+                                        status: app.status || 'Applied',
+                                        type: app.type || 'Remote',
+                                        location: app.location || '',
+                                        salary: app.salary || '',
+                                        jobSource: app.jobSource || '',            // ✅ camelCase
+                                        jobUrl: app.jobUrl || '',                  // ✅ camelCase
+                                        notes: app.notes || '',
+                                        attachments: Array.isArray(app.attachments) ? app.attachments : [],
+                                        createdAt: app.createdAt || new Date().toISOString(),     // ✅ camelCase
+                                        updatedAt: app.updatedAt || new Date().toISOString()      // ✅ camelCase
+                                    };
+                                } catch (mappingError) {
+                                    console.warn('⚠️ Failed to map application:', app.id, mappingError);
+                                    return null;
+                                }
+                            })
+                            .filter(app => app !== null) as Application[];
 
-                        const sortedApps = mappedApps.sort((a, b) =>
-                            new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
-                        );
+                        if (mappedApps.length > 0) {
+                            const sortedApps = mappedApps.sort((a, b) =>
+                                new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+                            );
 
-                        console.log(`✅ SUCCESS: Using ${sortedApps.length} cloud applications for ${currentUser?.email}`);
-                        return sortedApps;
+                            console.log(`✅ SUCCESS: Using ${sortedApps.length} cloud applications for ${currentUser?.email}`);
+
+                            // ✅ IMPROVED: Sync cloud data to local storage for offline access
+                            try {
+                                await db.applications.clear();
+                                await db.applications.bulkAdd(sortedApps);
+                                console.log('💾 Cloud data synced to local storage');
+                            } catch (localSyncError) {
+                                console.warn('⚠️ Failed to sync cloud data locally:', localSyncError);
+                                // Still return cloud data even if local sync fails
+                            }
+
+                            return sortedApps;
+                        } else {
+                            console.log('⚠️ No valid applications after mapping - using local data');
+                        }
                     } else {
                         console.log('⚠️ No cloud apps found - user may have no data or connection failed');
                     }
                 } catch (cloudError: any) {
-                    console.error('❌ Cloud sync failed:', cloudError.message);
+                    // ✅ IMPROVED: Detailed error logging and user-friendly messages
+                    console.error('❌ Cloud sync failed:', {
+                        message: cloudError.message,
+                        name: cloudError.name,
+                        code: cloudError.code,
+                        stack: cloudError.stack?.split('\n')[0] // First line only
+                    });
+
                     console.log('📱 Falling back to local data due to cloud error');
 
-                    // ✅ Show user-friendly message for timeouts
+                    // ✅ IMPROVED: Specific error handling for different scenarios
                     if (cloudError.message?.includes('timeout')) {
                         console.log('🐌 Connection is slow - using cached local data');
-                        // You could also show a toast here: "Using cached data due to slow connection"
+                        // Could show toast: "Using cached data due to slow connection"
+                    } else if (cloudError.message?.includes('permission') || cloudError.message?.includes('denied')) {
+                        console.log('🔒 Permission denied - check RLS policies or authentication');
+                        // Could show toast: "Cloud sync disabled - using local data"
+                    } else if (cloudError.message?.includes('authentication') || cloudError.message?.includes('jwt')) {
+                        console.log('🔐 Authentication issue - user may need to sign in again');
+                        // Could show toast: "Please sign in again to sync data"
+                    } else if (cloudError.message?.includes('network') || cloudError.message?.includes('fetch')) {
+                        console.log('🌐 Network error - check internet connection');
+                        // Could show toast: "Network error - using offline data"
+                    } else {
+                        console.log('❓ Unknown cloud error - using local data as fallback');
                     }
                 }
             } else {
-                console.log('📱 Using local data - not authenticated or offline');
+                if (!isAuth) {
+                    console.log('📱 Using local data - user not authenticated');
+                } else if (!isOnlineWithSupabase()) {
+                    console.log('📱 Using local data - offline or Supabase not configured');
+                }
             }
 
-            console.log(`📱 FALLBACK: Using ${localApps.length} local applications`);
-            return localApps;
-        } catch (error) {
-            console.error('❌ getApplications() failed:', error);
-            throw new Error('Failed to get applications');
+            // ✅ IMPROVED: Always return sorted local data as fallback
+            const sortedLocalApps = localApps.sort((a, b) =>
+                new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+            );
+
+            console.log(`📱 FALLBACK: Using ${sortedLocalApps.length} local applications`);
+            return sortedLocalApps;
+
+        } catch (error: any) {
+            // ✅ IMPROVED: Better error logging and recovery
+            console.error('❌ getApplications() failed:', {
+                message: error.message,
+                name: error.name,
+                stack: error.stack?.split('\n').slice(0, 3) // First 3 lines
+            });
+
+            // ✅ IMPROVED: Try to return empty array instead of throwing
+            try {
+                const emergencyApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+                console.log(`🚨 Emergency recovery: Found ${emergencyApps.length} applications`);
+                return emergencyApps;
+            } catch (emergencyError) {
+                console.error('🚨 Emergency recovery failed:', emergencyError);
+                // Return empty array as absolute last resort
+                return [];
+            }
         }
     },
 
@@ -741,17 +1095,17 @@ export const databaseService: DatabaseService = {
                     id: newApp.id,
                     company: newApp.company,
                     position: newApp.position,
-                    date_applied: newApp.dateApplied,
+                    dateApplied: newApp.dateApplied,    // ✅ camelCase
                     status: newApp.status,
                     type: newApp.type,
                     location: newApp.location,
                     salary: newApp.salary,
-                    job_source: newApp.jobSource,
-                    job_url: newApp.jobUrl,
+                    jobSource: newApp.jobSource,        // ✅ camelCase
+                    jobUrl: newApp.jobUrl,              // ✅ camelCase
                     notes: newApp.notes,
                     attachments: newApp.attachments,
-                    created_at: newApp.createdAt,
-                    updated_at: newApp.updatedAt
+                    createdAt: newApp.createdAt,        // ✅ camelCase
+                    updatedAt: newApp.updatedAt         // ✅ camelCase
                 }, 'insert').catch(err => console.warn('Cloud sync failed:', err));
             }
 
@@ -761,9 +1115,6 @@ export const databaseService: DatabaseService = {
             throw new Error('Failed to add application');
         }
     },
-
-    // Additional methods follow the same pattern...
-    // (Implementing remaining methods with authentication awareness)
 
     async updateApplication(id: string, updates: Partial<Application>): Promise<Application> {
         try {
@@ -775,23 +1126,23 @@ export const databaseService: DatabaseService = {
 
             if (!updated) throw new Error('Application not found');
 
-            // Sync to cloud for authenticated users
+            // ✅ FIXED: Sync to cloud with camelCase fields
             if (isAuthenticated()) {
                 syncToCloud('applications', {
                     id: updated.id,
                     company: updated.company,
                     position: updated.position,
-                    date_applied: updated.dateApplied,
+                    dateApplied: updated.dateApplied,       // ✅ camelCase
                     status: updated.status,
                     type: updated.type,
                     location: updated.location,
                     salary: updated.salary,
-                    job_source: updated.jobSource,
-                    job_url: updated.jobUrl,
+                    jobSource: updated.jobSource,           // ✅ camelCase
+                    jobUrl: updated.jobUrl,                 // ✅ camelCase
                     notes: updated.notes,
                     attachments: updated.attachments,
-                    created_at: updated.createdAt,
-                    updated_at: updated.updatedAt
+                    createdAt: updated.createdAt,           // ✅ camelCase
+                    updatedAt: updated.updatedAt            // ✅ camelCase
                 }, 'update').catch(err => console.warn('Cloud sync failed:', err));
             }
 
@@ -851,7 +1202,7 @@ export const databaseService: DatabaseService = {
             await Promise.all(ids.map(id => db.applications.update(id, updateData)));
 
             if (isAuthenticated()) {
-                ids.forEach(async (id) => {
+                for (const id of ids) {
                     try {
                         const updated = await db.applications.get(id);
                         if (updated) {
@@ -859,23 +1210,23 @@ export const databaseService: DatabaseService = {
                                 id: updated.id,
                                 company: updated.company,
                                 position: updated.position,
-                                date_applied: updated.dateApplied,
+                                dateApplied: updated.dateApplied,       // ✅ camelCase
                                 status: updated.status,
                                 type: updated.type,
                                 location: updated.location,
                                 salary: updated.salary,
-                                job_source: updated.jobSource,
-                                job_url: updated.jobUrl,
+                                jobSource: updated.jobSource,           // ✅ camelCase
+                                jobUrl: updated.jobUrl,                 // ✅ camelCase
                                 notes: updated.notes,
                                 attachments: updated.attachments,
-                                created_at: updated.createdAt,
-                                updated_at: updated.updatedAt
+                                createdAt: updated.createdAt,           // ✅ camelCase
+                                updatedAt: updated.updatedAt            // ✅ camelCase
                             }, 'update').catch(err => console.warn('Cloud sync failed:', err));
                         }
                     } catch (error) {
                         console.warn('Failed to sync update for id:', id, error);
                     }
-                });
+                }
             }
         } catch (error) {
             console.error('Failed to bulk update applications:', error);
@@ -890,20 +1241,20 @@ export const databaseService: DatabaseService = {
             if (isAuthenticated()) {
                 applications.forEach(app => {
                     syncToCloud('applications', {
-                        id: app.id,
-                        company: app.company,
-                        position: app.position,
-                        date_applied: app.dateApplied,
+                        id: app.id,                         // ✅ Use 'app' not 'newApp'
+                        company: app.company,               // ✅ Use 'app' not 'newApp'
+                        position: app.position,             // ✅ Use 'app' not 'newApp'
+                        dateApplied: app.dateApplied,       // ✅ camelCase
                         status: app.status,
                         type: app.type,
                         location: app.location,
                         salary: app.salary,
-                        job_source: app.jobSource,
-                        job_url: app.jobUrl,
+                        jobSource: app.jobSource,           // ✅ camelCase
+                        jobUrl: app.jobUrl,                 // ✅ camelCase
                         notes: app.notes,
                         attachments: app.attachments,
-                        created_at: app.createdAt,
-                        updated_at: app.updatedAt
+                        createdAt: app.createdAt,           // ✅ camelCase
+                        updatedAt: app.updatedAt            // ✅ camelCase
                     }, 'insert').catch(err => console.warn('Cloud sync failed:', err));
                 });
             }
@@ -1019,13 +1370,14 @@ export const databaseService: DatabaseService = {
                 if (userDbId) {
                     try {
                         const client = initializeSupabase()!;
+                        // ✅ FIXED: Use camelCase field names for goals
                         await client.from('goals').upsert({
-                            user_id: userDbId,
-                            total_goal: Number(goals.totalGoal),
-                            weekly_goal: Number(goals.weeklyGoal),
-                            monthly_goal: Number(goals.monthlyGoal),
-                            created_at: goals.createdAt,
-                            updated_at: goals.updatedAt
+                            user_id: userDbId,                   // Keep as user_id (foreign key)
+                            totalGoal: Number(goals.totalGoal),  // ✅ camelCase
+                            weeklyGoal: Number(goals.weeklyGoal), // ✅ camelCase
+                            monthlyGoal: Number(goals.monthlyGoal), // ✅ camelCase
+                            createdAt: goals.createdAt,          // ✅ camelCase
+                            updatedAt: goals.updatedAt           // ✅ camelCase
                         }, {
                             onConflict: 'user_id'
                         });
@@ -1108,16 +1460,18 @@ export const databaseService: DatabaseService = {
             if (isAuthenticated()) {
                 const userDbId = await getUserDbId();
                 if (userDbId) {
-                    syncToCloud('analytics_events', {
-                        event_name: event.event,
+                    // ✅ FIXED: Use camelCase field names for analytics
+                    syncToCloud('analyticsEvents', {        // ✅ camelCase table
+                        event: event.event,                 // ✅ camelCase field
                         properties: event.properties || {},
                         timestamp: event.timestamp,
-                        session_id: event.sessionId,
-                        user_agent: navigator.userAgent,
-                        device_type: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+                        sessionId: event.sessionId,         // ✅ camelCase field
+                        userId: event.userId,               // ✅ camelCase field
+                        userAgent: navigator.userAgent,     // ✅ camelCase field
+                        deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                         language: navigator.language || 'en',
-                        created_at: event.timestamp
+                        createdAt: event.timestamp          // ✅ camelCase field
                     }, 'insert').catch(err => console.warn('Analytics sync failed:', err));
                 }
             }
@@ -1162,18 +1516,19 @@ export const databaseService: DatabaseService = {
             if (isAuthenticated()) {
                 const userDbId = await getUserDbId();
                 if (userDbId) {
-                    syncToCloud('user_sessions', {
-                        session_id: session.id,
-                        start_time: session.startTime,
-                        end_time: session.endTime,
+                    // ✅ FIXED: Use camelCase field names for user sessions
+                    syncToCloud('userSessions', {           // ✅ camelCase table
+                        sessionId: session.id,              // ✅ camelCase field
+                        startTime: session.startTime,       // ✅ camelCase field
+                        endTime: session.endTime,           // ✅ camelCase field
                         duration: Number(session.duration) || null,
-                        device_type: session.deviceType || 'desktop',
-                        user_agent: session.userAgent || navigator.userAgent,
+                        deviceType: session.deviceType || 'desktop', // ✅ camelCase field
+                        userAgent: session.userAgent || navigator.userAgent, // ✅ camelCase field
                         timezone: session.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                         language: session.language || navigator.language || 'en',
                         events: session.events || [],
-                        page_views: Number(session.events?.length) || 0,
-                        created_at: session.startTime
+                        pageViews: Number(session.events?.length) || 0, // ✅ camelCase field
+                        createdAt: session.startTime        // ✅ camelCase field
                     }, 'insert').catch(err => console.warn('Session sync failed:', err));
                 }
             }
@@ -1188,6 +1543,18 @@ export const databaseService: DatabaseService = {
             const metrics = await db.userMetrics.get('default');
 
             if (!metrics) {
+                // ✅ FIXED: Proper device type detection with correct types
+                const getDeviceType = (): 'mobile' | 'desktop' | 'tablet' => {
+                    const userAgent = navigator.userAgent.toLowerCase();
+                    if (/ipad|android(?!.*mobile)|tablet/.test(userAgent)) {
+                        return 'tablet';
+                    } else if (/mobile|android|iphone|ipod|blackberry|windows phone/.test(userAgent)) {
+                        return 'mobile';
+                    } else {
+                        return 'desktop';
+                    }
+                };
+
                 const defaultMetrics: UserMetrics & { id: string } = {
                     id: 'default',
                     sessionsCount: 0,
@@ -1202,7 +1569,7 @@ export const databaseService: DatabaseService = {
                     searchesPerformed: 0,
                     featuresUsed: [],
                     lastActiveDate: new Date().toISOString(),
-                    deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
+                    deviceType: getDeviceType(),
                     firstVisit: new Date().toISOString(),
                     totalEvents: 0
                 };
@@ -1230,30 +1597,30 @@ export const databaseService: DatabaseService = {
                 if (userDbId) {
                     const client = initializeSupabase()!;
                     await client.from('user_metrics').upsert({
-                        user_id: userDbId,
-                        sessions_count: Number(updated.sessionsCount) || 0,
-                        total_time_spent: Number(updated.totalTimeSpent) || 0,
-                        applications_created: Number(updated.applicationsCreated) || 0,
-                        applications_updated: Number(updated.applicationsUpdated) || 0,
-                        applications_deleted: Number(updated.applicationsDeleted) || 0,
-                        goals_set: Number(updated.goalsSet) || 0,
-                        attachments_added: Number(updated.attachmentsAdded) || 0,
-                        exports_performed: Number(updated.exportsPerformed) || 0,
-                        imports_performed: Number(updated.importsPerformed) || 0,
-                        searches_performed: Number(updated.searchesPerformed) || 0,
-                        features_used: updated.featuresUsed || [],
-                        last_active_date: updated.lastActiveDate || new Date().toISOString(),
-                        first_visit: updated.firstVisit || new Date().toISOString(),
-                        device_type: updated.deviceType || 'desktop',
-                        browser_version: navigator.userAgent || 'unknown',
-                        screen_resolution: `${window.screen.width}x${window.screen.height}`,
+                        user_id: userDbId,                          // Keep as user_id (foreign key)
+                        sessionsCount: Number(updated.sessionsCount) || 0,     // ✅ camelCase
+                        totalTimeSpent: Number(updated.totalTimeSpent) || 0,   // ✅ camelCase
+                        applicationsCreated: Number(updated.applicationsCreated) || 0, // ✅ camelCase
+                        applicationsUpdated: Number(updated.applicationsUpdated) || 0, // ✅ camelCase
+                        applicationsDeleted: Number(updated.applicationsDeleted) || 0, // ✅ camelCase
+                        goalsSet: Number(updated.goalsSet) || 0,    // ✅ camelCase
+                        attachmentsAdded: Number(updated.attachmentsAdded) || 0, // ✅ camelCase
+                        exportsPerformed: Number(updated.exportsPerformed) || 0, // ✅ camelCase
+                        importsPerformed: Number(updated.importsPerformed) || 0, // ✅ camelCase
+                        searchesPerformed: Number(updated.searchesPerformed) || 0, // ✅ camelCase
+                        featuresUsed: updated.featuresUsed || [],   // ✅ camelCase
+                        lastActiveDate: updated.lastActiveDate || new Date().toISOString(), // ✅ camelCase
+                        firstVisit: updated.firstVisit || new Date().toISOString(), // ✅ camelCase
+                        deviceType: updated.deviceType || 'desktop', // ✅ camelCase
+                        browserVersion: navigator.userAgent || 'unknown', // ✅ camelCase
+                        screenResolution: `${window.screen.width}x${window.screen.height}`, // ✅ camelCase
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                         language: navigator.language || 'en',
-                        total_events: Number(updated.totalEvents) || 0,
-                        applications_count: Number(updated.applicationsCreated) || 0,
-                        session_duration: Number(updated.totalTimeSpent) || 0,
-                        created_at: updated.firstVisit || new Date().toISOString(),
-                        updated_at: new Date().toISOString()
+                        totalEvents: Number(updated.totalEvents) || 0, // ✅ camelCase
+                        applicationsCount: Number(updated.applicationsCreated) || 0, // ✅ camelCase
+                        sessionDuration: Number(updated.totalTimeSpent) || 0, // ✅ camelCase
+                        createdAt: updated.firstVisit || new Date().toISOString(), // ✅ camelCase
+                        updatedAt: new Date().toISOString()         // ✅ camelCase
                     }, {
                         onConflict: 'user_id'
                     });
@@ -1474,7 +1841,8 @@ export const databaseService: DatabaseService = {
             const userMetrics = await this.getUserMetrics();
             const sessions = await db.userSessions.toArray();
 
-            const totalUsers = isAuthenticated() ? 1 : 0;
+            // ✅ FIXED: Show actual analytics data instead of auth-dependent data
+            const totalUsers = sessions.length > 0 ? 1 : 0;
             const totalApplications = applications.length;
             const totalEvents = analytics.length;
             const totalSessions = sessions.length;
@@ -1492,10 +1860,35 @@ export const databaseService: DatabaseService = {
 
             const deviceType = userMetrics.deviceType || 'desktop';
 
+            // ✅ FIXED: Calculate based on actual session activity
+            const isSessionToday = (timestamp: string): boolean => {
+                const today = new Date();
+                const sessionDate = new Date(timestamp);
+                return sessionDate.toDateString() === today.toDateString();
+            };
+
+            const isSessionThisWeek = (timestamp: string): boolean => {
+                const now = new Date();
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const sessionDate = new Date(timestamp);
+                return sessionDate >= weekAgo;
+            };
+
+            const isSessionThisMonth = (timestamp: string): boolean => {
+                const now = new Date();
+                const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                const sessionDate = new Date(timestamp);
+                return sessionDate >= monthAgo;
+            };
+
             return {
                 userMetrics: {
                     totalUsers,
-                    activeUsers: {daily: totalUsers, weekly: totalUsers, monthly: totalUsers},
+                    activeUsers: {
+                        daily: sessions.filter(s => isSessionToday(s.startTime)).length > 0 ? 1 : 0,
+                        weekly: sessions.filter(s => isSessionThisWeek(s.startTime)).length > 0 ? 1 : 0,
+                        monthly: sessions.filter(s => isSessionThisMonth(s.startTime)).length > 0 ? 1 : 0
+                    },
                     newUsers: {today: 0, thisWeek: 0, thisMonth: 0}
                 },
                 usageMetrics: {
@@ -1569,13 +1962,16 @@ export const databaseService: DatabaseService = {
     }
 };
 
-// Initialize database and authentication
+// ============================================================================
+// DATABASE INITIALIZATION - NOW PROPERLY ORDERED
+// ============================================================================
+
 export const initializeDatabase = async (): Promise<void> => {
     try {
         await db.open();
         console.log('✅ Local database initialized');
 
-        // Initialize authentication
+        // Initialize authentication - now initializeAuth is defined above
         initializeAuth();
         console.log('✅ Authentication system initialized');
 
@@ -1591,7 +1987,10 @@ export const initializeDatabase = async (): Promise<void> => {
     }
 };
 
-// Export authentication utilities as authService
+// ============================================================================
+// EXPORT AUTHENTICATION UTILITIES
+// ============================================================================
+
 export const authService = {
     signUp,
     signIn,
@@ -1602,9 +2001,12 @@ export const authService = {
     isAuthenticated,
     getAuthState,
     subscribeToAuthChanges,
-    forceSessionRefresh,
-    recoverAuthSession,
-    handleAuthError
+    initializeAuth,
+    handleAuthError,
+    getUserDbId,
+    isOnlineWithSupabase,
+    syncToCloud,
+    syncFromCloud
 };
 
 export default databaseService;

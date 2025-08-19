@@ -107,14 +107,23 @@ class AnalyticsService {
         this.events.push(analyticsEvent);
         await this.updateUserMetrics(event, properties);
 
-        // FIXED: Store events using databaseService (which syncs to Supabase)
+        // ENHANCED: Store events using databaseService with retry
         try {
             await databaseService.saveAnalyticsEvent(analyticsEvent);
             console.log('📊 Event tracked and synced:', event, properties);
         } catch (error) {
             console.warn('Failed to save analytics event:', error);
-            // Fallback to localStorage if database fails
-            this.storeEventLocally(analyticsEvent);
+
+            // Try one more time after a short delay
+            setTimeout(async () => {
+                try {
+                    await databaseService.saveAnalyticsEvent(analyticsEvent);
+                    console.log('📊 Event tracked on retry:', event);
+                } catch (retryError) {
+                    console.warn('Event save failed on retry, storing locally:', retryError);
+                    this.storeEventLocally(analyticsEvent);
+                }
+            }, 1000);
         }
     }
 
@@ -455,6 +464,13 @@ class AnalyticsService {
     }
 
     private getAnonymousUserId(): string {
+        // Try to get authenticated user ID first
+        const authUserId = localStorage.getItem('applytrak_user_id');
+        if (authUserId) {
+            return authUserId; // Use authenticated user ID for consistency
+        }
+
+        // Fallback to anonymous ID
         let userId = localStorage.getItem('applytrak_anonymous_id');
         if (!userId) {
             userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -463,8 +479,17 @@ class AnalyticsService {
         return userId;
     }
 
-    private getDeviceType(): 'mobile' | 'desktop' {
-        return window.innerWidth <= 768 ? 'mobile' : 'desktop';
+    private getDeviceType(): 'mobile' | 'desktop' | 'tablet' {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const width = window.innerWidth;
+
+        if (/ipad|android(?!.*mobile)|tablet/.test(userAgent)) {
+            return 'tablet';
+        } else if (width <= 768 || /mobile|android|iphone|ipod|blackberry|windows phone/.test(userAgent)) {
+            return 'mobile';
+        } else {
+            return 'desktop';
+        }
     }
 
     private getStoredSettings(): AnalyticsSettings {

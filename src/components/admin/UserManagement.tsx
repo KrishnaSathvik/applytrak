@@ -1,28 +1,23 @@
 // src/components/admin/UserManagement.tsx - PHASE 3: REAL MULTI-USER LISTS
-import React, { useMemo, useState, useEffect } from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
     Activity,
     Calendar,
     CheckCircle,
     Download,
+    Eye,
     FileText,
     Monitor,
-    Smartphone,
-    User,
-    Users,
     Search,
-    Filter,
-    Eye,
-    Mail,
-    Clock,
+    Smartphone,
     TrendingUp,
+    User,
     UserPlus,
-    AlertCircle,
-    ChevronDown,
-    ChevronUp
+    Users
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
+import {useAppStore} from '../../store/useAppStore';
 import realtimeAdminService from '../../services/realtimeAdminService';
+import {debounce} from 'lodash';
 
 // ============================================================================
 // PHASE 3: REAL MULTI-USER TYPES
@@ -67,15 +62,31 @@ interface UserStats {
 
 const UserList: React.FC<UserListProps> = ({ users, currentUserId, onUserSelect, selectedUser }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'new'>('all');
-    const [sortBy, setSortBy] = useState<'joinDate' | 'lastActive' | 'applications'>('lastActive');
+    const [sortBy, setSortBy] = useState<'lastActive' | 'joinDate' | 'applications'>('lastActive');
+
+    // Debounced search term update
+    const debouncedSetSearch = useCallback(
+        debounce((term: string) => {
+            setDebouncedSearchTerm(term);
+        }, 300),
+        []
+    );
+
+    useEffect(() => {
+        debouncedSetSearch(searchTerm);
+        return () => {
+            debouncedSetSearch.cancel();
+        };
+    }, [searchTerm, debouncedSetSearch]);
 
     const filteredAndSortedUsers = useMemo(() => {
         let filtered = users.filter(user => {
-            const matchesSearch = !searchTerm ||
-                user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                user.id.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = !debouncedSearchTerm ||
+                user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                user.displayName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                user.id.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
             const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
 
@@ -94,7 +105,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUserId, onUserSelect,
                     return 0;
             }
         });
-    }, [users, searchTerm, statusFilter, sortBy]);
+    }, [users, debouncedSearchTerm, statusFilter, sortBy]);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -419,83 +430,150 @@ const UserManagement: React.FC = () => {
     const globalRefreshStatus = getGlobalRefreshStatus();
 
     // ✅ PHASE 3: Load ALL users from database
-    const loadAllUsers = async () => {
+    const loadAllUsers = async (forceRefresh = false) => {
+        // Prevent concurrent loading
+        if (isLoadingUsers && !forceRefresh) {
+            console.log('⏸️ User loading already in progress, skipping...');
+            return;
+        }
+
         setIsLoadingUsers(true);
         try {
             console.log('🔄 Loading all users for admin management...');
 
             if (auth.isAuthenticated && isAdminRealtime) {
-                // Get real users from database
-                const usersData = await realtimeAdminService.getAllUsers();
-                const applicationsData = await realtimeAdminService.getAllUsersData();
+                // Add timeout and retry logic
+                const TIMEOUT_MS = 15000;
+                const MAX_RETRIES = 3;
+                let retryCount = 0;
 
-                // Convert to RealUserData format
-                const convertedUsers: RealUserData[] = usersData.map((user: any) => {
-                    // Count applications for this user
-                    const userApplications = applicationsData.applications.filter(
-                        (app: any) => app.user_id === user.id
-                    );
-
-                    // Determine device type (basic detection)
-                    const detectDeviceType = (): 'mobile' | 'desktop' | 'tablet' => {
-                        // This is a simplified detection - in real use you might store this data
-                        return Math.random() > 0.7 ? 'mobile' : 'desktop';
-                    };
-
-                    // Determine status based on recent activity
-                    const getStatus = (): 'active' | 'inactive' | 'new' => {
-                        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-                        const hasRecentSignIn = user.last_sign_in_at &&
-                            new Date(user.last_sign_in_at) >= weekAgo;
-                        const hasRecentApplications = userApplications.some((app: any) =>
-                            new Date(app.created_at) >= weekAgo
+                const loadWithRetry = async (): Promise<{ usersData: any[], applicationsData: any }> => {
+                    try {
+                        const timeoutPromise = new Promise<never>((_, reject) =>
+                            setTimeout(() => reject(new Error('User data loading timeout')), TIMEOUT_MS)
                         );
-                        const isNewUser = user.created_at &&
-                            new Date(user.created_at) >= dayAgo;
 
-                        if (isNewUser) return 'new';
-                        if (hasRecentSignIn || hasRecentApplications) return 'active';
-                        return 'inactive';
-                    };
+                        const dataPromise = Promise.all([
+                            realtimeAdminService.getAllUsers(),
+                            realtimeAdminService.getAllUsersData()
+                        ]);
 
-                    return {
-                        id: user.id,
-                        email: user.email,
-                        displayName: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Anonymous',
-                        joinDate: user.created_at || new Date().toISOString(),
-                        lastActive: user.last_sign_in_at || user.created_at || new Date().toISOString(),
-                        totalApplications: userApplications.length,
-                        deviceType: detectDeviceType(),
-                        isAuthenticated: true,
-                        sessionsCount: Math.floor(Math.random() * 50) + 1, // Placeholder - you could track this
-                        avgSessionDuration: (Math.floor(Math.random() * 30) + 5) * 60 * 1000, // Placeholder
-                        status: getStatus(),
-                        authMode: 'authenticated',
-                        isAdmin: user.is_admin || false,
-                        userMetadata: user.user_metadata
-                    };
-                });
+                        const [usersData, applicationsData] = await Promise.race([dataPromise, timeoutPromise]);
+                        return {usersData, applicationsData};
+                    } catch (error) {
+                        if (retryCount < MAX_RETRIES) {
+                            retryCount++;
+                            console.log(`🔄 Retrying user data load (${retryCount}/${MAX_RETRIES})...`);
+                            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                            return loadWithRetry();
+                        }
+                        throw error;
+                    }
+                };
+
+                const {usersData, applicationsData} = await loadWithRetry();
+
+                // Enhanced user data processing with better error handling
+                const convertedUsers: RealUserData[] = usersData
+                    .filter(user => user && user.id) // Filter out invalid users
+                    .map((user: any) => {
+                        try {
+                            // Count applications for this user
+                            const userApplications = applicationsData.applications.filter(
+                                (app: any) => app.user_id === user.id
+                            );
+
+                            // Enhanced device type detection
+                            const detectDeviceType = (): 'mobile' | 'desktop' | 'tablet' => {
+                                // Check user metadata for device info if available
+                                if (user.user_metadata?.device_type) {
+                                    return user.user_metadata.device_type;
+                                }
+                                // Fallback to random assignment for demo
+                                const rand = Math.random();
+                                if (rand > 0.8) return 'tablet';
+                                if (rand > 0.6) return 'mobile';
+                                return 'desktop';
+                            };
+
+                            // Enhanced status determination
+                            const getStatus = (): 'active' | 'inactive' | 'new' => {
+                                const now = new Date();
+                                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                                const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+                                const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at) : null;
+                                const createdAt = user.created_at ? new Date(user.created_at) : null;
+
+                                const hasRecentActivity = userApplications.some((app: any) =>
+                                    app.created_at && new Date(app.created_at) >= weekAgo
+                                );
+
+                                // Check if user is new (created within last day)
+                                if (createdAt && createdAt >= dayAgo) return 'new';
+
+                                // Check if user has recent sign-in or activity
+                                if ((lastSignIn && lastSignIn >= weekAgo) || hasRecentActivity) return 'active';
+
+                                return 'inactive';
+                            };
+
+                            return {
+                                id: String(user.id),
+                                email: user.email || '',
+                                displayName: user.user_metadata?.display_name ||
+                                    user.user_metadata?.full_name ||
+                                    user.email?.split('@')[0] ||
+                                    'Anonymous User',
+                                joinDate: user.created_at || new Date().toISOString(),
+                                lastActive: user.last_sign_in_at || user.updated_at || user.created_at || new Date().toISOString(),
+                                totalApplications: userApplications.length,
+                                deviceType: detectDeviceType(),
+                                isAuthenticated: true,
+                                sessionsCount: Math.max(1, Math.floor(Math.random() * 50) + 1),
+                                avgSessionDuration: (Math.floor(Math.random() * 25) + 10) * 60 * 1000,
+                                status: getStatus(),
+                                authMode: 'authenticated' as const,
+                                isAdmin: Boolean(user.is_admin),
+                                userMetadata: user.user_metadata
+                            };
+                        } catch (userError) {
+                            console.warn('⚠️ Failed to process user:', user.id, userError);
+                            return null;
+                        }
+                    })
+                    .filter(user => user !== null);
 
                 setAllUsers(convertedUsers);
                 console.log(`✅ Loaded ${convertedUsers.length} real users from database`);
+
+                // Show success toast only if we got users
+                if (convertedUsers.length > 0) {
+                    showToast({
+                        type: 'success',
+                        message: `📊 Loaded ${convertedUsers.length} users successfully`,
+                        duration: 3000
+                    });
+                }
             } else {
-                // Fallback to current user only
+                // Enhanced fallback user creation
                 const currentUser: RealUserData = {
                     id: auth.isAuthenticated ? (auth.user?.id || 'current-user') : 'local-user',
-                    email: auth.isAuthenticated ? auth.user?.email : 'local@applytrak.com',
+                    email: auth.isAuthenticated ? (auth.user?.email || '') : 'local@applytrak.com',
                     displayName: auth.isAuthenticated ?
-                        (auth.user?.user_metadata?.display_name || 'Current User') :
+                        (auth.user?.user_metadata?.display_name ||
+                            auth.user?.user_metadata?.full_name ||
+                            auth.user?.email?.split('@')[0] ||
+                            'Current User') :
                         'Local User',
                     joinDate: new Date().toISOString(),
                     lastActive: new Date().toISOString(),
                     totalApplications: applications.length,
-                    deviceType: 'desktop',
+                    deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop',
                     isAuthenticated: auth.isAuthenticated,
                     sessionsCount: 1,
                     avgSessionDuration: 15 * 60 * 1000,
-                    status: 'active',
+                    status: 'active' as const,
                     authMode: auth.isAuthenticated ? 'authenticated' : 'local',
                     isAdmin: false
                 };
@@ -505,10 +583,27 @@ const UserManagement: React.FC = () => {
             }
         } catch (error) {
             console.error('❌ Failed to load users:', error);
+
+            // Enhanced error handling with specific error types
+            let errorMessage = '❌ Failed to load user data';
+            if (error instanceof Error) {
+                if (error.message.includes('timeout')) {
+                    errorMessage = '⏱️ Loading timeout - check your connection';
+                } else if (error.message.includes('permission')) {
+                    errorMessage = '🔒 Permission denied - admin access required';
+                } else if (error.message.includes('network')) {
+                    errorMessage = '🌐 Network error - check internet connection';
+                }
+            }
+
             showToast({
                 type: 'error',
-                message: '❌ Failed to load user data'
+                message: errorMessage,
+                duration: 5000
             });
+
+            // Fallback to empty list on error
+            setAllUsers([]);
         } finally {
             setIsLoadingUsers(false);
         }

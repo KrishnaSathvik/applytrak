@@ -160,6 +160,74 @@ const RealtimeStatusIndicator: React.FC = () => {
     );
 };
 
+const ConnectionHealthMonitor: React.FC = () => {
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [lastPing, setLastPing] = useState<Date | null>(null);
+    const [pingStatus, setPingStatus] = useState<'good' | 'slow' | 'error'>('good');
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        // Ping test every 30 seconds
+        const pingInterval = setInterval(async () => {
+            if (isOnline) {
+                const startTime = Date.now();
+                try {
+                    await fetch('/favicon.ico', {mode: 'no-cors'});
+                    const pingTime = Date.now() - startTime;
+                    setLastPing(new Date());
+                    setPingStatus(pingTime < 1000 ? 'good' : 'slow');
+                } catch {
+                    setPingStatus('error');
+                }
+            }
+        }, 30000);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+            clearInterval(pingInterval);
+        };
+    }, [isOnline]);
+
+    if (!isOnline) {
+        return (
+            <div
+                className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span className="text-sm text-red-700 dark:text-red-300 font-medium">Offline</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+            pingStatus === 'good' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' :
+                pingStatus === 'slow' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' :
+                    'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+        }`}>
+            <div className={`w-2 h-2 rounded-full ${
+                pingStatus === 'good' ? 'bg-green-500' :
+                    pingStatus === 'slow' ? 'bg-yellow-500' :
+                        'bg-red-500'
+            }`}></div>
+            <span className={`text-sm font-medium ${
+                pingStatus === 'good' ? 'text-green-700 dark:text-green-300' :
+                    pingStatus === 'slow' ? 'text-yellow-700 dark:text-yellow-300' :
+                        'text-red-700 dark:text-red-300'
+            }`}>
+                {pingStatus === 'good' ? 'Connected' :
+                    pingStatus === 'slow' ? 'Slow Connection' :
+                        'Connection Issues'}
+            </span>
+        </div>
+    );
+};
+
 // ✅ PHASE 2: Enhanced Real-Time Toggle with Auto-Refresh
 const RealtimeToggle: React.FC = () => {
     const {
@@ -309,6 +377,7 @@ const UserMetricsCard: React.FC<{
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
+                <ConnectionHealthMonitor />
                 <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}>
                     <Icon className={`h-6 w-6 ${color}`}/>
                 </div>
@@ -526,126 +595,57 @@ const AdminDashboard: React.FC = () => {
     // ✅ PHASE 2: Get global refresh status
     const globalRefreshStatus = getGlobalRefreshStatus();
 
-    // Subscribe to application changes
-    useEffect(() => {
-        if (isDashboardOpen && isAuthenticated) {
-            const unsubscribe = useAppStore.subscribe(
-                (state) => state.applications,
-                (applications) => {
-                    console.log('📊 Applications changed, refreshing admin data...');
-                    loadAdminAnalytics();
-                }
-            );
-
-            return unsubscribe;
-        }
-    }, [isDashboardOpen, isAuthenticated, loadAdminAnalytics]);
-
-    // ✅ PHASE 2 FIX: Auto-refresh lifecycle management
-    useEffect(() => {
-        // Auto-start moderate auto-refresh when dashboard opens
-        if (isDashboardOpen && isAuthenticated && !globalRefreshStatus.autoRefreshEnabled) {
-            console.log('🔄 Auto-starting refresh for admin dashboard');
-            enableAutoRefresh(30); // Start with 30-second intervals
-        }
-
-        // Cleanup on dashboard close
-        return () => {
-            if (globalRefreshStatus.autoRefreshEnabled) {
-                console.log('⏹️ Stopping auto-refresh - dashboard closing');
-                disableAutoRefresh();
-            }
-        };
-    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]);
-
-// ✅ PHASE 2 FIX: Handle page visibility changes
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.hidden && globalRefreshStatus.autoRefreshEnabled) {
-                console.log('⏸️ Page hidden - pausing auto-refresh');
-                disableAutoRefresh();
-            } else if (!document.hidden && isDashboardOpen && isAuthenticated && !globalRefreshStatus.autoRefreshEnabled) {
-                console.log('▶️ Page visible - resuming auto-refresh');
-                enableAutoRefresh(30);
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]);
-
-    useEffect(() => {
-        const loadInitialData = async () => {
-            if (isDashboardOpen && isAuthenticated) {
-                console.log('📊 Loading initial admin data...');
-
-                try {
-                    // Load data immediately when dashboard opens
-                    await Promise.all([
-                        loadRealtimeAdminAnalytics(),
-                        loadRealtimeFeedbackSummary(),
-                        refreshAllAdminData()
-                    ]);
-
-                    console.log('✅ Initial admin data loaded successfully');
-                } catch (error) {
-                    console.error('❌ Failed to load initial admin data:', error);
-                    showToast({
-                        type: 'error',
-                        message: 'Failed to load admin data. Check your connection.'
-                    });
-                }
-            }
-        };
-
-        loadInitialData();
-    }, [isDashboardOpen, isAuthenticated]); // ✅ FIX: Remove function dependencies that cause infinite loops
-
-// ✅ FIX 2: Auto-refresh every 30 seconds when dashboard is open (CORRECTED)
     useEffect(() => {
         let autoRefreshInterval: NodeJS.Timeout | null = null;
+        let realtimeCleanup: (() => void) | null = null;
+        let retryTimeout: NodeJS.Timeout | null = null;
+        let debounceTimeout: NodeJS.Timeout | null = null;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
 
-        if (isDashboardOpen && isAuthenticated) {
-            console.log('🔄 Starting auto-refresh for admin dashboard...');
+        const startUnifiedAdminSystem = async () => {
+            if (!isDashboardOpen || !isAuthenticated) return;
 
-            autoRefreshInterval = setInterval(async () => {
-                console.log('⏰ Auto-refreshing admin data...');
+            console.log('🚀 Starting unified admin dashboard system...');
 
-                try {
-                    await Promise.all([
-                        loadRealtimeAdminAnalytics(),
-                        loadRealtimeFeedbackSummary()
-                    ]);
+            try {
+                // 1. Load initial data immediately
+                console.log('📊 Loading initial admin data...');
+                await Promise.all([
+                    loadRealtimeAdminAnalytics(),
+                    loadRealtimeFeedbackSummary(),
+                    refreshAllAdminData()
+                ]);
+                console.log('✅ Initial admin data loaded successfully');
 
-                    console.log('✅ Auto-refresh completed');
-                } catch (error) {
-                    console.error('❌ Auto-refresh failed:', error);
+                // 2. Enable global auto-refresh if not already enabled
+                if (!globalRefreshStatus.autoRefreshEnabled) {
+                    console.log('🔄 Enabling global auto-refresh system...');
+                    enableAutoRefresh(30);
                 }
-            }, 30000); // 30 seconds
-        }
 
-        return () => {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-                console.log('🛑 Auto-refresh stopped');
+                // 3. Attempt real-time subscriptions with fallback
+                await setupRealtimeWithFallback();
+
+            } catch (error) {
+                console.error('❌ Failed to initialize admin system:', error);
+                showToast({
+                    type: 'error',
+                    message: 'Failed to load admin data. Check your connection.'
+                });
             }
         };
-    }, [isDashboardOpen, isAuthenticated]); // ✅ FIX: Remove function dependencies
 
-// ✅ FIX 3: Real-time subscriptions with fallback (CORRECTED)
-    useEffect(() => {
-        let cleanup: (() => void) | null = null;
+        const setupRealtimeWithFallback = async () => {
+            try {
+                console.log(`🔌 Setting up real-time subscriptions (attempt ${retryCount + 1})...`);
 
-        const setupRealTimeOrFallback = async () => {
-            if (isDashboardOpen && isAuthenticated) {
-                try {
-                    console.log('🔌 Setting up real-time subscriptions...');
+                realtimeCleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
+                    console.log('📡 Real-time update received:', data);
 
-                    // Try to set up real-time subscriptions
-                    cleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
-                        console.log('📡 Real-time update received:', data);
-
-                        // Refresh data when real-time updates come in
+                    // Debounced refresh to prevent too frequent updates
+                    if (debounceTimeout) clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => {
                         loadRealtimeAdminAnalytics();
                         loadRealtimeFeedbackSummary();
 
@@ -654,42 +654,153 @@ const AdminDashboard: React.FC = () => {
                             message: 'Data updated in real-time',
                             duration: 2000
                         });
-                    });
+                    }, 1000); // 1-second debounce
+                });
 
-                    console.log('✅ Real-time subscriptions active');
+                console.log('✅ Real-time subscriptions active');
+                retryCount = 0; // Reset retry count on success
 
-                } catch (error) {
-                    console.error('❌ Real-time setup failed, using polling fallback:', error);
+            } catch (error) {
+                console.error(`❌ Real-time setup failed (attempt ${retryCount + 1}):`, error);
 
-                    // Fallback: More frequent polling when real-time fails
-                    const pollInterval = setInterval(async () => {
-                        console.log('📋 Polling for updates (real-time fallback)...');
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+                    console.log(`🔄 Retrying real-time setup in ${retryDelay}ms...`);
 
-                        try {
-                            await Promise.all([
-                                loadRealtimeAdminAnalytics(),
-                                loadRealtimeFeedbackSummary()
-                            ]);
-                        } catch (pollError) {
-                            console.error('❌ Polling failed:', pollError);
-                        }
-                    }, 15000); // 15 seconds for fallback
-
-                    cleanup = () => clearInterval(pollInterval);
+                    retryTimeout = setTimeout(() => {
+                        setupRealtimeWithFallback();
+                    }, retryDelay);
+                } else {
+                    console.log('❌ Max retries exceeded, using polling fallback');
+                    startPollingFallback();
                 }
             }
-        };
+        }; // ✅ Make sure this semicolon is here
 
-        setupRealTimeOrFallback();
+        const startPollingFallback = () => {
+            console.log('📋 Starting enhanced polling fallback...');
 
+            autoRefreshInterval = setInterval(async () => {
+                // Only poll when page is visible and online
+                if (!document.hidden && navigator.onLine) {
+                    console.log('⏰ Polling for admin data updates...');
+                    try {
+                        await Promise.all([
+                            loadRealtimeAdminAnalytics(),
+                            loadRealtimeFeedbackSummary()
+                        ]);
+                    } catch (pollError) {
+                        console.error('❌ Polling failed:', pollError);
+                    }
+                }
+            }, 20000); // 20 seconds for fallback polling
+        }; // ✅ Make sure this semicolon is here
+
+        // Initialize the unified system
+        startUnifiedAdminSystem();
+
+        // Cleanup function
         return () => {
-            if (cleanup) {
-                cleanup();
-                console.log('🧹 Real-time/polling cleanup completed');
+            console.log('🧹 Cleaning up unified admin dashboard system...');
+
+            // Clear all intervals and timeouts
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            if (retryTimeout) {
+                clearTimeout(retryTimeout);
+            }
+            if (debounceTimeout) {
+                clearTimeout(debounceTimeout);
+            }
+
+            // Clean up real-time subscriptions
+            if (realtimeCleanup) {
+                realtimeCleanup();
+            }
+
+            // Optionally disable global auto-refresh when dashboard closes
+            if (globalRefreshStatus.autoRefreshEnabled && !isDashboardOpen) {
+                console.log('⏹️ Disabling global auto-refresh - dashboard closing');
+                disableAutoRefresh();
+            }
+
+            console.log('✅ Admin dashboard cleanup completed');
+        };
+    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled]); // ✅ Make sure this semicolon is here
+
+// ✅ SEPARATE: Page visibility management (keeps existing logic)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!isDashboardOpen || !isAuthenticated) return;
+
+            if (document.hidden && globalRefreshStatus.autoRefreshEnabled) {
+                console.log('⏸️ Page hidden - pausing auto-refresh');
+                disableAutoRefresh();
+            } else if (!document.hidden && !globalRefreshStatus.autoRefreshEnabled) {
+                console.log('▶️ Page visible - resuming auto-refresh');
+                enableAutoRefresh(30);
             }
         };
-    }, [isDashboardOpen, isAuthenticated]);
 
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]); // ✅ Make sure this semicolon is here
+
+// ✅ NEW: Keyboard shortcuts for admin actions
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // Only handle shortcuts when admin dashboard is open
+            if (!isDashboardOpen || !isAuthenticated) return;
+
+            // Check for Ctrl/Cmd + key combinations
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key.toLowerCase()) {
+                    case 'r':
+                        e.preventDefault();
+                        handleUnifiedRefresh();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        handleExportData();
+                        break;
+                    case '1':
+                        e.preventDefault();
+                        setAdminSection('overview');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        setAdminSection('analytics');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        setAdminSection('feedback');
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        setAdminSection('users');
+                        break;
+                    case '5':
+                        e.preventDefault();
+                        setAdminSection('settings');
+                        break;
+                    case '6':
+                        e.preventDefault();
+                        setAdminSection('support');
+                        break;
+                }
+            }
+
+            // Escape key to close dashboard
+            if (e.key === 'Escape') {
+                closeAdminDashboard();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+        return () => document.removeEventListener('keydown', handleKeyPress);
+    }, [isDashboardOpen, isAuthenticated]);
 
     // Calculate ApplyTrak-specific metrics
     const jobMetrics = useMemo(() => {
@@ -735,11 +846,15 @@ const AdminDashboard: React.FC = () => {
     }, [applications]);
 
     // Filtered feedback logic
-    const filteredFeedback = useMemo(() => {
-        if (!adminFeedback?.recentFeedback) return [];
+    const [feedbackPage, setFeedbackPage] = useState(1);
+    const FEEDBACK_PER_PAGE = 20;
+
+    const paginatedFeedback = useMemo(() => {
+        if (!adminFeedback?.recentFeedback) return {items: [], totalPages: 0, totalCount: 0};
 
         let filtered = adminFeedback.recentFeedback;
 
+        // Apply filters (existing logic)
         if (typeFilter !== 'all') {
             filtered = filtered.filter(feedback => feedback.type === typeFilter);
         }
@@ -769,6 +884,7 @@ const AdminDashboard: React.FC = () => {
             );
         }
 
+        // Apply sorting (existing logic)
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'newest':
@@ -784,8 +900,14 @@ const AdminDashboard: React.FC = () => {
             }
         });
 
-        return filtered;
-    }, [adminFeedback?.recentFeedback, typeFilter, statusFilter, searchQuery, sortBy]);
+        // Apply pagination
+        const totalCount = filtered.length;
+        const totalPages = Math.ceil(totalCount / FEEDBACK_PER_PAGE);
+        const startIndex = (feedbackPage - 1) * FEEDBACK_PER_PAGE;
+        const items = filtered.slice(startIndex, startIndex + FEEDBACK_PER_PAGE);
+
+        return {items, totalPages, totalCount};
+    }, [adminFeedback?.recentFeedback, typeFilter, statusFilter, searchQuery, sortBy, feedbackPage]);
 
     // Early return with safety check
     if (!adminState) {
@@ -990,7 +1112,7 @@ const AdminDashboard: React.FC = () => {
                 'Single-User Local',
             totalFeedback: adminFeedback.totalFeedback,
             averageRating: adminFeedback.averageRating,
-            feedbackData: filteredFeedback.map(feedback => ({
+            feedbackData: paginatedFeedback.items.map(feedback => ({
                 type: feedback.type,
                 rating: feedback.rating,
                 message: feedback.message,
@@ -1737,8 +1859,8 @@ const AdminDashboard: React.FC = () => {
 
                                     {/* Feedback List */}
                                     <div className="space-y-4">
-                                        {filteredFeedback && filteredFeedback.length > 0 ? (
-                                            filteredFeedback.slice(0, 10).map((feedback) => {
+                                        {paginatedFeedback.items && paginatedFeedback.items.length > 0 ? (
+                                            paginatedFeedback.items.slice(0, 10).map((feedback) => {
                                                 const Icon = getFeedbackTypeIcon(feedback.type);
                                                 const isExpanded = expandedFeedback === feedback.id;
 
@@ -1816,6 +1938,34 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Add pagination controls after feedback list */}
+                                {paginatedFeedback.totalPages > 1 && (
+                                    <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                                            Showing {((feedbackPage - 1) * FEEDBACK_PER_PAGE) + 1} to {Math.min(feedbackPage * FEEDBACK_PER_PAGE, paginatedFeedback.totalCount)} of {paginatedFeedback.totalCount} results
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setFeedbackPage(Math.max(1, feedbackPage - 1))}
+                                                disabled={feedbackPage === 1}
+                                                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50"
+                                            >
+                                                Previous
+                                            </button>
+                                            <span className="px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                Page {feedbackPage} of {paginatedFeedback.totalPages}
+            </span>
+                                            <button
+                                                onClick={() => setFeedbackPage(Math.min(paginatedFeedback.totalPages, feedbackPage + 1))}
+                                                disabled={feedbackPage === paginatedFeedback.totalPages}
+                                                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Feedback Trends */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -1866,7 +2016,7 @@ const AdminDashboard: React.FC = () => {
                                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Activity</h3>
                                         <div className="space-y-3">
-                                            {filteredFeedback.slice(0, 5).map((feedback, index) => (
+                                            {paginatedFeedback.items.slice(0, 5).map((feedback, index) => (
                                                 <div key={feedback.id} className="flex items-center gap-3">
                                                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                                     <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">

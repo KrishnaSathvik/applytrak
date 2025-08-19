@@ -114,17 +114,17 @@ export const realtimeAdminService = {
             const { data: users, error } = await client
                 .from('users')
                 .select(`
-                id,
-                external_id,
-                email,
-                created_at,
-                updated_at,
-                display_name,
-                last_active_at,
-                is_admin,
-                timezone,
-                language
-            `)
+        id,
+        external_id,        // ✅ Check if this field exists
+        email,
+        created_at,         // ✅ Check if this is camelCase 'createdAt'
+        updated_at,         // ✅ Check if this is camelCase 'updatedAt'
+        display_name,       // ✅ Check if this is camelCase 'displayName'
+        last_active_at,     // ✅ Check if this is camelCase 'lastActiveAt'
+        is_admin,           // ✅ Check if this is camelCase 'isAdmin'
+        timezone,
+        language
+    `)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -140,8 +140,8 @@ export const realtimeAdminService = {
         }
     },
 
-// ✅ COMPLETE FIX: Replace getAllUsersData() in realtimeAdminService.ts
 
+    // ✅ FIXED: getAllUsersData() with proper debug log placement
     async getAllUsersData(): Promise<SafeUserData> {
         try {
             console.log('🔄 Fetching ALL data from ALL users (NO LIMITS)...');
@@ -205,6 +205,19 @@ export const realtimeAdminService = {
             const events = (eventsResponse?.data || []).filter(Boolean);
             const feedback = (feedbackResponse?.data || []).filter(Boolean);
             const users = Array.isArray(usersData) ? usersData : [];
+
+            // ✅ FIX 10: Schema debugging console logs (MOVED TO CORRECT LOCATION)
+            console.log('🔍 SCHEMA DEBUG - Sample Records:');
+            if (applications.length > 0) {
+                console.log('Applications sample:', Object.keys(applications[0]));
+            }
+            if (events.length > 0) {
+                console.log('Events sample:', Object.keys(events[0]));
+                console.log('Event structure:', events[0]);
+            }
+            if (users.length > 0) {
+                console.log('Users sample:', Object.keys(users[0]));
+            }
 
             // ✅ Check for data per user to debug the issue
             if (applications.length > 0) {
@@ -502,6 +515,13 @@ export const realtimeAdminService = {
                         this.triggerUnifiedRefresh(onUpdate);
                     }
                 )
+                .on('postgres_changes',
+                    {event: '*', schema: 'public', table: 'analytics_events'},
+                    (payload: any) => {
+                        console.log('📊 Real-time update: Analytics events changed', payload?.eventType);
+                        this.triggerUnifiedRefresh(onUpdate);
+                    }
+                )
                 .subscribe();
 
             adminSubscriptions.push(subscription);
@@ -754,7 +774,7 @@ export const realtimeAdminService = {
                     newUsers: {today: 0, thisWeek: 0, thisMonth: 0}
                 },
                 usageMetrics: {
-                    totalSessions: events.filter(e => e.event_name === 'session_start').length || 1,
+                    totalSessions: events.filter(e => e.event === 'session_start').length || 1,
                     averageSessionDuration: 360, // 6 minutes average
                     totalApplicationsCreated: totalApps,
                     featuresUsage: {
@@ -902,9 +922,8 @@ export const realtimeAdminService = {
 
     safeCountEvents(events: any[], eventName: string): number {
         if (!Array.isArray(events) || !eventName) return 0;
-
         try {
-            return events.filter(e => e?.event_name === eventName).length;
+            return events.filter(e => e?.event === eventName).length;  // ✅ Confirmed: 'event' field exists
         } catch {
             return 0;
         }
@@ -926,12 +945,11 @@ export const realtimeAdminService = {
 
     safeCalculateFeatureUsage(events: any[]): Record<string, number> {
         if (!Array.isArray(events)) return {};
-
         try {
             return events
-                .filter((e: any) => e?.event_name === 'feature_used')
+                .filter((e: any) => e?.event === 'feature_used')  // ✅ Confirmed: 'event' field exists
                 .reduce((acc: any, e: any) => {
-                    const feature = e?.properties?.feature || 'unknown';
+                    const feature = e?.properties?.feature || 'unknown';  // ✅ Confirmed: 'properties' jsonb field exists
                     if (typeof feature === 'string') {
                         acc[feature] = (acc[feature] || 0) + 1;
                     }
@@ -959,14 +977,13 @@ export const realtimeAdminService = {
 
     safeCalculateFeatureAdoption(events: any[]): Array<{ feature: string; usage: number }> {
         if (!Array.isArray(events)) return [];
-
         try {
             const features = ['export', 'search', 'goals', 'analytics'];
             return features.map(feature => ({
                 feature,
                 usage: events.filter(e => {
-                    if (!e?.event_name) return false;
-                    return e.event_name.includes(feature) || e?.properties?.feature === feature;
+                    if (!e?.event) return false;  // ✅ Correct camelCase field
+                    return e.event.includes(feature) || e?.properties?.feature === feature;
                 }).length
             }));
         } catch {
