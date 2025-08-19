@@ -632,6 +632,18 @@ const resetPassword = async (email: string) => {
     if (error) throw error;
 };
 
+const logSupabaseError = (operation: string, error: any, context?: any) => {
+    console.group(`❌ Supabase ${operation} Error`);
+    console.error('Error object:', error);
+    console.error('Error message:', error?.message || 'No message');
+    console.error('Error code:', error?.code || 'No code');
+    console.error('Error details:', error?.details || 'No details');
+    console.error('Error hint:', error?.hint || 'No hint');
+    if (context) {
+        console.error('Context:', context);
+    }
+    console.groupEnd();
+};
 // ============================================================================
 // CLOUD SYNC UTILITIES
 // ============================================================================
@@ -648,27 +660,104 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
             return;
         }
 
-        const dataWithUser = {
-            ...data,
-            user_id: userDbId,
-            synced_at: new Date().toISOString()
+        // 🆕 BETTER ERROR LOGGING
+        const logDetailedError = (error: any, context?: any) => {
+            console.group(`❌ Supabase ${operation} Error for ${table}`);
+            console.error('Full error object:', error);
+            console.error('Error message:', error?.message || 'No message');
+            console.error('Error code:', error?.code || 'No code');
+            console.error('Error details:', error?.details || 'No details');
+            console.error('Error hint:', error?.hint || 'No hint');
+            if (context) console.error('Context:', context);
+            console.groupEnd();
         };
 
+        console.log(`🔄 Starting ${operation} for ${table}:`, {
+            dataId: data.id,
+            userDbId,
+            dataKeys: Object.keys(data)
+        });
+
         let result;
+
         switch (operation) {
             case 'insert':
-                result = await client.from(table).insert(dataWithUser).select();
+                if (table === 'applications') {
+                    // 🔧 FIXED: Proper field mapping for applications
+                    const applicationData = {
+                        id: data.id,
+                        user_id: userDbId,
+                        company: data.company,
+                        position: data.position,
+                        date_applied: data.dateApplied,        // 🔧 snake_case for DB
+                        status: data.status,
+                        job_type: data.type,                   // 🔧 job_type vs type
+                        location: data.location || null,
+                        salary: data.salary || null,
+                        job_source: data.jobSource || null,    // 🔧 snake_case for DB
+                        job_url: data.jobUrl || null,          // 🔧 snake_case for DB
+                        notes: data.notes || null,
+                        attachments: data.attachments || [],
+                        created_at: data.createdAt,
+                        updated_at: data.updatedAt,
+                        synced_at: new Date().toISOString()
+                    };
+
+                    console.log('📤 Mapped application data:', applicationData);
+                    result = await client.from(table).insert(applicationData).select();
+                } else {
+                    // For other tables, use your existing logic
+                    const dataWithUser = {
+                        ...data,
+                        user_id: userDbId,
+                        synced_at: new Date().toISOString()
+                    };
+                    result = await client.from(table).insert(dataWithUser).select();
+                }
                 break;
+
             case 'update':
-                const updateData = {...dataWithUser};
-                delete updateData.user_id;
-                result = await client
-                    .from(table)
-                    .update(updateData)
-                    .eq('id', data.id)
-                    .eq('user_id', userDbId)
-                    .select();
+                if (table === 'applications') {
+                    // 🔧 FIXED: Proper field mapping for application updates
+                    const updateData = {
+                        company: data.company,
+                        position: data.position,
+                        date_applied: data.dateApplied,
+                        status: data.status,
+                        job_type: data.type,
+                        location: data.location || null,
+                        salary: data.salary || null,
+                        job_source: data.jobSource || null,
+                        job_url: data.jobUrl || null,
+                        notes: data.notes || null,
+                        attachments: data.attachments || [],
+                        updated_at: data.updatedAt,
+                        synced_at: new Date().toISOString()
+                    };
+
+                    console.log('📝 Mapped update data:', updateData);
+                    result = await client
+                        .from(table)
+                        .update(updateData)
+                        .eq('id', data.id)
+                        .eq('user_id', userDbId)
+                        .select();
+                } else {
+                    // For other tables, use your existing logic
+                    const updateData = {...data};
+                    delete updateData.user_id;
+                    result = await client
+                        .from(table)
+                        .update({
+                            ...updateData,
+                            synced_at: new Date().toISOString()
+                        })
+                        .eq('id', data.id)
+                        .eq('user_id', userDbId)
+                        .select();
+                }
                 break;
+
             case 'delete':
                 result = await client
                     .from(table)
@@ -679,13 +768,48 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         }
 
         if (result.error) {
-            console.error('❌ Supabase operation error:', result.error);
+            // 🆕 MUCH BETTER ERROR LOGGING
+            logDetailedError(result.error, {
+                table,
+                operation,
+                dataId: data.id,
+                userDbId
+            });
+
+            // Handle specific error codes
+            if (result.error.code === '23505') {
+                console.warn(`⚠️ Duplicate key for ${table} - record may already exist`);
+                return; // Don't throw for duplicates
+            }
+
+            if (result.error.code === '42P01') {
+                console.error(`❌ Table ${table} does not exist in database`);
+                throw new Error(`Table ${table} does not exist`);
+            }
+
+            if (result.error.code === '42501') {
+                console.error(`❌ Permission denied for ${table}`);
+                throw new Error(`Permission denied for ${table}`);
+            }
+
             throw result.error;
         }
 
-        console.log(`✅ Synced to cloud: ${table} ${operation}`);
-    } catch (error) {
-        console.warn(`Cloud sync failed for ${table}:`, error);
+        console.log(`✅ ${operation} successful for ${table}:`, {
+            recordsAffected: result.data?.length || 'unknown'
+        });
+
+    } catch (error: any) {
+        // 🆕 ENHANCED ERROR LOGGING FOR CAUGHT EXCEPTIONS
+        console.group(`❌ Cloud sync failed for ${table} ${operation}`);
+        console.error('Caught error:', error);
+        console.error('Error name:', error?.name);
+        console.error('Error message:', error?.message);
+        console.error('Error stack:', error?.stack);
+        console.groupEnd();
+
+        // Log but don't throw to prevent UI blocking
+        console.warn(`⚠️ Cloud sync failed for ${table}, continuing in offline mode...`);
     }
 };
 
@@ -719,23 +843,23 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
         const startTime = Date.now();
 
         try {
-            const query = client
+            let query = client
                 .from(table)
                 .select('*')
                 .eq('user_id', userDbId);
 
             if (table === 'applications') {
-                query.order('createdAt', { ascending: false });
-                query.limit(50);
+                query = query.order('date_applied', { ascending: false }); // Use snake_case for DB
+                query = query.limit(50);
             } else if (table === 'user_sessions') {
-                query.order('startTime', { ascending: false });
-                query.limit(100);
+                query = query.order('start_time', { ascending: false }); // Use snake_case for DB
+                query = query.limit(100);
             } else if (table === 'analytics_events') {
-                query.order('timestamp', { ascending: false });
-                query.limit(100);
+                query = query.order('timestamp', { ascending: false });
+                query = query.limit(100);
             } else {
-                query.order('createdAt', { ascending: false });
-                query.limit(100);
+                query = query.order('created_at', { ascending: false });
+                query = query.limit(100);
             }
 
             const {data, error} = await Promise.race([
@@ -748,15 +872,19 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
             const duration = Date.now() - startTime;
 
             if (error) {
-                console.error(`❌ Supabase query error for ${table}:`, {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
+                logSupabaseError(`query for ${table}`, error, {
+                    userDbId,
+                    table,
+                    duration
                 });
 
                 if (error.code === '42501' || error.message?.includes('permission')) {
                     throw new Error(`Permission denied: ${error.message}`);
+                }
+
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    console.warn(`⚠️ Table ${table} does not exist in database`);
+                    return [];
                 }
 
                 if (retryCount < MAX_RETRIES &&
@@ -778,9 +906,11 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
 
         } catch (queryError: any) {
             const duration = Date.now() - startTime;
-            console.error(`❌ Query execution error for ${table} after ${duration}ms:`, {
-                message: queryError.message,
-                name: queryError.name
+
+            logSupabaseError(`query execution for ${table}`, queryError, {
+                duration,
+                userDbId,
+                table
             });
 
             if (retryCount < MAX_RETRIES &&
@@ -796,7 +926,7 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
         }
 
     } catch (error: any) {
-        console.error(`❌ syncFromCloud(${table}) fatal error:`, error.message);
+        logSupabaseError(`syncFromCloud(${table}) fatal error`, error);
         return [];
     }
 };
