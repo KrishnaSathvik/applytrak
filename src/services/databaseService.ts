@@ -648,6 +648,8 @@ const logSupabaseError = (operation: string, error: any, context?: any) => {
 // CLOUD SYNC UTILITIES
 // ============================================================================
 
+// FIXED: Update your syncToCloud function to match your actual database schema
+
 const syncToCloud = async (table: string, data: any, operation: 'insert' | 'update' | 'delete' = 'insert'): Promise<void> => {
     if (!isOnlineWithSupabase()) return;
 
@@ -660,18 +662,6 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
             return;
         }
 
-        // 🆕 BETTER ERROR LOGGING
-        const logDetailedError = (error: any, context?: any) => {
-            console.group(`❌ Supabase ${operation} Error for ${table}`);
-            console.error('Full error object:', error);
-            console.error('Error message:', error?.message || 'No message');
-            console.error('Error code:', error?.code || 'No code');
-            console.error('Error details:', error?.details || 'No details');
-            console.error('Error hint:', error?.hint || 'No hint');
-            if (context) console.error('Context:', context);
-            console.groupEnd();
-        };
-
         console.log(`🔄 Starting ${operation} for ${table}:`, {
             dataId: data.id,
             userDbId,
@@ -683,24 +673,24 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         switch (operation) {
             case 'insert':
                 if (table === 'applications') {
-                    // 🔧 FIXED: Proper field mapping for applications
+                    // 🔧 FIXED: Use camelCase to match your actual database schema
                     const applicationData = {
                         id: data.id,
                         user_id: userDbId,
                         company: data.company,
                         position: data.position,
-                        date_applied: data.dateApplied,        // 🔧 snake_case for DB
+                        dateApplied: data.dateApplied,        // ✅ camelCase to match database
                         status: data.status,
-                        job_type: data.type,                   // 🔧 job_type vs type
+                        type: data.type,                      // ✅ type not job_type
                         location: data.location || null,
                         salary: data.salary || null,
-                        job_source: data.jobSource || null,    // 🔧 snake_case for DB
-                        job_url: data.jobUrl || null,          // 🔧 snake_case for DB
+                        jobSource: data.jobSource || null,    // ✅ camelCase to match database
+                        jobUrl: data.jobUrl || null,          // ✅ camelCase to match database
                         notes: data.notes || null,
                         attachments: data.attachments || [],
-                        created_at: data.createdAt,
-                        updated_at: data.updatedAt,
-                        synced_at: new Date().toISOString()
+                        createdAt: data.createdAt,            // ✅ camelCase to match database
+                        updatedAt: data.updatedAt,            // ✅ camelCase to match database
+                        syncedAt: new Date().toISOString()    // ✅ camelCase to match database
                     };
 
                     console.log('📤 Mapped application data:', applicationData);
@@ -718,21 +708,21 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
 
             case 'update':
                 if (table === 'applications') {
-                    // 🔧 FIXED: Proper field mapping for application updates
+                    // 🔧 FIXED: Use camelCase to match your actual database schema
                     const updateData = {
                         company: data.company,
                         position: data.position,
-                        date_applied: data.dateApplied,
+                        dateApplied: data.dateApplied,        // ✅ camelCase
                         status: data.status,
-                        job_type: data.type,
+                        type: data.type,                      // ✅ type not job_type
                         location: data.location || null,
                         salary: data.salary || null,
-                        job_source: data.jobSource || null,
-                        job_url: data.jobUrl || null,
+                        jobSource: data.jobSource || null,    // ✅ camelCase
+                        jobUrl: data.jobUrl || null,          // ✅ camelCase
                         notes: data.notes || null,
                         attachments: data.attachments || [],
-                        updated_at: data.updatedAt,
-                        synced_at: new Date().toISOString()
+                        updatedAt: data.updatedAt,            // ✅ camelCase
+                        syncedAt: new Date().toISOString()    // ✅ camelCase
                     };
 
                     console.log('📝 Mapped update data:', updateData);
@@ -768,13 +758,15 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         }
 
         if (result.error) {
-            // 🆕 MUCH BETTER ERROR LOGGING
-            logDetailedError(result.error, {
-                table,
-                operation,
-                dataId: data.id,
-                userDbId
-            });
+            // Enhanced error logging
+            console.group(`❌ Supabase ${operation} Error for ${table}`);
+            console.error('Full error object:', result.error);
+            console.error('Error message:', result.error?.message || 'No message');
+            console.error('Error code:', result.error?.code || 'No code');
+            console.error('Error details:', result.error?.details || 'No details');
+            console.error('Error hint:', result.error?.hint || 'No hint');
+            console.error('Context:', { table, operation, dataId: data.id, userDbId });
+            console.groupEnd();
 
             // Handle specific error codes
             if (result.error.code === '23505') {
@@ -800,7 +792,7 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         });
 
     } catch (error: any) {
-        // 🆕 ENHANCED ERROR LOGGING FOR CAUGHT EXCEPTIONS
+        // Enhanced error logging for caught exceptions
         console.group(`❌ Cloud sync failed for ${table} ${operation}`);
         console.error('Caught error:', error);
         console.error('Error name:', error?.name);
@@ -812,6 +804,8 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         console.warn(`⚠️ Cloud sync failed for ${table}, continuing in offline mode...`);
     }
 };
+
+// FIXED: Update your syncFromCloud function to match your actual database schema
 
 const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
     const MAX_RETRIES = 2;
@@ -849,16 +843,17 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
                 .eq('user_id', userDbId);
 
             if (table === 'applications') {
-                query = query.order('date_applied', { ascending: false }); // Use snake_case for DB
+                // 🔧 FIXED: Use camelCase column names to match your actual database
+                query = query.order('dateApplied', { ascending: false }); // ✅ dateApplied not date_applied
                 query = query.limit(50);
             } else if (table === 'user_sessions') {
-                query = query.order('start_time', { ascending: false }); // Use snake_case for DB
+                query = query.order('startTime', { ascending: false }); // ✅ camelCase
                 query = query.limit(100);
             } else if (table === 'analytics_events') {
                 query = query.order('timestamp', { ascending: false });
                 query = query.limit(100);
             } else {
-                query = query.order('created_at', { ascending: false });
+                query = query.order('createdAt', { ascending: false }); // ✅ camelCase
                 query = query.limit(100);
             }
 
@@ -998,17 +993,17 @@ class BackgroundSyncManager {
                 id: String(app.id),
                 company: app.company || '',
                 position: app.position || '',
-                dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
+                dateApplied: app.dateApplied || new Date().toISOString().split('T')[0], // ✅ camelCase
                 status: app.status || 'Applied',
-                type: app.type || 'Remote',
+                type: app.type || 'Remote',                    // ✅ type not job_type
                 location: app.location || '',
                 salary: app.salary || '',
-                jobSource: app.jobSource || '',
-                jobUrl: app.jobUrl || '',
+                jobSource: app.jobSource || '',               // ✅ camelCase
+                jobUrl: app.jobUrl || '',                     // ✅ camelCase
                 notes: app.notes || '',
                 attachments: Array.isArray(app.attachments) ? app.attachments : [],
-                createdAt: app.createdAt || new Date().toISOString(),
-                updatedAt: app.updatedAt || new Date().toISOString()
+                createdAt: app.createdAt || new Date().toISOString(),    // ✅ camelCase
+                updatedAt: app.updatedAt || new Date().toISOString()     // ✅ camelCase
             }))
             .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
     }
