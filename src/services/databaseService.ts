@@ -832,17 +832,24 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
         const startTime = Date.now();
 
         try {
-            // ✅ IMPROVED: Add pagination and ordering for better performance
+            // ✅ FIXED: Use correct camelCase column names
             const query = client
                 .from(table)
                 .select('*')
-                .eq('user_id', userDbId)
-                .order('created_at', { ascending: false });
+                .eq('user_id', userDbId);
 
-            // ✅ IMPROVED: Add pagination for large datasets
+            // ✅ FIXED: Use appropriate ordering column for each table
             if (table === 'applications') {
-                query.limit(50); // Only fetch latest 50 applications initially
+                query.order('createdAt', { ascending: false }); // ✅ Changed from 'created_at'
+                query.limit(50);
+            } else if (table === 'user_sessions') {
+                query.order('startTime', { ascending: false }); // ✅ Use startTime for sessions
+                query.limit(100);
+            } else if (table === 'analytics_events') {
+                query.order('timestamp', { ascending: false }); // ✅ Use timestamp for events
+                query.limit(100);
             } else {
+                query.order('createdAt', { ascending: false }); // ✅ Default to createdAt
                 query.limit(100);
             }
 
