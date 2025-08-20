@@ -10,6 +10,10 @@ import {initializeAdminRoutes} from './utils/adminRoute';
 import './styles/globals.css';
 import RealtimeSyncDebugger from './components/RealtimeSyncDebugger';
 import {verifyDatabaseAdmin} from './utils/adminAuth';
+import DatabaseDebugTester from './components/DatabaseDebugTester';
+import {Route} from "lucide-react";
+import { testDatabase } from './testDatabase';
+
 
 // ============================================================================
 // LAZY LOADED COMPONENTS - Performance optimization
@@ -496,6 +500,10 @@ const App: React.FC = () => {
     // ✨ NEW: Phase 1.5 - Route Change Detection + Automatic Admin Detection
     // ============================================================================
     useEffect(() => {
+        testDatabase();
+    }, []);
+
+    useEffect(() => {
         const handleRouteChange = () => {
             const newRoute = window.location.pathname;
             setCurrentRoute(newRoute);
@@ -912,6 +920,8 @@ const App: React.FC = () => {
                                 {/* Analytics & Feedback Modals */}
                                 <FeedbackModal/>
                                 <ConsentModal/>
+
+                                <Route path="/debug" component={DatabaseDebugTester} />
 
                                 {/* Admin System Modal */}
                                 <AdminLogin/>

@@ -90,7 +90,8 @@ const dataCache = DataCache.getInstance();
 
 // Generate unique ID utility
 const generateId = (): string => {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    // Generate a string ID that matches your VARCHAR column
+    return `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 // ============================================================================
@@ -152,8 +153,8 @@ const db = new JobTrackerDatabase();
 // ============================================================================
 
 // Replace these lines in your databaseService.ts (around line 156-157):
-const supabaseUrl = 'https://ihlaenwiyxtmkehfoesg.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Mjk1NDMsImV4cCI6MjA3MDAwNTU0M30.rkubJuDwXZN411f341hHvoUejy8Bj2BdjsDrZsceV_o';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
 let supabase: SupabaseClient | null = null;
 const initializeSupabase = (): SupabaseClient | null => {
@@ -645,6 +646,40 @@ const logSupabaseError = (operation: string, error: any, context?: any) => {
     }
     console.groupEnd();
 };
+
+
+const handleDatabaseError = (error: any, operation: string, table: string) => {
+    console.group(`❌ Database Error: ${operation} ${table}`);
+    console.error('Error:', error);
+
+    if (error.code === '23505') {
+        console.error('DUPLICATE KEY - Record already exists');
+        return 'duplicate';
+    }
+
+    if (error.code === '23503') {
+        console.error('FOREIGN KEY VIOLATION - User ID not found');
+        return 'foreign_key';
+    }
+
+    if (error.code === '42501') {
+        console.error('PERMISSION DENIED - Check RLS policies');
+        return 'permission';
+    }
+
+    if (error.code === '42P01') {
+        console.error('TABLE NOT FOUND');
+        return 'table_missing';
+    }
+
+    if (error.message?.includes('violates check constraint')) {
+        console.error('CHECK CONSTRAINT VIOLATION - Invalid data format');
+        return 'invalid_data';
+    }
+
+    console.groupEnd();
+    return 'unknown';
+};
 // ============================================================================
 // CLOUD SYNC UTILITIES
 // ============================================================================
@@ -674,27 +709,33 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         switch (operation) {
             case 'insert':
                 if (table === 'applications') {
-                    // 🔧 FIXED: Use camelCase to match your actual database schema
+                    // Ensure ID is a string and properly formatted
                     const applicationData = {
-                        id: data.id,
+                        id: String(data.id), // Ensure string type
                         user_id: userDbId,
-                        company: data.company,
-                        position: data.position,
-                        dateApplied: data.dateApplied,        // ✅ camelCase to match database
-                        status: data.status,
-                        type: data.type,                      // ✅ type not job_type
-                        location: data.location || null,
-                        salary: data.salary || null,
-                        jobSource: data.jobSource || null,    // ✅ camelCase to match database
-                        jobUrl: data.jobUrl || null,          // ✅ camelCase to match database
-                        notes: data.notes || null,
-                        attachments: data.attachments || [],
-                        createdAt: data.createdAt,            // ✅ camelCase to match database
-                        updatedAt: data.updatedAt,            // ✅ camelCase to match database
-                        syncedAt: new Date().toISOString()    // ✅ camelCase to match database
+                        company: String(data.company),
+                        position: String(data.position),
+                        dateApplied: String(data.dateApplied), // Ensure string format YYYY-MM-DD
+                        status: String(data.status),
+                        type: String(data.type),
+                        location: data.location ? String(data.location) : null,
+                        salary: data.salary ? String(data.salary) : null,
+                        jobSource: data.jobSource ? String(data.jobSource) : null,
+                        jobUrl: data.jobUrl ? String(data.jobUrl) : null,
+                        notes: data.notes ? String(data.notes) : null,
+                        attachments: Array.isArray(data.attachments) ? data.attachments : [],
+                        createdAt: data.createdAt || new Date().toISOString(),
+                        updatedAt: data.updatedAt || new Date().toISOString(),
+                        syncedAt: new Date().toISOString()
                     };
 
                     console.log('📤 Mapped application data:', applicationData);
+
+                    // Validate required fields before insert
+                    if (!applicationData.id || !applicationData.company || !applicationData.position) {
+                        throw new Error('Missing required fields: id, company, or position');
+                    }
+
                     result = await client.from(table).insert(applicationData).select();
                 } else {
                     // For other tables, use your existing logic
@@ -1118,37 +1159,35 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // ✅ FIXED: Clear cache after adding
     async addApplication(app: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>): Promise<Application> {
         try {
             const now = new Date().toISOString();
-            const id = generateId();
-            const newApp: Application = {...app, id, createdAt: now, updatedAt: now};
+            const id = generateId(); // Use the fixed generateId function
 
-            // Save to local database
+            // Validate dateApplied format
+            const dateApplied = app.dateApplied.includes('T') ?
+                app.dateApplied.split('T')[0] :
+                app.dateApplied;
+
+            const newApp: Application = {
+                ...app,
+                id,
+                dateApplied, // Ensure YYYY-MM-DD format
+                createdAt: now,
+                updatedAt: now
+            };
+
+            // Save to local database first
             await db.applications.add(newApp);
 
-            // ✅ NEW: Clear cache to force refresh
+            // Clear cache to force refresh
             dataCache.invalidate('applications');
 
             // Sync to cloud for authenticated users
             if (isAuthenticated()) {
-                syncToCloud('applications', {
-                    id: newApp.id,
-                    company: newApp.company,
-                    position: newApp.position,
-                    dateApplied: newApp.dateApplied,
-                    status: newApp.status,
-                    type: newApp.type,
-                    location: newApp.location,
-                    salary: newApp.salary,
-                    jobSource: newApp.jobSource,
-                    jobUrl: newApp.jobUrl,
-                    notes: newApp.notes,
-                    attachments: newApp.attachments,
-                    createdAt: newApp.createdAt,
-                    updatedAt: newApp.updatedAt
-                }, 'insert').catch(err => console.warn('Cloud sync failed:', err));
+                syncToCloud('applications', newApp, 'insert').catch(err =>
+                    console.warn('Cloud sync failed:', err)
+                );
             }
 
             return newApp;
@@ -2429,6 +2468,78 @@ export const compareLocalAndCloudData = async () => {
     }
 
     console.groupEnd();
+};
+
+export const testDatabaseConnection = async () => {
+    console.group('🔧 TESTING DATABASE CONNECTION');
+
+    try {
+        // Test 1: Environment variables
+        const url = process.env.REACT_APP_SUPABASE_URL;
+        const key = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+        console.log('Environment Variables:');
+        console.log('- URL:', url ? '✅ Set' : '❌ Missing');
+        console.log('- Key:', key ? '✅ Set' : '❌ Missing');
+
+        if (!url || !key) {
+            console.error('❌ Environment variables not set properly');
+            console.log('Create .env.local with:');
+            console.log('REACT_APP_SUPABASE_URL=your_url');
+            console.log('REACT_APP_SUPABASE_ANON_KEY=your_key');
+            return false;
+        }
+
+        // Test 2: Client initialization
+        const client = initializeSupabase();
+        if (!client) {
+            console.error('❌ Failed to initialize Supabase client');
+            return false;
+        }
+        console.log('✅ Supabase client initialized');
+
+        // Test 3: Authentication check
+        const { data: { session }, error: authError } = await client.auth.getSession();
+        if (authError) {
+            console.error('❌ Auth error:', authError);
+            return false;
+        }
+
+        if (!session?.user) {
+            console.log('⚠️ No authenticated user - sign in first');
+            return false;
+        }
+        console.log('✅ User authenticated:', session.user.email);
+
+        // Test 4: User DB ID
+        const userDbId = await getUserDbId();
+        if (!userDbId) {
+            console.error('❌ No user DB ID found');
+            return false;
+        }
+        console.log('✅ User DB ID:', userDbId);
+        const { count, error } = await client
+            .from('applications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userDbId);
+
+        if (error) {
+            console.error('Table access error:', error);
+            handleDatabaseError(error, 'SELECT', 'applications');
+            return false;
+        }
+
+        console.log('Database connection working!');
+        console.log('Current applications count:', count || 0);
+
+        return true;
+
+    } catch (error) {
+        console.error('❌ Connection test failed:', error);
+        return false;
+    } finally {
+        console.groupEnd();
+    }
 };
 
 
