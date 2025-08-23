@@ -1,7 +1,16 @@
+// src/components/modals/ResetPasswordModal.tsx
 import React, {useCallback, useState} from 'react';
 import {ArrowLeft, CheckCircle, Mail, Send} from 'lucide-react';
 import {Modal} from '../ui/Modal';
 import {useAppStore} from '../../store/useAppStore';
+
+// Constants
+const EMAIL_PATTERN = /\S+@\S+\.\S+/;
+
+// Types
+interface FormErrors {
+    email?: string;
+}
 
 const ResetPasswordModal: React.FC = () => {
     const {
@@ -13,23 +22,36 @@ const ResetPasswordModal: React.FC = () => {
     } = useAppStore();
 
     const [email, setEmail] = useState('');
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<FormErrors>({});
     const [isSuccess, setIsSuccess] = useState(false);
 
-    const handleClose = () => {
+    const resetForm = () => {
         setEmail('');
         setErrors({});
         setIsSuccess(false);
+    };
+
+    const handleClose = () => {
+        resetForm();
         closeAuthModal();
     };
 
-    const validateForm = () => {
-        const newErrors: Record<string, string> = {};
+    const validateEmail = (emailValue: string): string => {
+        if (!emailValue.trim()) {
+            return 'Email is required';
+        }
+        if (!EMAIL_PATTERN.test(emailValue)) {
+            return 'Please enter a valid email address';
+        }
+        return '';
+    };
 
-        if (!email.trim()) {
-            newErrors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = 'Please enter a valid email address';
+    const validateForm = (): boolean => {
+        const emailError = validateEmail(email);
+        const newErrors: FormErrors = {};
+
+        if (emailError) {
+            newErrors.email = emailError;
         }
 
         setErrors(newErrors);
@@ -50,11 +72,25 @@ const ResetPasswordModal: React.FC = () => {
     }, [email, resetPassword]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEmail(e.target.value);
+        const value = e.target.value;
+        setEmail(value);
+
         // Clear error when user starts typing
         if (errors.email) {
-            setErrors(prev => ({...prev, email: ''}));
+            setErrors(prev => ({...prev, email: undefined}));
         }
+    };
+
+    const handleBackToLogin = () => {
+        openAuthModal('login');
+    };
+
+    const handleTryDifferentEmail = () => {
+        setIsSuccess(false);
+    };
+
+    const isFormValid = () => {
+        return email.trim() !== '';
     };
 
     return (
@@ -118,12 +154,12 @@ const ResetPasswordModal: React.FC = () => {
                             {/* Submit Button */}
                             <button
                                 type="submit"
-                                disabled={auth.isLoading || !email}
+                                disabled={auth.isLoading || !isFormValid()}
                                 className="
-                                    w-full btn btn-primary form-btn group relative overflow-hidden
-                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                    min-h-[3.25rem] justify-center
-                                "
+                  w-full btn btn-primary form-btn group relative overflow-hidden
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  min-h-[3.25rem] justify-center
+                "
                             >
                                 {auth.isLoading ? (
                                     <>
@@ -162,7 +198,7 @@ const ResetPasswordModal: React.FC = () => {
                         </p>
 
                         <button
-                            onClick={() => setIsSuccess(false)}
+                            onClick={handleTryDifferentEmail}
                             className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                         >
                             Try a different email
@@ -173,7 +209,7 @@ const ResetPasswordModal: React.FC = () => {
                 {/* Back to Login */}
                 <div className="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
                     <button
-                        onClick={() => openAuthModal('login')}
+                        onClick={handleBackToLogin}
                         className="w-full flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                         disabled={auth.isLoading}
                     >

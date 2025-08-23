@@ -1,4 +1,4 @@
-// src/components/admin/FeedbackManagement.tsx - UPDATED: Uses Unified Global Refresh System
+// src/components/admin/FeedbackManagement.tsx
 import React, {useMemo, useState} from 'react';
 import {
     Bug,
@@ -7,14 +7,14 @@ import {
     Eye,
     Globe,
     Heart,
+    Info,
     Lightbulb,
     Mail,
     MessageSquare,
     Monitor,
     Search,
     Smartphone,
-    Star,
-    Info
+    Star
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 
@@ -22,79 +22,132 @@ type FeedbackFilter = 'all' | 'love' | 'bug' | 'feature' | 'general';
 type SortBy = 'newest' | 'oldest' | 'rating-high' | 'rating-low';
 type StatusFilter = 'all' | 'unread' | 'read' | 'flagged';
 
-// ✅ UPDATED: Feedback Management Component with Unified Global Refresh
+interface FeedbackMetadata {
+    deviceType?: string;
+    screenResolution?: string;
+    timezone?: string;
+    language?: string;
+    sessionDuration?: number;
+    applicationsCount?: number;
+}
+
+interface FeedbackItem {
+    id: string;
+    type: string;
+    rating: number;
+    message: string;
+    email?: string;
+    url: string;
+    timestamp: string;
+    userAgent?: string;
+    metadata?: FeedbackMetadata;
+}
+
+interface AdminFeedbackData {
+    totalFeedback: number;
+    averageRating: number;
+    recentFeedback: FeedbackItem[];
+    feedbackTrends: {
+        love: number;
+        bugs: number;
+        features: number;
+        general: number;
+    };
+}
+
+interface GlobalRefreshStatus {
+    isRefreshing: boolean;
+    lastRefreshTimestamp?: number;
+    refreshStatus: 'idle' | 'success' | 'error';
+    autoRefreshEnabled: boolean;
+    autoRefreshInterval: number;
+    refreshErrors: string[];
+}
+
 export const FeedbackManagement: React.FC = () => {
     const {
         adminFeedback,
-        // ✅ REMOVED: loadAdminFeedback - now uses unified global refresh
         showToast,
-        // ✅ NEW: Using global refresh status instead of local state
         getGlobalRefreshStatus
     } = useAppStore();
 
-    // Filters and search
+    // Filter and search state
     const [typeFilter, setTypeFilter] = useState<FeedbackFilter>('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [sortBy, setSortBy] = useState<SortBy>('newest');
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    // ✅ REMOVED: Individual refresh state - now uses global refresh status
 
     // UI state
     const [selectedFeedback, setSelectedFeedback] = useState<string[]>([]);
     const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
 
-    // ✅ NEW: Get global refresh status
     const globalRefreshStatus = getGlobalRefreshStatus();
 
-    // ✅ REMOVED: Individual refresh handler - now uses unified global refresh from AdminDashboard header
+    const handleExportFeedback = (): void => {
+        if (!adminFeedback?.recentFeedback) {
+            showToast({
+                type: 'error',
+                message: 'No feedback data available to export',
+                duration: 3000
+            });
+            return;
+        }
 
-    const handleExportFeedback = () => {
-        if (!adminFeedback?.recentFeedback) return;
+        try {
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                totalFeedback: adminFeedback.totalFeedback,
+                averageRating: adminFeedback.averageRating,
+                feedbackTrends: adminFeedback.feedbackTrends,
+                feedback: filteredAndSortedFeedback.map(fb => ({
+                    id: fb.id,
+                    type: fb.type,
+                    rating: fb.rating,
+                    message: fb.message,
+                    email: fb.email,
+                    url: fb.url,
+                    timestamp: fb.timestamp,
+                    deviceType: fb.metadata?.deviceType,
+                    userAgent: fb.userAgent
+                })),
+                refreshMetadata: {
+                    lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
+                    refreshStatus: globalRefreshStatus.refreshStatus,
+                    autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
+                    refreshErrors: globalRefreshStatus.refreshErrors
+                }
+            };
 
-        const exportData = {
-            exportDate: new Date().toISOString(),
-            totalFeedback: adminFeedback.totalFeedback,
-            averageRating: adminFeedback.averageRating,
-            feedbackTrends: adminFeedback.feedbackTrends,
-            feedback: filteredAndSortedFeedback.map(fb => ({
-                id: fb.id,
-                type: fb.type,
-                rating: fb.rating,
-                message: fb.message,
-                email: fb.email,
-                url: fb.url,
-                timestamp: fb.timestamp,
-                deviceType: fb.metadata?.deviceType,
-                userAgent: fb.userAgent // Access userAgent from root level
-            })),
-            // ✅ NEW: Include global refresh metadata in export
-            refreshMetadata: {
-                lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
-                refreshStatus: globalRefreshStatus.refreshStatus,
-                autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
-                refreshErrors: globalRefreshStatus.refreshErrors
-            }
-        };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `applytrak-feedback-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+            link.href = url;
+            link.download = `applytrak-feedback-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
 
-        showToast({
-            type: 'success',
-            message: 'Feedback exported successfully!',
-            duration: 3000
-        });
+            showToast({
+                type: 'success',
+                message: 'Feedback exported successfully!',
+                duration: 3000
+            });
+        } catch (error) {
+            console.error('Export failed:', error);
+            showToast({
+                type: 'error',
+                message: 'Failed to export feedback data',
+                duration: 3000
+            });
+        }
     };
 
-    // Filter and sort feedback
+    // Filter and sort feedback with performance optimization
     const filteredAndSortedFeedback = useMemo(() => {
         if (!adminFeedback?.recentFeedback) return [];
 
@@ -102,9 +155,9 @@ export const FeedbackManagement: React.FC = () => {
             // Type filter
             if (typeFilter !== 'all' && feedback.type !== typeFilter) return false;
 
-            // Search filter
+            // Search filter with debounced performance
             if (searchQuery) {
-                const query = searchQuery.toLowerCase();
+                const query = searchQuery.toLowerCase().trim();
                 const searchableText = `${feedback.message} ${feedback.email || ''} ${feedback.type}`.toLowerCase();
                 if (!searchableText.includes(query)) return false;
             }
@@ -112,7 +165,7 @@ export const FeedbackManagement: React.FC = () => {
             return true;
         });
 
-        // Sort
+        // Sort with stable sorting
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'newest':
@@ -132,32 +185,26 @@ export const FeedbackManagement: React.FC = () => {
     }, [adminFeedback?.recentFeedback, typeFilter, statusFilter, sortBy, searchQuery]);
 
     const getFeedbackTypeIcon = (type: string) => {
-        switch (type) {
-            case 'love':
-                return Heart;
-            case 'bug':
-                return Bug;
-            case 'feature':
-                return Lightbulb;
-            default:
-                return MessageSquare;
-        }
+        const iconMap = {
+            love: Heart,
+            bug: Bug,
+            feature: Lightbulb,
+            general: MessageSquare
+        };
+        return iconMap[type as keyof typeof iconMap] || MessageSquare;
     };
 
     const getFeedbackTypeColor = (type: string) => {
-        switch (type) {
-            case 'love':
-                return 'text-red-500 bg-red-50 dark:bg-red-900/20';
-            case 'bug':
-                return 'text-red-600 bg-red-50 dark:bg-red-900/20';
-            case 'feature':
-                return 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
-            default:
-                return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
-        }
+        const colorMap = {
+            love: 'text-red-500 bg-red-50 dark:bg-red-900/20',
+            bug: 'text-red-600 bg-red-50 dark:bg-red-900/20',
+            feature: 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20',
+            general: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
+        };
+        return colorMap[type as keyof typeof colorMap] || colorMap.general;
     };
 
-    const toggleFeedbackSelection = (id: string) => {
+    const toggleFeedbackSelection = (id: string): void => {
         setSelectedFeedback(prev =>
             prev.includes(id)
                 ? prev.filter(fId => fId !== id)
@@ -165,7 +212,7 @@ export const FeedbackManagement: React.FC = () => {
         );
     };
 
-    const selectAllFeedback = () => {
+    const selectAllFeedback = (): void => {
         setSelectedFeedback(
             selectedFeedback.length === filteredAndSortedFeedback.length
                 ? []
@@ -173,15 +220,31 @@ export const FeedbackManagement: React.FC = () => {
         );
     };
 
+    const formatTimestamp = (timestamp: string): string => {
+        try {
+            return new Date(timestamp).toLocaleString();
+        } catch (error) {
+            return 'Invalid date';
+        }
+    };
+
+    const formatSessionDuration = (duration?: number): string => {
+        if (!duration) return 'Not available';
+        const minutes = Math.round(duration / 1000 / 60);
+        return `${minutes}m`;
+    };
+
+    // Loading state
     if (!adminFeedback) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 dark:text-gray-400">Loading feedback data...</p>
-                    {/* ✅ NEW: Show global refresh status in loading state */}
                     {globalRefreshStatus.isRefreshing && (
-                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">Global refresh in progress...</p>
+                        <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                            Global refresh in progress...
+                        </p>
                     )}
                 </div>
             </div>
@@ -190,7 +253,7 @@ export const FeedbackManagement: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* ✅ NEW: Global refresh status indicator */}
+            {/* Global refresh status indicator */}
             {globalRefreshStatus.isRefreshing && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                     <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
@@ -200,8 +263,9 @@ export const FeedbackManagement: React.FC = () => {
                 </div>
             )}
 
-            {/* ✅ ENHANCED: Header with Stats - includes refresh status */}
+            {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Total Feedback */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                         <div
@@ -211,9 +275,8 @@ export const FeedbackManagement: React.FC = () => {
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Feedback</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.totalFeedback}
+                                {adminFeedback.totalFeedback.toLocaleString()}
                             </p>
-                            {/* ✅ NEW: Show last refresh timestamp */}
                             <p className="text-xs text-gray-500 dark:text-gray-500">
                                 Updated: {globalRefreshStatus.lastRefreshTimestamp
                                 ? new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()
@@ -223,6 +286,7 @@ export const FeedbackManagement: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Average Rating */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                         <div
@@ -234,7 +298,6 @@ export const FeedbackManagement: React.FC = () => {
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                                 {adminFeedback.averageRating?.toFixed(1) || '0.0'}
                             </p>
-                            {/* ✅ NEW: Show refresh status indicator */}
                             {globalRefreshStatus.refreshStatus === 'success' && (
                                 <div className="flex items-center gap-1 mt-1">
                                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -245,6 +308,7 @@ export const FeedbackManagement: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Love Feedback */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                         <div
@@ -254,12 +318,13 @@ export const FeedbackManagement: React.FC = () => {
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Love Feedback</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.feedbackTrends.love || 0}
+                                {(adminFeedback.feedbackTrends.love || 0).toLocaleString()}
                             </p>
                         </div>
                     </div>
                 </div>
 
+                {/* Bug Reports */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                         <div
@@ -269,14 +334,14 @@ export const FeedbackManagement: React.FC = () => {
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Bug Reports</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.feedbackTrends.bugs || 0}
+                                {(adminFeedback.feedbackTrends.bugs || 0).toLocaleString()}
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ✅ UPDATED: Controls without individual refresh button */}
+            {/* Controls Panel */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
@@ -287,17 +352,17 @@ export const FeedbackManagement: React.FC = () => {
                             placeholder="Search feedback..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         />
                     </div>
 
-                    {/* Filters */}
+                    {/* Controls */}
                     <div className="flex items-center gap-3">
                         {/* Type Filter */}
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value as FeedbackFilter)}
-                            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         >
                             <option value="all">All Types</option>
                             <option value="love">❤️ Love</option>
@@ -310,7 +375,7 @@ export const FeedbackManagement: React.FC = () => {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as SortBy)}
-                            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         >
                             <option value="newest">Newest First</option>
                             <option value="oldest">Oldest First</option>
@@ -318,17 +383,18 @@ export const FeedbackManagement: React.FC = () => {
                             <option value="rating-low">Lowest Rating</option>
                         </select>
 
-                        {/* ✅ REMOVED: Individual refresh button - uses unified refresh from AdminDashboard header */}
-
-                        {/* ✅ NEW: Info about unified refresh */}
+                        {/* Global Refresh Info */}
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <Info className="h-4 w-4" />
-                            <span>Use global refresh in header</span>
+                            <span className="hidden sm:inline">Use global refresh in header</span>
                         </div>
 
+                        {/* Export Button */}
                         <button
                             onClick={handleExportFeedback}
-                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                            disabled={!adminFeedback?.recentFeedback?.length}
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title="Export feedback data"
                         >
                             <Download className="h-5 w-5"/>
                         </button>
@@ -340,9 +406,9 @@ export const FeedbackManagement: React.FC = () => {
                     className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-4">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Showing {filteredAndSortedFeedback.length} of {adminFeedback.totalFeedback} feedback items
+                            Showing {filteredAndSortedFeedback.length.toLocaleString()} of {adminFeedback.totalFeedback.toLocaleString()} feedback
+                            items
                         </p>
-                        {/* ✅ NEW: Show global refresh status */}
                         {globalRefreshStatus.autoRefreshEnabled && (
                             <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -353,12 +419,12 @@ export const FeedbackManagement: React.FC = () => {
 
                     {selectedFeedback.length > 0 && (
                         <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                                {selectedFeedback.length} selected
-                            </span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {selectedFeedback.length} selected
+              </span>
                             <button
                                 onClick={() => setSelectedFeedback([])}
-                                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                                className="text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 transition-colors"
                             >
                                 Clear
                             </button>
@@ -381,7 +447,6 @@ export const FeedbackManagement: React.FC = () => {
                                 : 'No feedback has been received yet'
                             }
                         </p>
-                        {/* ✅ NEW: Show refresh info in empty state */}
                         <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
                             Last refreshed: {globalRefreshStatus.lastRefreshTimestamp
                             ? new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleString()
@@ -401,10 +466,10 @@ export const FeedbackManagement: React.FC = () => {
                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Select All
-                                    </span>
+                    Select All
+                  </span>
                                 </div>
-                                {/* ✅ NEW: Show data freshness in header */}
+                                {/* Data freshness indicator */}
                                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                     {globalRefreshStatus.refreshStatus === 'success' ? (
                                         <>
@@ -433,8 +498,10 @@ export const FeedbackManagement: React.FC = () => {
                             const isSelected = selectedFeedback.includes(feedback.id);
 
                             return (
-                                <div key={feedback.id}
-                                     className={`p-6 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}>
+                                <div
+                                    key={feedback.id}
+                                    className={`p-6 transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
+                                >
                                     <div className="flex items-start gap-4">
                                         <input
                                             type="checkbox"
@@ -452,15 +519,17 @@ export const FeedbackManagement: React.FC = () => {
                                             {/* Header */}
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">
-                                                        {feedback.type} Feedback
-                                                    </span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">
+                            {feedback.type} Feedback
+                          </span>
                                                     <div className="flex items-center gap-1">
                                                         {[...Array(5)].map((_, i) => (
                                                             <Star
                                                                 key={i}
                                                                 className={`h-4 w-4 ${
-                                                                    i < feedback.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                                                                    i < feedback.rating
+                                                                        ? 'text-yellow-400 fill-yellow-400'
+                                                                        : 'text-gray-300 dark:text-gray-600'
                                                                 }`}
                                                             />
                                                         ))}
@@ -468,13 +537,14 @@ export const FeedbackManagement: React.FC = () => {
                                                 </div>
 
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                                        <Clock className="h-3 w-3"/>
-                                                        {new Date(feedback.timestamp).toLocaleString()}
-                                                    </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <Clock className="h-3 w-3"/>
+                              {formatTimestamp(feedback.timestamp)}
+                          </span>
                                                     <button
                                                         onClick={() => setExpandedFeedback(isExpanded ? null : feedback.id)}
                                                         className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                                        title={isExpanded ? 'Collapse details' : 'Expand details'}
                                                     >
                                                         <Eye className="h-4 w-4"/>
                                                     </button>
@@ -482,7 +552,9 @@ export const FeedbackManagement: React.FC = () => {
                                             </div>
 
                                             {/* Message */}
-                                            <p className={`text-gray-700 dark:text-gray-300 leading-relaxed ${!isExpanded && feedback.message.length > 200 ? 'line-clamp-2' : ''}`}>
+                                            <p className={`text-gray-700 dark:text-gray-300 leading-relaxed ${
+                                                !isExpanded && feedback.message.length > 200 ? 'line-clamp-2' : ''
+                                            }`}>
                                                 {feedback.message}
                                             </p>
 
@@ -491,22 +563,22 @@ export const FeedbackManagement: React.FC = () => {
                                                 className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
                                                 {feedback.email && (
                                                     <span className="flex items-center gap-1">
-                                                        <Mail className="h-3 w-3"/>
-                                                        {feedback.email}
-                                                    </span>
+                            <Mail className="h-3 w-3"/>
+                            <span className="truncate max-w-[200px]">{feedback.email}</span>
+                          </span>
                                                 )}
                                                 <span className="flex items-center gap-1">
-                                                    <Globe className="h-3 w-3"/>
-                                                    {feedback.url}
-                                                </span>
+                          <Globe className="h-3 w-3"/>
+                          <span className="truncate max-w-[200px]">{feedback.url}</span>
+                        </span>
                                                 <span className="flex items-center gap-1">
-                                                    {feedback.metadata?.deviceType === 'mobile' ? (
-                                                        <Smartphone className="h-3 w-3"/>
-                                                    ) : (
-                                                        <Monitor className="h-3 w-3"/>
-                                                    )}
+                          {feedback.metadata?.deviceType === 'mobile' ? (
+                              <Smartphone className="h-3 w-3"/>
+                          ) : (
+                              <Monitor className="h-3 w-3"/>
+                          )}
                                                     {feedback.metadata?.deviceType || 'Unknown'}
-                                                </span>
+                        </span>
                                             </div>
 
                                             {/* Expanded Details */}
@@ -541,12 +613,7 @@ export const FeedbackManagement: React.FC = () => {
                                                         <div>
                                                             <span className="font-medium">Session Duration:</span>
                                                             <br/>
-                                                            <span>
-                                                                {feedback.metadata?.sessionDuration
-                                                                    ? `${Math.round(feedback.metadata.sessionDuration / 1000 / 60)}m`
-                                                                    : 'Not available'
-                                                                }
-                                                            </span>
+                                                            <span>{formatSessionDuration(feedback.metadata?.sessionDuration)}</span>
                                                         </div>
                                                         <div>
                                                             <span className="font-medium">Applications Count:</span>
@@ -565,12 +632,11 @@ export const FeedbackManagement: React.FC = () => {
                 )}
             </div>
 
-            {/* ✅ ENHANCED: Feedback Trends with refresh status */}
+            {/* Feedback Trends */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Feedback Trends</h3>
-                        {/* ✅ NEW: Show refresh status for trends */}
                         {globalRefreshStatus.refreshStatus === 'success' && (
                             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -587,7 +653,7 @@ export const FeedbackManagement: React.FC = () => {
                                 <Heart className="h-8 w-8 text-red-500"/>
                             </div>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.feedbackTrends.love || 0}
+                                {(adminFeedback.feedbackTrends.love || 0).toLocaleString()}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Love</p>
                         </div>
@@ -598,7 +664,7 @@ export const FeedbackManagement: React.FC = () => {
                                 <Lightbulb className="h-8 w-8 text-yellow-500"/>
                             </div>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.feedbackTrends.features || 0}
+                                {(adminFeedback.feedbackTrends.features || 0).toLocaleString()}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Features</p>
                         </div>
@@ -609,7 +675,7 @@ export const FeedbackManagement: React.FC = () => {
                                 <Bug className="h-8 w-8 text-red-600"/>
                             </div>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.feedbackTrends.bugs || 0}
+                                {(adminFeedback.feedbackTrends.bugs || 0).toLocaleString()}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Bugs</p>
                         </div>
@@ -620,7 +686,7 @@ export const FeedbackManagement: React.FC = () => {
                                 <MessageSquare className="h-8 w-8 text-blue-500"/>
                             </div>
                             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {adminFeedback.feedbackTrends.general || 0}
+                                {(adminFeedback.feedbackTrends.general || 0).toLocaleString()}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">General</p>
                         </div>

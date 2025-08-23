@@ -1,11 +1,19 @@
-// src/components/layout/Sidebar.tsx - ENHANCED WITH SVG LOGO
+// src/components/layout/Sidebar.tsx
 import React, {useEffect, useState} from 'react';
 import {BarChart3, ChevronRight, Target, TrendingUp, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 
+interface NavigationItem {
+    id: 'tracker' | 'analytics';
+    label: string;
+    icon: 'logo' | typeof BarChart3;
+    description: string;
+    count: number | null;
+}
+
 const Sidebar: React.FC = () => {
-    const {ui, setSelectedTab, goalProgress, toggleSidebar} = useAppStore();
+    const {ui, setSelectedTab, goalProgress, toggleSidebar, applications, goals} = useAppStore();
     const [isDesktop, setIsDesktop] = useState(false);
 
     // Handle responsive behavior
@@ -19,16 +27,16 @@ const Sidebar: React.FC = () => {
         return () => window.removeEventListener('resize', checkDesktop);
     }, []);
 
-    const navigationItems = [
+    const navigationItems: NavigationItem[] = [
         {
-            id: 'tracker' as const,
+            id: 'tracker',
             label: 'Tracker',
-            icon: 'logo', // Special case for logo
+            icon: 'logo',
             description: 'Manage applications',
-            count: useAppStore.getState().applications.length
+            count: applications.length
         },
         {
-            id: 'analytics' as const,
+            id: 'analytics',
             label: 'Analytics',
             icon: BarChart3,
             description: 'View insights',
@@ -52,9 +60,31 @@ const Sidebar: React.FC = () => {
         ? (ui.sidebarOpen ? '256px' : '64px')
         : '320px';
 
+    const renderIcon = (item: NavigationItem, isActive: boolean) => {
+        if (item.icon === 'logo') {
+            return (
+                <ApplyTrakLogo
+                    size={showFullContent ? 'xs' : 'sm'}
+                    className={`transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
+                />
+            );
+        }
+
+        const IconComponent = item.icon;
+        return (
+            <IconComponent
+                className={`
+          ${showFullContent ? 'h-5 w-5' : 'h-6 w-6'} 
+          ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
+        `}
+                strokeWidth={2}
+            />
+        );
+    };
+
     return (
         <>
-            {/* Mobile Overlay - Only show on mobile when sidebar is open */}
+            {/* Mobile Overlay */}
             {ui.sidebarOpen && !isDesktop && (
                 <div
                     className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
@@ -65,15 +95,15 @@ const Sidebar: React.FC = () => {
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed top-16 left-0 z-50 h-[calc(100vh-4rem)]
-                    bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg
-                    border-r border-gray-200/50 dark:border-gray-700/50
-                    transition-all duration-300 ease-in-out overflow-hidden
-                    ${!isDesktop
+          fixed top-16 left-0 z-50 h-[calc(100vh-4rem)]
+          bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg
+          border-r border-gray-200/50 dark:border-gray-700/50
+          transition-all duration-300 ease-in-out overflow-hidden
+          ${!isDesktop
                     ? (ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full')
                     : 'translate-x-0'
                 }
-                `}
+        `}
                 style={{width: sidebarWidth}}
             >
                 <div className="flex flex-col h-full">
@@ -136,35 +166,22 @@ const Sidebar: React.FC = () => {
                                     key={item.id}
                                     onClick={() => handleNavClick(item.id)}
                                     className={`
-                                        w-full flex items-center rounded-lg transition-all duration-200
-                                        ${showFullContent
+                    w-full flex items-center rounded-lg transition-all duration-200
+                    ${showFullContent
                                         ? 'px-3 py-3 space-x-3 text-left'
                                         : 'p-3 justify-center'
                                     }
-                                        ${isActive
+                    ${isActive
                                         ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
                                         : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                                     }
-                                    `}
+                  `}
                                     title={!showFullContent ? item.label : undefined}
                                 >
-                                    {/* Icon with explicit rendering */}
+                                    {/* Icon */}
                                     <div
                                         className={`flex items-center justify-center ${showFullContent ? 'w-5 h-5' : 'w-6 h-6'}`}>
-                                        {item.icon === 'logo' ? (
-                                            <ApplyTrakLogo
-                                                size={showFullContent ? 'xs' : 'sm'}
-                                                className={`transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
-                                            />
-                                        ) : (
-                                            React.createElement(item.icon as any, {
-                                                className: `
-                                                    ${showFullContent ? 'h-5 w-5' : 'h-6 w-6'} 
-                                                    ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
-                                                `,
-                                                strokeWidth: 2
-                                            })
-                                        )}
+                                        {renderIcon(item, isActive)}
                                     </div>
 
                                     {showFullContent && (
@@ -182,14 +199,14 @@ const Sidebar: React.FC = () => {
 
                                             {item.count !== null && (
                                                 <span className={`
-                                                    px-2 py-1 text-xs rounded-full font-bold shrink-0 tracking-wide
-                                                    ${isActive
+                          px-2 py-1 text-xs rounded-full font-bold shrink-0 tracking-wide
+                          ${isActive
                                                     ? 'bg-white/20 text-white'
                                                     : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                                 }
-                                                `}>
-                                                    {item.count}
-                                                </span>
+                        `}>
+                          {item.count}
+                        </span>
                                             )}
                                         </>
                                     )}
@@ -209,21 +226,20 @@ const Sidebar: React.FC = () => {
                                     </div>
                                     <span
                                         className="font-display text-base font-bold text-gradient-static tracking-tight">
-                                        Goal Progress
-                                    </span>
+                    Goal Progress
+                  </span>
                                 </div>
 
                                 <div className="space-y-3">
                                     {/* Total Progress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span
-                                                className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
-                                                Total Goal
-                                            </span>
+                      <span className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
+                        Total Goal
+                      </span>
                                             <span className="font-display font-extrabold text-lg text-gradient-blue">
-                                                {goalProgress.totalProgress}%
-                                            </span>
+                        {goalProgress.totalProgress}%
+                      </span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                             <div
@@ -235,20 +251,19 @@ const Sidebar: React.FC = () => {
                                             className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1 tracking-normal">
                                             <span
                                                 className="font-bold text-gradient-purple">{goalProgress.totalApplications}</span> / <span
-                                            className="font-bold text-gradient-blue">{useAppStore.getState().goals.totalGoal}</span> applications
+                                            className="font-bold text-gradient-blue">{goals.totalGoal}</span> applications
                                         </div>
                                     </div>
 
                                     {/* Weekly Progress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span
-                                                className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
-                                                Weekly Goal
-                                            </span>
+                      <span className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
+                        Weekly Goal
+                      </span>
                                             <span className="font-extrabold text-gradient-purple">
-                                                {goalProgress.weeklyProgress}%
-                                            </span>
+                        {goalProgress.weeklyProgress}%
+                      </span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                             <div
@@ -259,7 +274,7 @@ const Sidebar: React.FC = () => {
                                         <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1">
                                             <span
                                                 className="font-bold text-gradient-blue">{goalProgress.weeklyApplications}</span> / <span
-                                            className="font-bold text-gradient-purple">{useAppStore.getState().goals.weeklyGoal}</span> this
+                                            className="font-bold text-gradient-purple">{goals.weeklyGoal}</span> this
                                             week
                                         </div>
                                     </div>
@@ -272,8 +287,8 @@ const Sidebar: React.FC = () => {
                                                 <TrendingUp className="h-3 w-3 text-orange-500" strokeWidth={2}/>
                                             </div>
                                             <span className="text-xs font-bold text-gradient-static tracking-wide">
-                                                {goalProgress.weeklyStreak} week streak! 🔥
-                                            </span>
+                        {goalProgress.weeklyStreak} week streak! 🔥
+                      </span>
                                         </div>
                                     )}
                                 </div>
@@ -287,9 +302,9 @@ const Sidebar: React.FC = () => {
                             <div className="flex flex-col items-center space-y-2">
                                 <div
                                     className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                                    <span className="font-display text-sm font-extrabold text-white">
-                                        {goalProgress.totalApplications}
-                                    </span>
+                  <span className="font-display text-sm font-extrabold text-white">
+                    {goalProgress.totalApplications}
+                  </span>
                                 </div>
                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                                     <div

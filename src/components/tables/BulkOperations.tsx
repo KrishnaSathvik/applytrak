@@ -1,348 +1,467 @@
-// src/components/tables/BulkOperations.tsx - ENHANCED WITH PREMIUM TYPOGRAPHY
-import React, {useState} from 'react';
-import {Archive, Edit3, Trash2} from 'lucide-react';
+// src/components/tables/BulkOperations.tsx
+// Production-ready bulk operations component with enhanced error handling and UX
+import React, {useCallback, useMemo, useState} from 'react';
+import {Archive, Edit3, Trash2, X} from 'lucide-react';
 import {Application, ApplicationStatus} from '../../types';
 import {useAppStore} from '../../store/useAppStore';
+
+// Constants
+const STATUS_OPTIONS: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
+const MAX_DISPLAYED_APPLICATIONS = 10;
 
 interface BulkOperationsProps {
     selectedIds: string[];
     applications: Application[];
     onSelectionChange: (newSelectedIds: string[]) => void;
+    className?: string;
 }
 
-export const BulkOperations: React.FC<BulkOperationsProps> = ({
-                                                                  selectedIds,
-                                                                  applications,
-                                                                  onSelectionChange
-                                                              }) => {
-    // FIXED: Check what methods are actually available in your store
+interface ModalState {
+    showDeleteModal: boolean;
+    showStatusModal: boolean;
+}
+
+interface ProcessingState {
+    isProcessing: boolean;
+    operation: 'delete' | 'status' | 'reject' | null;
+}
+
+const BulkOperations: React.FC<BulkOperationsProps> = ({
+                                                           selectedIds,
+                                                           applications,
+                                                           onSelectionChange,
+                                                           className = ''
+                                                       }) => {
+    // Store hooks
     const {
         deleteApplications,
-        updateApplication, // Using updateApplication instead of updateApplicationStatus
+        updateApplication,
         showToast
     } = useAppStore();
 
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showStatusModal, setShowStatusModal] = useState(false);
+    // State management
+    const [modalState, setModalState] = useState<ModalState>({
+        showDeleteModal: false,
+        showStatusModal: false
+    });
+
+    const [processingState, setProcessingState] = useState<ProcessingState>({
+        isProcessing: false,
+        operation: null
+    });
+
     const [newStatus, setNewStatus] = useState<ApplicationStatus>('Applied');
-    const [isProcessing, setIsProcessing] = useState(false);
 
-    const selectedApplications = applications.filter(app => selectedIds.includes(app.id));
+    // Memoized computed values
+    const selectedApplications = useMemo(() =>
+            applications.filter(app => selectedIds.includes(app.id)),
+        [applications, selectedIds]
+    );
 
-    const handleBulkDelete = async () => {
-        if (isProcessing) return;
+    const statusCounts = useMemo(() =>
+            selectedApplications.reduce((acc, app) => {
+                acc[app.status] = (acc[app.status] || 0) + 1;
+                return acc;
+            }, {} as Record<ApplicationStatus, number>),
+        [selectedApplications]
+    );
+
+    const isProcessingOperation = (operation: ProcessingState['operation']) =>
+        processingState.isProcessing && processingState.operation === operation;
+
+    // Modal handlers
+    const openDeleteModal = useCallback(() => {
+        setModalState(prev => ({...prev, showDeleteModal: true}));
+    }, []);
+
+    const closeDeleteModal = useCallback(() => {
+        setModalState(prev => ({...prev, showDeleteModal: false}));
+    }, []);
+
+    const openStatusModal = useCallback(() => {
+        setModalState(prev => ({...prev, showStatusModal: true}));
+    }, []);
+
+    const closeStatusModal = useCallback(() => {
+        setModalState(prev => ({...prev, showStatusModal: false}));
+    }, []);
+
+    // Operation handlers
+    const handleBulkDelete = useCallback(async () => {
+        if (processingState.isProcessing || selectedIds.length === 0) return;
 
         try {
-            setIsProcessing(true);
+            setProcessingState({isProcessing: true, operation: 'delete'});
+
             await deleteApplications(selectedIds);
-            setShowDeleteModal(false);
+
+            closeDeleteModal();
             onSelectionChange([]);
+
             showToast({
                 type: 'success',
                 message: `Successfully deleted ${selectedIds.length} application${selectedIds.length !== 1 ? 's' : ''}`
             });
         } catch (error) {
-            console.error('Error deleting applications:', error);
+            console.error('Bulk delete error:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to delete applications'
+                message: 'Failed to delete applications. Please try again.'
             });
         } finally {
-            setIsProcessing(false);
+            setProcessingState({isProcessing: false, operation: null});
         }
-    };
+    }, [selectedIds, processingState.isProcessing, deleteApplications, closeDeleteModal, onSelectionChange, showToast]);
 
-    const handleBulkStatusUpdate = async () => {
-        if (isProcessing) return;
+    const handleBulkStatusUpdate = useCallback(async () => {
+        if (processingState.isProcessing || selectedIds.length === 0) return;
 
         try {
-            setIsProcessing(true);
+            setProcessingState({isProcessing: true, operation: 'status'});
 
-            // FIXED: Update each application individually with the correct method signature
-            await Promise.all(
-                selectedIds.map(id =>
-                    updateApplication(id, {status: newStatus})
-                )
+            // Update each application individually
+            const updatePromises = selectedIds.map(id =>
+                updateApplication(id, {status: newStatus})
             );
 
-            setShowStatusModal(false);
+            await Promise.all(updatePromises);
+
+            closeStatusModal();
             onSelectionChange([]);
+
             showToast({
                 type: 'success',
                 message: `Successfully updated ${selectedIds.length} application${selectedIds.length !== 1 ? 's' : ''} to ${newStatus}`
             });
         } catch (error) {
-            console.error('Error updating applications:', error);
+            console.error('Bulk status update error:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to update applications'
+                message: 'Failed to update applications. Please try again.'
             });
         } finally {
-            setIsProcessing(false);
+            setProcessingState({isProcessing: false, operation: null});
         }
-    };
+    }, [selectedIds, newStatus, processingState.isProcessing, updateApplication, closeStatusModal, onSelectionChange, showToast]);
 
-    const handleQuickReject = async () => {
-        if (isProcessing) return;
+    const handleQuickReject = useCallback(async () => {
+        if (processingState.isProcessing || selectedIds.length === 0) return;
 
         try {
-            setIsProcessing(true);
+            setProcessingState({isProcessing: true, operation: 'reject'});
 
-            // FIXED: Update each application individually with the correct method signature
-            await Promise.all(
-                selectedIds.map(id =>
-                    updateApplication(id, {status: 'Rejected'})
-                )
+            // Update each application to rejected status
+            const updatePromises = selectedIds.map(id =>
+                updateApplication(id, {status: 'Rejected'})
             );
 
+            await Promise.all(updatePromises);
+
             onSelectionChange([]);
+
             showToast({
                 type: 'success',
                 message: `Successfully marked ${selectedIds.length} application${selectedIds.length !== 1 ? 's' : ''} as rejected`
             });
         } catch (error) {
-            console.error('Error updating applications:', error);
+            console.error('Quick reject error:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to update applications'
+                message: 'Failed to update applications. Please try again.'
             });
         } finally {
-            setIsProcessing(false);
+            setProcessingState({isProcessing: false, operation: null});
         }
-    };
+    }, [selectedIds, processingState.isProcessing, updateApplication, onSelectionChange, showToast]);
 
-    const clearSelection = () => {
+    const clearSelection = useCallback(() => {
         onSelectionChange([]);
-    };
+    }, [onSelectionChange]);
 
+    // Early return if no selections
     if (selectedIds.length === 0) return null;
-
-    const statusCounts = selectedApplications.reduce((acc, app) => {
-        acc[app.status] = (acc[app.status] || 0) + 1;
-        return acc;
-    }, {} as Record<ApplicationStatus, number>);
 
     return (
         <>
             <div
-                className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                className={`flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4 ${className}`}>
                 <div className="flex items-center space-x-4">
-                    <span className="text-sm font-bold text-blue-900 dark:text-blue-100 tracking-wide">
-                        <span
-                            className="font-extrabold text-gradient-blue">{selectedIds.length}</span> application{selectedIds.length !== 1 ? 's' : ''} selected
-                    </span>
+          <span className="text-sm font-bold text-blue-900 dark:text-blue-100 tracking-wide">
+            <span className="font-extrabold text-blue-600 dark:text-blue-400">
+              {selectedIds.length}
+            </span>{' '}
+              application{selectedIds.length !== 1 ? 's' : ''} selected
+          </span>
 
                     <div className="flex space-x-2">
                         <button
-                            onClick={() => setShowStatusModal(true)}
-                            disabled={isProcessing}
-                            className="btn btn-sm btn-secondary font-bold tracking-wide"
+                            onClick={openStatusModal}
+                            disabled={processingState.isProcessing}
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                            aria-label="Update status of selected applications"
                         >
-                            <Edit3 className="h-4 w-4 mr-1"/>
-                            <span className="font-bold tracking-wide">Update Status</span>
+                            <Edit3 className="h-4 w-4"/>
+                            Update Status
                         </button>
 
                         <button
                             onClick={handleQuickReject}
-                            disabled={isProcessing}
-                            className="btn btn-sm btn-warning font-bold tracking-wide"
+                            disabled={processingState.isProcessing}
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                            aria-label="Mark selected applications as rejected"
                         >
-                            <Archive className="h-4 w-4 mr-1"/>
-                            <span className="font-bold tracking-wide">Mark Rejected</span>
+                            {isProcessingOperation('reject') ? (
+                                <>
+                                    <div
+                                        className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"/>
+                                    Rejecting...
+                                </>
+                            ) : (
+                                <>
+                                    <Archive className="h-4 w-4"/>
+                                    Mark Rejected
+                                </>
+                            )}
                         </button>
 
                         <button
-                            onClick={() => setShowDeleteModal(true)}
-                            disabled={isProcessing}
-                            className="btn btn-sm btn-danger font-bold tracking-wide"
+                            onClick={openDeleteModal}
+                            disabled={processingState.isProcessing}
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-md hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                            aria-label="Delete selected applications"
                         >
-                            <Trash2 className="h-4 w-4 mr-1"/>
-                            <span className="font-bold tracking-wide">Delete</span>
+                            <Trash2 className="h-4 w-4"/>
+                            Delete
                         </button>
                     </div>
                 </div>
 
                 <button
                     onClick={clearSelection}
-                    disabled={isProcessing}
-                    className="btn btn-sm btn-ghost font-bold tracking-wide"
+                    disabled={processingState.isProcessing}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                    aria-label="Clear selection"
                 >
+                    <X className="h-4 w-4"/>
                     Clear Selection
                 </button>
             </div>
 
             {/* Delete Confirmation Modal */}
-            {showDeleteModal && (
-                <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="card-header">
-                            <h3 className="text-lg font-bold flex items-center gap-2 text-gradient-static tracking-tight">
-                                <Trash2 className="h-5 w-5 text-red-500"/>
-                                Confirm Bulk Delete
-                            </h3>
-                        </div>
+            {modalState.showDeleteModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="delete-modal-title" role="dialog"
+                     aria-modal="true">
+                    <div
+                        className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                             onClick={closeDeleteModal}></div>
 
-                        <div className="p-6 space-y-4">
-                            <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                                Are you sure you want to delete <span
-                                className="font-bold text-gradient-purple">{selectedIds.length}</span> application{selectedIds.length !== 1 ? 's' : ''}?
-                                This action cannot be undone.
-                            </p>
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen"
+                              aria-hidden="true">&#8203;</span>
 
-                            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                                <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 text-gradient-static tracking-wide">
-                                    Selected Applications:
-                                </h4>
-                                <div className="space-y-1 max-h-32 overflow-y-auto">
-                                    {selectedApplications.slice(0, 10).map(app => (
-                                        <div key={app.id} className="flex justify-between text-sm">
-                                            <span
-                                                className="text-gray-900 dark:text-gray-100 font-bold text-gradient-static">
-                                                {app.company} - <span className="font-semibold">{app.position}</span>
-                                            </span>
-                                            <span
-                                                className="text-gray-500 dark:text-gray-400 font-medium tracking-wider">
-                                                {app.status}
-                                            </span>
+                        <div
+                            className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                            <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div className="sm:flex sm:items-start">
+                                    <div
+                                        className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                        <Trash2 className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true"/>
+                                    </div>
+                                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                        <h3 className="text-lg leading-6 font-bold text-gray-900 dark:text-gray-100"
+                                            id="delete-modal-title">
+                                            Confirm Bulk Delete
+                                        </h3>
+                                        <div className="mt-2">
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                                                Are you sure you want to delete{' '}
+                                                <span className="font-bold text-red-600 dark:text-red-400">
+                          {selectedIds.length}
+                        </span>{' '}
+                                                application{selectedIds.length !== 1 ? 's' : ''}? This action cannot be
+                                                undone.
+                                            </p>
                                         </div>
-                                    ))}
-                                    {selectedApplications.length > 10 && (
-                                        <div
-                                            className="text-sm text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-700 font-medium tracking-wide">
-                                            ... and <span
-                                            className="font-bold text-gradient-purple">{selectedApplications.length - 10}</span> more
-                                            applications
-                                        </div>
-                                    )}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                        Selected Applications:
+                                    </h4>
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {selectedApplications.slice(0, MAX_DISPLAYED_APPLICATIONS).map(app => (
+                                            <div key={app.id} className="flex justify-between text-sm">
+                        <span className="text-gray-900 dark:text-gray-100 font-medium truncate">
+                          {app.company} - {app.position}
+                        </span>
+                                                <span
+                                                    className="text-gray-500 dark:text-gray-400 font-medium ml-2 flex-shrink-0">
+                          {app.status}
+                        </span>
+                                            </div>
+                                        ))}
+                                        {selectedApplications.length > MAX_DISPLAYED_APPLICATIONS && (
+                                            <div
+                                                className="text-sm text-gray-500 dark:text-gray-500 pt-2 border-t border-gray-200 dark:border-gray-600 font-medium">
+                                                ... and{' '}
+                                                <span className="font-bold">
+                          {selectedApplications.length - MAX_DISPLAYED_APPLICATIONS}
+                        </span>{' '}
+                                                more applications
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="mt-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                    <p className="text-sm text-red-800 dark:text-red-200 font-medium leading-relaxed">
+                                        <strong className="font-bold">Warning:</strong> This will permanently delete all
+                                        selected applications and their attachments.
+                                    </p>
                                 </div>
                             </div>
 
-                            <div
-                                className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                                <p className="text-sm text-red-800 dark:text-red-200 font-medium leading-relaxed">
-                                    <strong className="font-bold tracking-wide">Warning:</strong> This will permanently
-                                    delete all selected applications and their attachments.
-                                </p>
+                            <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                <button
+                                    type="button"
+                                    onClick={handleBulkDelete}
+                                    disabled={isProcessingOperation('delete')}
+                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-bold text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                >
+                                    {isProcessingOperation('delete') ? (
+                                        <>
+                                            <div
+                                                className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"/>
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        `Delete ${selectedIds.length} Application${selectedIds.length !== 1 ? 's' : ''}`
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={closeDeleteModal}
+                                    disabled={isProcessingOperation('delete')}
+                                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                >
+                                    Cancel
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-                            <button
-                                onClick={() => setShowDeleteModal(false)}
-                                disabled={isProcessing}
-                                className="btn btn-secondary font-bold tracking-wide"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleBulkDelete}
-                                disabled={isProcessing}
-                                className="btn btn-danger font-bold tracking-wide"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div
-                                            className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        <span className="font-bold tracking-wide">Deleting...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span
-                                            className="font-bold tracking-wide">Delete {selectedIds.length} Application{selectedIds.length !== 1 ? 's' : ''}</span>
-                                    </>
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* Status Update Modal */}
-            {showStatusModal && (
-                <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="card-header">
-                            <h3 className="text-lg font-bold flex items-center gap-2 text-gradient-static tracking-tight">
-                                <Edit3 className="h-5 w-5 text-blue-500"/>
-                                Update Application Status
-                            </h3>
-                        </div>
+            {modalState.showStatusModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="status-modal-title" role="dialog"
+                     aria-modal="true">
+                    <div
+                        className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                             onClick={closeStatusModal}></div>
 
-                        <div className="p-6 space-y-4">
-                            <p className="text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                                Update the status for <span
-                                className="font-bold text-gradient-blue">{selectedIds.length}</span> selected
-                                application{selectedIds.length !== 1 ? 's' : ''}:
-                            </p>
+                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen"
+                              aria-hidden="true">&#8203;</span>
 
-                            <div>
-                                <label
-                                    className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 tracking-wide uppercase">
-                                    New Status
-                                </label>
-                                <select
-                                    value={newStatus}
-                                    onChange={(e) => setNewStatus(e.target.value as ApplicationStatus)}
-                                    className="form-select w-full font-medium tracking-tight"
-                                >
-                                    <option value="Applied">Applied</option>
-                                    <option value="Interview">Interview</option>
-                                    <option value="Offer">Offer</option>
-                                    <option value="Rejected">Rejected</option>
-                                </select>
-                            </div>
-
-                            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                                <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 text-gradient-static tracking-wide">
-                                    Current Status Distribution:
-                                </h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {Object.entries(statusCounts).map(([status, count]) => (
-                                        <div key={status} className="flex justify-between">
-                                            <span
-                                                className="text-gray-600 dark:text-gray-400 font-medium tracking-wide">{status}:</span>
-                                            <span
-                                                className="font-bold text-gray-900 dark:text-gray-100 text-gradient-purple">{count}</span>
+                        <div
+                            className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                            <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                <div className="sm:flex sm:items-start">
+                                    <div
+                                        className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                                        <Edit3 className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true"/>
+                                    </div>
+                                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                                        <h3 className="text-lg leading-6 font-bold text-gray-900 dark:text-gray-100"
+                                            id="status-modal-title">
+                                            Update Application Status
+                                        </h3>
+                                        <div className="mt-2">
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                                                Update the status for{' '}
+                                                <span className="font-bold text-blue-600 dark:text-blue-400">
+                          {selectedIds.length}
+                        </span>{' '}
+                                                selected application{selectedIds.length !== 1 ? 's' : ''}:
+                                            </p>
                                         </div>
-                                    ))}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4">
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                        New Status
+                                    </label>
+                                    <select
+                                        value={newStatus}
+                                        onChange={(e) => setNewStatus(e.target.value as ApplicationStatus)}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+                                        aria-label="Select new status"
+                                    >
+                                        {STATUS_OPTIONS.map(status => (
+                                            <option key={status} value={status}>
+                                                {status}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                        Current Status Distribution:
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(statusCounts).map(([status, count]) => (
+                                            <div key={status} className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                          {status}:
+                        </span>
+                                                <span className="font-bold text-gray-900 dark:text-gray-100">
+                          {count}
+                        </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                    <p className="text-sm text-blue-800 dark:text-blue-200 font-medium leading-relaxed">
+                                        All selected applications will be updated to{' '}
+                                        <strong className="font-bold">{newStatus}</strong> status.
+                                    </p>
                                 </div>
                             </div>
 
-                            <div
-                                className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                                <p className="text-sm text-blue-800 dark:text-blue-200 font-medium leading-relaxed">
-                                    All selected applications will be updated to <strong
-                                    className="font-bold text-gradient-blue">{newStatus}</strong> status.
-                                </p>
+                            <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                <button
+                                    type="button"
+                                    onClick={handleBulkStatusUpdate}
+                                    disabled={isProcessingOperation('status')}
+                                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-bold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                >
+                                    {isProcessingOperation('status') ? (
+                                        <>
+                                            <div
+                                                className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"/>
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        `Update ${selectedIds.length} Application${selectedIds.length !== 1 ? 's' : ''}`
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={closeStatusModal}
+                                    disabled={isProcessingOperation('status')}
+                                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                >
+                                    Cancel
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-                            <button
-                                onClick={() => setShowStatusModal(false)}
-                                disabled={isProcessing}
-                                className="btn btn-secondary font-bold tracking-wide"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleBulkStatusUpdate}
-                                disabled={isProcessing}
-                                className="btn btn-primary font-bold tracking-wide"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div
-                                            className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        <span className="font-bold tracking-wide">Updating...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span
-                                            className="font-bold tracking-wide">Update {selectedIds.length} Application{selectedIds.length !== 1 ? 's' : ''}</span>
-                                    </>
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -351,4 +470,7 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
     );
 };
 
+BulkOperations.displayName = 'BulkOperations';
+
+export {BulkOperations};
 export default BulkOperations;

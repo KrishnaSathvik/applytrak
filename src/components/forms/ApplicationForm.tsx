@@ -1,16 +1,39 @@
-// src/components/forms/ApplicationForm.tsx - WITH AUTO-SAVE FUNCTIONALITY
+// src/components/forms/ApplicationForm.tsx
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {SubmitHandler, useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
-import {ExternalLink, Plus, Sparkles, Upload, X, Save} from 'lucide-react';
+import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {ApplicationFormData, Attachment} from '../../types/application.types';
+import {ApplicationFormData, Attachment} from '../../types';
 import {applicationFormSchema} from '../../utils/validation';
 
-// 🆕 AUTO-SAVE CONSTANTS
+// Constants
 const FORM_STORAGE_KEY = 'applytrak_draft_application';
 const ATTACHMENTS_STORAGE_KEY = 'applytrak_draft_attachments';
-const AUTO_SAVE_DELAY = 2000; // 2 seconds after user stops typing
+const AUTO_SAVE_DELAY = 2000;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_NOTES_LENGTH = 2000;
+
+const ALLOWED_FILE_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'image/jpeg',
+    'image/png'
+];
+
+const JOB_SOURCES = [
+    'LinkedIn',
+    'Company Website',
+    'Indeed',
+    'Glassdoor',
+    'Dice',
+    'ZipRecruiter',
+    'AngelList',
+    'Stack Overflow Jobs',
+    'Referral'
+];
 
 const ApplicationForm: React.FC = () => {
     const {addApplication, showToast} = useAppStore();
@@ -19,9 +42,20 @@ const ApplicationForm: React.FC = () => {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [isDraftLoaded, setIsDraftLoaded] = useState(false);
 
-    // 🆕 Auto-save timer ref
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Helper function to get today's date in user's local timezone
+    const getTodayLocalDate = () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // Get today's date once and reuse it
+    const todayLocal = getTodayLocalDate();
 
     const {
         register,
@@ -30,13 +64,13 @@ const ApplicationForm: React.FC = () => {
         watch,
         setValue,
         getValues,
-        formState: {errors, isSubmitting, isDirty}
+        formState: {errors, isSubmitting}
     } = useForm<ApplicationFormData>({
         resolver: yupResolver(applicationFormSchema) as any,
         defaultValues: {
             company: '',
             position: '',
-            dateApplied: new Date().toISOString().split('T')[0],
+            dateApplied: todayLocal,
             type: 'Remote',
             location: '',
             salary: '',
@@ -46,22 +80,28 @@ const ApplicationForm: React.FC = () => {
         }
     });
 
-    // Watch all form fields for auto-save
+    // Force the date input to use the correct value by setting it explicitly
+    useEffect(() => {
+        // Small delay to ensure DOM is ready, then force the correct date
+        const timer = setTimeout(() => {
+            setValue('dateApplied', todayLocal, {shouldValidate: false, shouldDirty: false});
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [setValue, todayLocal]);
+
     const watchedValues = watch();
     const jobUrl = watch('jobUrl');
     const notesValue = watch('notes') || '';
 
-    // 🆕 LOAD DRAFT DATA ON COMPONENT MOUNT
+    // Load draft data on mount
     useEffect(() => {
         const loadDraft = () => {
             try {
-                // Load form data
                 const savedFormData = localStorage.getItem(FORM_STORAGE_KEY);
                 if (savedFormData) {
                     const parsedData = JSON.parse(savedFormData);
-                    console.log('📋 Loading draft form data:', parsedData);
 
-                    // Set form values
                     Object.keys(parsedData).forEach(key => {
                         if (parsedData[key] !== undefined && parsedData[key] !== '') {
                             setValue(key as keyof ApplicationFormData, parsedData[key], { shouldDirty: true });
@@ -71,26 +111,23 @@ const ApplicationForm: React.FC = () => {
                     setLastSaved(new Date(parsedData._savedAt || Date.now()));
                 }
 
-                // Load attachments
                 const savedAttachments = localStorage.getItem(ATTACHMENTS_STORAGE_KEY);
                 if (savedAttachments) {
                     const parsedAttachments = JSON.parse(savedAttachments);
-                    console.log('📎 Loading draft attachments:', parsedAttachments.length);
                     setAttachments(parsedAttachments);
                 }
 
                 setIsDraftLoaded(true);
 
-                // Show notification if draft was loaded
                 if (savedFormData || savedAttachments) {
                     showToast({
                         type: 'info',
-                        message: '📋 Draft application restored!',
+                        message: 'Draft application restored!',
                         duration: 3000
                     });
                 }
             } catch (error) {
-                console.error('❌ Error loading draft:', error);
+                console.error('Error loading draft:', error);
                 setIsDraftLoaded(true);
             }
         };
@@ -98,21 +135,18 @@ const ApplicationForm: React.FC = () => {
         loadDraft();
     }, [setValue, showToast]);
 
-    // 🆕 AUTO-SAVE FUNCTION
+    // Auto-save functionality
     const saveDraft = useCallback(() => {
-        if (!isDraftLoaded) return; // Don't save until draft is loaded
+        if (!isDraftLoaded) return;
 
         try {
             const currentValues = getValues();
-
-            // Check if form has any meaningful data
             const hasData = Object.values(currentValues).some(value =>
                 value && value.toString().trim() !== '' &&
-                value !== new Date().toISOString().split('T')[0] // Ignore default date
+                value !== todayLocal // Use cached local date
             ) || attachments.length > 0;
 
             if (hasData) {
-                // Save form data with timestamp
                 const dataToSave = {
                     ...currentValues,
                     _savedAt: new Date().toISOString()
@@ -120,7 +154,6 @@ const ApplicationForm: React.FC = () => {
 
                 localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(dataToSave));
 
-                // Save attachments if any
                 if (attachments.length > 0) {
                     localStorage.setItem(ATTACHMENTS_STORAGE_KEY, JSON.stringify(attachments));
                 } else {
@@ -128,28 +161,24 @@ const ApplicationForm: React.FC = () => {
                 }
 
                 setLastSaved(new Date());
-                console.log('💾 Draft auto-saved');
             }
         } catch (error) {
-            console.error('❌ Error saving draft:', error);
+            console.error('Error saving draft:', error);
         }
     }, [getValues, attachments, isDraftLoaded]);
 
-    // 🆕 AUTO-SAVE ON FORM CHANGES
+    // Auto-save on form changes
     useEffect(() => {
         if (!isDraftLoaded) return;
 
-        // Clear existing timer
         if (autoSaveTimerRef.current) {
             clearTimeout(autoSaveTimerRef.current);
         }
 
-        // Set new timer
         autoSaveTimerRef.current = setTimeout(() => {
             saveDraft();
         }, AUTO_SAVE_DELAY);
 
-        // Cleanup function
         return () => {
             if (autoSaveTimerRef.current) {
                 clearTimeout(autoSaveTimerRef.current);
@@ -157,89 +186,56 @@ const ApplicationForm: React.FC = () => {
         };
     }, [watchedValues, attachments, saveDraft, isDraftLoaded]);
 
-    // 🆕 CLEAR DRAFT FUNCTION
     const clearDraft = useCallback(() => {
         try {
             localStorage.removeItem(FORM_STORAGE_KEY);
             localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
             setLastSaved(null);
-            console.log('🗑️ Draft cleared');
         } catch (error) {
-            console.error('❌ Error clearing draft:', error);
+            console.error('Error clearing draft:', error);
         }
     }, []);
 
-    // 🆕 MANUAL SAVE FUNCTION
     const manualSave = useCallback(() => {
         saveDraft();
         showToast({
             type: 'success',
-            message: '💾 Draft saved successfully!',
+            message: 'Draft saved successfully!',
             duration: 2000
         });
     }, [saveDraft, showToast]);
 
-    const handleFileSelect = useCallback((files: FileList | null) => {
-        if (!files || files.length === 0) {
-            console.log('📁 handleFileSelect: No files provided');
-            return;
+    const validateFile = (file: File): boolean => {
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+            showToast({
+                type: 'error',
+                message: `File type not allowed: ${file.name}. Use PDF, DOC, DOCX, TXT, JPG, or PNG.`
+            });
+            return false;
         }
 
-        console.log('📁 handleFileSelect: Starting to process', files.length, 'files');
-        console.log('📊 Current attachment count before processing:', attachments.length);
-
-        Array.from(files).forEach((file, fileIndex) => {
-            console.log(`📄 Processing file ${fileIndex + 1}/${files.length}:`, {
-                name: file.name,
-                type: file.type,
-                size: file.size
+        if (file.size > MAX_FILE_SIZE) {
+            showToast({
+                type: 'error',
+                message: `File too large: ${file.name}. Maximum size is 10MB.`
             });
+            return false;
+        }
 
-            // Validate file type
-            const allowedTypes = [
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'text/plain',
-                'image/jpeg',
-                'image/png'
-            ];
+        return true;
+    };
 
-            if (!allowedTypes.includes(file.type)) {
-                console.log('❌ File type validation failed:', file.type);
-                showToast({
-                    type: 'error',
-                    message: `File type not allowed: ${file.name}. Use PDF, DOC, DOCX, TXT, JPG, or PNG.`
-                });
-                return;
-            }
-
-            // Validate file size (10MB limit)
-            if (file.size > 10 * 1024 * 1024) {
-                console.log('❌ File size validation failed:', file.size, 'bytes');
-                showToast({
-                    type: 'error',
-                    message: `File too large: ${file.name}. Maximum size is 10MB.`
-                });
-                return;
-            }
-
-            console.log('✅ File validation passed for:', file.name);
-            console.log('📖 Starting FileReader...');
-
-            // Create FileReader to convert file to base64
+    const processFile = (file: File, fileIndex: number): Promise<Attachment> => {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
 
             reader.onload = (e) => {
-                console.log('📖 FileReader onload completed for:', file.name);
-
                 const result = e.target?.result;
                 if (!result) {
-                    console.error('❌ FileReader result is null for:', file.name);
+                    reject(new Error('Failed to read file'));
                     return;
                 }
 
-                // Create attachment object
                 const attachment: Attachment = {
                     id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${fileIndex}`,
                     name: file.name,
@@ -249,75 +245,96 @@ const ApplicationForm: React.FC = () => {
                     uploadedAt: new Date().toISOString()
                 };
 
-                console.log('📎 Created attachment object:', {
-                    id: attachment.id,
-                    name: attachment.name,
-                    size: attachment.size
-                });
-
-                // Update state using functional update
-                setAttachments(currentAttachments => {
-                    console.log('📊 setAttachments called with current count:', currentAttachments.length);
-
-                    const updatedAttachments = [...currentAttachments, attachment];
-                    console.log('✅ Adding attachment. New count will be:', updatedAttachments.length);
-
-                    // Show success toast
-                    showToast({
-                        type: 'success',
-                        message: `📎 "${file.name}" attached successfully!`,
-                        duration: 2000
-                    });
-
-                    console.log('🔄 Returning updated attachments array');
-                    return updatedAttachments;
-                });
+                resolve(attachment);
             };
 
-            reader.onerror = (error) => {
-                console.error('❌ FileReader error for file:', file.name, error);
-                showToast({
-                    type: 'error',
-                    message: `Failed to read file: ${file.name}`
-                });
+            reader.onerror = () => {
+                reject(new Error(`Failed to read file: ${file.name}`));
             };
 
-            // Start reading the file as data URL
             reader.readAsDataURL(file);
         });
+    };
+
+    const handleFileSelect = useCallback(async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+
+        const validFiles = Array.from(files).filter(validateFile);
+        if (validFiles.length === 0) return;
+
+        try {
+            const newAttachments = await Promise.all(
+                validFiles.map((file, index) => processFile(file, index))
+            );
+
+            setAttachments(prev => [...prev, ...newAttachments]);
+
+            showToast({
+                type: 'success',
+                message: `${newAttachments.length} file(s) attached successfully!`,
+                duration: 2000
+            });
+        } catch (error) {
+            console.error('Error processing files:', error);
+            showToast({
+                type: 'error',
+                message: 'Failed to process some files. Please try again.'
+            });
+        }
     }, [showToast]);
 
     const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
-        const fileCount = files?.length || 0;
-
-        console.log('📁 File input onChange event - Files selected:', fileCount);
-        console.log('📄 File names:', files ? Array.from(files).map(f => f.name) : []);
-        console.log('📊 Current attachments state:', attachments.length);
-
-        if (files && fileCount > 0) {
+        if (files && files.length > 0) {
             handleFileSelect(files);
         }
-
         e.target.value = '';
-        console.log('🔄 File input value cleared immediately');
+    }, [handleFileSelect]);
+
+    const removeAttachment = useCallback((index: number) => {
+        setAttachments(current => {
+            if (index < 0 || index >= current.length) {
+                console.error('Invalid attachment index:', index);
+                return current;
+            }
+            return current.filter((_, i) => i !== index);
+        });
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDragOver) {
+            setIsDragOver(true);
+        }
+    }, [isDragOver]);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const {clientX: x, clientY: y} = e;
+
+        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+            setIsDragOver(false);
+        }
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const droppedFiles = e.dataTransfer.files;
+        setIsDragOver(false);
+
+        if (droppedFiles.length > 0) {
+            handleFileSelect(droppedFiles);
+        }
     }, [handleFileSelect]);
 
     const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
-        const submissionNumber = ((window as any).formSubmissionCount = ((window as any).formSubmissionCount || 0) + 1);
-
-        console.log('🚀 Form submission #', submissionNumber);
-        console.log('📎 Attachments in state at submission time:', attachments.length);
-        console.log('📋 Attachment details:', attachments.map(a => ({
-            name: a.name,
-            id: a.id,
-            size: a.size
-        })));
-
         try {
-            const attachmentsSnapshot = attachments.map(att => ({...att}));
-            console.log('📤 Submitting application with', attachmentsSnapshot.length, 'attachments');
-
             await addApplication({
                 company: data.company,
                 position: data.position,
@@ -329,19 +346,15 @@ const ApplicationForm: React.FC = () => {
                 jobSource: data.jobSource || undefined,
                 jobUrl: data.jobUrl || undefined,
                 notes: data.notes || undefined,
-                attachments: attachmentsSnapshot.length > 0 ? attachmentsSnapshot : undefined
+                attachments: attachments.length > 0 ? attachments : undefined
             });
 
-            console.log('✅ Application submitted successfully to store');
-
-            // 🆕 CLEAR DRAFT AFTER SUCCESSFUL SUBMISSION
             clearDraft();
 
-            // Reset form fields
             reset({
                 company: '',
                 position: '',
-                dateApplied: new Date().toISOString().split('T')[0],
+                dateApplied: todayLocal,
                 type: 'Remote',
                 location: '',
                 salary: '',
@@ -350,19 +363,14 @@ const ApplicationForm: React.FC = () => {
                 notes: ''
             });
 
-            // Reset attachments state
             setAttachments([]);
-            console.log('🔄 Attachments state reset to empty array');
 
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
-                console.log('🔄 File input DOM element reset via ref');
             }
 
-            console.log('🔄 Complete form reset finished');
-
         } catch (error) {
-            console.error('❌ Error submitting application:', error);
+            console.error('Error submitting application:', error);
             showToast({
                 type: 'error',
                 message: 'Failed to add application. Please try again.'
@@ -370,68 +378,25 @@ const ApplicationForm: React.FC = () => {
         }
     };
 
-    const removeAttachment = useCallback((index: number) => {
-        console.log('🗑️ Remove attachment requested for index:', index);
+    const getCharacterCountStyle = (length: number) => {
+        if (length > 1800) return 'bg-red-500';
+        if (length > 1500) return 'bg-yellow-500';
+        return 'bg-blue-500';
+    };
 
-        setAttachments(currentAttachments => {
-            console.log('📊 Current attachments count:', currentAttachments.length);
-
-            if (index < 0 || index >= currentAttachments.length) {
-                console.error('❌ Invalid attachment index:', index, 'Valid range: 0 to', currentAttachments.length - 1);
-                return currentAttachments;
-            }
-
-            const attachmentToRemove = currentAttachments[index];
-            console.log('🗑️ Removing attachment:', attachmentToRemove.name);
-
-            const updatedAttachments = currentAttachments.filter((_, i) => i !== index);
-            console.log('✅ Attachment removed. New count:', updatedAttachments.length);
-
-            return updatedAttachments;
-        });
-    }, []);
-
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (!isDragOver) {
-            console.log('🎯 Drag over event started');
-            setIsDragOver(true);
+    const getCharacterCountTextStyle = (length: number) => {
+        if (length > 1800) {
+            return 'bg-red-100/90 text-red-700 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700';
         }
-    }, [isDragOver]);
-
-    const handleDragLeave = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX;
-        const y = e.clientY;
-
-        if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-            console.log('🎯 Drag leave event - exiting drop zone');
-            setIsDragOver(false);
+        if (length > 1500) {
+            return 'bg-yellow-100/90 text-yellow-700 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700';
         }
-    }, []);
-
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const droppedFiles = e.dataTransfer.files;
-        console.log('📁 Drop event - Files dropped:', droppedFiles.length);
-
-        setIsDragOver(false);
-
-        if (droppedFiles.length > 0) {
-            handleFileSelect(droppedFiles);
-        }
-    }, [handleFileSelect]);
+        return 'bg-blue-100/90 text-blue-700 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700';
+    };
 
     return (
         <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
-            {/* Enhanced Header with Auto-Save Status */}
+            {/* Header with Auto-Save Status */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3 sm:gap-4">
                     <div className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
@@ -449,32 +414,21 @@ const ApplicationForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 🆕 AUTO-SAVE STATUS AND MANUAL SAVE BUTTON */}
-                <div className="flex items-center gap-3">
-                    {lastSaved && (
-                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
-                            Last saved: {lastSaved.toLocaleTimeString()}
-                        </div>
-                    )}
-                    <button
-                        type="button"
-                        onClick={manualSave}
-                        className="btn btn-secondary text-xs sm:text-sm px-3 py-2 h-auto"
-                        title="Save draft manually"
-                    >
-                        <Save className="h-4 w-4 mr-1"/>
-                        Save Draft
-                    </button>
-                </div>
+                {/* Auto-Save Status */}
+                {lastSaved && (
+                    <div
+                        className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
+                        Auto-saved at {lastSaved.toLocaleTimeString()}
+                    </div>
+                )}
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
-                {/* Row 1 - Basic Information */}
+                {/* Basic Information */}
                 <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
                     <div className="space-y-3">
-                        <label className="form-label-enhanced">
-                            Company Name*
-                        </label>
+                        <label className="form-label-enhanced">Company Name*</label>
                         <input
                             type="text"
                             {...register('company')}
@@ -487,16 +441,12 @@ const ApplicationForm: React.FC = () => {
                             autoComplete="organization"
                         />
                         {errors.company && (
-                            <p className="form-error">
-                                ⚠️ {errors.company.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.company.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-3">
-                        <label className="form-label-enhanced">
-                            Position*
-                        </label>
+                        <label className="form-label-enhanced">Position*</label>
                         <input
                             type="text"
                             {...register('position')}
@@ -509,16 +459,12 @@ const ApplicationForm: React.FC = () => {
                             autoComplete="organization-title"
                         />
                         {errors.position && (
-                            <p className="form-error">
-                                ⚠️ {errors.position.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.position.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-3 sm:col-span-2 lg:col-span-1">
-                        <label className="form-label-enhanced">
-                            Date Applied*
-                        </label>
+                        <label className="form-label-enhanced">Date Applied*</label>
                         <input
                             type="date"
                             {...register('dateApplied')}
@@ -527,22 +473,18 @@ const ApplicationForm: React.FC = () => {
                                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                                     : 'focus:border-purple-500 focus:ring-purple-500/20'
                             }`}
-                            max={new Date().toISOString().split('T')[0]}
+                            max={todayLocal}
                         />
                         {errors.dateApplied && (
-                            <p className="form-error">
-                                ⚠️ {errors.dateApplied.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.dateApplied.message}</p>
                         )}
                     </div>
                 </div>
 
-                {/* Row 2 - Job Details */}
+                {/* Job Details */}
                 <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
                     <div className="space-y-3">
-                        <label className="form-label-enhanced">
-                            Job Type*
-                        </label>
+                        <label className="form-label-enhanced">Job Type*</label>
                         <select
                             {...register('type')}
                             className={`form-input-enhanced ${
@@ -556,16 +498,12 @@ const ApplicationForm: React.FC = () => {
                             <option value="Onsite" className="font-medium">🏢 Onsite</option>
                         </select>
                         {errors.type && (
-                            <p className="form-error">
-                                ⚠️ {errors.type.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.type.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-3">
-                        <label className="form-label-enhanced">
-                            Location
-                        </label>
+                        <label className="form-label-enhanced">Location</label>
                         <input
                             type="text"
                             {...register('location')}
@@ -573,16 +511,12 @@ const ApplicationForm: React.FC = () => {
                             placeholder="e.g. San Francisco, CA"
                         />
                         {errors.location && (
-                            <p className="form-error">
-                                ⚠️ {errors.location.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.location.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-3">
-                        <label className="form-label-enhanced">
-                            Salary
-                        </label>
+                        <label className="form-label-enhanced">Salary</label>
                         <input
                             type="text"
                             {...register('salary')}
@@ -591,16 +525,12 @@ const ApplicationForm: React.FC = () => {
                             inputMode="numeric"
                         />
                         {errors.salary && (
-                            <p className="form-error">
-                                ⚠️ {errors.salary.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.salary.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-3">
-                        <label className="form-label-enhanced">
-                            Job Source
-                        </label>
+                        <label className="form-label-enhanced">Job Source</label>
                         <input
                             type="text"
                             {...register('jobSource')}
@@ -609,29 +539,19 @@ const ApplicationForm: React.FC = () => {
                             placeholder="e.g. LinkedIn"
                         />
                         <datalist id="jobSources">
-                            <option value="LinkedIn"/>
-                            <option value="Company Website"/>
-                            <option value="Indeed"/>
-                            <option value="Glassdoor"/>
-                            <option value="Dice"/>
-                            <option value="ZipRecruiter"/>
-                            <option value="AngelList"/>
-                            <option value="Stack Overflow Jobs"/>
-                            <option value="Referral"/>
+                            {JOB_SOURCES.map(source => (
+                                <option key={source} value={source}/>
+                            ))}
                         </datalist>
                         {errors.jobSource && (
-                            <p className="form-error">
-                                ⚠️ {errors.jobSource.message}
-                            </p>
+                            <p className="form-error">⚠️ {errors.jobSource.message}</p>
                         )}
                     </div>
                 </div>
 
-                {/* Row 3 - Job URL */}
+                {/* Job URL */}
                 <div className="space-y-3">
-                    <label className="form-label-enhanced">
-                        Job Posting URL
-                    </label>
+                    <label className="form-label-enhanced">Job Posting URL</label>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <input
                             type="url"
@@ -653,9 +573,7 @@ const ApplicationForm: React.FC = () => {
                         )}
                     </div>
                     {errors.jobUrl && (
-                        <p className="form-error">
-                            ⚠️ {errors.jobUrl.message}
-                        </p>
+                        <p className="form-error">⚠️ {errors.jobUrl.message}</p>
                     )}
                 </div>
 
@@ -666,30 +584,30 @@ const ApplicationForm: React.FC = () => {
                             📝 Notes
                         </label>
                         <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {notesValue.length} / 2000 characters
+                            {notesValue.length} / {MAX_NOTES_LENGTH} characters
                         </div>
                     </div>
 
                     <div className="relative">
-                        <textarea
-                            {...register('notes')}
-                            rows={10}
-                            className={`
-                                w-full px-6 py-4 text-base font-medium 
-                                bg-white/90 dark:bg-gray-800/90 
-                                border-2 border-blue-200 dark:border-blue-700 
-                                rounded-xl 
-                                focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 
-                                transition-all duration-300 
-                                resize-y 
-                                min-h-[320px] max-h-[600px]
-                                placeholder:text-gray-500 dark:placeholder:text-gray-400
-                                backdrop-blur-sm
-                                shadow-sm hover:shadow-md focus:shadow-lg
-                                leading-relaxed
-                                ${errors.notes ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-                            `}
-                            placeholder="Add any additional notes about this application...
+            <textarea
+                {...register('notes')}
+                rows={10}
+                className={`
+                w-full px-6 py-4 text-base font-medium 
+                bg-white/90 dark:bg-gray-800/90 
+                border-2 border-blue-200 dark:border-blue-700 
+                rounded-xl 
+                focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 
+                transition-all duration-300 
+                resize-y 
+                min-h-[320px] max-h-[600px]
+                placeholder:text-gray-500 dark:placeholder:text-gray-400
+                backdrop-blur-sm
+                shadow-sm hover:shadow-md focus:shadow-lg
+                leading-relaxed
+                ${errors.notes ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              `}
+                placeholder="Add any additional notes about this application...
 
 • Interview details and feedback
 • Salary negotiation notes
@@ -700,54 +618,41 @@ const ApplicationForm: React.FC = () => {
 • Next steps and action items
 
 Feel free to include any relevant information that will help you track this opportunity!"
-                            style={{
-                                lineHeight: '1.7',
-                                fontSize: '16px',
-                                fontFamily: 'var(--font-family-primary)'
-                            }}
-                            maxLength={2000}
-                        />
+                style={{
+                    lineHeight: '1.7',
+                    fontSize: '16px',
+                    fontFamily: 'var(--font-family-primary)'
+                }}
+                maxLength={MAX_NOTES_LENGTH}
+            />
 
                         <div className="absolute bottom-4 right-4 flex items-center gap-3">
                             <div className="hidden sm:flex items-center gap-2">
                                 <div className="w-20 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-300 ${
-                                            notesValue.length > 1800 ? 'bg-red-500' :
-                                                notesValue.length > 1500 ? 'bg-yellow-500' :
-                                                    'bg-blue-500'
-                                        }`}
-                                        style={{width: `${(notesValue.length / 2000) * 100}%`}}
+                                        className={`h-full rounded-full transition-all duration-300 ${getCharacterCountStyle(notesValue.length)}`}
+                                        style={{width: `${(notesValue.length / MAX_NOTES_LENGTH) * 100}%`}}
                                     />
                                 </div>
                             </div>
 
                             <div className={`
-                                px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm border
-                                ${notesValue.length > 1800
-                                ? 'bg-red-100/90 text-red-700 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700'
-                                : notesValue.length > 1500
-                                    ? 'bg-yellow-100/90 text-yellow-700 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700'
-                                    : 'bg-blue-100/90 text-blue-700 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700'
-                            }
-                            `}>
-                                {notesValue.length} / 2000
+                px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm border
+                ${getCharacterCountTextStyle(notesValue.length)}
+              `}>
+                                {notesValue.length} / {MAX_NOTES_LENGTH}
                             </div>
                         </div>
                     </div>
 
                     {errors.notes && (
-                        <p className="form-error mt-2">
-                            ⚠️ {errors.notes.message}
-                        </p>
+                        <p className="form-error mt-2">⚠️ {errors.notes.message}</p>
                     )}
                 </div>
 
                 {/* Attachments */}
                 <div className="space-y-4">
-                    <label className="form-label-enhanced">
-                        Resume & Documents
-                    </label>
+                    <label className="form-label-enhanced">Resume & Documents</label>
 
                     {attachments.length > 0 && (
                         <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-4 mb-4">
@@ -835,7 +740,7 @@ Feel free to include any relevant information that will help you track this oppo
                     >
                         {isSubmitting ? (
                             <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"/>
                                 <span className="hidden sm:inline font-bold tracking-wide">Adding Application...</span>
                                 <span className="sm:hidden font-bold">Adding...</span>
                             </>
@@ -844,7 +749,8 @@ Feel free to include any relevant information that will help you track this oppo
                                 <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300"/>
                                 <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
                                 <span className="sm:hidden font-bold">Add Application</span>
-                                <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
+                                <Sparkles
+                                    className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
                             </>
                         )}
                     </button>

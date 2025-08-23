@@ -1,11 +1,18 @@
-// src/utils/validation.ts - SIMPLIFIED WITHOUT COMPLEX TYPES
+// src/utils/validation.ts - Production Ready Validation Utils
 import * as yup from 'yup';
 import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType} from '../types';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
 
 export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
 
-// SIMPLIFIED: Basic schema without complex typing
+// ============================================================================
+// VALIDATION SCHEMAS
+// ============================================================================
+
 export const applicationFormSchema = yup.object({
     company: yup
         .string()
@@ -43,21 +50,20 @@ export const applicationFormSchema = yup.object({
         .required('Job type is required')
         .oneOf(JOB_TYPES, 'Please select a valid job type'),
 
-    // Optional fields - simplified approach
     location: yup
         .string()
         .notRequired()
-        .max(255, 'Location'),
+        .max(255, 'Location must be less than 255 characters'),
 
     salary: yup
         .string()
         .notRequired()
-        .max(255, 'Salary'),
+        .max(255, 'Salary must be less than 255 characters'),
 
     jobSource: yup
         .string()
         .notRequired()
-        .max(100, 'Job source'),
+        .max(100, 'Job source must be less than 100 characters'),
 
     jobUrl: yup
         .string()
@@ -75,10 +81,9 @@ export const applicationFormSchema = yup.object({
     notes: yup
         .string()
         .notRequired()
-        .max(2000, 'Notes')
+        .max(2000, 'Notes must be less than 2000 characters')
 });
 
-// Edit application form schema
 export const editApplicationFormSchema = applicationFormSchema.shape({
     status: yup
         .string()
@@ -86,7 +91,6 @@ export const editApplicationFormSchema = applicationFormSchema.shape({
         .oneOf(APPLICATION_STATUSES, 'Please select a valid status')
 });
 
-// Goals form validation schema
 export const goalsFormSchema = yup.object({
     totalGoal: yup
         .number()
@@ -117,7 +121,10 @@ export const goalsFormSchema = yup.object({
         })
 });
 
-// Default form values
+// ============================================================================
+// DEFAULT FORM VALUES
+// ============================================================================
+
 export const defaultApplicationFormValues: ApplicationFormData = {
     company: '',
     position: '',
@@ -136,8 +143,16 @@ export const defaultGoalsFormValues: GoalFormData = {
     monthlyGoal: 20
 };
 
-// File validation
-export const validateFile = (file: File): { isValid: boolean; error?: string } => {
+// ============================================================================
+// FILE VALIDATION
+// ============================================================================
+
+interface FileValidationResult {
+    isValid: boolean;
+    error?: string;
+}
+
+export const validateFile = (file: File): FileValidationResult => {
     const allowedTypes = [
         'application/pdf',
         'application/msword',
@@ -167,7 +182,10 @@ export const validateFile = (file: File): { isValid: boolean; error?: string } =
     return {isValid: true};
 };
 
-// Validation helpers
+// ============================================================================
+// VALIDATION HELPERS
+// ============================================================================
+
 export const validationHelpers = {
     isValidDate: (dateString: string): boolean => {
         const date = new Date(dateString);
@@ -186,5 +204,112 @@ export const validationHelpers = {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return date < today;
+    },
+
+    isValidURL: (url: string): boolean => {
+        if (!url || url === '') return true;
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
+    },
+
+    sanitizeString: (input: string): string => {
+        return input.trim().replace(/\s+/g, ' ');
+    },
+
+    isValidEmailFormat: (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    },
+
+    isValidPhoneFormat: (phone: string): boolean => {
+        const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+        return phoneRegex.test(phone.replace(/\s/g, ''));
     }
+};
+
+// ============================================================================
+// FORM VALIDATION UTILITIES
+// ============================================================================
+
+export const validateApplicationForm = async (data: ApplicationFormData): Promise<{
+    isValid: boolean;
+    errors: Record<string, string>
+}> => {
+    try {
+        await applicationFormSchema.validate(data, {abortEarly: false});
+        return {isValid: true, errors: {}};
+    } catch (error) {
+        if (error instanceof yup.ValidationError) {
+            const errors: Record<string, string> = {};
+            error.inner.forEach((err) => {
+                if (err.path) {
+                    errors[err.path] = err.message;
+                }
+            });
+            return {isValid: false, errors};
+        }
+        return {isValid: false, errors: {general: 'Validation failed'}};
+    }
+};
+
+export const validateGoalsForm = async (data: GoalFormData): Promise<{
+    isValid: boolean;
+    errors: Record<string, string>
+}> => {
+    try {
+        await goalsFormSchema.validate(data, {abortEarly: false});
+        return {isValid: true, errors: {}};
+    } catch (error) {
+        if (error instanceof yup.ValidationError) {
+            const errors: Record<string, string> = {};
+            error.inner.forEach((err) => {
+                if (err.path) {
+                    errors[err.path] = err.message;
+                }
+            });
+            return {isValid: false, errors};
+        }
+        return {isValid: false, errors: {general: 'Validation failed'}};
+    }
+};
+
+// ============================================================================
+// BULK VALIDATION UTILITIES
+// ============================================================================
+
+export const validateBulkApplications = (applications: unknown[]): {
+    validApplications: ApplicationFormData[];
+    invalidApplications: Array<{ index: number; errors: Record<string, string>; data: unknown }>;
+} => {
+    const validApplications: ApplicationFormData[] = [];
+    const invalidApplications: Array<{ index: number; errors: Record<string, string>; data: unknown }> = [];
+
+    applications.forEach((app, index) => {
+        try {
+            const validatedApp = applicationFormSchema.validateSync(app, {abortEarly: false}) as ApplicationFormData;
+            validApplications.push(validatedApp);
+        } catch (error) {
+            if (error instanceof yup.ValidationError) {
+                const errors: Record<string, string> = {};
+                error.inner.forEach((err) => {
+                    if (err.path) {
+                        errors[err.path] = err.message;
+                    }
+                });
+                invalidApplications.push({index, errors, data: app});
+            } else {
+                invalidApplications.push({
+                    index,
+                    errors: {general: 'Validation failed'},
+                    data: app
+                });
+            }
+        }
+    });
+
+    return {validApplications, invalidApplications};
 };

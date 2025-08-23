@@ -1,7 +1,48 @@
-import React, {useCallback, useState} from 'react';
-import {Eye, EyeOff, Lock, Mail, Monitor, Smartphone, User, UserPlus, Zap} from 'lucide-react';
+// Fixed SignupModal.tsx
+import React, {useState} from 'react';
+import {Eye, EyeOff, Lock, Mail, User, UserPlus} from 'lucide-react';
 import {Modal} from '../ui/Modal';
 import {useAppStore} from '../../store/useAppStore';
+import PrivacyConsentSection from '../auth/PrivacyConsentSection';
+
+interface FormData {
+    displayName: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+}
+
+interface FormErrors {
+    displayName?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+}
+
+interface PasswordStrength {
+    score: number;
+    label: string;
+    color: string;
+}
+
+interface PrivacyConsents {
+    required: boolean;
+    cloudSync: boolean;
+    analytics: boolean;
+    marketing: boolean;
+}
+
+const PASSWORD_REQUIREMENTS = {
+    MIN_LENGTH: 8,
+    PATTERNS: {
+        LOWERCASE: /[a-z]/,
+        UPPERCASE: /[A-Z]/,
+        DIGIT: /\d/
+    }
+};
+
+const EMAIL_PATTERN = /\S+@\S+\.\S+/;
+const MIN_NAME_LENGTH = 2;
 
 const SignupModal: React.FC = () => {
     const {
@@ -12,144 +53,173 @@ const SignupModal: React.FC = () => {
         auth
     } = useAppStore();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         displayName: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
+
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [errors, setErrors] = useState<FormErrors>({});
+    const [privacyConsents, setPrivacyConsents] = useState<PrivacyConsents | null>(null);
 
-    const handleClose = () => {
-        setFormData({displayName: '', email: '', password: '', confirmPassword: ''});
+    const resetForm = () => {
+        setFormData({
+            displayName: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
+        });
         setShowPassword(false);
         setShowConfirmPassword(false);
         setErrors({});
+        setPrivacyConsents(null);
+    };
+
+    const handleClose = () => {
+        resetForm();
         closeAuthModal();
     };
 
-    const validateForm = () => {
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.displayName.trim()) {
-            newErrors.displayName = 'Display name is required';
-        } else if (formData.displayName.trim().length < 2) {
-            newErrors.displayName = 'Display name must be at least 2 characters';
+    // Simplified input handlers - no useCallback, no complex logic
+    const handleDisplayNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({...prev, displayName: value}));
+        if (errors.displayName) {
+            setErrors(prev => ({...prev, displayName: undefined}));
         }
+    };
 
-        if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Please enter a valid email address';
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({...prev, email: value}));
+        if (errors.email) {
+            setErrors(prev => ({...prev, email: undefined}));
         }
+    };
 
-        if (!formData.password) {
-            newErrors.password = 'Password is required';
-        } else if (formData.password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters';
-        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-            newErrors.password = 'Password must contain uppercase, lowercase, and number';
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({...prev, password: value}));
+        if (errors.password) {
+            setErrors(prev => ({...prev, password: undefined}));
         }
+    };
 
-        if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'Please confirm your password';
-        } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Passwords do not match';
+    const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({...prev, confirmPassword: value}));
+        if (errors.confirmPassword) {
+            setErrors(prev => ({...prev, confirmPassword: undefined}));
         }
+    };
+
+    const validateField = (field: keyof FormData, value: string): string => {
+        switch (field) {
+            case 'displayName':
+                if (!value.trim()) return 'Display name is required';
+                if (value.trim().length < MIN_NAME_LENGTH) return 'Display name must be at least 2 characters';
+                return '';
+
+            case 'email':
+                if (!value.trim()) return 'Email is required';
+                if (!EMAIL_PATTERN.test(value)) return 'Please enter a valid email address';
+                return '';
+
+            case 'password':
+                if (!value) return 'Password is required';
+                if (value.length < PASSWORD_REQUIREMENTS.MIN_LENGTH) return 'Password must be at least 8 characters';
+                if (!PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(value) ||
+                    !PASSWORD_REQUIREMENTS.PATTERNS.UPPERCASE.test(value) ||
+                    !PASSWORD_REQUIREMENTS.PATTERNS.DIGIT.test(value)) {
+                    return 'Password must contain uppercase, lowercase, and a number';
+                }
+                return '';
+
+            case 'confirmPassword':
+                if (!value) return 'Please confirm your password';
+                if (value !== formData.password) return 'Passwords do not match';
+                return '';
+
+            default:
+                return '';
+        }
+    };
+
+    const getPasswordStrength = (password: string): PasswordStrength => {
+        let score = 0;
+
+        if (password.length >= PASSWORD_REQUIREMENTS.MIN_LENGTH) score++;
+        if (PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(password)) score++;
+        if (PASSWORD_REQUIREMENTS.PATTERNS.UPPERCASE.test(password)) score++;
+        if (PASSWORD_REQUIREMENTS.PATTERNS.DIGIT.test(password)) score++;
+        if (password.length >= 12) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+
+        if (score <= 2) return {score, label: 'Weak', color: 'text-red-600'};
+        if (score <= 4) return {score, label: 'Good', color: 'text-yellow-600'};
+        return {score, label: 'Strong', color: 'text-green-600'};
+    };
+
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+
+        Object.keys(formData).forEach(key => {
+            const field = key as keyof FormData;
+            const error = validateField(field, formData[field]);
+            if (error) newErrors[field] = error;
+        });
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = useCallback(async (e: React.FormEvent) => {
-        e.preventDefault();
+    const isFormValid = (): boolean => {
+        return formData.displayName.trim() &&
+            formData.email &&
+            formData.password &&
+            formData.confirmPassword &&
+            privacyConsents?.required &&
+            privacyConsents?.cloudSync;
+    };
 
-        if (!validateForm()) return;
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateForm() || !privacyConsents) return;
 
         try {
-            await signUp(formData.email, formData.password, formData.displayName);
+            await signUp(formData.email, formData.password, formData.displayName, privacyConsents);
         } catch (error) {
-            // Error handling is done in the store
-        }
-    }, [formData, signUp]);
-
-    const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({...prev, [field]: e.target.value}));
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({...prev, [field]: ''}));
+            // Error handling done in signUp function
         }
     };
 
-    const getPasswordStrength = () => {
-        const password = formData.password;
-        if (!password) return {score: 0, label: '', color: ''};
-
-        let score = 0;
-        if (password.length >= 8) score += 25;
-        if (/[a-z]/.test(password)) score += 25;
-        if (/[A-Z]/.test(password)) score += 25;
-        if (/\d/.test(password)) score += 25;
-
-        if (score < 50) return {score, label: 'Weak', color: 'bg-red-500'};
-        if (score < 75) return {score, label: 'Fair', color: 'bg-yellow-500'};
-        if (score < 100) return {score, label: 'Good', color: 'bg-blue-500'};
-        return {score, label: 'Strong', color: 'bg-green-500'};
-    };
-
-    const passwordStrength = getPasswordStrength();
+    const passwordStrength = getPasswordStrength(formData.password);
 
     return (
         <Modal
-            isOpen={modals.auth.signupOpen}
+            isOpen={modals.auth?.signupOpen || false}
             onClose={handleClose}
-            title="Create Account"
-            size="sm"
-            variant="primary"
+            title="Create Your Account"
+            maxWidth="max-w-md"
         >
             <div className="space-y-6">
-                {/* Welcome Header */}
-                <div className="text-center">
+                {/* Header */}
+                <div className="text-center space-y-2">
                     <div
-                        className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <UserPlus className="h-8 w-8 text-white"/>
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-2">
+                        <UserPlus className="h-6 w-6 text-white"/>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         Join ApplyTrak
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Start tracking your job applications with cloud sync
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Start tracking your job applications with confidence
                     </p>
                 </div>
 
-                {/* Benefits Banner */}
-                <div
-                    className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-xl p-4 border border-green-200/50 dark:border-green-700/50">
-                    <div className="text-center">
-                        <p className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2">
-                            ✨ What you'll get:
-                        </p>
-                        <div
-                            className="flex items-center justify-center gap-4 text-xs text-green-700 dark:text-green-300">
-                            <div className="flex items-center gap-1">
-                                <Smartphone className="h-3 w-3"/>
-                                <span>Mobile & Desktop</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Monitor className="h-3 w-3"/>
-                                <span>Cloud Backup</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Zap className="h-3 w-3"/>
-                                <span>Real-time Sync</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Signup Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Display Name Field */}
                     <div className="space-y-2">
@@ -160,9 +230,10 @@ const SignupModal: React.FC = () => {
                         <input
                             type="text"
                             value={formData.displayName}
-                            onChange={handleInputChange('displayName')}
-                            placeholder="Your name"
-                            className={`form-input-enhanced ${errors.displayName ? 'border-red-500 focus:border-red-500' : ''}`}
+                            onChange={handleDisplayNameChange}
+                            placeholder="Your preferred name"
+                            className={`form-input-enhanced ${errors.displayName ?
+                                'border-red-500 focus:border-red-500' : ''}`}
                             disabled={auth.isLoading}
                             autoComplete="name"
                             autoFocus
@@ -181,7 +252,7 @@ const SignupModal: React.FC = () => {
                         <input
                             type="email"
                             value={formData.email}
-                            onChange={handleInputChange('email')}
+                            onChange={handleEmailChange}
                             placeholder="you@example.com"
                             className={`form-input-enhanced ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
                             disabled={auth.isLoading}
@@ -202,7 +273,7 @@ const SignupModal: React.FC = () => {
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 value={formData.password}
-                                onChange={handleInputChange('password')}
+                                onChange={handlePasswordChange}
                                 placeholder="Create a strong password"
                                 className={`form-input-enhanced pr-12 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
                                 disabled={auth.isLoading}
@@ -224,23 +295,19 @@ const SignupModal: React.FC = () => {
 
                         {/* Password Strength Indicator */}
                         {formData.password && (
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-600 dark:text-gray-400">Password strength:</span>
-                                    <span className={`text-xs font-medium ${
-                                        passwordStrength.score < 50 ? 'text-red-600' :
-                                            passwordStrength.score < 75 ? 'text-yellow-600' :
-                                                passwordStrength.score < 100 ? 'text-blue-600' : 'text-green-600'
-                                    }`}>
-                                        {passwordStrength.label}
-                                    </span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                            <div className="flex items-center gap-2 text-sm">
+                                <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                                     <div
-                                        className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                                        style={{width: `${passwordStrength.score}%`}}
+                                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                                            passwordStrength.score <= 2 ? 'bg-red-500' :
+                                                passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                                        }`}
+                                        style={{width: `${(passwordStrength.score / 6) * 100}%`}}
                                     />
                                 </div>
+                                <span className={`font-medium ${passwordStrength.color}`}>
+                                    {passwordStrength.label}
+                                </span>
                             </div>
                         )}
 
@@ -259,7 +326,7 @@ const SignupModal: React.FC = () => {
                             <input
                                 type={showConfirmPassword ? 'text' : 'password'}
                                 value={formData.confirmPassword}
-                                onChange={handleInputChange('confirmPassword')}
+                                onChange={handleConfirmPasswordChange}
                                 placeholder="Confirm your password"
                                 className={`form-input-enhanced pr-12 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
                                 disabled={auth.isLoading}
@@ -283,6 +350,13 @@ const SignupModal: React.FC = () => {
                         )}
                     </div>
 
+                    {/* Privacy Consent Section */}
+                    <PrivacyConsentSection
+                        onConsentChange={setPrivacyConsents}
+                        disabled={auth.isLoading}
+                        showOptInBenefits={true}
+                    />
+
                     {/* Error Display */}
                     {auth.error && (
                         <div
@@ -296,12 +370,8 @@ const SignupModal: React.FC = () => {
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        disabled={auth.isLoading || !formData.email || !formData.password || !formData.confirmPassword}
-                        className="
-                            w-full btn btn-primary form-btn group relative overflow-hidden
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                            min-h-[3.25rem] justify-center
-                        "
+                        disabled={auth.isLoading || !isFormValid()}
+                        className="w-full btn btn-primary form-btn group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed min-h-[3.25rem] justify-center"
                     >
                         {auth.isLoading ? (
                             <>
@@ -335,7 +405,13 @@ const SignupModal: React.FC = () => {
                 {/* Terms Note */}
                 <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        By creating an account, you agree to our Terms of Service and Privacy Policy
+                        By creating an account, you confirm that you have read and agree to our
+                        <a href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
+                            Terms of Service
+                        </a> and
+                        <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
+                            Privacy Policy
+                        </a>
                     </p>
                 </div>
             </div>

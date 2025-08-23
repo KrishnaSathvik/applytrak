@@ -1,3 +1,4 @@
+// src/components/modals/AuthModal.tsx
 import React from 'react';
 import {useAppStore} from '../../store/useAppStore';
 import LoginModal from './LoginModal';

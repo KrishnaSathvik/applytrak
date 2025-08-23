@@ -1,34 +1,138 @@
-// src/utils/exportImport.ts - ENHANCED AND FIXED VERSION
-import {Application} from '../types/application.types';
+// src/utils/exportImport.ts - Production Ready Version
+import {Application} from '../types';
 
-// Helper function to format dates consistently
+// Types for better type safety
+interface ExportMetadata {
+    exportedAt: string;
+    exportedBy: string;
+    version: string;
+    totalCount: number;
+    format: string;
+}
+
+interface ExportSummary {
+    totalApplications: number;
+    statusBreakdown: Record<string, number>;
+    typeBreakdown: Record<string, number>;
+}
+
+interface ExportData {
+    metadata: ExportMetadata;
+    summary: ExportSummary;
+    applications: Application[];
+}
+
+interface ImportResult {
+    applications: Application[];
+    warnings: string[];
+    totalProcessed: number;
+}
+
+interface ValidationError {
+    row: number;
+    field: string;
+    message: string;
+}
+
+// Constants
+const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+const VALID_STATUSES = ['Applied', 'Interview', 'Offer', 'Rejected'] as const;
+const VALID_TYPES = ['Remote', 'Hybrid', 'Onsite'] as const;
+
+const CSV_COLUMN_MAPPING = {
+    company: ['company', 'company name', 'employer'],
+    position: ['position', 'job title', 'title', 'role'],
+    dateApplied: ['date applied', 'application date', 'date', 'applied'],
+    status: ['status', 'application status'],
+    type: ['type', 'job type', 'work type'],
+    location: ['location', 'city', 'address'],
+    salary: ['salary', 'compensation', 'pay'],
+    jobSource: ['job source', 'source', 'found via'],
+    jobUrl: ['job url', 'url', 'link', 'job link'],
+    notes: ['notes', 'comments', 'description']
+};
+
+// Utility Functions
 const formatDate = (dateString: string): string => {
     try {
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return dateString;
+        }
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
         });
-    } catch (error) {
-        return dateString; // Return original if parsing fails
+    } catch {
+        return dateString;
     }
 };
 
-// Helper function to sanitize CSV values
 const sanitizeCSVValue = (value: string | undefined | null): string => {
     if (!value) return '';
-    // Escape quotes and wrap in quotes if contains comma, quote, or newline
+
     const cleaned = String(value).replace(/"/g, '""');
-    return cleaned.includes(',') || cleaned.includes('"') || cleaned.includes('\n')
-        ? `"${cleaned}"`
-        : cleaned;
+    const needsQuotes = cleaned.includes(',') ||
+        cleaned.includes('"') ||
+        cleaned.includes('\n') ||
+        cleaned.includes('\r');
+
+    return needsQuotes ? `"${cleaned}"` : cleaned;
 };
 
-// Enhanced JSON Export with metadata
-export const exportToJSON = async (applications: Application[]): Promise<void> => {
+const generateFileName = (prefix: string, extension: string): string => {
+    const timestamp = new Date().toISOString().split('T')[0];
+    return `${prefix}-${timestamp}.${extension}`;
+};
+
+const downloadFile = (blob: Blob, filename: string): void => {
     try {
-        const exportData = {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Cleanup with slight delay to ensure download starts
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+        console.error('Download failed:', error);
+        throw new Error('Failed to download file. Please try again.');
+    }
+};
+
+const calculateSummary = (applications: Application[]): ExportSummary => {
+    const statusBreakdown = VALID_STATUSES.reduce((acc, status) => {
+        acc[status] = applications.filter(app => app.status === status).length;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const typeBreakdown = VALID_TYPES.reduce((acc, type) => {
+        acc[type] = applications.filter(app => app.type === type).length;
+        return acc;
+    }, {} as Record<string, number>);
+
+    return {
+        totalApplications: applications.length,
+        statusBreakdown,
+        typeBreakdown
+    };
+};
+
+// Enhanced JSON Export
+export const exportToJSON = async (applications: Application[]): Promise<void> => {
+    if (!applications.length) {
+        throw new Error('No applications to export');
+    }
+
+    try {
+        const exportData: ExportData = {
             metadata: {
                 exportedAt: new Date().toISOString(),
                 exportedBy: 'ApplyTrak',
@@ -36,38 +140,26 @@ export const exportToJSON = async (applications: Application[]): Promise<void> =
                 totalCount: applications.length,
                 format: 'json'
             },
-            summary: {
-                totalApplications: applications.length,
-                statusBreakdown: {
-                    applied: applications.filter(app => app.status === 'Applied').length,
-                    interview: applications.filter(app => app.status === 'Interview').length,
-                    offer: applications.filter(app => app.status === 'Offer').length,
-                    rejected: applications.filter(app => app.status === 'Rejected').length
-                },
-                typeBreakdown: {
-                    remote: applications.filter(app => app.type === 'Remote').length,
-                    hybrid: applications.filter(app => app.type === 'Hybrid').length,
-                    onsite: applications.filter(app => app.type === 'Onsite').length
-                }
-            },
+            summary: calculateSummary(applications),
             applications
         };
 
         const jsonString = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonString], {type: 'application/json'});
+        const blob = new Blob([jsonString], {type: 'application/json;charset=utf-8'});
 
-        downloadFile(
-            blob,
-            `applytrak-export-${new Date().toISOString().split('T')[0]}.json`
-        );
+        downloadFile(blob, generateFileName('applytrak-export', 'json'));
     } catch (error) {
-        console.error('JSON export error:', error);
-        throw new Error('Failed to export JSON: ' + (error as Error).message);
+        console.error('JSON export failed:', error);
+        throw new Error(`Failed to export JSON: ${(error as Error).message}`);
     }
 };
 
-// Enhanced CSV Export with better formatting
+// Enhanced CSV Export
 export const exportToCSV = async (applications: Application[]): Promise<void> => {
+    if (!applications.length) {
+        throw new Error('No applications to export');
+    }
+
     try {
         const headers = [
             'Company', 'Position', 'Date Applied', 'Status', 'Type',
@@ -75,47 +167,48 @@ export const exportToCSV = async (applications: Application[]): Promise<void> =>
             'Created At', 'Updated At'
         ];
 
-        const csvContent = [
-            headers.join(','),
-            ...applications.map(app => [
-                sanitizeCSVValue(app.company),
-                sanitizeCSVValue(app.position),
-                sanitizeCSVValue(formatDate(app.dateApplied)),
-                sanitizeCSVValue(app.status),
-                sanitizeCSVValue(app.type),
-                sanitizeCSVValue(app.location),
-                sanitizeCSVValue(app.salary),
-                sanitizeCSVValue(app.jobSource),
-                sanitizeCSVValue(app.jobUrl),
-                sanitizeCSVValue(app.notes),
-                sanitizeCSVValue(formatDate(app.createdAt)),
-                sanitizeCSVValue(formatDate(app.updatedAt))
-            ].join(','))
-        ].join('\n');
+        const csvRows = applications.map(app => [
+            sanitizeCSVValue(app.company),
+            sanitizeCSVValue(app.position),
+            sanitizeCSVValue(formatDate(app.dateApplied)),
+            sanitizeCSVValue(app.status),
+            sanitizeCSVValue(app.type),
+            sanitizeCSVValue(app.location),
+            sanitizeCSVValue(app.salary),
+            sanitizeCSVValue(app.jobSource),
+            sanitizeCSVValue(app.jobUrl),
+            sanitizeCSVValue(app.notes),
+            sanitizeCSVValue(formatDate(app.createdAt)),
+            sanitizeCSVValue(formatDate(app.updatedAt))
+        ]);
 
-        const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+        const csvContent = [headers.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+        const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8'});
 
-        downloadFile(
-            blob,
-            `applytrak-export-${new Date().toISOString().split('T')[0]}.csv`
-        );
+        downloadFile(blob, generateFileName('applytrak-export', 'csv'));
     } catch (error) {
-        console.error('CSV export error:', error);
-        throw new Error('Failed to export CSV: ' + (error as Error).message);
+        console.error('CSV export failed:', error);
+        throw new Error(`Failed to export CSV: ${(error as Error).message}`);
     }
 };
 
-// Enhanced PDF Export using dynamic import for jsPDF
+// Enhanced PDF Export
 export const exportToPDF = async (applications: Application[]): Promise<void> => {
-    try {
-        // Dynamic import to reduce bundle size
-        const jsPDF = (await import('jspdf')).default;
+    if (!applications.length) {
+        throw new Error('No applications to export');
+    }
 
-        // Try to import jspdf-autotable, but fallback to simple text if not available
+    try {
+        // Dynamic import for better bundle splitting
+        const {default: jsPDF} = await import('jspdf');
+
+        // Try to load autoTable plugin
+        let hasAutoTable = false;
         try {
             await import('jspdf-autotable');
-        } catch (autoTableError) {
-            console.warn('jspdf-autotable not available, using simple text format');
+            hasAutoTable = true;
+        } catch {
+            console.warn('jspdf-autotable not available, using fallback format');
         }
 
         const doc = new jsPDF();
@@ -123,7 +216,7 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
         const pageHeight = doc.internal.pageSize.getHeight();
         let yPosition = 20;
 
-        // Header
+        // Document Header
         doc.setFontSize(24);
         doc.setFont('helvetica', 'bold');
         doc.text('ApplyTrak', pageWidth / 2, yPosition, {align: 'center'});
@@ -131,7 +224,7 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
         yPosition += 10;
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Job Applications Report`, pageWidth / 2, yPosition, {align: 'center'});
+        doc.text('Job Applications Report', pageWidth / 2, yPosition, {align: 'center'});
 
         yPosition += 8;
         doc.text(`Generated on ${formatDate(new Date().toISOString())}`, pageWidth / 2, yPosition, {align: 'center'});
@@ -141,15 +234,11 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
 
         yPosition += 15;
 
-        // Check if autoTable is available
-        if ((doc as any).autoTable) {
-            // Use autoTable for better formatting
-            const headers = [
-                '#', 'Date', 'Company', 'Position', 'Type', 'Location',
-                'Salary', 'Source', 'Status'
-            ];
+        if (hasAutoTable && (doc as any).autoTable) {
+            // Enhanced table with autoTable
+            const headers = ['#', 'Date', 'Company', 'Position', 'Type', 'Location', 'Salary', 'Source', 'Status'];
 
-            const data = applications.map((app, index) => [
+            const tableData = applications.map((app, index) => [
                 index + 1,
                 formatDate(app.dateApplied),
                 app.company || '-',
@@ -163,7 +252,7 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
 
             (doc as any).autoTable({
                 head: [headers],
-                body: data,
+                body: tableData,
                 startY: yPosition,
                 styles: {
                     fontSize: 8,
@@ -180,41 +269,46 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
                     fillColor: [245, 250, 251]
                 },
                 columnStyles: {
-                    0: {cellWidth: 10}, // #
-                    1: {cellWidth: 20}, // Date
-                    2: {cellWidth: 25}, // Company
-                    3: {cellWidth: 25}, // Position
-                    4: {cellWidth: 15}, // Type
-                    5: {cellWidth: 20}, // Location
-                    6: {cellWidth: 18}, // Salary
-                    7: {cellWidth: 18}, // Source
-                    8: {cellWidth: 15}  // Status
+                    0: {cellWidth: 10},  // #
+                    1: {cellWidth: 20},  // Date
+                    2: {cellWidth: 25},  // Company
+                    3: {cellWidth: 25},  // Position
+                    4: {cellWidth: 15},  // Type
+                    5: {cellWidth: 20},  // Location
+                    6: {cellWidth: 18},  // Salary
+                    7: {cellWidth: 18},  // Source
+                    8: {cellWidth: 15}   // Status
                 },
                 margin: {top: 40, right: 14, bottom: 20, left: 14},
-                didDrawPage: function (data: any) {
-                    // Footer
+                didDrawPage: (data: any) => {
+                    // Page footer
                     doc.setFontSize(8);
                     doc.text(`Page ${data.pageNumber}`, data.settings.margin.left, pageHeight - 10);
                 }
             });
         } else {
-            // Fallback to simple text format
+            // Fallback text format
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
 
-            applications.forEach((app, index) => {
-                if (yPosition > pageHeight - 40) {
+            for (let i = 0; i < applications.length; i++) {
+                const app = applications[i];
+
+                // Check if we need a new page
+                if (yPosition > pageHeight - 60) {
                     doc.addPage();
                     yPosition = 20;
                 }
 
+                // Application entry
                 doc.setFont('helvetica', 'bold');
-                doc.text(`${index + 1}. ${app.company} - ${app.position}`, 14, yPosition);
+                doc.text(`${i + 1}. ${app.company} - ${app.position}`, 14, yPosition);
                 yPosition += 6;
 
                 doc.setFont('helvetica', 'normal');
                 doc.text(`Date Applied: ${formatDate(app.dateApplied)}`, 20, yPosition);
                 yPosition += 5;
+
                 doc.text(`Status: ${app.status} | Type: ${app.type}`, 20, yPosition);
                 yPosition += 5;
 
@@ -233,48 +327,27 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
                     yPosition += 5;
                 }
 
-                if (app.notes && app.notes.trim()) {
-                    const notes = app.notes.length > 100 ? app.notes.substring(0, 100) + '...' : app.notes;
-                    doc.text(`Notes: ${notes}`, 20, yPosition);
+                if (app.notes?.trim()) {
+                    const truncatedNotes = app.notes.length > 100
+                        ? `${app.notes.substring(0, 100)}...`
+                        : app.notes;
+                    doc.text(`Notes: ${truncatedNotes}`, 20, yPosition);
                     yPosition += 5;
                 }
 
-                yPosition += 5; // Extra space between applications
-            });
+                yPosition += 8; // Space between entries
+            }
         }
 
-        // Save the PDF
-        doc.save(`applytrak-export-${new Date().toISOString().split('T')[0]}.pdf`);
-
+        doc.save(generateFileName('applytrak-export', 'pdf'));
     } catch (error) {
-        console.error('PDF export error:', error);
-        throw new Error('Failed to export PDF: ' + (error as Error).message);
+        console.error('PDF export failed:', error);
+        throw new Error(`Failed to export PDF: ${(error as Error).message}`);
     }
 };
 
-// Enhanced file download helper
-const downloadFile = (blob: Blob, filename: string): void => {
-    try {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.style.display = 'none';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the URL object
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-    } catch (error) {
-        console.error('Download error:', error);
-        throw new Error('Failed to download file');
-    }
-};
-
-// Enhanced JSON Import with validation
-export const importFromJSON = async (file: File): Promise<Application[]> => {
+// Enhanced JSON Import
+export const importFromJSON = async (file: File): Promise<ImportResult> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
@@ -285,57 +358,35 @@ export const importFromJSON = async (file: File): Promise<Application[]> => {
 
                 let applications: Application[];
 
-                // Handle different JSON formats
+                // Handle different JSON structures
                 if (Array.isArray(data)) {
-                    // Direct array of applications
                     applications = data;
                 } else if (data.applications && Array.isArray(data.applications)) {
-                    // Wrapped format with metadata
                     applications = data.applications;
                 } else if (data.data && Array.isArray(data.data)) {
-                    // Alternative wrapped format
                     applications = data.data;
                 } else {
-                    throw new Error('Invalid JSON format: Expected array of applications or object with applications property');
+                    throw new Error('Invalid JSON format. Expected an array of applications or an object with an "applications" property.');
                 }
 
-                // Validate and clean applications
-                const validApplications: Application[] = [];
-                const errors: string[] = [];
-
-                applications.forEach((app, index) => {
-                    try {
-                        const validatedApp = validateAndCleanApplication(app, index);
-                        validApplications.push(validatedApp);
-                    } catch (error) {
-                        errors.push(`Row ${index + 1}: ${(error as Error).message}`);
-                    }
-                });
-
-                if (validApplications.length === 0) {
-                    throw new Error('No valid applications found in the file');
-                }
-
-                if (errors.length > 0 && errors.length < applications.length) {
-                    console.warn('Some applications had issues:', errors);
-                }
-
-                resolve(validApplications);
+                const result = validateApplications(applications);
+                resolve(result);
             } catch (error) {
-                reject(new Error('Failed to parse JSON: ' + (error as Error).message));
+                const message = error instanceof Error ? error.message : 'Unknown error occurred';
+                reject(new Error(`Failed to parse JSON file: ${message}`));
             }
         };
 
         reader.onerror = () => {
-            reject(new Error('Failed to read file'));
+            reject(new Error('Failed to read file. Please try again.'));
         };
 
         reader.readAsText(file);
     });
 };
 
-// Enhanced CSV Import with better parsing
-export const importFromCSV = async (file: File): Promise<Application[]> => {
+// Enhanced CSV Import
+export const importFromCSV = async (file: File): Promise<ImportResult> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
@@ -345,89 +396,57 @@ export const importFromCSV = async (file: File): Promise<Application[]> => {
                 const lines = content.split('\n').filter(line => line.trim());
 
                 if (lines.length < 2) {
-                    throw new Error('CSV file must have at least a header row and one data row');
+                    throw new Error('CSV file must contain at least a header row and one data row.');
                 }
 
-                // Parse headers
-                const headerLine = lines[0];
-                const headers = parseCSVLine(headerLine).map(h => h.toLowerCase().trim());
+                const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+                const columnIndexes = mapCSVColumns(headers);
 
-                // Required columns mapping
-                const columnMapping = {
-                    company: findColumnIndex(headers, ['company', 'company name', 'employer']),
-                    position: findColumnIndex(headers, ['position', 'job title', 'title', 'role']),
-                    dateApplied: findColumnIndex(headers, ['date applied', 'application date', 'date', 'applied']),
-                    status: findColumnIndex(headers, ['status', 'application status']),
-                    type: findColumnIndex(headers, ['type', 'job type', 'work type']),
-                    location: findColumnIndex(headers, ['location', 'city', 'address']),
-                    salary: findColumnIndex(headers, ['salary', 'compensation', 'pay']),
-                    jobSource: findColumnIndex(headers, ['job source', 'source', 'found via']),
-                    jobUrl: findColumnIndex(headers, ['job url', 'url', 'link', 'job link']),
-                    notes: findColumnIndex(headers, ['notes', 'comments', 'description'])
-                };
-
-                if (columnMapping.company === -1 || columnMapping.position === -1) {
-                    throw new Error('CSV must include at least Company and Position columns');
+                if (columnIndexes.company === -1 || columnIndexes.position === -1) {
+                    throw new Error('CSV must include at least "Company" and "Position" columns.');
                 }
 
-                // Parse data rows
-                const applications: Application[] = [];
-                const errors: string[] = [];
+                const applications: Partial<Application>[] = [];
+                const warnings: string[] = [];
 
                 for (let i = 1; i < lines.length; i++) {
                     try {
                         const values = parseCSVLine(lines[i]);
 
-                        if (values.length < Math.max(columnMapping.company, columnMapping.position) + 1) {
-                            continue; // Skip incomplete rows
+                        if (values.length === 0 || values.every(v => !v.trim())) {
+                            continue; // Skip empty rows
                         }
 
-                        const app: Partial<Application> = {
-                            id: `imported-${Date.now()}-${i}`,
-                            company: values[columnMapping.company]?.trim() || '',
-                            position: values[columnMapping.position]?.trim() || '',
-                            dateApplied: values[columnMapping.dateApplied]?.trim() || new Date().toISOString().split('T')[0],
-                            status: (values[columnMapping.status]?.trim() as any) || 'Applied',
-                            type: (values[columnMapping.type]?.trim() as any) || 'Remote',
-                            location: values[columnMapping.location]?.trim() || '',
-                            salary: values[columnMapping.salary]?.trim() || '',
-                            jobSource: values[columnMapping.jobSource]?.trim() || '',
-                            jobUrl: values[columnMapping.jobUrl]?.trim() || '',
-                            notes: values[columnMapping.notes]?.trim() || '',
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        };
-
-                        const validatedApp = validateAndCleanApplication(app, i);
-                        applications.push(validatedApp);
+                        const app = createApplicationFromCSVRow(values, columnIndexes, i);
+                        applications.push(app);
                     } catch (error) {
-                        errors.push(`Row ${i + 1}: ${(error as Error).message}`);
+                        warnings.push(`Row ${i + 1}: ${(error as Error).message}`);
                     }
                 }
 
                 if (applications.length === 0) {
-                    throw new Error('No valid applications found in CSV file');
+                    throw new Error('No valid applications found in the CSV file.');
                 }
 
-                if (errors.length > 0) {
-                    console.warn('CSV import warnings:', errors);
-                }
+                const result = validateApplications(applications);
+                result.warnings.push(...warnings);
 
-                resolve(applications);
+                resolve(result);
             } catch (error) {
-                reject(new Error('Failed to parse CSV: ' + (error as Error).message));
+                const message = error instanceof Error ? error.message : 'Unknown error occurred';
+                reject(new Error(`Failed to parse CSV file: ${message}`));
             }
         };
 
         reader.onerror = () => {
-            reject(new Error('Failed to read file'));
+            reject(new Error('Failed to read file. Please try again.'));
         };
 
         reader.readAsText(file);
     });
 };
 
-// Helper function to parse CSV line properly handling quotes
+// CSV Parsing Utilities
 const parseCSVLine = (line: string): string[] => {
     const result: string[] = [];
     let current = '';
@@ -461,7 +480,16 @@ const parseCSVLine = (line: string): string[] => {
     return result;
 };
 
-// Helper function to find column index by possible names
+const mapCSVColumns = (headers: string[]): Record<keyof typeof CSV_COLUMN_MAPPING, number> => {
+    const result = {} as Record<keyof typeof CSV_COLUMN_MAPPING, number>;
+
+    for (const [key, possibleNames] of Object.entries(CSV_COLUMN_MAPPING)) {
+        result[key as keyof typeof CSV_COLUMN_MAPPING] = findColumnIndex(headers, possibleNames);
+    }
+
+    return result;
+};
+
 const findColumnIndex = (headers: string[], possibleNames: string[]): number => {
     for (const name of possibleNames) {
         const index = headers.indexOf(name);
@@ -470,40 +498,81 @@ const findColumnIndex = (headers: string[], possibleNames: string[]): number => 
     return -1;
 };
 
-// Enhanced application validation and cleaning
+const createApplicationFromCSVRow = (
+    values: string[],
+    columnIndexes: Record<keyof typeof CSV_COLUMN_MAPPING, number>,
+    rowIndex: number
+): Partial<Application> => {
+    const getValue = (key: keyof typeof CSV_COLUMN_MAPPING): string => {
+        const index = columnIndexes[key];
+        return index !== -1 ? (values[index]?.trim() || '') : '';
+    };
+
+    return {
+        id: `imported-${Date.now()}-${rowIndex}`,
+        company: getValue('company'),
+        position: getValue('position'),
+        dateApplied: getValue('dateApplied') || new Date().toISOString().split('T')[0],
+        status: getValue('status') as any || 'Applied',
+        type: getValue('type') as any || 'Remote',
+        location: getValue('location'),
+        salary: getValue('salary'),
+        jobSource: getValue('jobSource'),
+        jobUrl: getValue('jobUrl'),
+        notes: getValue('notes'),
+        attachments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    };
+};
+
+// Validation Functions
+const validateApplications = (applications: Partial<Application>[]): ImportResult => {
+    const validApplications: Application[] = [];
+    const warnings: string[] = [];
+
+    applications.forEach((app, index) => {
+        try {
+            const validatedApp = validateAndCleanApplication(app, index);
+            validApplications.push(validatedApp);
+        } catch (error) {
+            warnings.push(`Application ${index + 1}: ${(error as Error).message}`);
+        }
+    });
+
+    if (validApplications.length === 0) {
+        throw new Error('No valid applications found after validation.');
+    }
+
+    return {
+        applications: validApplications,
+        warnings,
+        totalProcessed: applications.length
+    };
+};
+
 const validateAndCleanApplication = (app: any, index: number): Application => {
     if (!app || typeof app !== 'object') {
         throw new Error('Invalid application data');
     }
 
-    if (!app.company || !app.company.trim()) {
+    // Required field validation
+    if (!app.company?.trim()) {
         throw new Error('Company name is required');
     }
 
-    if (!app.position || !app.position.trim()) {
+    if (!app.position?.trim()) {
         throw new Error('Position is required');
     }
 
-    // Validate and normalize date
-    let dateApplied = app.dateApplied;
-    if (dateApplied) {
-        const date = new Date(dateApplied);
-        if (isNaN(date.getTime())) {
-            dateApplied = new Date().toISOString().split('T')[0];
-        } else {
-            dateApplied = date.toISOString().split('T')[0];
-        }
-    } else {
-        dateApplied = new Date().toISOString().split('T')[0];
-    }
+    // Date validation and normalization
+    const dateApplied = validateAndNormalizeDate(app.dateApplied);
 
-    // Validate status
-    const validStatuses = ['Applied', 'Interview', 'Offer', 'Rejected'];
-    const status = validStatuses.includes(app.status) ? app.status : 'Applied';
+    // Status validation
+    const status = VALID_STATUSES.includes(app.status) ? app.status : 'Applied';
 
-    // Validate type
-    const validTypes = ['Remote', 'Hybrid', 'Onsite'];
-    const type = validTypes.includes(app.type) ? app.type : 'Remote';
+    // Type validation
+    const type = VALID_TYPES.includes(app.type) ? app.type : 'Remote';
 
     return {
         id: app.id || `imported-${Date.now()}-${index}`,
@@ -517,21 +586,37 @@ const validateAndCleanApplication = (app: any, index: number): Application => {
         jobSource: app.jobSource?.trim() || '',
         jobUrl: app.jobUrl?.trim() || '',
         notes: app.notes?.trim() || '',
-        attachments: app.attachments || [],
+        attachments: Array.isArray(app.attachments) ? app.attachments : [],
         createdAt: app.createdAt || new Date().toISOString(),
         updatedAt: app.updatedAt || new Date().toISOString()
     };
 };
 
-// Main import function with auto-detection
-export const importApplications = async (file: File): Promise<Application[]> => {
-    const fileName = file.name.toLowerCase();
-    const fileSize = file.size;
-
-    // Validate file size (200MB limit)
-    if (fileSize > 200 * 1024 * 1024) {
-        throw new Error('File size too large. Maximum size is 200MB.');
+const validateAndNormalizeDate = (dateString: string): string => {
+    if (!dateString) {
+        return new Date().toISOString().split('T')[0];
     }
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    return date.toISOString().split('T')[0];
+};
+
+// Main Import Function
+export const importApplications = async (file: File): Promise<ImportResult> => {
+    // File validation
+    if (!file) {
+        throw new Error('No file provided');
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File size too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+    }
+
+    const fileName = file.name.toLowerCase();
 
     if (fileName.endsWith('.json')) {
         return importFromJSON(file);

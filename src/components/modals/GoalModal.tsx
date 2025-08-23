@@ -1,5 +1,4 @@
-// src/components/modals/GoalModal.tsx - FIXED Z-INDEX ISSUE
-import React, {forwardRef, useCallback, useEffect, useMemo} from 'react';
+import React, {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
@@ -59,6 +58,13 @@ interface TimelineCalculation {
     isRealistic: boolean;
 }
 
+interface SmartSuggestion {
+    type: 'warning' | 'info' | 'success';
+    message: string;
+    suggestion: string;
+    action?: () => void;
+}
+
 // ==========================================
 // ENHANCED VALIDATION SCHEMA
 // ==========================================
@@ -74,8 +80,8 @@ const createGoalValidationSchema = () => {
             .min(1, 'Total goal must be at least 1')
             .max(10000, 'Total goal must be less than 10,000')
             .integer('Total goal must be a whole number')
-            .test('realistic-total', 'This goal seems very ambitious. Are you sure?', function (value) {
-                return !value || value <= 1000; // Warning for very high goals
+            .test('realistic-total', 'This goal seems very ambitious. Consider breaking it down.', function (value) {
+                return !value || value <= 1000;
             }),
 
         weeklyGoal: yup
@@ -87,8 +93,8 @@ const createGoalValidationSchema = () => {
             .min(1, 'Weekly goal must be at least 1')
             .max(200, 'Weekly goal must be less than 200')
             .integer('Weekly goal must be a whole number')
-            .test('realistic-weekly', 'This weekly goal seems very high', function (value) {
-                return !value || value <= 100; // Warning for very high weekly goals
+            .test('realistic-weekly', 'This weekly goal seems very demanding', function (value) {
+                return !value || value <= 50;
             }),
 
         monthlyGoal: yup
@@ -107,10 +113,9 @@ const createGoalValidationSchema = () => {
                     const {weeklyGoal} = this.parent;
                     if (!value || !weeklyGoal) return true;
 
-                    // 🔧 FIXED: Better logic for weekly vs monthly validation
-                    const weeksInMonth = 4.33; // Average weeks per month
+                    const weeksInMonth = 4.33;
                     const expectedMonthly = Math.round(weeklyGoal * weeksInMonth);
-                    const tolerance = 0.3; // 30% tolerance
+                    const tolerance = 0.3;
 
                     const minExpected = Math.round(expectedMonthly * (1 - tolerance));
                     const maxExpected = Math.round(expectedMonthly * (1 + tolerance));
@@ -148,18 +153,19 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
     } = useAppStore();
 
     const {goalSetting} = modals;
+    const firstInputRef = useRef<HTMLInputElement>(null);
 
-    // 🔧 ENHANCED: Form with better default handling
+    // Enhanced form with better default handling
     const {
-        control,
         register,
         handleSubmit,
         reset,
-        setValue,
         watch,
         formState: {errors, isSubmitting, isDirty},
         trigger,
-        clearErrors
+        clearErrors,
+        setValue,
+        getValues
     } = useForm<GoalFormData>({
         resolver: yupResolver(createGoalValidationSchema()),
         defaultValues: {
@@ -167,7 +173,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
             weeklyGoal: goals.weeklyGoal || 5,
             monthlyGoal: goals.monthlyGoal || 20
         },
-        mode: 'onChange' // Real-time validation
+        mode: 'onChange'
     });
 
     const watchedValues = watch();
@@ -195,8 +201,8 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
         const weeksToMonthly = Math.ceil(monthlyGoal / weeklyGoal);
         const averageDailyPace = weeklyGoal / 7;
 
-        // Realistic assessment
-        const isRealistic = averageDailyPace <= 10 && weeklyGoal <= 50;
+        // Enhanced realistic assessment
+        const isRealistic = averageDailyPace <= 5 && weeklyGoal <= 35 && weeksToTotal <= 104;
 
         return {
             weeksToTotal,
@@ -230,13 +236,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
             };
         }
 
-        // 🔧 FIXED: Improved weekly vs monthly validation logic
         const weeksInMonth = 4.33;
         const expectedMonthlyFromWeekly = weeklyGoal * weeksInMonth;
         const ratio = monthlyGoal / expectedMonthlyFromWeekly;
         const dailyPace = weeklyGoal / 7;
 
-        // Weekly vs Monthly validation
+        // Enhanced weekly vs monthly validation
         let weeklyMonthlyValidation: ValidationState['weeklyMonthlyRatio'];
 
         if (ratio < 0.7) {
@@ -261,12 +266,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
             };
         }
 
-        // Total reachability
+        // Enhanced total reachability
         const weeksNeeded = totalGoal ? Math.ceil(totalGoal / weeklyGoal) : 0;
         const monthsNeeded = totalGoal ? Math.ceil(totalGoal / monthlyGoal) : 0;
 
         const totalReachability: ValidationState['totalReachability'] = {
-            isValid: weeksNeeded <= 104, // 2 years max
+            isValid: weeksNeeded <= 104,
             message: weeksNeeded > 104
                 ? 'Total goal will take over 2 years at current pace'
                 : `Estimated ${weeksNeeded} weeks (${monthsNeeded} months) to reach total goal`,
@@ -274,11 +279,11 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
             monthsNeeded
         };
 
-        // Pace analysis
+        // Enhanced pace analysis
         const paceAnalysis: ValidationState['paceAnalysis'] = {
             dailyPace,
             weeklyToMonthlyRatio: ratio,
-            isRealistic: dailyPace <= 5 && weeklyGoal <= 35
+            isRealistic: dailyPace <= 3 && weeklyGoal <= 25 // More conservative realistic threshold
         };
 
         return {
@@ -289,92 +294,116 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
     }, [weeklyGoal, monthlyGoal, totalGoal]);
 
     // ==========================================
+    // ENHANCED SMART SUGGESTIONS
+    // ==========================================
+
+    const smartSuggestions = useMemo((): SmartSuggestion[] => {
+        if (!weeklyGoal) return [];
+
+        const suggestions: SmartSuggestion[] = [];
+        const dailyPace = weeklyGoal / 7;
+
+        // Industry standard suggestions
+        if (dailyPace > 3) {
+            suggestions.push({
+                type: 'warning',
+                message: 'High daily pace detected',
+                suggestion: `Consider ${Math.ceil(weeklyGoal * 0.7)} weekly for better sustainability`,
+                action: () => setValue('weeklyGoal', Math.ceil(weeklyGoal * 0.7))
+            });
+        }
+
+        if (weeklyGoal < 3) {
+            suggestions.push({
+                type: 'info',
+                message: 'Conservative approach',
+                suggestion: 'This pace is sustainable but consider increasing if possible',
+                action: () => setValue('weeklyGoal', 5)
+            });
+        }
+
+        if (monthlyGoal && weeklyGoal * 4 > monthlyGoal * 1.2) {
+            suggestions.push({
+                type: 'warning',
+                message: 'Weekly pace may exceed monthly goal',
+                suggestion: `Increase monthly to ${Math.ceil(weeklyGoal * 4.3)} for consistency`,
+                action: () => setValue('monthlyGoal', Math.ceil(weeklyGoal * 4.3))
+            });
+        }
+
+        // Industry benchmarks
+        if (weeklyGoal >= 5 && weeklyGoal <= 15) {
+            suggestions.push({
+                type: 'success',
+                message: 'Excellent weekly target',
+                suggestion: 'This aligns with industry best practices for active job seekers'
+            });
+        }
+
+        return suggestions;
+    }, [weeklyGoal, monthlyGoal, setValue]);
+
+    // ==========================================
     // FORM HANDLERS
     // ==========================================
 
-    // 🔧 ENHANCED: Initialize form when modal opens
+    // Enhanced initialization
     useEffect(() => {
         if (goalSetting.isOpen) {
-            // Reset form with current goals
             reset({
                 totalGoal: goals.totalGoal || 100,
                 weeklyGoal: goals.weeklyGoal || 5,
                 monthlyGoal: goals.monthlyGoal || 20
             });
             clearErrors();
+
+            // Focus first input after a short delay
+            setTimeout(() => {
+                firstInputRef.current?.focus();
+            }, 100);
         }
     }, [goalSetting.isOpen, goals, reset, clearErrors]);
 
-    // 🔧 ENHANCED: Form submission with better error handling
+    // Enhanced form submission
     const onSubmit = useCallback(async (data: GoalFormData) => {
         try {
-            // Validate one more time
             const isValid = await trigger();
             if (!isValid) {
                 showToast({
                     type: 'error',
-                    message: 'Please fix validation errors before saving'
+                    message: 'Please fix validation errors before saving',
+                    duration: 4000
                 });
                 return;
             }
 
-            // 🔧 FIXED: Ensure data is properly formatted
             const goalsData = {
                 totalGoal: Math.round(Number(data.totalGoal)),
                 weeklyGoal: Math.round(Number(data.weeklyGoal)),
                 monthlyGoal: Math.round(Number(data.monthlyGoal))
             };
 
-            console.log('💾 Saving goals:', goalsData);
-
             await updateGoals(goalsData);
 
             showToast({
                 type: 'success',
-                message: '🎯 Goals updated successfully! Your progress will now be tracked.',
+                message: 'Goals updated successfully! Your progress tracking is now active.',
                 duration: 4000
             });
 
             closeGoalModal();
             reset();
         } catch (error) {
-            console.error('❌ Error updating goals:', error);
+            console.error('Error updating goals:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to update goals: ' + (error as Error).message
+                message: `Failed to update goals: ${(error as Error).message}`,
+                duration: 5000
             });
         }
     }, [updateGoals, closeGoalModal, reset, trigger, showToast]);
 
-    // Smart suggestions based on current values
-    const getSmartSuggestions = useCallback(() => {
-        if (!weeklyGoal) return [];
-
-        const suggestions = [];
-        const dailyPace = weeklyGoal / 7;
-
-        if (dailyPace > 5) {
-            suggestions.push({
-                type: 'warning',
-                message: 'Consider reducing weekly goal for sustainability',
-                suggestion: `Try ${Math.ceil(weeklyGoal * 0.7)} weekly for a more manageable pace`
-            });
-        }
-
-        if (monthlyGoal && weeklyGoal * 4 > monthlyGoal * 1.2) {
-            suggestions.push({
-                type: 'info',
-                message: 'Your weekly pace could exceed monthly goal',
-                suggestion: `Increase monthly to ${Math.ceil(weeklyGoal * 4.3)} or reduce weekly`
-            });
-        }
-
-        return suggestions;
-    }, [weeklyGoal, monthlyGoal]);
-
-    const smartSuggestions = getSmartSuggestions();
-
-    // Handle modal close
+    // Enhanced close handler
     const handleClose = useCallback(() => {
         if (isDirty) {
             const confirmClose = window.confirm('You have unsaved changes. Are you sure you want to close?');
@@ -384,12 +413,65 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
         reset();
     }, [isDirty, closeGoalModal, reset]);
 
+    // Keyboard navigation
+    useEffect(() => {
+        if (!goalSetting.isOpen) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                handleClose();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [goalSetting.isOpen, handleClose]);
+
+    // Quick preset suggestions
+    const presetSuggestions = useMemo(() => [
+        {name: 'Conservative', total: 50, weekly: 3, monthly: 12},
+        {name: 'Moderate', total: 100, weekly: 5, monthly: 20},
+        {name: 'Aggressive', total: 200, weekly: 10, monthly: 40},
+        {name: 'Intensive', total: 300, weekly: 15, monthly: 60}
+    ], []);
+
+    const applyPreset = useCallback((preset: typeof presetSuggestions[0]) => {
+        console.log('Applying preset:', preset); // Debug log
+
+        // Get current values to verify
+        const currentValues = getValues();
+        console.log('Current values before preset:', currentValues);
+
+        // Use a more forceful approach
+        const newValues = {
+            totalGoal: preset.total,
+            weeklyGoal: preset.weekly,
+            monthlyGoal: preset.monthly
+        };
+
+        // Apply values one by one with force
+        Object.entries(newValues).forEach(([key, value]) => {
+            setValue(key as keyof GoalFormData, value, {
+                shouldValidate: false,
+                shouldDirty: true,
+                shouldTouch: true
+            });
+        });
+
+        // Force re-render after a delay
+        setTimeout(() => {
+            const updatedValues = getValues();
+            console.log('Values after preset application:', updatedValues);
+            trigger(); // Trigger validation
+        }, 10);
+    }, [setValue, trigger, getValues]);
+
     if (!goalSetting.isOpen) return null;
 
-    // 🔧 FIXED: Use React Portal to render at document root level (like fixed Modal component)
     const modalContent = (
-        /* 🔧 FIXED: Increased z-index to 9999 to be above header (z-400) */
-        <div className="fixed inset-0 z-[9999] overflow-y-auto" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto" role="dialog" aria-modal="true"
+             aria-labelledby="goal-modal-title">
             {/* Enhanced Backdrop */}
             <div
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300"
@@ -407,7 +489,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                     <div
                         className="relative overflow-hidden border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl">
                         <div
-                            className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-pink-600/90 backdrop-blur-sm"></div>
+                            className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-pink-600/90 backdrop-blur-sm"/>
 
                         <div className="relative z-10 flex items-center justify-between p-6">
                             <div className="flex items-center gap-4">
@@ -417,14 +499,12 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                 </div>
                                 <div>
                                     <h2
-                                        style={{
-                                            color: 'white !important',
-                                            textShadow: '2px 2px 8px rgba(0,0,0,0.9)',
-                                            fontWeight: '900',
-                                            zIndex: 9999,
-                                            position: 'relative'
-                                        }}
+                                        id="goal-modal-title"
                                         className="text-2xl font-extrabold text-white tracking-tight leading-tight drop-shadow-lg"
+                                        style={{
+                                            textShadow: '2px 2px 8px rgba(0,0,0,0.9)',
+                                            fontWeight: '900'
+                                        }}
                                     >
                                         Set Application Goals
                                     </h2>
@@ -435,8 +515,9 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                             </div>
                             <button
                                 onClick={handleClose}
-                                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold tracking-wide transition-all duration-200 hover:scale-105"
+                                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold tracking-wide transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50"
                                 aria-label="Close modal"
+                                type="button"
                             >
                                 <X className="h-5 w-5 drop-shadow-lg"/>
                             </button>
@@ -445,6 +526,29 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
 
                     {/* Form Content */}
                     <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-8">
+                        {/* Quick Preset Buttons */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                                <Zap className="h-4 w-4 mr-2"/>
+                                Quick Presets
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {presetSuggestions.map((preset) => (
+                                    <button
+                                        key={preset.name}
+                                        type="button"
+                                        onClick={() => applyPreset(preset)}
+                                        className="p-3 text-xs font-medium bg-gray-50 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-gray-200 dark:border-gray-700 rounded-lg transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-600"
+                                    >
+                                        <div className="font-bold text-gray-900 dark:text-gray-100">{preset.name}</div>
+                                        <div className="text-gray-600 dark:text-gray-400">
+                                            {preset.total}T • {preset.weekly}W • {preset.monthly}M
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Goal Input Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {/* Total Goal */}
@@ -457,10 +561,16 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                 <div className="relative">
                                     <input
                                         {...register('totalGoal')}
+                                        ref={firstInputRef}
                                         type="number"
                                         min="1"
                                         max="10000"
                                         step="1"
+                                        value={totalGoal || ''} // Force controlled input
+                                        onChange={(e) => {
+                                            const value = parseInt(e.target.value) || 0;
+                                            setValue('totalGoal', value, {shouldValidate: true, shouldDirty: true});
+                                        }}
                                         className={cn(
                                             'w-full px-4 py-3 border rounded-lg text-lg font-semibold bg-white dark:bg-gray-800 transition-all duration-200',
                                             errors.totalGoal
@@ -468,36 +578,47 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                                 : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
                                         )}
                                         placeholder="100"
+                                        aria-describedby={errors.totalGoal ? 'total-goal-error' : 'total-goal-help'}
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                                         <Award className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.totalGoal && (
-                                    <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
+                                    <p id="total-goal-error"
+                                       className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
                                         <AlertTriangle className="h-4 w-4 mr-1"/>
                                         {errors.totalGoal.message}
                                     </p>
                                 )}
 
-                                {/* Timeline Display */}
+                                {/* Enhanced Timeline Display */}
                                 {totalGoal && weeklyGoal && (
                                     <div className="space-y-2 text-sm">
                                         <div
                                             className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                             <span className="font-medium text-blue-800 dark:text-blue-200">Estimated Time:</span>
                                             <span className="font-bold text-blue-900 dark:text-blue-100">
-                                                {timelineCalculations.weeksToTotal} weeks
-                                            </span>
+                        {timelineCalculations.weeksToTotal} weeks
+                      </span>
                                         </div>
                                         <div
                                             className="flex items-center justify-between p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                                             <span
                                                 className="font-medium text-purple-800 dark:text-purple-200">≈ Months:</span>
                                             <span className="font-bold text-purple-900 dark:text-purple-100">
-                                                {timelineCalculations.monthsToTotal} months
-                                            </span>
+                        {timelineCalculations.monthsToTotal} months
+                      </span>
                                         </div>
+                                        {!timelineCalculations.isRealistic && (
+                                            <div
+                                                className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                                <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200 flex items-center">
+                                                    <AlertTriangle className="h-3 w-3 mr-1"/>
+                                                    Consider adjusting goals for better sustainability
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -523,28 +644,53 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                                 : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
                                         )}
                                         placeholder="5"
+                                        aria-describedby={errors.weeklyGoal ? 'weekly-goal-error' : 'weekly-goal-help'}
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                                         <TrendingUp className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.weeklyGoal && (
-                                    <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
+                                    <p id="weekly-goal-error"
+                                       className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
                                         <AlertTriangle className="h-4 w-4 mr-1"/>
                                         {errors.weeklyGoal.message}
                                     </p>
                                 )}
 
-                                {/* Daily Pace */}
+                                {/* Enhanced Daily Pace */}
                                 {weeklyGoal && (
-                                    <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                                                Daily Pace:
-                                            </span>
-                                            <span className="text-sm font-bold text-green-900 dark:text-green-100">
-                                                ≈ {timelineCalculations.averageDailyPace.toFixed(1)} per day
-                                            </span>
+                                    <div className="space-y-2">
+                                        <div className={cn(
+                                            'p-2 rounded-lg',
+                                            timelineCalculations.averageDailyPace <= 3
+                                                ? 'bg-green-50 dark:bg-green-900/20'
+                                                : timelineCalculations.averageDailyPace <= 5
+                                                    ? 'bg-yellow-50 dark:bg-yellow-900/20'
+                                                    : 'bg-red-50 dark:bg-red-900/20'
+                                        )}>
+                                            <div className="flex items-center justify-between">
+                        <span className={cn(
+                            'text-sm font-medium',
+                            timelineCalculations.averageDailyPace <= 3
+                                ? 'text-green-800 dark:text-green-200'
+                                : timelineCalculations.averageDailyPace <= 5
+                                    ? 'text-yellow-800 dark:text-yellow-200'
+                                    : 'text-red-800 dark:text-red-200'
+                        )}>
+                          Daily Pace:
+                        </span>
+                                                <span className={cn(
+                                                    'text-sm font-bold',
+                                                    timelineCalculations.averageDailyPace <= 3
+                                                        ? 'text-green-900 dark:text-green-100'
+                                                        : timelineCalculations.averageDailyPace <= 5
+                                                            ? 'text-yellow-900 dark:text-yellow-100'
+                                                            : 'text-red-900 dark:text-red-100'
+                                                )}>
+                          ≈ {timelineCalculations.averageDailyPace.toFixed(1)} per day
+                        </span>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -571,29 +717,42 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                                 : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
                                         )}
                                         placeholder="20"
+                                        aria-describedby={errors.monthlyGoal ? 'monthly-goal-error' : 'monthly-goal-help'}
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                                         <Calendar className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.monthlyGoal && (
-                                    <p className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
+                                    <p id="monthly-goal-error"
+                                       className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center">
                                         <AlertTriangle className="h-4 w-4 mr-1"/>
                                         {errors.monthlyGoal.message}
                                     </p>
                                 )}
 
-                                {/* Weekly to Monthly Ratio */}
+                                {/* Enhanced Weekly to Monthly Ratio */}
                                 {weeklyGoal && monthlyGoal && (
-                                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                                                Weekly × 4.3:
-                                            </span>
-                                            <span className="text-sm font-bold text-purple-900 dark:text-purple-100">
-                                                ≈ {Math.round(weeklyGoal * 4.3)}
-                                            </span>
+                                    <div className="space-y-2">
+                                        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                            <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                          Weekly × 4.3:
+                        </span>
+                                                <span
+                                                    className="text-sm font-bold text-purple-900 dark:text-purple-100">
+                          ≈ {Math.round(weeklyGoal * 4.3)}
+                        </span>
+                                            </div>
                                         </div>
+                                        {Math.abs(monthlyGoal - weeklyGoal * 4.3) > weeklyGoal && (
+                                            <div
+                                                className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                                <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200">
+                                                    Consider aligning monthly goal closer to weekly pace
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -604,7 +763,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                             <div className="space-y-4">
                                 {/* Goal Balance Validation */}
                                 <div className={cn(
-                                    'p-4 rounded-lg border',
+                                    'p-4 rounded-lg border transition-all duration-200',
                                     validationState.weeklyMonthlyRatio.isValid
                                         ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
                                         : validationState.weeklyMonthlyRatio.severity === 'warning'
@@ -652,32 +811,68 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                     </div>
                                 </div>
 
-                                {/* Smart Suggestions */}
+                                {/* Enhanced Smart Suggestions */}
                                 {smartSuggestions.length > 0 && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         <h4 className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center">
                                             <Zap className="h-4 w-4 mr-2"/>
                                             Smart Suggestions
                                         </h4>
-                                        {smartSuggestions.map((suggestion, index) => (
-                                            <div
-                                                key={index}
-                                                className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
-                                            >
-                                                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                                                    {suggestion.message}
-                                                </p>
-                                                <p className="text-xs font-medium text-blue-600 dark:text-blue-300 mt-1">
-                                                    💡 {suggestion.suggestion}
-                                                </p>
-                                            </div>
-                                        ))}
+                                        <div className="space-y-2">
+                                            {smartSuggestions.map((suggestion, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={cn(
+                                                        'p-3 border rounded-lg transition-all duration-200',
+                                                        suggestion.type === 'success'
+                                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                                            : suggestion.type === 'warning'
+                                                                ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                                                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                                    )}
+                                                >
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1">
+                                                            <p className={cn(
+                                                                'text-sm font-medium',
+                                                                suggestion.type === 'success'
+                                                                    ? 'text-green-800 dark:text-green-200'
+                                                                    : suggestion.type === 'warning'
+                                                                        ? 'text-yellow-800 dark:text-yellow-200'
+                                                                        : 'text-blue-800 dark:text-blue-200'
+                                                            )}>
+                                                                {suggestion.message}
+                                                            </p>
+                                                            <p className={cn(
+                                                                'text-xs font-medium mt-1',
+                                                                suggestion.type === 'success'
+                                                                    ? 'text-green-600 dark:text-green-300'
+                                                                    : suggestion.type === 'warning'
+                                                                        ? 'text-yellow-600 dark:text-yellow-300'
+                                                                        : 'text-blue-600 dark:text-blue-300'
+                                                            )}>
+                                                                💡 {suggestion.suggestion}
+                                                            </p>
+                                                        </div>
+                                                        {suggestion.action && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={suggestion.action}
+                                                                className="ml-3 px-2 py-1 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                            >
+                                                                Apply
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Goal Setting Tips */}
+                        {/* Enhanced Goal Setting Tips */}
                         <div
                             className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-3 flex items-center">
@@ -687,34 +882,41 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <ul className="text-sm space-y-2">
                                     <li className="flex items-start space-x-2">
-                                        <span className="font-bold text-blue-500">•</span>
-                                        <span className="text-gray-600 dark:text-gray-400">Set realistic goals based on your availability</span>
+                                        <span className="font-bold text-blue-500 mt-0.5">•</span>
+                                        <span className="text-gray-600 dark:text-gray-400">
+                      <strong>1-3 daily:</strong> Sustainable pace for most job seekers
+                    </span>
                                     </li>
                                     <li className="flex items-start space-x-2">
-                                        <span className="font-bold text-blue-500">•</span>
-                                        <span className="text-gray-600 dark:text-gray-400">Weekly goals help maintain momentum</span>
+                                        <span className="font-bold text-blue-500 mt-0.5">•</span>
+                                        <span className="text-gray-600 dark:text-gray-400">
+                      <strong>Quality over quantity:</strong> Focus on relevant positions
+                    </span>
                                     </li>
                                 </ul>
                                 <ul className="text-sm space-y-2">
                                     <li className="flex items-start space-x-2">
-                                        <span className="font-bold text-blue-500">•</span>
-                                        <span className="text-gray-600 dark:text-gray-400">Monthly goals provide accountability</span>
+                                        <span className="font-bold text-blue-500 mt-0.5">•</span>
+                                        <span className="text-gray-600 dark:text-gray-400">
+                      <strong>Track progress:</strong> Weekly reviews help maintain momentum
+                    </span>
                                     </li>
                                     <li className="flex items-start space-x-2">
-                                        <span className="font-bold text-blue-500">•</span>
-                                        <span
-                                            className="text-gray-600 dark:text-gray-400">Adjust as you learn your pace</span>
+                                        <span className="font-bold text-blue-500 mt-0.5">•</span>
+                                        <span className="text-gray-600 dark:text-gray-400">
+                      <strong>Be flexible:</strong> Adjust goals based on your experience
+                    </span>
                                     </li>
                                 </ul>
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* Enhanced Action Buttons */}
                         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="px-6 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                className="px-6 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500/20"
                             >
                                 Cancel
                             </button>
@@ -722,7 +924,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                 type="submit"
                                 disabled={isSubmitting || ui.isLoading}
                                 className={cn(
-                                    'px-6 py-2 text-sm font-bold text-white rounded-lg transition-all duration-200 flex items-center',
+                                    'px-6 py-2 text-sm font-bold text-white rounded-lg transition-all duration-200 flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500/20',
                                     isSubmitting || ui.isLoading
                                         ? 'bg-gray-400 cursor-not-allowed'
                                         : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 hover:shadow-lg transform hover:scale-105'
@@ -748,7 +950,6 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
         </div>
     );
 
-    // 🔧 FIXED: Use React Portal to render at document root level
     return typeof document !== 'undefined'
         ? createPortal(modalContent, document.body)
         : null;

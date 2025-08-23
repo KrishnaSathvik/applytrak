@@ -1,5 +1,6 @@
-// src/components/tables/MobileResponsiveApplicationTable.tsx - COMPLETE UPDATE WITH RESUME COMPONENTS + SEARCH FIXES
-import React, {memo, useCallback, useMemo, useState} from 'react';
+// src/components/tables/MobileResponsiveApplicationTable.tsx
+// Production-ready responsive table with enhanced UX and performance optimizations
+import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
     Calendar,
     Check,
@@ -23,85 +24,124 @@ import {
     X
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Application, Attachment} from '../../types/application.types';
+import {Application, Attachment} from '../../types';
 import BulkOperations from './BulkOperations';
 import {Modal} from '../ui/Modal';
 import {cn} from '../../utils/helpers';
 
+// Constants
 const ITEMS_PER_PAGE = 15;
+const COMPANY_COLORS = [
+    'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700',
+    'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
+    'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700',
+    'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700',
+    'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700',
+    'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700',
+    'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-700',
+    'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
+    'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
+    'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700'
+];
 
-// 🎨 COMPANY COLOR GENERATOR - Consistent colors for company names
+// Types
+interface ModalState<T> {
+    isOpen: boolean;
+    application: T | null;
+}
+
+interface PaginationData {
+    paginatedApplications: Application[];
+    totalPages: number;
+    startIndex: number;
+    endIndex: number;
+    showingFrom: number;
+    showingTo: number;
+}
+
+// Utility function for consistent company colors
 const getCompanyColor = (companyName: string): string => {
-    const colors = [
-        'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700',
-        'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
-        'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700',
-        'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700',
-        'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700',
-        'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700',
-        'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-700',
-        'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
-        'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
-        'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700'
-    ];
-
-    // Simple hash function for consistent colors
     let hash = 0;
     for (let i = 0; i < companyName.length; i++) {
         hash = companyName.charCodeAt(i) + ((hash << 5) - hash);
     }
-
-    return colors[Math.abs(hash) % colors.length];
+    return COMPANY_COLORS[Math.abs(hash) % COMPANY_COLORS.length];
 };
 
-// 📄 NEW: RESUME MODAL COMPONENT - Following Notes Modal Pattern
+// Resume Modal Component
 interface ResumeModalProps {
     isOpen: boolean;
     onClose: () => void;
     application: Application | null;
 }
 
-const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application}) => {
+const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, application}) => {
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-    const handleDownload = async (attachment: Attachment) => {
-        if (!attachment.data) return;
+    // All hooks must be called before any early returns
+    const resumeAttachments = useMemo(() =>
+        application?.attachments?.filter(attachment =>
+            attachment.name.toLowerCase().includes('resume') ||
+            attachment.name.toLowerCase().includes('cv') ||
+            attachment.type === 'application/pdf'
+        ) || [], [application?.attachments]
+    );
+
+    const formatFileSize = useCallback((bytes: number): string => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }, []);
+
+    const handleDownload = useCallback(async (attachment: Attachment) => {
+        if (!attachment.data) {
+            console.warn('No data available for attachment:', attachment.name);
+            return;
+        }
 
         try {
             setDownloadingId(attachment.id || attachment.name);
 
             // Create blob from base64 data
-            const byteCharacters = atob(attachment.data.split(',')[1]);
+            const base64Data = attachment.data.includes(',')
+                ? attachment.data.split(',')[1]
+                : attachment.data;
+
+            const byteCharacters = atob(base64Data);
             const byteNumbers = new Array(byteCharacters.length);
+
             for (let i = 0; i < byteCharacters.length; i++) {
                 byteNumbers[i] = byteCharacters.charCodeAt(i);
             }
+
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], {type: attachment.type});
 
-            // Create download link
+            // Create and trigger download
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = attachment.name;
+            link.style.display = 'none';
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // Clean up
             window.URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('Failed to download attachment:', err);
+        } catch (error) {
+            console.error('Failed to download attachment:', error);
+            // You might want to show a toast notification here
         } finally {
             setDownloadingId(null);
         }
-    };
+    }, []);
 
+    // Early return after all hooks
     if (!application) return null;
-
-    const resumeAttachments = application.attachments?.filter(attachment =>
-        attachment.name.toLowerCase().includes('resume') ||
-        attachment.name.toLowerCase().includes('cv') ||
-        attachment.type === 'application/pdf'
-    ) || [];
 
     return (
         <Modal
@@ -120,7 +160,7 @@ const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application})
                         "w-4 h-4 rounded-full border-2",
                         getCompanyColor(application.company).split(' ')[0],
                         getCompanyColor(application.company).split(' ')[2]
-                    )}></div>
+                    )}/>
                     <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                             {application.company}
@@ -148,8 +188,8 @@ const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application})
                     </h4>
                     <span
                         className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-                        {resumeAttachments.length} file{resumeAttachments.length !== 1 ? 's' : ''}
-                    </span>
+            {resumeAttachments.length} file{resumeAttachments.length !== 1 ? 's' : ''}
+          </span>
                 </div>
 
                 {resumeAttachments.length > 0 ? (
@@ -160,16 +200,16 @@ const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application})
                                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg flex-shrink-0">
                                             <FileIcon className="h-5 w-5 text-green-600 dark:text-green-400"/>
                                         </div>
-                                        <div>
-                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100">
+                                        <div className="min-w-0 flex-1">
+                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
                                                 {attachment.name}
                                             </h5>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                {attachment.type} • {(attachment.size / 1024 / 1024).toFixed(1)} MB
+                                                {attachment.type} • {formatFileSize(attachment.size || 0)}
                                             </p>
                                             {attachment.uploadedAt && (
                                                 <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -182,16 +222,16 @@ const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application})
                                         onClick={() => handleDownload(attachment)}
                                         disabled={downloadingId === (attachment.id || attachment.name)}
                                         className={cn(
-                                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex-shrink-0",
                                             downloadingId === (attachment.id || attachment.name)
-                                                ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"
+                                                ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
                                                 : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
                                         )}
                                     >
                                         {downloadingId === (attachment.id || attachment.name) ? (
                                             <>
                                                 <div
-                                                    className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                    className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"/>
                                                 Downloading...
                                             </>
                                         ) : (
@@ -223,9 +263,9 @@ const ResumeModal: React.FC<ResumeModalProps> = ({isOpen, onClose, application})
             </div>
         </Modal>
     );
-};
+});
 
-// 📄 NEW: RESUME ICON COMPONENT - Following Notes Icon Pattern
+// Resume Icon Component
 interface ResumeIconProps {
     application: Application;
     variant?: 'desktop' | 'mobile';
@@ -233,17 +273,20 @@ interface ResumeIconProps {
     className?: string;
 }
 
-const ResumeIcon: React.FC<ResumeIconProps> = ({
-                                                   application,
-                                                   variant = 'desktop',
-                                                   onClick,
-                                                   className = ""
-                                               }) => {
-    const resumeAttachments = application.attachments?.filter(attachment =>
-        attachment.name.toLowerCase().includes('resume') ||
-        attachment.name.toLowerCase().includes('cv') ||
-        attachment.type === 'application/pdf'
-    ) || [];
+const ResumeIcon: React.FC<ResumeIconProps> = memo(({
+                                                        application,
+                                                        variant = 'desktop',
+                                                        onClick,
+                                                        className = ""
+                                                    }) => {
+    // Hook must be called before early returns
+    const resumeAttachments = useMemo(() =>
+        application.attachments?.filter(attachment =>
+            attachment.name.toLowerCase().includes('resume') ||
+            attachment.name.toLowerCase().includes('cv') ||
+            attachment.type === 'application/pdf'
+        ) || [], [application.attachments]
+    );
 
     const hasResume = resumeAttachments.length > 0;
 
@@ -261,8 +304,8 @@ const ResumeIcon: React.FC<ResumeIconProps> = ({
             >
                 <Paperclip className="h-3 w-3"/>
                 <span>
-                    {hasResume ? `${resumeAttachments.length} file${resumeAttachments.length > 1 ? 's' : ''}` : 'No Resume'}
-                </span>
+          {hasResume ? `${resumeAttachments.length} file${resumeAttachments.length > 1 ? 's' : ''}` : 'No Resume'}
+        </span>
             </button>
         );
     }
@@ -285,8 +328,8 @@ const ResumeIcon: React.FC<ResumeIconProps> = ({
                     {resumeAttachments.length > 1 && (
                         <span
                             className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                            {resumeAttachments.length}
-                        </span>
+              {resumeAttachments.length}
+            </span>
                     )}
                 </>
             ) : (
@@ -294,29 +337,42 @@ const ResumeIcon: React.FC<ResumeIconProps> = ({
             )}
         </button>
     );
-};
+});
 
-// 📝 ENHANCED NOTES MODAL COMPONENT
+// Notes Modal Component
 interface NotesModalProps {
     isOpen: boolean;
     onClose: () => void;
     application: Application | null;
 }
 
-const NotesModal: React.FC<NotesModalProps> = ({isOpen, onClose, application}) => {
+const NotesModal: React.FC<NotesModalProps> = memo(({isOpen, onClose, application}) => {
     const [copied, setCopied] = useState(false);
 
-    const handleCopy = async () => {
+    const handleCopy = useCallback(async () => {
         if (!application?.notes) return;
 
         try {
             await navigator.clipboard.writeText(application.notes);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy notes:', err);
+        } catch (error) {
+            console.error('Failed to copy notes:', error);
+            // Fallback for older browsers
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = application.notes;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (fallbackError) {
+                console.error('Fallback copy also failed:', fallbackError);
+            }
         }
-    };
+    }, [application?.notes]);
 
     if (!application) return null;
 
@@ -339,7 +395,7 @@ const NotesModal: React.FC<NotesModalProps> = ({isOpen, onClose, application}) =
                         "w-4 h-4 rounded-full border-2",
                         getCompanyColor(application.company).split(' ')[0],
                         getCompanyColor(application.company).split(' ')[2]
-                    )}></div>
+                    )}/>
                     <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                             {application.company}
@@ -422,20 +478,20 @@ const NotesModal: React.FC<NotesModalProps> = ({isOpen, onClose, application}) =
             {hasNotes && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span>
+              {application.notes!.length} characters
+            </span>
                         <span>
-                            {application.notes!.length} characters
-                        </span>
-                        <span>
-                            {application.notes!.split(/\s+/).filter(word => word.length > 0).length} words
-                        </span>
+              {application.notes!.split(/\s+/).filter(word => word.length > 0).length} words
+            </span>
                     </div>
                 </div>
             )}
         </Modal>
     );
-};
+});
 
-// 📝 ENHANCED NOTES ICON COMPONENT
+// Notes Icon Component
 interface NotesIconProps {
     application: Application;
     variant?: 'desktop' | 'mobile';
@@ -443,12 +499,12 @@ interface NotesIconProps {
     className?: string;
 }
 
-const NotesIcon: React.FC<NotesIconProps> = ({
-                                                 application,
-                                                 variant = 'desktop',
-                                                 onClick,
-                                                 className = ""
-                                             }) => {
+const NotesIcon: React.FC<NotesIconProps> = memo(({
+                                                      application,
+                                                      variant = 'desktop',
+                                                      onClick,
+                                                      className = ""
+                                                  }) => {
     const hasNotes = application.notes && application.notes.trim();
 
     if (variant === 'mobile') {
@@ -465,8 +521,8 @@ const NotesIcon: React.FC<NotesIconProps> = ({
             >
                 <Eye className="h-3 w-3"/>
                 <span>
-                    {hasNotes ? 'View Notes' : 'No Notes'}
-                </span>
+          {hasNotes ? 'View Notes' : 'No Notes'}
+        </span>
             </button>
         );
     }
@@ -490,98 +546,105 @@ const NotesIcon: React.FC<NotesIconProps> = ({
             )}
         </button>
     );
-};
+});
 
+// Main Component
 const MobileResponsiveApplicationTable: React.FC = () => {
     const {
         filteredApplications,
         ui,
         setSearchQuery,
-        clearSearch, // 🔧 FIXED: Using clearSearch from store
+        clearSearch,
         openEditModal,
         deleteApplication
     } = useAppStore();
 
+    // State management
     const [showRejected, setShowRejected] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-    // 📝 NOTES MODAL STATE
-    const [notesModal, setNotesModal] = useState<{
-        isOpen: boolean;
-        application: Application | null;
-    }>({
+    // Modal states
+    const [notesModal, setNotesModal] = useState<ModalState<Application>>({
         isOpen: false,
         application: null
     });
 
-    // 📄 NEW: RESUME MODAL STATE
-    const [resumeModal, setResumeModal] = useState<{
-        isOpen: boolean;
-        application: Application | null;
-    }>({
+    const [resumeModal, setResumeModal] = useState<ModalState<Application>>({
         isOpen: false,
         application: null
     });
 
-    // 📝 NOTES HANDLERS
-    const openNotesModal = useCallback((application: Application) => {
-        setNotesModal({
-            isOpen: true,
-            application
-        });
+    // Refs for cleanup
+    const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (resizeTimeoutRef.current) {
+                clearTimeout(resizeTimeoutRef.current);
+            }
+        };
     }, []);
 
-    const closeNotesModal = useCallback(() => {
-        setNotesModal({
-            isOpen: false,
-            application: null
-        });
-    }, []);
-
-    // 📄 NEW: RESUME HANDLERS
-    const openResumeModal = useCallback((application: Application) => {
-        setResumeModal({
-            isOpen: true,
-            application
-        });
-    }, []);
-
-    const closeResumeModal = useCallback(() => {
-        setResumeModal({
-            isOpen: false,
-            application: null
-        });
-    }, []);
-
-    // 🔧 OPTIMIZED: Debounced resize handler
-    React.useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
+    // Optimized resize handler
+    useEffect(() => {
         const handleResize = () => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
+            if (resizeTimeoutRef.current) {
+                clearTimeout(resizeTimeoutRef.current);
+            }
+            resizeTimeoutRef.current = setTimeout(() => {
                 setIsMobile(window.innerWidth < 768);
             }, 100);
         };
 
         window.addEventListener('resize', handleResize, {passive: true});
         return () => {
-            clearTimeout(timeoutId);
             window.removeEventListener('resize', handleResize);
+            if (resizeTimeoutRef.current) {
+                clearTimeout(resizeTimeoutRef.current);
+            }
         };
     }, []);
 
-    // 🔧 OPTIMIZED: Memoize filtered data with better dependency array
-    const {activeApplications, rejectedApplications} = useMemo(() => ({
-        activeApplications: filteredApplications.filter(app => app.status !== 'Rejected'),
-        rejectedApplications: filteredApplications.filter(app => app.status === 'Rejected')
-    }), [filteredApplications]);
+    // Modal handlers
+    const openNotesModal = useCallback((application: Application) => {
+        setNotesModal({isOpen: true, application});
+    }, []);
+
+    const closeNotesModal = useCallback(() => {
+        setNotesModal({isOpen: false, application: null});
+    }, []);
+
+    const openResumeModal = useCallback((application: Application) => {
+        setResumeModal({isOpen: true, application});
+    }, []);
+
+    const closeResumeModal = useCallback(() => {
+        setResumeModal({isOpen: false, application: null});
+    }, []);
+
+    // Optimized filtered data
+    const {activeApplications, rejectedApplications} = useMemo(() => {
+        const active: Application[] = [];
+        const rejected: Application[] = [];
+
+        filteredApplications.forEach(app => {
+            if (app.status === 'Rejected') {
+                rejected.push(app);
+            } else {
+                active.push(app);
+            }
+        });
+
+        return {activeApplications: active, rejectedApplications: rejected};
+    }, [filteredApplications]);
 
     const currentApplications = showRejected ? rejectedApplications : activeApplications;
 
-    // 🔧 OPTIMIZED: Stable pagination calculations
-    const paginationData = useMemo(() => {
+    // Pagination calculations
+    const paginationData = useMemo((): PaginationData => {
         const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
         const endIdx = startIdx + ITEMS_PER_PAGE;
         const totalPgs = Math.ceil(currentApplications.length / ITEMS_PER_PAGE);
@@ -596,19 +659,21 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         };
     }, [currentApplications, currentPage]);
 
-    // 🔧 OPTIMIZED: Stable delete handler
+    // Event handlers
     const handleDelete = useCallback(async (id: string, company: string) => {
-        if (window.confirm(`Are you sure you want to delete the application for ${company}?`)) {
-            try {
-                await deleteApplication(id);
-                setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-            } catch (error) {
-                console.error('Delete failed:', error);
-            }
+        if (!window.confirm(`Are you sure you want to delete the application for ${company}?`)) {
+            return;
+        }
+
+        try {
+            await deleteApplication(id);
+            setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+        } catch (error) {
+            console.error('Delete failed:', error);
+            // You might want to show a toast notification here
         }
     }, [deleteApplication]);
 
-    // 🔧 OPTIMIZED: Stable selection handlers
     const toggleRowSelection = useCallback((id: string) => {
         setSelectedIds(prev =>
             prev.includes(id)
@@ -631,18 +696,23 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         }
     }, [paginationData.paginatedApplications, selectedIds]);
 
-    // 🔧 OPTIMIZED: Stable format functions
-    const formatDate = useCallback((dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: isMobile ? '2-digit' : 'numeric'
-        });
+    // Utility functions
+    const formatDate = useCallback((dateString: string): string => {
+        try {
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: isMobile ? '2-digit' : 'numeric'
+            });
+        } catch (error) {
+            console.error('Date formatting error:', error);
+            return 'Invalid Date';
+        }
     }, [isMobile]);
 
-    const getStatusBadge = useCallback((status: string) => {
+    const getStatusBadge = useCallback((status: string): string => {
         const baseClasses = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wider uppercase';
         switch (status) {
             case 'Applied':
@@ -658,27 +728,26 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         }
     }, []);
 
-    // 🔧 FIXED: Search change handler for controlled input
+    // Search handlers
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
         setSearchQuery(query);
         setCurrentPage(1);
     }, [setSearchQuery]);
 
-    // 🔧 FIXED: Clear search handler
     const handleClearSearch = useCallback(() => {
         clearSearch();
         setCurrentPage(1);
     }, [clearSearch]);
 
-    // 🔧 OPTIMIZED: Stable tab switching
+    // Tab switching
     const handleTabSwitch = useCallback((rejected: boolean) => {
         setShowRejected(rejected);
         setCurrentPage(1);
         setSelectedIds([]);
     }, []);
 
-    // 🔧 OPTIMIZED: Stable pagination handlers
+    // Pagination handlers
     const goToPage = useCallback((page: number) => {
         if (page >= 1 && page <= paginationData.totalPages) {
             setCurrentPage(page);
@@ -695,29 +764,31 @@ const MobileResponsiveApplicationTable: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            {/* Search and Controls - OPTIMIZED */}
+            {/* Search and Controls */}
             <div className="space-y-4">
-                {/* 🔧 FIXED: Search - Now controlled component with proper value prop */}
+                {/* Search Input */}
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10"/>
+                    <Search
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 z-10 pointer-events-none"/>
                     <input
                         type="text"
                         placeholder="Search applications..."
-                        value={ui.searchQuery} // 🔧 FIXED: Added controlled value
+                        value={ui.searchQuery}
                         onChange={handleSearchChange}
-                        className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 dark:placeholder-gray-400 font-medium text-base placeholder:font-normal transition-colors duration-150"
+                        className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 dark:placeholder-gray-400 font-medium text-base transition-colors duration-150"
                     />
                     {ui.searchQuery && (
                         <button
-                            onClick={handleClearSearch} // 🔧 FIXED: Using proper clear handler
+                            onClick={handleClearSearch}
                             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-150"
+                            aria-label="Clear search"
                         >
                             <X className="h-4 w-4"/>
                         </button>
                     )}
                 </div>
 
-                {/* Tab Toggle - Optimized transitions */}
+                {/* Tab Toggle */}
                 <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                     <button
                         onClick={() => handleTabSwitch(false)}
@@ -750,17 +821,18 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
                     <div>
                         <span
-                            className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of <span
-                        className="font-bold">{currentApplications.length}</span> applications
+                            className="font-semibold">Showing {paginationData.showingFrom} to {paginationData.showingTo}</span> of{' '}
+                        <span className="font-bold">{currentApplications.length}</span> applications
                         {ui.searchQuery && (
-                            <div className="text-sm font-semibold text-gradient-blue mt-1 sm:mt-0 sm:ml-2 sm:inline">
+                            <div
+                                className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-1 sm:mt-0 sm:ml-2 sm:inline">
                                 (filtered from {filteredApplications.length} total)
                             </div>
                         )}
                     </div>
                     <div className="text-xs font-medium opacity-75">
-                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of <span
-                        className="font-bold">{paginationData.totalPages}</span>
+                        {ITEMS_PER_PAGE} per page • Page <span className="font-bold">{currentPage}</span> of{' '}
+                        <span className="font-bold">{paginationData.totalPages}</span>
                     </div>
                 </div>
             </div>
@@ -772,7 +844,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 onSelectionChange={setSelectedIds}
             />
 
-            {/* Content - Optimized Views */}
+            {/* Content Views */}
             {isMobile ? (
                 <MobileCardView
                     applications={paginationData.paginatedApplications}
@@ -781,7 +853,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onEdit={openEditModal}
                     onDelete={handleDelete}
                     onNotesClick={openNotesModal}
-                    onResumeClick={openResumeModal} // 📄 NEW: Resume handler
+                    onResumeClick={openResumeModal}
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
@@ -795,7 +867,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onEdit={openEditModal}
                     onDelete={handleDelete}
                     onNotesClick={openNotesModal}
-                    onResumeClick={openResumeModal} // 📄 NEW: Resume handler
+                    onResumeClick={openResumeModal}
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
@@ -805,17 +877,17 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 />
             )}
 
-            {/* Pagination - Optimized */}
+            {/* Pagination */}
             {paginationData.totalPages > 1 && (
                 <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 text-center">
-                        Page <span className="font-bold text-gradient-blue">{currentPage}</span> of <span
-                        className="font-bold">{paginationData.totalPages}</span> • <span
-                        className="font-bold">{currentApplications.length}</span> total applications
+                        Page <span className="font-bold text-blue-600 dark:text-blue-400">{currentPage}</span> of{' '}
+                        <span className="font-bold">{paginationData.totalPages}</span> •{' '}
+                        <span className="font-bold">{currentApplications.length}</span> total applications
                         {selectedIds.length > 0 && (
-                            <span className="ml-2 text-gradient-purple">
-                                • <span className="font-bold">{selectedIds.length}</span> selected
-                            </span>
+                            <span className="ml-2 text-purple-600 dark:text-purple-400">
+                • <span className="font-bold">{selectedIds.length}</span> selected
+              </span>
                         )}
                     </div>
 
@@ -832,8 +904,8 @@ const MobileResponsiveApplicationTable: React.FC = () => {
 
                         {isMobile ? (
                             <span className="px-3 py-2 text-sm font-bold text-gray-600 dark:text-gray-400">
-                                {currentPage} of {paginationData.totalPages}
-                            </span>
+                {currentPage} of {paginationData.totalPages}
+              </span>
                         ) : (
                             <div className="flex gap-1">
                                 {Array.from({length: Math.min(paginationData.totalPages, 5)}, (_, i) => {
@@ -868,14 +940,13 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 </div>
             )}
 
-            {/* 📝 ENHANCED NOTES MODAL */}
+            {/* Modals */}
             <NotesModal
                 isOpen={notesModal.isOpen}
                 onClose={closeNotesModal}
                 application={notesModal.application}
             />
 
-            {/* 📄 NEW: RESUME MODAL */}
             <ResumeModal
                 isOpen={resumeModal.isOpen}
                 onClose={closeResumeModal}
@@ -885,7 +956,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
     );
 };
 
-// 📱 ENHANCED Mobile Card View WITH NOTES & RESUME & COMPANY COLORS
+// View Components Interface
 interface ViewProps {
     applications: Application[];
     selectedIds: string[];
@@ -893,13 +964,14 @@ interface ViewProps {
     onEdit: (app: Application) => void;
     onDelete: (id: string, company: string) => void;
     onNotesClick: (app: Application) => void;
-    onResumeClick: (app: Application) => void; // 📄 NEW: Resume handler
+    onResumeClick: (app: Application) => void;
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
     searchQuery: string;
     showRejected: boolean;
 }
 
+// Mobile Card View Component
 const MobileCardView: React.FC<ViewProps> = memo(({
                                                       applications,
                                                       selectedIds,
@@ -907,12 +979,18 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                                                       onEdit,
                                                       onDelete,
                                                       onNotesClick,
-                                                      onResumeClick, // 📄 NEW: Resume handler
+                                                      onResumeClick,
                                                       formatDate,
                                                       getStatusBadge,
                                                       searchQuery,
                                                       showRejected
                                                   }) => {
+    const highlightText = useCallback((text: string) => {
+        if (!searchQuery) return text;
+        const regex = new RegExp(`(${searchQuery})`, 'gi');
+        return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
+    }, [searchQuery]);
+
     if (applications.length === 0) {
         return (
             <div className="text-center py-12 px-4">
@@ -920,13 +998,13 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                     {searchQuery ? (
                         <div className="space-y-2">
                             <Search className="h-12 w-12 mx-auto opacity-30"/>
-                            <p className="text-lg font-bold text-gradient-static">No results found</p>
+                            <p className="text-lg font-bold">No results found</p>
                             <p className="text-sm font-medium leading-relaxed">No applications match "{searchQuery}"</p>
                         </div>
                     ) : (
                         <div className="space-y-2">
                             <Paperclip className="h-12 w-12 mx-auto opacity-30"/>
-                            <p className="text-lg font-bold text-gradient-static">No {showRejected ? 'rejected' : 'active'} applications</p>
+                            <p className="text-lg font-bold">No {showRejected ? 'rejected' : 'active'} applications</p>
                             {!showRejected && (
                                 <p className="text-sm font-medium leading-relaxed">Add your first application above!</p>
                             )}
@@ -948,17 +1026,18 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                     onEdit={() => onEdit(app)}
                     onDelete={() => onDelete(app.id, app.company)}
                     onNotesClick={() => onNotesClick(app)}
-                    onResumeClick={() => onResumeClick(app)} // 📄 NEW: Resume handler
+                    onResumeClick={() => onResumeClick(app)}
                     formatDate={formatDate}
                     getStatusBadge={getStatusBadge}
                     searchQuery={searchQuery}
+                    highlightText={highlightText}
                 />
             ))}
         </div>
     );
 });
 
-// 📱 ENHANCED Application Card WITH NOTES & RESUME & COMPANY COLORS
+// Application Card Component
 interface CardProps {
     application: Application;
     isSelected: boolean;
@@ -966,10 +1045,11 @@ interface CardProps {
     onEdit: () => void;
     onDelete: () => void;
     onNotesClick: () => void;
-    onResumeClick: () => void; // 📄 NEW: Resume handler
+    onResumeClick: () => void;
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
     searchQuery: string;
+    highlightText: (text: string) => string;
 }
 
 const ApplicationCard: React.FC<CardProps> = memo(({
@@ -979,19 +1059,13 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                                                        onEdit,
                                                        onDelete,
                                                        onNotesClick,
-                                                       onResumeClick, // 📄 NEW: Resume handler
+                                                       onResumeClick,
                                                        formatDate,
                                                        getStatusBadge,
-                                                       searchQuery
+                                                       searchQuery,
+                                                       highlightText
                                                    }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-
-    const highlightText = useCallback((text: string) => {
-        if (!searchQuery) return text;
-        const regex = new RegExp(`(${searchQuery})`, 'gi');
-        return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
-    }, [searchQuery]);
-
     const companyColorClasses = getCompanyColor(application.company);
     const hasNotes = application.notes && application.notes.trim();
 
@@ -1007,64 +1081,67 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                             checked={isSelected}
                             onChange={onToggleSelection}
                             className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            aria-label={`Select application for ${application.company}`}
                         />
                         <div className="flex-1 min-w-0">
-                            {/* 🎨 COMPANY WITH COLOR INDICATOR */}
                             <div className="flex items-center gap-2 mb-1">
                                 <div
-                                    className={`w-3 h-3 rounded-full border ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
+                                    className={`w-3 h-3 rounded-full border ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
                                 <h3
-                                    className="font-extrabold text-lg text-gradient-static truncate"
-                                    dangerouslySetInnerHTML={{__html: highlightText(application.company)}}/>
+                                    className="font-extrabold text-lg text-gray-900 dark:text-gray-100 truncate"
+                                    dangerouslySetInnerHTML={{__html: highlightText(application.company)}}
+                                />
                             </div>
                             <p
                                 className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate"
-                                dangerouslySetInnerHTML={{__html: highlightText(application.position)}}/>
+                                dangerouslySetInnerHTML={{__html: highlightText(application.position)}}
+                            />
                         </div>
                     </div>
                     <span className={getStatusBadge(application.status)}>
-                        {application.status}
-                    </span>
+            {application.status}
+          </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                     <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0"/>
                         <span className="text-gray-600 dark:text-gray-400 truncate font-semibold">
-                            {formatDate(application.dateApplied)}
-                        </span>
+              {formatDate(application.dateApplied)}
+            </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
-                                application.type === 'Remote'
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                                    : application.type === 'Hybrid'
-                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                            }`}>
-                            {application.type}
-                        </span>
+            <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
+                    application.type === 'Remote'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                        : application.type === 'Hybrid'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+                }`}>
+              {application.type}
+            </span>
                     </div>
                     {application.location && (
                         <div className="flex items-center space-x-2 col-span-2">
                             <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0"/>
                             <span
                                 className="text-gray-600 dark:text-gray-400 truncate font-medium"
-                                dangerouslySetInnerHTML={{__html: highlightText(application.location)}}/>
+                                dangerouslySetInnerHTML={{__html: highlightText(application.location)}}
+                            />
                         </div>
                     )}
                     {application.salary && application.salary !== '-' && (
                         <div className="flex items-center space-x-2 col-span-2">
                             <DollarSign className="h-4 w-4 text-gray-400 flex-shrink-0"/>
                             <span className="text-gray-600 dark:text-gray-400 truncate font-semibold">
-                                {application.salary}
-                            </span>
+                {application.salary}
+              </span>
                         </div>
                     )}
                 </div>
 
-                {/* 📝 ENHANCED NOTES PREVIEW */}
+                {/* Notes Preview */}
                 {hasNotes && (
                     <div
                         className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-l-4 border-blue-500">
@@ -1093,7 +1170,7 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                                             onClick={onNotesClick}
                                             className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1 font-medium text-xs hover:underline"
                                         >
-                                            ↗ Read full notes
+                                            Read full notes
                                         </button>
                                     )}
                                 </div>
@@ -1108,18 +1185,17 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
                             className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                            aria-label={isExpanded ? "Collapse details" : "Expand details"}
                         >
                             {isExpanded ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
                         </button>
 
-                        {/* Notes Icon for mobile */}
                         <NotesIcon
                             application={application}
                             variant="mobile"
                             onClick={onNotesClick}
                         />
 
-                        {/* 📄 NEW: Resume Icon for mobile */}
                         <ResumeIcon
                             application={application}
                             variant="mobile"
@@ -1131,12 +1207,14 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                         <button
                             onClick={onEdit}
                             className="p-2 rounded-md text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
+                            aria-label="Edit application"
                         >
                             <Edit className="h-4 w-4"/>
                         </button>
                         <button
                             onClick={onDelete}
                             className="p-2 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
+                            aria-label="Delete application"
                         >
                             <Trash2 className="h-4 w-4"/>
                         </button>
@@ -1147,21 +1225,21 @@ const ApplicationCard: React.FC<CardProps> = memo(({
     );
 });
 
-// 🖥️ ENHANCED Desktop Table View WITH NOTES & RESUME & COMPANY COLORS
-const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void; }> = memo(({
-                                                                                                           applications,
-                                                                                                           selectedIds,
-                                                                                                           onToggleSelection,
-                                                                                                           onEdit,
-                                                                                                           onDelete,
-                                                                                                           onNotesClick,
-                                                                                                           onResumeClick, // 📄 NEW: Resume handler
-                                                                                                           formatDate,
-                                                                                                           getStatusBadge,
-                                                                                                           showRejected,
-                                                                                                           startIndex,
-                                                                                                           onSelectAll
-                                                                                                       }) => {
+// Desktop Table View Component
+const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void }> = memo(({
+                                                                                                          applications,
+                                                                                                          selectedIds,
+                                                                                                          onToggleSelection,
+                                                                                                          onEdit,
+                                                                                                          onDelete,
+                                                                                                          onNotesClick,
+                                                                                                          onResumeClick,
+                                                                                                          formatDate,
+                                                                                                          getStatusBadge,
+                                                                                                          showRejected,
+                                                                                                          startIndex,
+                                                                                                          onSelectAll
+                                                                                                      }) => {
     if (applications.length === 0) {
         return (
             <div
@@ -1173,7 +1251,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                             <Search className="h-8 w-8 text-gray-400"/>
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-lg font-bold text-gradient-static">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                                 No {showRejected ? 'rejected' : 'active'} applications
                             </h3>
                             <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto font-medium leading-relaxed">
@@ -1204,20 +1282,19 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 checked={allCurrentPageSelected}
                                 onChange={onSelectAll}
                                 className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                aria-label="Select all applications on this page"
                             />
                         </th>
                         <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">#</th>
                         <th className="w-24 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Date</th>
-                        <th className="px-4 py-4 text-left text-xs font-extrabold text-white uppercase tracking-widest">Company</th>
+                        <th className="px-4 py-4 text-left text-xs font-extrabold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Company</th>
                         <th className="min-w-[140px] px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Position</th>
                         <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Type</th>
                         <th className="min-w-[100px] px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Location</th>
                         <th className="w-24 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Salary</th>
                         <th className="w-20 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Source</th>
                         <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Status</th>
-                        {/* 📝 ENHANCED NOTES COLUMN */}
                         <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Notes</th>
-                        {/* 📄 NEW: RESUME COLUMN */}
                         <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Resume</th>
                         <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">URL</th>
                         <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Actions</th>
@@ -1242,6 +1319,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         checked={selectedIds.includes(app.id)}
                                         onChange={() => onToggleSelection(app.id)}
                                         className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                        aria-label={`Select application for ${app.company}`}
                                     />
                                 </td>
                                 <td className="w-16 px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400 font-bold">
@@ -1252,14 +1330,14 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         {formatDate(app.dateApplied)}
                                     </div>
                                 </td>
-                                {/* 🎨 ENHANCED COMPANY COLUMN WITH COLOR INDICATOR */}
                                 <td className="min-w-[140px] px-4 py-4 text-left">
                                     <div className="flex items-center gap-2">
                                         <div
-                                            className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}></div>
+                                            className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
                                         <div
-                                            className="text-sm font-extrabold text-gradient-static truncate max-w-[120px]"
-                                            title={app.company}>
+                                            className="text-sm font-extrabold text-gray-900 dark:text-gray-100 truncate max-w-[120px]"
+                                            title={app.company}
+                                        >
                                             {app.company}
                                         </div>
                                     </div>
@@ -1267,31 +1345,34 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 <td className="min-w-[140px] px-4 py-4 text-left">
                                     <div
                                         className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[140px]"
-                                        title={app.position}>
+                                        title={app.position}
+                                    >
                                         {app.position}
                                     </div>
                                 </td>
                                 <td className="w-20 px-4 py-4 text-center">
-                                    <span
-                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
-                                            app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
-                                                app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
-                                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                        }`}>
-                                        {app.type}
-                                    </span>
+                    <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
+                            app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
+                                app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
+                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        }`}>
+                      {app.type}
+                    </span>
                                 </td>
                                 <td className="min-w-[100px] px-4 py-4 text-left">
                                     <div
                                         className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] font-medium"
-                                        title={app.location || ''}>
+                                        title={app.location || ''}
+                                    >
                                         {app.location || <span className="text-gray-400 italic font-normal">-</span>}
                                     </div>
                                 </td>
                                 <td className="w-24 px-4 py-4 text-left">
                                     <div
                                         className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[80px] font-semibold"
-                                        title={app.salary || ''}>
+                                        title={app.salary || ''}
+                                    >
                                         {app.salary && app.salary !== '-' ? app.salary :
                                             <span className="text-gray-400 italic font-normal">-</span>}
                                     </div>
@@ -1299,23 +1380,22 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 <td className="w-20 px-4 py-4 text-left">
                                     <div
                                         className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[60px] font-medium"
-                                        title={app.jobSource || ''}>
+                                        title={app.jobSource || ''}
+                                    >
                                         {app.jobSource || <span className="text-gray-400 italic font-normal">-</span>}
                                     </div>
                                 </td>
                                 <td className="w-24 px-4 py-4 text-center">
-                                    <span className={getStatusBadge(app.status)}>
-                                        {app.status}
-                                    </span>
+                    <span className={getStatusBadge(app.status)}>
+                      {app.status}
+                    </span>
                                 </td>
-                                {/* 📝 ENHANCED NOTES COLUMN */}
                                 <td className="w-20 px-4 py-4 text-center">
                                     <NotesIcon
                                         application={app}
                                         onClick={() => onNotesClick(app)}
                                     />
                                 </td>
-                                {/* 📄 NEW: RESUME COLUMN */}
                                 <td className="w-20 px-4 py-4 text-center">
                                     <ResumeIcon
                                         application={app}
@@ -1325,9 +1405,10 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 <td className="w-16 px-4 py-4 text-center">
                                     {app.jobUrl ? (
                                         <button
-                                            onClick={() => window.open(app.jobUrl, '_blank')}
+                                            onClick={() => window.open(app.jobUrl, '_blank', 'noopener,noreferrer')}
                                             className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors duration-150"
                                             title="Open job posting"
+                                            aria-label="Open job posting in new tab"
                                         >
                                             <ExternalLink className="h-4 w-4"/>
                                         </button>
@@ -1341,6 +1422,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                             onClick={() => onEdit(app)}
                                             className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
                                             title="Edit application"
+                                            aria-label="Edit application"
                                         >
                                             <Edit className="h-3.5 w-3.5"/>
                                         </button>
@@ -1348,6 +1430,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                             onClick={() => onDelete(app.id, app.company)}
                                             className="inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
                                             title="Delete application"
+                                            aria-label="Delete application"
                                         >
                                             <Trash2 className="h-3.5 w-3.5"/>
                                         </button>
@@ -1362,5 +1445,13 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
         </div>
     );
 });
+
+// Set display names
+ResumeModal.displayName = 'ResumeModal';
+ResumeIcon.displayName = 'ResumeIcon';
+NotesModal.displayName = 'NotesModal';
+NotesIcon.displayName = 'NotesIcon';
+MobileCardView.displayName = 'MobileCardView';
+DesktopTableView.displayName = 'DesktopTableView';
 
 export default MobileResponsiveApplicationTable;

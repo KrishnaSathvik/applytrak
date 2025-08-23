@@ -11,10 +11,10 @@ import type {AnalyticsEvent, FeedbackSubmission, PrivacySettings, TrackingLevel,
 export const PRIVACY_CONFIG = {
     // Data retention periods (in days)
     DATA_RETENTION: {
-        analytics: 30,      // Analytics events retained for 30 days
-        sessions: 7,        // Session data retained for 7 days
-        feedback: 365,      // Feedback retained for 1 year
-        logs: 7            // Error logs retained for 7 days
+        analytics: 30,    // Analytics events retained for 30 days
+        sessions: 7,      // Session data retained for 7 days
+        feedback: 365,    // Feedback retained for 1 year
+        logs: 7          // Error logs retained for 7 days
     },
 
     // Consent requirements
@@ -73,34 +73,33 @@ export const TRACKING_LEVELS = {
 /**
  * Create default privacy settings
  */
-export const createDefaultPrivacySettings = (): PrivacySettings => {
-    return {
-        analytics: false,
-        feedback: false,
-        functionalCookies: true, // Always required for app functionality
-        consentDate: new Date().toISOString(),
-        consentVersion: PRIVACY_CONFIG.CONSENT.version
-    };
-};
+export const createDefaultPrivacySettings = (): PrivacySettings => ({
+    analytics: false,
+    feedback: false,
+    functionalCookies: true, // Always required for app functionality
+    consentDate: new Date().toISOString(),
+    consentVersion: PRIVACY_CONFIG.CONSENT.version
+});
 
 /**
  * Validate consent data structure
  */
-export const validateConsent = (consent: any): consent is PrivacySettings => {
+export const validateConsent = (consent: unknown): consent is PrivacySettings => {
     if (!consent || typeof consent !== 'object') return false;
 
-    const required = ['analytics', 'feedback', 'functionalCookies', 'consentDate', 'consentVersion'];
-    const hasAllRequired = required.every(key => key in consent);
+    const requiredFields = ['analytics', 'feedback', 'functionalCookies', 'consentDate', 'consentVersion'];
+    const consentObj = consent as Record<string, unknown>;
 
+    const hasAllRequired = requiredFields.every(key => key in consentObj);
     if (!hasAllRequired) return false;
 
     // Type check the properties
     return (
-        typeof consent.analytics === 'boolean' &&
-        typeof consent.feedback === 'boolean' &&
-        typeof consent.functionalCookies === 'boolean' &&
-        typeof consent.consentDate === 'string' &&
-        typeof consent.consentVersion === 'string'
+        typeof consentObj.analytics === 'boolean' &&
+        typeof consentObj.feedback === 'boolean' &&
+        typeof consentObj.functionalCookies === 'boolean' &&
+        typeof consentObj.consentDate === 'string' &&
+        typeof consentObj.consentVersion === 'string'
     );
 };
 
@@ -124,14 +123,12 @@ export const isConsentValid = (consentDate: string): boolean => {
 /**
  * Check if user has given valid consent for analytics
  */
-export const hasValidAnalyticsConsent = (settings: PrivacySettings): boolean => {
-    return (
-        settings.analytics === true &&
-        Boolean(settings.consentDate) &&
-        isConsentValid(settings.consentDate) &&
-        settings.consentVersion === PRIVACY_CONFIG.CONSENT.version
-    );
-};
+export const hasValidAnalyticsConsent = (settings: PrivacySettings): boolean => (
+    settings.analytics === true &&
+    Boolean(settings.consentDate) &&
+    isConsentValid(settings.consentDate) &&
+    settings.consentVersion === PRIVACY_CONFIG.CONSENT.version
+);
 
 /**
  * Check if user has opted out globally
@@ -183,7 +180,7 @@ export const anonymizeIP = (ip: string): string => {
     if (ip.includes(':')) {
         const parts = ip.split(':');
         if (parts.length >= 4) {
-            return parts.slice(0, -2).join(':') + '::';
+            return `${parts.slice(0, -2).join(':')}::`;
         }
     }
 
@@ -250,10 +247,10 @@ export const anonymizeAnalyticsEvent = (event: AnalyticsEvent): AnalyticsEvent =
 };
 
 /**
- * Anonymize event properties
+ * Anonymize event properties recursively
  */
-export const anonymizeEventProperties = (properties: Record<string, any>): Record<string, any> => {
-    const anonymized: Record<string, any> = {};
+export const anonymizeEventProperties = (properties: Record<string, unknown>): Record<string, unknown> => {
+    const anonymized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(properties)) {
         if (typeof value === 'string') {
@@ -266,7 +263,7 @@ export const anonymizeEventProperties = (properties: Record<string, any>): Recor
             );
         } else if (typeof value === 'object' && value !== null) {
             // Recursively anonymize object properties
-            anonymized[key] = anonymizeEventProperties(value);
+            anonymized[key] = anonymizeEventProperties(value as Record<string, unknown>);
         } else {
             // Keep primitive values as-is
             anonymized[key] = value;
@@ -284,9 +281,9 @@ export const anonymizeEventProperties = (properties: Record<string, any>): Recor
  * Apply data minimization based on tracking level
  */
 export const minimizeDataByTrackingLevel = (
-    data: any,
+    data: unknown,
     trackingLevel: TrackingLevel
-): any => {
+): unknown => {
     if (!data) return data;
 
     switch (trackingLevel) {
@@ -304,20 +301,21 @@ export const minimizeDataByTrackingLevel = (
 /**
  * Minimize data to essential only
  */
-export const minimizeToEssential = (data: any): any => {
+export const minimizeToEssential = (data: unknown): unknown => {
     if (Array.isArray(data)) {
         return data.slice(0, 10); // Limit array size
     }
 
     if (typeof data === 'object' && data !== null) {
-        const essential: any = {};
+        const essential: Record<string, unknown> = {};
+        const dataObj = data as Record<string, unknown>;
 
         // Only keep essential fields
         const essentialFields = ['id', 'timestamp', 'event', 'sessionId'];
 
         for (const field of essentialFields) {
-            if (field in data) {
-                essential[field] = data[field];
+            if (field in dataObj) {
+                essential[field] = dataObj[field];
             }
         }
 
@@ -330,13 +328,14 @@ export const minimizeToEssential = (data: any): any => {
 /**
  * Minimize data to standard level
  */
-export const minimizeToStandard = (data: any): any => {
+export const minimizeToStandard = (data: unknown): unknown => {
     if (Array.isArray(data)) {
         return data.slice(0, 50); // Larger limit for standard tracking
     }
 
     if (typeof data === 'object' && data !== null) {
-        const standard: any = {};
+        const standard: Record<string, unknown> = {};
+        const dataObj = data as Record<string, unknown>;
 
         // Keep standard fields
         const standardFields = [
@@ -345,13 +344,13 @@ export const minimizeToStandard = (data: any): any => {
         ];
 
         for (const field of standardFields) {
-            if (field in data) {
-                if (field === 'userAgent') {
-                    standard[field] = anonymizeUserAgent(data[field]);
-                } else if (field === 'properties' && typeof data[field] === 'object') {
-                    standard[field] = anonymizeEventProperties(data[field]);
+            if (field in dataObj) {
+                if (field === 'userAgent' && typeof dataObj[field] === 'string') {
+                    standard[field] = anonymizeUserAgent(dataObj[field] as string);
+                } else if (field === 'properties' && typeof dataObj[field] === 'object' && dataObj[field] !== null) {
+                    standard[field] = anonymizeEventProperties(dataObj[field] as Record<string, unknown>);
                 } else {
-                    standard[field] = data[field];
+                    standard[field] = dataObj[field];
                 }
             }
         }
@@ -366,16 +365,18 @@ export const minimizeToStandard = (data: any): any => {
 // DATA SUBJECT RIGHTS (GDPR)
 // ============================================================================
 
-/**
- * Export user data for data portability (GDPR Article 20)
- */
-export const exportUserData = async (): Promise<{
+interface ExportedUserData {
     analytics: AnalyticsEvent[];
     sessions: UserSession[];
     feedback: FeedbackSubmission[];
     settings: PrivacySettings;
     exportDate: string;
-}> => {
+}
+
+/**
+ * Export user data for data portability (GDPR Article 20)
+ */
+export const exportUserData = async (): Promise<ExportedUserData> => {
     try {
         // This would integrate with your data services
         const analytics: AnalyticsEvent[] = []; // Get from analytics service
@@ -421,14 +422,19 @@ export const deleteAllUserData = async (): Promise<void> => {
     }
 };
 
+interface DataSubjectRequest {
+    type: 'access' | 'portability' | 'erasure' | 'rectification';
+    timestamp: string;
+    status: 'completed';
+}
+
 /**
  * Log data subject rights request
  */
-export const logDataSubjectRequest = (requestType: 'access' | 'portability' | 'erasure' | 'rectification'): void => {
+export const logDataSubjectRequest = (requestType: DataSubjectRequest['type']): void => {
     try {
-        const requests = JSON.parse(
-            localStorage.getItem(PRIVACY_CONFIG.STORAGE_KEYS.dataSubject) || '[]'
-        );
+        const existingData = localStorage.getItem(PRIVACY_CONFIG.STORAGE_KEYS.dataSubject);
+        const requests: DataSubjectRequest[] = existingData ? JSON.parse(existingData) : [];
 
         requests.push({
             type: requestType,
@@ -458,7 +464,8 @@ export const logDataSubjectRequest = (requestType: 'access' | 'portability' | 'e
 export const areCookiesEnabled = (): boolean => {
     try {
         // Test cookie functionality
-        document.cookie = 'testcookie=1; SameSite=Strict';
+        const testCookie = 'testcookie=1; SameSite=Strict';
+        document.cookie = testCookie;
         const enabled = document.cookie.indexOf('testcookie=1') !== -1;
 
         // Clean up test cookie
@@ -470,14 +477,16 @@ export const areCookiesEnabled = (): boolean => {
     }
 };
 
-/**
- * Get cookie consent status
- */
-export const getCookieConsentStatus = (): {
+interface CookieConsentStatus {
     functional: boolean;
     analytics: boolean;
     marketing: boolean;
-} => {
+}
+
+/**
+ * Get cookie consent status
+ */
+export const getCookieConsentStatus = (): CookieConsentStatus => {
     try {
         const consent = localStorage.getItem(PRIVACY_CONFIG.STORAGE_KEYS.consent);
         if (!consent) {
@@ -499,14 +508,16 @@ export const getCookieConsentStatus = (): {
 // PRIVACY UTILITY FUNCTIONS
 // ============================================================================
 
-/**
- * Generate privacy compliance report
- */
-export const generatePrivacyReport = (): {
+interface PrivacyReport {
     complianceScore: number;
     issues: string[];
     recommendations: string[];
-} => {
+}
+
+/**
+ * Generate privacy compliance report
+ */
+export const generatePrivacyReport = (): PrivacyReport => {
     const issues: string[] = [];
     const recommendations: string[] = [];
     let score = 100;
@@ -546,8 +557,8 @@ export const isDoNotTrackEnabled = (): boolean => {
     try {
         // navigator.doNotTrack can be '1', '0', 'unspecified', null, or undefined
         const dnt = navigator.doNotTrack;
-        const windowDnt = (window as any).doNotTrack;
-        const msDnt = (navigator as any).msDoNotTrack;
+        const windowDnt = (window as unknown as { doNotTrack?: string }).doNotTrack;
+        const msDnt = (navigator as unknown as { msDoNotTrack?: string }).msDoNotTrack;
 
         // Check all possible DoNotTrack implementations
         // Convert to string for consistent comparison since the property can be string or boolean
@@ -566,10 +577,12 @@ export const isDoNotTrackEnabled = (): boolean => {
     }
 };
 
+type PrivacyLevel = 'high' | 'medium' | 'low';
+
 /**
  * Get browser privacy level
  */
-export const getBrowserPrivacyLevel = (): 'high' | 'medium' | 'low' => {
+export const getBrowserPrivacyLevel = (): PrivacyLevel => {
     let score = 0;
 
     // Check for Do Not Track
@@ -638,6 +651,6 @@ export const privacyUtils = {
     generatePrivacyReport,
     isDoNotTrackEnabled,
     getBrowserPrivacyLevel
-};
+} as const;
 
 export default privacyUtils;

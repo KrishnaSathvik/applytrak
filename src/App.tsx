@@ -1,4 +1,4 @@
-// src/App.tsx - ENHANCED WITH AUTOMATIC ADMIN DETECTION AFTER LOGIN
+// src/App.tsx - Production Ready Application Entry Point with Privacy Integration
 import React, {useEffect, useState} from 'react';
 import {useAppStore} from './store/useAppStore';
 import Layout from './components/layout/Layout';
@@ -7,51 +7,44 @@ import LoadingScreen from './components/ui/LoadingScreen';
 import {setupAutoBackup} from './utils/backup';
 import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
-import './styles/globals.css';
-import RealtimeSyncDebugger from './components/RealtimeSyncDebugger';
 import {verifyDatabaseAdmin} from './utils/adminAuth';
-import DatabaseDebugTester from './components/DatabaseDebugTester';
-import {Route} from "lucide-react";
-import { testDatabase } from './testDatabase';
-
+import PrivacySettingsModal from './components/modals/PrivacySettingsModal';
+import './styles/globals.css';
 
 // ============================================================================
-// LAZY LOADED COMPONENTS - Performance optimization
+// LAZY LOADED COMPONENTS - Performance Optimization
 // ============================================================================
 
-// 📊 Core Application Components
+// Core Application Components
 const ApplicationForm = React.lazy(() => import('./components/forms/ApplicationForm'));
 const MobileResponsiveApplicationTable = React.lazy(() => import('./components/tables/MobileResponsiveApplicationTable'));
 const GoalTracker = React.lazy(() => import('./components/ui/GoalTracker'));
 const AnalyticsDashboard = React.lazy(() => import('./components/charts/AnalyticsDashboard'));
 
-// 🎭 Modal Components
+// Modal Components
 const EditApplicationModal = React.lazy(() => import('./components/modals/EditApplicationModal'));
 const GoalModal = React.lazy(() => import('./components/modals/GoalModal'));
 const MilestoneModal = React.lazy(() => import('./components/modals/MilestoneModal'));
 const RecoveryModal = React.lazy(() => import('./components/modals/RecoveryModal'));
 const FeedbackModal = React.lazy(() => import('./components/modals/FeedbackModal'));
-const ConsentModal = React.lazy(() => import('./components/modals/ConsentModal'));
 
-// 🔧 Utility Components
+
+// Utility Components
 const ExportImportActions = React.lazy(() => import('./components/ui/ExportImportActions'));
 const RecoveryAlert = React.lazy(() => import('./components/ui/RecoveryAlert'));
 const ErrorBoundary = React.lazy(() => import('./components/ui/ErrorBoundary'));
 const BackupStatus = React.lazy(() => import('./components/ui/BackupStatus'));
 
-// 🔑 Admin & Authentication Components
+// Admin Components
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
-const AdminLogin = React.lazy(() => import('./components/admin/AdminLogin'));
 const AuthModal = React.lazy(() => import('./components/auth/AuthModal'));
-
-// ✨ NEW: Phase 1.5 - Dedicated Admin Page
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 
 // ============================================================================
-// ENHANCED TABLE LOADING COMPONENT - Performance optimized fallback
+// LOADING FALLBACK COMPONENTS
 // ============================================================================
 
-const TableLoadingFallback = () => (
+const TableLoadingFallback: React.FC = () => (
     <div className="glass-card">
         <div className="space-y-4 animate-pulse">
             {/* Header Loading */}
@@ -85,18 +78,20 @@ const TableLoadingFallback = () => (
                             ))}
                         </div>
                     </div>
-                    {/* Desktop Table Rows */}
                     <div className="space-y-0">
                         {[...Array(5)].map((_, i) => (
                             <div key={i}
                                  className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                 <div className="flex gap-4 items-center">
                                     {[...Array(7)].map((_, j) => (
-                                        <div key={j} className={`h-4 rounded flex-1 animate-pulse ${
-                                            j === 0 ? 'bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600' :
-                                                j === 2 ? 'bg-gradient-to-r from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600' :
-                                                    'bg-gray-200 dark:bg-gray-700'
-                                        }`}></div>
+                                        <div
+                                            key={j}
+                                            className={`h-4 rounded flex-1 animate-pulse ${
+                                                j === 0 ? 'bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600' :
+                                                    j === 2 ? 'bg-gradient-to-r from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600' :
+                                                        'bg-gray-200 dark:bg-gray-700'
+                                            }`}
+                                        ></div>
                                     ))}
                                 </div>
                             </div>
@@ -131,9 +126,12 @@ const TableLoadingFallback = () => (
                     className="h-5 bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-700 dark:to-purple-700 rounded-lg w-full sm:w-48 animate-pulse"></div>
                 <div className="flex gap-2">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className={`h-10 w-10 rounded-lg animate-pulse ${
-                            i === 2 ? 'bg-gradient-to-br from-blue-400 to-blue-500' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}></div>
+                        <div
+                            key={i}
+                            className={`h-10 w-10 rounded-lg animate-pulse ${
+                                i === 2 ? 'bg-gradient-to-br from-blue-400 to-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                        ></div>
                     ))}
                 </div>
             </div>
@@ -142,15 +140,16 @@ const TableLoadingFallback = () => (
 );
 
 // ============================================================================
-// ENHANCED TRACKER TAB COMPONENT - Core application functionality
+// TRACKER TAB COMPONENT
 // ============================================================================
 
 const TrackerTab: React.FC = () => {
     const {applications, bulkAddApplications} = useAppStore();
 
-    // 📢 Toast notification system
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-        console.log(`Toast [${type.toUpperCase()}]: ${message}`);
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`Toast [${type.toUpperCase()}]: ${message}`);
+        }
 
         // Browser notification integration
         if ('Notification' in window && Notification.permission === 'granted') {
@@ -161,14 +160,12 @@ const TrackerTab: React.FC = () => {
         }
     };
 
-    // 📥 Import handler with error handling
     const handleImportApplications = async (importedApplications: Application[]) => {
         try {
             if (!Array.isArray(importedApplications) || importedApplications.length === 0) {
                 throw new Error('No valid applications found in the import file');
             }
 
-            // Clean imported data (remove IDs to prevent conflicts)
             const applicationsToAdd = importedApplications.map(app => {
                 const {id, createdAt, updatedAt, ...appData} = app;
                 return appData;
@@ -177,19 +174,19 @@ const TrackerTab: React.FC = () => {
             await bulkAddApplications(applicationsToAdd);
             showToast(`Successfully imported ${applicationsToAdd.length} applications`, 'success');
         } catch (error) {
-            console.error('Import failed:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.error('Import failed:', error);
+            }
             showToast('Import failed: ' + (error as Error).message, 'error');
         }
     };
 
-    // 🔄 Backup restoration handler
     const handleRestoreFromBackup = (restoredApplications: Application[]) => {
         try {
             if (!Array.isArray(restoredApplications) || restoredApplications.length === 0) {
                 throw new Error('No valid applications found in backup');
             }
 
-            // Clean backup data for restoration
             const applicationsToAdd = restoredApplications.map(app => {
                 const {id, createdAt, updatedAt, ...appData} = app;
                 return appData;
@@ -198,18 +195,19 @@ const TrackerTab: React.FC = () => {
             bulkAddApplications(applicationsToAdd);
             showToast(`Successfully restored ${applicationsToAdd.length} applications from backup`, 'success');
         } catch (error) {
-            console.error('Restore failed:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.error('Restore failed:', error);
+            }
             showToast('Restore failed: ' + (error as Error).message, 'error');
         }
     };
 
     return (
         <div className="space-y-8 sm:space-y-10">
-            {/* 🎯 Hero Section - Application overview and key metrics */}
+            {/* Hero Section */}
             <div
                 className="glass-card bg-gradient-to-br from-primary-500/10 via-secondary-500/10 to-primary-600/10 border-2 border-primary-200/30 dark:border-primary-700/30 shadow-xl">
                 <div className="flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between">
-                    {/* Main Title and Description */}
                     <div className="space-y-4 sm:space-y-6">
                         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-static tracking-tight leading-none text-shadow-lg animate-text-shimmer">
                             🚀 Application Tracker
@@ -222,7 +220,6 @@ const TrackerTab: React.FC = () => {
 
                         {/* Key Metrics Display */}
                         <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:gap-6 pt-4">
-                            {/* Total Applications */}
                             <div
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
                                 <span className="text-2xl animate-bounce-gentle">📊</span>
@@ -237,14 +234,11 @@ const TrackerTab: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Items Per Page */}
                             <div
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
                                 <span className="text-2xl">📄</span>
                                 <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-blue">
-                                        15
-                                    </div>
+                                    <div className="text-lg font-extrabold text-gradient-blue">15</div>
                                     <div
                                         className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
                                         Per Page
@@ -252,14 +246,11 @@ const TrackerTab: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Performance Indicator */}
                             <div
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
                                 <span className="text-2xl animate-ping-light">⚡</span>
                                 <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-purple">
-                                        Fast
-                                    </div>
+                                    <div className="text-lg font-extrabold text-gradient-purple">Fast</div>
                                     <div
                                         className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
                                         Navigation
@@ -267,14 +258,11 @@ const TrackerTab: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Smart Goals */}
                             <div
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
                                 <span className="text-2xl animate-spin-slow">🎯</span>
                                 <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-static">
-                                        Smart
-                                    </div>
+                                    <div className="text-lg font-extrabold text-gradient-static">Smart</div>
                                     <div
                                         className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
                                         Goals
@@ -284,7 +272,6 @@ const TrackerTab: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Export/Import Actions */}
                     <div className="flex-shrink-0">
                         <React.Suspense fallback={
                             <div
@@ -299,7 +286,7 @@ const TrackerTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* 💾 Backup Status Component */}
+            {/* Backup Status Component */}
             <React.Suspense fallback={
                 <div
                     className="bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/20 dark:to-green-900/20 h-32 rounded-2xl animate-pulse shadow-lg"/>
@@ -311,12 +298,12 @@ const TrackerTab: React.FC = () => {
                 />
             </React.Suspense>
 
-            {/* 🔄 Recovery Alert System */}
+            {/* Recovery Alert System */}
             <React.Suspense fallback={null}>
                 <RecoveryAlert/>
             </React.Suspense>
 
-            {/* 🎯 Goal Tracking Component */}
+            {/* Goal Tracking Component */}
             <React.Suspense fallback={
                 <div
                     className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 h-48 sm:h-56 rounded-2xl animate-pulse shadow-lg"/>
@@ -324,7 +311,7 @@ const TrackerTab: React.FC = () => {
                 <GoalTracker/>
             </React.Suspense>
 
-            {/* 📝 Application Form */}
+            {/* Application Form */}
             <React.Suspense fallback={
                 <div
                     className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 h-96 sm:h-[28rem] rounded-2xl animate-pulse shadow-lg"/>
@@ -332,7 +319,7 @@ const TrackerTab: React.FC = () => {
                 <ApplicationForm/>
             </React.Suspense>
 
-            {/* 📊 Application Table - Main data display */}
+            {/* Application Table */}
             <React.Suspense fallback={<TableLoadingFallback/>}>
                 <div className="responsive-table">
                     <MobileResponsiveApplicationTable/>
@@ -343,17 +330,18 @@ const TrackerTab: React.FC = () => {
 };
 
 // ============================================================================
-// ENHANCED ANALYTICS TAB COMPONENT - Data insights and metrics
+// ANALYTICS TAB COMPONENT
 // ============================================================================
 
 const AnalyticsTab: React.FC = () => {
+    const {privacySettings} = useAppStore();
+
     return (
         <div className="space-y-8 sm:space-y-10">
-            {/* 📈 Analytics Hero Section */}
+            {/* Analytics Hero Section */}
             <div
                 className="glass-card bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-600/10 border-2 border-blue-200/30 dark:border-blue-700/30 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                    {/* Analytics Title and Description */}
                     <div className="space-y-4 sm:space-y-6">
                         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-blue tracking-tight leading-none text-shadow-lg animate-text-shimmer">
                             📊 Analytics
@@ -366,7 +354,6 @@ const AnalyticsTab: React.FC = () => {
 
                         {/* Analytics Feature Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                            {/* Success Metrics */}
                             <div
                                 className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
                                 <span className="text-2xl animate-bounce-gentle">📈</span>
@@ -382,7 +369,6 @@ const AnalyticsTab: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Performance Analytics */}
                             <div
                                 className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
                                 <span className="text-2xl animate-pulse">🎯</span>
@@ -398,7 +384,6 @@ const AnalyticsTab: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Timeline View */}
                             <div
                                 className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
                                 <span className="text-2xl animate-spin-slow">📅</span>
@@ -416,7 +401,6 @@ const AnalyticsTab: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Analytics Icon Display */}
                     <div
                         className="glass rounded-2xl p-6 sm:p-8 self-center sm:self-auto shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/30 dark:border-blue-700/30">
                         <span className="text-4xl sm:text-6xl animate-float filter drop-shadow-lg">📊</span>
@@ -424,19 +408,38 @@ const AnalyticsTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* 📊 Analytics Dashboard Component */}
-            <React.Suspense fallback={
-                <div
-                    className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 h-96 sm:h-[32rem] rounded-2xl animate-pulse shadow-lg"/>
-            }>
-                <AnalyticsDashboard/>
-            </React.Suspense>
+            {/* Analytics Dashboard Component - Only show if user has consented */}
+            {privacySettings?.analytics ? (
+                <React.Suspense fallback={
+                    <div
+                        className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 h-96 sm:h-[32rem] rounded-2xl animate-pulse shadow-lg"/>
+                }>
+                    <AnalyticsDashboard/>
+                </React.Suspense>
+            ) : (
+                <div className="glass-card text-center space-y-4 py-12">
+                    <div className="text-6xl">🔒</div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        Analytics Disabled
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                        Analytics are currently disabled in your privacy settings. Enable analytics to see insights
+                        about your job search progress.
+                    </p>
+                    <button
+                        onClick={() => useAppStore.getState().openPrivacySettings()}
+                        className="btn btn-primary"
+                    >
+                        Update Privacy Settings
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
 
 // ============================================================================
-// ERROR SCREEN COMPONENT - Graceful error handling
+// ERROR SCREEN COMPONENT
 // ============================================================================
 
 const ErrorScreen: React.FC<{ error: string }> = ({error}) => (
@@ -444,12 +447,10 @@ const ErrorScreen: React.FC<{ error: string }> = ({error}) => (
         className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 p-4">
         <div
             className="text-center max-w-sm sm:max-w-md glass-card w-full shadow-2xl bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-red-900/20">
-            {/* Error Icon */}
             <div className="text-red-500 text-6xl sm:text-8xl mb-6 sm:mb-8 animate-bounce-gentle filter drop-shadow-lg">
                 ⚠️
             </div>
 
-            {/* Error Message */}
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6 text-shadow tracking-tight text-gradient-static">
                 Something went wrong
             </h2>
@@ -458,7 +459,6 @@ const ErrorScreen: React.FC<{ error: string }> = ({error}) => (
                 {error}
             </p>
 
-            {/* Reload Button */}
             <button
                 onClick={() => window.location.reload()}
                 className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold tracking-wide px-8 py-4 rounded-xl text-lg shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-200 w-full sm:w-auto border-2 border-red-400/20"
@@ -470,7 +470,7 @@ const ErrorScreen: React.FC<{ error: string }> = ({error}) => (
 );
 
 // ============================================================================
-// MAIN APP COMPONENT - ENHANCED WITH AUTOMATIC ADMIN DETECTION AFTER LOGIN
+// MAIN APP COMPONENT
 // ============================================================================
 
 const App: React.FC = () => {
@@ -478,36 +478,34 @@ const App: React.FC = () => {
         ui,
         applications,
         auth,
+        modals,
         loadApplications,
         loadGoals,
         setTheme,
         calculateProgress,
         calculateAnalytics,
         showToast,
-        initializeAuth
+        initializeAuth,
+        // NEW: Privacy-related state
+        privacySettings,
+        loadUserPrivacySettings
     } = useAppStore();
 
-    // ✨ NEW: Phase 1.5 - Admin Route State Management
     const [currentRoute, setCurrentRoute] = useState(() => window.location.pathname);
 
-    // 🔧 Check if admin dashboard should be shown
     const isAdminDashboardOpen = ui?.admin?.dashboardOpen && ui?.admin?.authenticated;
-
-    // ✨ NEW: Check if we're on the admin route
     const isOnAdminRoute = currentRoute === '/admin';
 
     // ============================================================================
-    // ✨ NEW: Phase 1.5 - Route Change Detection + Automatic Admin Detection
+    // ROUTE CHANGE DETECTION
     // ============================================================================
-    useEffect(() => {
-        testDatabase();
-    }, []);
-
     useEffect(() => {
         const handleRouteChange = () => {
             const newRoute = window.location.pathname;
             setCurrentRoute(newRoute);
-            console.log('🔄 Route changed to:', newRoute);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Route changed to:', newRoute);
+            }
         };
 
         const handlePopState = () => {
@@ -518,17 +516,15 @@ const App: React.FC = () => {
             const customEvent = event as CustomEvent;
             if (customEvent.detail?.path) {
                 setCurrentRoute(customEvent.detail.path);
-                console.log('🔄 Admin route change detected:', customEvent.detail.path);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Admin route change detected:', customEvent.detail.path);
+                }
             }
         };
 
-        // Listen for browser navigation
         window.addEventListener('popstate', handlePopState);
-
-        // Listen for custom admin route change events
         window.addEventListener('adminRouteChange', handleAdminRouteChange);
 
-        // Cleanup listeners
         return () => {
             window.removeEventListener('popstate', handlePopState);
             window.removeEventListener('adminRouteChange', handleAdminRouteChange);
@@ -536,20 +532,36 @@ const App: React.FC = () => {
     }, []);
 
     // ============================================================================
-    // ✨ NEW: AUTOMATIC ADMIN DETECTION AFTER LOGIN
-    // ============================================================================
-    // ============================================================================
-    // ✨ NEW: AUTOMATIC ADMIN DETECTION AFTER LOGIN + LOGOUT HANDLING
-    // ============================================================================
-    // ============================================================================
-    // ✨ NEW: ENHANCED ADMIN LOGOUT HANDLER
+    // PRIVACY SETTINGS INITIALIZATION - NEW
     // ============================================================================
     useEffect(() => {
-        // Create a custom admin logout handler
-        const handleAdminLogout = () => {
-            console.log('🔓 Admin logout requested - resetting admin state and signing out');
+        const initializePrivacySettings = async () => {
+            if (!auth.isAuthenticated || !auth.user || privacySettings) return;
 
-            // Reset admin state first
+            try {
+                await loadUserPrivacySettings();
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Privacy settings loaded for authenticated user');
+                }
+            } catch (error) {
+                console.error('Failed to load privacy settings:', error);
+            }
+        };
+
+        if (auth.isAuthenticated && auth.user && !privacySettings) {
+            initializePrivacySettings();
+        }
+    }, [auth.isAuthenticated, auth.user, privacySettings, loadUserPrivacySettings]);
+
+    // ============================================================================
+    // ADMIN LOGOUT HANDLER
+    // ============================================================================
+    useEffect(() => {
+        const handleAdminLogout = () => {
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Admin logout requested - resetting admin state and signing out');
+            }
+
             useAppStore.setState(state => ({
                 ui: {
                     ...state.ui,
@@ -561,11 +573,9 @@ const App: React.FC = () => {
                 }
             }));
 
-            // Then sign out
             useAppStore.getState().signOut();
         };
 
-        // Make logout handler available globally for admin components
         (window as any).__admin_logout = handleAdminLogout;
 
         return () => {
@@ -574,14 +584,15 @@ const App: React.FC = () => {
     }, []);
 
     // ============================================================================
-    // ✨ NEW: AUTOMATIC ADMIN DETECTION AFTER LOGIN + ENHANCED LOGOUT HANDLING
+    // AUTOMATIC ADMIN DETECTION AFTER LOGIN
     // ============================================================================
     useEffect(() => {
         const checkAndRedirectAdmin = async () => {
-            // ENHANCED: If user logged out, reset admin state immediately
             if (!auth.isAuthenticated) {
                 if (ui.admin.dashboardOpen || ui.admin.authenticated) {
-                    console.log('🔓 User logged out - resetting admin state');
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('User logged out - resetting admin state');
+                    }
                     useAppStore.setState(state => ({
                         ui: {
                             ...state.ui,
@@ -596,7 +607,6 @@ const App: React.FC = () => {
                 return;
             }
 
-            // Only check if user just authenticated and not already on admin
             if (
                 auth.isAuthenticated &&
                 auth.user &&
@@ -604,16 +614,18 @@ const App: React.FC = () => {
                 !ui.admin.dashboardOpen &&
                 !auth.isLoading
             ) {
-                console.log('🔍 Checking if authenticated user is admin:', auth.user.email);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Checking if authenticated user is admin:', auth.user.email);
+                }
 
                 try {
-                    // Check if user is admin in database
                     const isAdmin = await verifyDatabaseAdmin(auth.user.id, auth.user.email);
 
                     if (isAdmin) {
-                        console.log('✅ Admin detected! Auto-redirecting to admin dashboard...');
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log('Admin detected! Auto-redirecting to admin dashboard...');
+                        }
 
-                        // Set admin state and open dashboard
                         useAppStore.setState(state => ({
                             ui: {
                                 ...state.ui,
@@ -626,25 +638,28 @@ const App: React.FC = () => {
                             }
                         }));
 
-                        // Show welcome message
                         showToast({
                             type: 'success',
                             message: '🔑 Welcome to ApplyTrak Admin Dashboard',
                             duration: 4000
                         });
 
-                        console.log('🎯 Admin user automatically redirected to dashboard');
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log('Admin user automatically redirected to dashboard');
+                        }
                     } else {
-                        console.log('👤 Regular user - staying on main application');
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log('Regular user - staying on main application');
+                        }
                     }
                 } catch (error) {
-                    console.error('❌ Error checking admin status:', error);
-                    // Fail silently - user stays on main app
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error('Error checking admin status:', error);
+                    }
                 }
             }
         };
 
-        // Run immediately, no delay for logout detection
         checkAndRedirectAdmin();
     }, [
         auth.isAuthenticated,
@@ -656,113 +671,89 @@ const App: React.FC = () => {
     ]);
 
     // ============================================================================
-    // 🚀 ENHANCED APP INITIALIZATION
+    // APP INITIALIZATION
     // ============================================================================
-
     useEffect(() => {
         const initializeApp = async () => {
             try {
-                console.log('🚀 Starting ApplyTrak initialization...');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Starting ApplyTrak initialization...');
+                }
 
-                // ============================================================================
-                // 📊 STEP 1: Initialize Database System
-                // ============================================================================
-                console.log('📊 Initializing database...');
+                // Initialize Database System
                 await initializeDatabase();
-                console.log('✅ Database initialized successfully');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Database initialized successfully');
+                }
 
-                // ============================================================================
-                // 🎨 STEP 2: Theme System Setup
-                // ============================================================================
-                console.log('🎨 Setting up theme system...');
-
-                // Load saved theme or detect system preference
+                // Theme System Setup
                 const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
                 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 const initialTheme = savedTheme || systemTheme;
 
-                // Apply theme to app
                 setTheme(initialTheme);
                 const isDark = initialTheme === 'dark';
                 document.documentElement.classList.toggle('dark', isDark);
                 document.body.classList.toggle('dark', isDark);
                 document.documentElement.style.colorScheme = initialTheme;
 
-                // Update meta theme color for mobile browsers
                 const metaThemeColor = document.querySelector('meta[name="theme-color"]');
                 if (metaThemeColor) {
                     metaThemeColor.setAttribute('content', isDark ? '#1f2937' : '#ffffff');
                 }
 
-                // Save theme if it wasn't already saved
                 if (!savedTheme) {
                     localStorage.setItem('theme', initialTheme);
                 }
-                console.log(`✅ Theme system initialized: ${initialTheme} mode`);
 
-                // ============================================================================
-                // 🔐 STEP 3: Initialize Authentication System
-                // ============================================================================
-                console.log('🔐 Initializing authentication system...');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log(`Theme system initialized: ${initialTheme} mode`);
+                }
+
+                // Initialize Authentication System
                 await initializeAuth();
-                console.log('✅ Authentication system initialized');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Authentication system initialized');
+                }
 
-                // ============================================================================
-                // 📄 STEP 4: Load Application Data (Skip if admin route or admin dashboard)
-                // ============================================================================
+                // Load Application Data (Skip if admin route or admin dashboard)
                 if (!isOnAdminRoute && !isAdminDashboardOpen) {
-                    console.log('📄 Loading application data...');
                     await Promise.all([
                         loadApplications(),
                         loadGoals()
                     ]);
-                    console.log('✅ Application data loaded successfully');
 
-                    // ============================================================================
-                    // 📊 STEP 5: Calculate Metrics and Analytics
-                    // ============================================================================
-                    console.log('📊 Calculating metrics and analytics...');
                     calculateProgress();
                     calculateAnalytics();
-                    console.log('✅ Metrics and analytics calculated');
-                } else {
-                    console.log('⏭️ Skipping app data loading - on admin route or admin dashboard');
+
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Application data loaded and metrics calculated');
+                    }
                 }
 
-                // ============================================================================
-                // 🔑 STEP 6: Initialize Admin Routes
-                // ============================================================================
-                console.log('🔑 Initializing admin routes...');
+                // Initialize Admin Routes
                 const adminCleanup = initializeAdminRoutes();
-                console.log('✅ Admin routes initialized');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Admin routes initialized');
+                }
 
-                // ============================================================================
-                // 💾 STEP 7: Setup Auto-Backup System (Skip if admin route or admin dashboard)
-                // ============================================================================
+                // Setup Auto-Backup System (Skip if admin route or admin dashboard)
                 let backupCleanup: (() => void) | undefined;
                 if (!isOnAdminRoute && !isAdminDashboardOpen) {
-                    console.log('💾 Setting up auto-backup system...');
-
-                    // Function to get current applications for backup
                     const getApplicationsData = async (): Promise<Application[]> => {
                         const currentState = useAppStore.getState();
                         return currentState.applications || [];
                     };
 
                     backupCleanup = setupAutoBackup(getApplicationsData);
-                    console.log('✅ Auto-backup system initialized');
-                } else {
-                    console.log('⏭️ Skipping backup setup - on admin route or admin dashboard');
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Auto-backup system initialized');
+                    }
                 }
 
-                // ============================================================================
-                // 🎬 STEP 8: Setup System Theme Change Listener
-                // ============================================================================
-                console.log('🎬 Setting up system theme change listener...');
-
+                // Setup System Theme Change Listener
                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
                 const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-                    // Only auto-change if user hasn't set a preference
                     if (!localStorage.getItem('theme')) {
                         const newTheme = e.matches ? 'dark' : 'light';
                         setTheme(newTheme);
@@ -770,7 +761,6 @@ const App: React.FC = () => {
                         document.body.classList.toggle('dark', e.matches);
                         document.documentElement.style.colorScheme = newTheme;
 
-                        // Update meta theme color
                         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
                         if (metaThemeColor) {
                             metaThemeColor.setAttribute('content', e.matches ? '#1f2937' : '#ffffff');
@@ -779,11 +769,11 @@ const App: React.FC = () => {
                 };
 
                 mediaQuery.addEventListener('change', handleSystemThemeChange);
-                console.log('✅ System theme change listener active');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('System theme change listener active');
+                }
 
-                // ============================================================================
-                // ✨ STEP 9: Show Success Message (Only for main app)
-                // ============================================================================
+                // Show Success Message (Only for main app)
                 if (!isOnAdminRoute && !isAdminDashboardOpen) {
                     showToast({
                         type: 'success',
@@ -792,53 +782,52 @@ const App: React.FC = () => {
                     });
                 }
 
-                console.log('🎉 ApplyTrak initialization completed successfully!');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('ApplyTrak initialization completed successfully!');
+                }
 
-                // ============================================================================
-                // 🧹 CLEANUP FUNCTION - Proper resource management
-                // ============================================================================
+                // Cleanup Function
                 return () => {
-                    console.log('🧹 Starting ApplyTrak cleanup...');
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Starting ApplyTrak cleanup...');
+                    }
 
-                    // Cleanup backup system
                     if (typeof backupCleanup === 'function') {
                         backupCleanup();
-                        console.log('💾 Backup system cleanup completed');
                     }
 
-                    // Cleanup admin routes
                     if (typeof adminCleanup === 'function') {
                         adminCleanup();
-                        console.log('🔑 Admin routes cleanup completed');
                     }
 
-                    // Cleanup theme listener
                     mediaQuery.removeEventListener('change', handleSystemThemeChange);
-                    console.log('🎬 Theme listener cleanup completed');
 
-                    console.log('✅ ApplyTrak cleanup completed');
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('ApplyTrak cleanup completed');
+                    }
                 };
 
             } catch (error) {
-                console.error('❌ ApplyTrak initialization failed:', error);
+                if (process.env.NODE_ENV === 'development') {
+                    console.error('ApplyTrak initialization failed:', error);
+                }
 
-                // Show user-friendly error message
                 showToast({
                     type: 'error',
                     message: 'Failed to initialize ApplyTrak: ' + (error as Error).message,
                     duration: 8000
                 });
 
-                // Handle specific error types
                 if (error instanceof Error && error.message.includes('quota')) {
-                    console.warn('⚠️ Storage quota issue detected - backup system will use minimal mode');
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn('Storage quota issue detected - backup system will use minimal mode');
+                    }
                 }
 
                 return undefined;
             }
         };
 
-        // Start initialization and handle cleanup
         const cleanupPromise = initializeApp();
 
         return () => {
@@ -848,12 +837,14 @@ const App: React.FC = () => {
                         cleanup();
                     }
                 }).catch(error => {
-                    console.warn('Cleanup error (non-critical):', error);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.warn('Cleanup error (non-critical):', error);
+                    }
                 });
             }
         };
     }, [
-        isOnAdminRoute, // NEW: Include admin route state in dependencies
+        isOnAdminRoute,
         isAdminDashboardOpen,
         loadApplications,
         loadGoals,
@@ -865,69 +856,49 @@ const App: React.FC = () => {
     ]);
 
     // ============================================================================
-    // 🔄 LOADING STATE HANDLING
+    // LOADING STATE HANDLING
     // ============================================================================
     if (ui?.isLoading && applications.length === 0 && !isOnAdminRoute && !isAdminDashboardOpen) {
         return <LoadingScreen/>;
     }
 
     // ============================================================================
-    // ❌ ERROR STATE HANDLING
+    // ERROR STATE HANDLING
     // ============================================================================
     if (ui?.error) {
         return <ErrorScreen error={ui.error}/>;
     }
 
     // ============================================================================
-    // 🎨 MAIN APPLICATION RENDER - COMPLETE INTEGRATION: AdminPage + Automatic Detection
+    // MAIN APPLICATION RENDER
     // ============================================================================
     return (
         <React.Suspense fallback={<LoadingScreen/>}>
             <ErrorBoundary>
-                {/*
-                    🔧 COMPLETE ADMIN ROUTING SYSTEM:
-                    1. /admin route shows AdminPage component (manual access)
-                    2. Automatic admin detection redirects to admin dashboard (after login)
-                    3. Main app for regular users
-                */}
                 {isOnAdminRoute ? (
-                    /* ✨ MANUAL ADMIN ACCESS: Dedicated /admin route */
                     <React.Suspense fallback={<LoadingScreen/>}>
                         <AdminPage/>
                     </React.Suspense>
                 ) : isAdminDashboardOpen ? (
-                    /* 🎯 AUTOMATIC ADMIN ACCESS: Admin dashboard via login detection */
                     <React.Suspense fallback={<LoadingScreen/>}>
                         <AdminDashboard/>
-                        <RealtimeSyncDebugger />
                     </React.Suspense>
                 ) : (
-                    /* 📱 MAIN APPLICATION MODE - Standard user interface */
                     <div className="min-h-screen bg-grid dark:bg-grid-dark">
                         <Layout>
-                            {/* 📊 Main Content Tabs */}
                             {ui?.selectedTab === 'tracker' && <TrackerTab/>}
                             {ui?.selectedTab === 'analytics' && <AnalyticsTab/>}
 
-                            {/* 🎭 Global Modal System */}
                             <React.Suspense fallback={null}>
-                                {/* Core Application Modals */}
                                 <EditApplicationModal/>
                                 <GoalModal/>
                                 <MilestoneModal/>
                                 <RecoveryModal/>
-
-                                {/* Analytics & Feedback Modals */}
                                 <FeedbackModal/>
-                                <ConsentModal/>
-
-                                <Route path="/debug" component={DatabaseDebugTester} />
-
-                                {/* Admin System Modal */}
-                                <AdminLogin/>
-
-                                {/* Authentication Modal System */}
                                 <AuthModal/>
+                                {modals.privacySettings?.isOpen && (
+                                    <PrivacySettingsModal/>
+                                )}
                             </React.Suspense>
                         </Layout>
                     </div>

@@ -2,6 +2,10 @@
 import {createClient, SupabaseClient} from '@supabase/supabase-js';
 import {databaseService} from './databaseService';
 
+// ============================================================================
+// ENVIRONMENT & CLIENT SETUP
+// ============================================================================
+
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
@@ -9,7 +13,7 @@ let supabase: SupabaseClient | null = null;
 let adminSubscriptions: any[] = [];
 
 // ============================================================================
-// TYPESCRIPT-SAFE INTERFACES
+// TYPESCRIPT INTERFACES
 // ============================================================================
 
 interface SafeSupabaseResponse<T = any> {
@@ -26,36 +30,73 @@ interface SafeUserData {
     totalUsers: number;
 }
 
+interface UserMetrics {
+    totalUsers: number;
+    activeUsers: {
+        daily: number;
+        weekly: number;
+        monthly: number;
+    };
+    newUsers: {
+        today: number;
+        thisWeek: number;
+        thisMonth: number;
+    };
+}
+
+interface UsageMetrics {
+    totalSessions: number;
+    averageSessionDuration: number;
+    totalApplicationsCreated: number;
+    featuresUsage: Record<string, number>;
+}
+
+interface DeviceMetrics {
+    mobile: number;
+    desktop: number;
+    tablet?: number;
+}
+
+interface EngagementMetrics {
+    dailyActiveUsers: Array<{ date: string; count: number }>;
+    featureAdoption: Array<{ feature: string; usage: number }>;
+    userRetention: { day1: number; day7: number; day30: number };
+}
+
+interface CloudSyncStats {
+    totalSynced: number;
+    pendingSync: number;
+    syncErrors: number;
+    lastSyncTime: string;
+    dataSource: string;
+    refreshMethod: string;
+}
+
 interface AdminAnalytics {
-    userMetrics: {
-        totalUsers: number;
-        activeUsers: { daily: number; weekly: number; monthly: number };
-        newUsers: { today: number; thisWeek: number; thisMonth: number };
-    };
-    usageMetrics: {
-        totalSessions: number;
-        averageSessionDuration: number;
-        totalApplicationsCreated: number;
-        featuresUsage: Record<string, number>;
-    };
-    deviceMetrics: {
-        mobile: number;
-        desktop: number;
-        tablet?: number;
-    };
-    engagementMetrics: {
-        dailyActiveUsers: Array<{ date: string; count: number }>;
-        featureAdoption: Array<{ feature: string; usage: number }>;
-        userRetention: { day1: number; day7: number; day30: number };
-    };
-    cloudSyncStats: {
-        totalSynced: number;
-        pendingSync: number;
-        syncErrors: number;
-        lastSyncTime: string;
-        dataSource: string;
-        refreshMethod: string;
-    };
+    userMetrics: UserMetrics;
+    usageMetrics: UsageMetrics;
+    deviceMetrics: DeviceMetrics;
+    engagementMetrics: EngagementMetrics;
+    cloudSyncStats: CloudSyncStats;
+}
+
+interface FeedbackTrends {
+    bugs: number;
+    features: number;
+    general: number;
+    love: number;
+}
+
+interface TopIssue {
+    issue: string;
+    count: number;
+    severity: string;
+}
+
+interface RefreshMetadata {
+    lastRefresh: string;
+    dataSource: string;
+    refreshMethod: string;
 }
 
 interface FeedbackSummary {
@@ -63,21 +104,15 @@ interface FeedbackSummary {
     unreadFeedback: number;
     averageRating: number;
     recentFeedback: any[];
-    feedbackTrends: {
-        bugs: number;
-        features: number;
-        general: number;
-        love: number;
-    };
-    topIssues: Array<{ issue: string; count: number; severity: string }>;
-    refreshMetadata: {
-        lastRefresh: string;
-        dataSource: string;
-        refreshMethod: string;
-    };
+    feedbackTrends: FeedbackTrends;
+    topIssues: TopIssue[];
+    refreshMetadata: RefreshMetadata;
 }
 
-// Initialize Supabase for admin
+// ============================================================================
+// SUPABASE CLIENT INITIALIZATION
+// ============================================================================
+
 const initAdminSupabase = (): SupabaseClient | null => {
     if (!supabaseUrl || !supabaseAnonKey) {
         console.warn('Supabase not configured - admin will show local data only');
@@ -91,40 +126,39 @@ const initAdminSupabase = (): SupabaseClient | null => {
     return supabase;
 };
 
-
 // ============================================================================
-// PHASE 3: REAL MULTI-USER ANALYTICS SERVICE
+// REALTIME ADMIN SERVICE
 // ============================================================================
 
 export const realtimeAdminService = {
+    // ============================================================================
+    // USER DATA FETCHING
+    // ============================================================================
 
-    // ✅ FIXED: Replace these functions in your realtimeAdminService.ts
-
-// ✅ PHASE 3: Get ALL users from database (FIXED SCHEMA)
     async getAllUsers() {
         try {
             console.log('👥 Fetching ALL users from database...');
             const client = initAdminSupabase();
+
             if (!client) {
                 console.log('📱 No Supabase client - returning local user');
                 return [];
             }
 
-            // ✅ FIXED: Query your actual users table schema
             const { data: users, error } = await client
                 .from('users')
                 .select(`
-        id,
-        external_id,        // ✅ Check if this field exists
-        email,
-        created_at,         // ✅ Check if this is camelCase 'createdAt'
-        updated_at,         // ✅ Check if this is camelCase 'updatedAt'
-        display_name,       // ✅ Check if this is camelCase 'displayName'
-        last_active_at,     // ✅ Check if this is camelCase 'lastActiveAt'
-        is_admin,           // ✅ Check if this is camelCase 'isAdmin'
-        timezone,
-        language
-    `)
+                    id,
+                    external_id,
+                    email,
+                    created_at,
+                    updated_at,
+                    display_name,
+                    last_active_at,
+                    is_admin,
+                    timezone,
+                    language
+                `)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -140,50 +174,38 @@ export const realtimeAdminService = {
         }
     },
 
-
-    // ✅ FIXED: getAllUsersData() with proper debug log placement
     async getAllUsersData(): Promise<SafeUserData> {
         try {
             console.log('🔄 Fetching ALL data from ALL users (NO LIMITS)...');
             const client = initAdminSupabase();
+
             if (!client) {
                 console.log('📱 No Supabase client - using local data fallback');
                 return await this.getLocalAdminData();
             }
 
-            // Timeout protection (increased for larger datasets)
             const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('Database query timeout')), 30000) // Increased to 30 seconds
+                setTimeout(() => reject(new Error('Database query timeout')), 30000)
             );
 
             console.log('🔍 Querying database with NO user filters and HIGH limits...');
 
-            // ✅ COMPLETE FIX: Remove ALL limits and filters - get EVERYTHING
             const dataPromise = Promise.all([
-                // ✅ Applications: NO user_id filter, HIGH limit
                 client.from('applications')
                     .select('*')
-                    .limit(10000) // Increased limit
+                    .limit(10000)
                     .order('created_at', { ascending: false }),
-
-                // ✅ Goals: NO user_id filter
                 client.from('goals')
                     .select('*')
                     .limit(5000),
-
-                // ✅ Events: NO user_id filter
                 client.from('analytics_events')
                     .select('*')
                     .limit(20000)
                     .order('timestamp', { ascending: false }),
-
-                // ✅ Feedback: NO user_id filter
                 client.from('feedback')
                     .select('*')
                     .limit(5000)
                     .order('timestamp', { ascending: false }),
-
-                // ✅ Users: Get all users
                 this.getAllUsers()
             ]);
 
@@ -191,7 +213,6 @@ export const realtimeAdminService = {
             const responses = await Promise.race([dataPromise, timeoutPromise]);
             const [applicationsResponse, goalsResponse, eventsResponse, feedbackResponse, usersData] = responses;
 
-            // ✅ Detailed logging to see what we actually got
             console.log('📊 Database Response Details:');
             console.log(`   Applications Response:`, applicationsResponse?.data?.length || 0, 'records');
             console.log(`   Goals Response:`, goalsResponse?.data?.length || 0, 'records');
@@ -199,14 +220,12 @@ export const realtimeAdminService = {
             console.log(`   Feedback Response:`, feedbackResponse?.data?.length || 0, 'records');
             console.log(`   Users Data:`, Array.isArray(usersData) ? usersData.length : 'invalid', 'users');
 
-            // Safe destructuring with explicit type checking
             const applications = (applicationsResponse?.data || []).filter(Boolean);
             const goals = (goalsResponse?.data || []).filter(Boolean);
             const events = (eventsResponse?.data || []).filter(Boolean);
             const feedback = (feedbackResponse?.data || []).filter(Boolean);
             const users = Array.isArray(usersData) ? usersData : [];
 
-            // ✅ FIX 10: Schema debugging console logs (MOVED TO CORRECT LOCATION)
             console.log('🔍 SCHEMA DEBUG - Sample Records:');
             if (applications.length > 0) {
                 console.log('Applications sample:', Object.keys(applications[0]));
@@ -219,7 +238,6 @@ export const realtimeAdminService = {
                 console.log('Users sample:', Object.keys(users[0]));
             }
 
-            // ✅ Check for data per user to debug the issue
             if (applications.length > 0) {
                 const appsByUser = applications.reduce((acc: Record<string, number>, app: any) => {
                     const userId = app.user_id?.toString() || 'unknown';
@@ -229,7 +247,6 @@ export const realtimeAdminService = {
 
                 console.log('📱 Applications per user_id:', appsByUser);
 
-                // Find which user_id corresponds to phalaginimantripragada
                 const userEmails = users.reduce((acc: Record<string, string>, user: any) => {
                     acc[user.id?.toString()] = user.email || 'no-email';
                     return acc;
@@ -255,7 +272,6 @@ export const realtimeAdminService = {
             console.log(`   📊 Total Events: ${events.length}`);
             console.log(`   💬 Total Feedback: ${feedback.length}`);
 
-            // ✅ Verify we got the expected ~300+ applications
             if (applications.length < 280) {
                 console.warn(`⚠️  WARNING: Expected ~300+ applications but only got ${applications.length}`);
                 console.warn(`⚠️  This suggests there may be RLS policies or other filters active`);
@@ -269,27 +285,27 @@ export const realtimeAdminService = {
         }
     },
 
-// ✅ ENHANCED: Real-time admin analytics with ACTUAL multi-user data
+    // ============================================================================
+    // ANALYTICS CALCULATIONS
+    // ============================================================================
+
     async getRealtimeAdminAnalytics(): Promise<AdminAnalytics> {
         try {
             console.log('📊 Calculating REAL multi-user analytics...');
             const data = await this.getAllUsersData();
             const now = new Date();
 
-            // ✅ FIXED: Real metrics from actual users
             const totalUsers = data.totalUsers;
             const totalApplications = data.applications?.length || 0;
             const totalEvents = data.events?.length || 0;
 
             console.log(`📊 Analytics Input: ${totalUsers} users, ${totalApplications} applications, ${totalEvents} events`);
 
-            // ✅ FIXED: Calculate REAL active users from multiple users
             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Active users based on recent applications or last_active_at
             const recentlyActiveUserIds = new Set<string>();
 
             // Users with recent applications
@@ -322,12 +338,10 @@ export const realtimeAdminService = {
 
             const activeUsers = recentlyActiveUserIds.size;
 
-            // ✅ FIXED: Real new user calculations using created_at
             const newUsersToday = this.safeGetUsersCreatedOnDate(data.users, today);
             const newUsersThisWeek = this.safeGetUsersCreatedSince(data.users, weekAgo);
             const newUsersThisMonth = this.safeGetUsersCreatedSince(data.users, monthAgo);
 
-            // ✅ FIXED: Daily active users trend (last 30 days)
             const last30Days = Array.from({ length: 30 }, (_, i) => {
                 const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
                 const dateStart = new Date(date);
@@ -335,10 +349,8 @@ export const realtimeAdminService = {
                 const dateEnd = new Date(date);
                 dateEnd.setHours(23, 59, 59, 999);
 
-                // Count users active on this specific day
                 const dayActiveUsers = new Set<string>();
 
-                // Check applications created on this day
                 data.applications.forEach((app: any) => {
                     if (app?.user_id && app?.created_at) {
                         try {
@@ -408,7 +420,6 @@ export const realtimeAdminService = {
         }
     },
 
-    // ✅ PHASE 3: Real-time feedback summary from ALL users
     async getRealtimeFeedbackSummary(): Promise<FeedbackSummary> {
         try {
             console.log('💬 Fetching feedback from ALL users...');
@@ -417,7 +428,6 @@ export const realtimeAdminService = {
             const feedbackArray = Array.isArray(data.feedback) ? data.feedback : [];
             const totalFeedback = feedbackArray.length;
 
-            // Safe rating calculation
             const validRatings = feedbackArray
                 .map((f: any) => f?.rating)
                 .filter((rating: any) => typeof rating === 'number' && !isNaN(rating));
@@ -426,7 +436,6 @@ export const realtimeAdminService = {
                 ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
                 : 0;
 
-            // Safe type breakdown
             const typeBreakdown = feedbackArray.reduce((acc: any, f: any) => {
                 const type = f?.type || 'general';
                 if (typeof type === 'string') {
@@ -435,12 +444,10 @@ export const realtimeAdminService = {
                 return acc;
             }, { bug: 0, feature: 0, general: 0, love: 0 });
 
-            // Safe unread calculation
             const unreadFeedback = feedbackArray.filter((f: any) => {
                 return f && !f?.metadata?.read;
             }).length;
 
-            // Safe recent feedback sorting
             const validFeedback = feedbackArray.filter((f: any) =>
                 f && f.timestamp && typeof f.timestamp === 'string'
             );
@@ -481,7 +488,96 @@ export const realtimeAdminService = {
         }
     },
 
-    // ✅ Real-time subscriptions for unified refresh
+    async getRealtimeAdminAnalyticsSafe(): Promise<AdminAnalytics> {
+        try {
+            const client = initAdminSupabase();
+            if (!client) {
+                console.log('📱 No Supabase client - using local data');
+                return await this.getLocalAdminAnalytics();
+            }
+
+            console.log('📊 Fetching admin analytics from working tables only...');
+
+            const [applicationsRes, goalsRes, feedbackRes, eventsRes] = await Promise.all([
+                client.from('applications').select('*').limit(1000),
+                client.from('goals').select('*').limit(100),
+                client.from('feedback').select('*').limit(500),
+                client.from('analytics_events').select('*').limit(1000)
+            ]);
+
+            const applications = applicationsRes.data || [];
+            const goals = goalsRes.data || [];
+            const feedback = feedbackRes.data || [];
+            const events = eventsRes.data || [];
+
+            console.log(`📈 Data fetched: ${applications.length} apps, ${feedback.length} feedback, ${events.length} events`);
+
+            const totalApps = applications.length;
+            const appliedCount = applications.filter(app => app.status === 'Applied').length;
+            const interviewCount = applications.filter(app => app.status === 'Interview').length;
+            const offerCount = applications.filter(app => app.status === 'Offer').length;
+
+            return {
+                userMetrics: {
+                    totalUsers: 1,
+                    activeUsers: {daily: 1, weekly: 1, monthly: 1},
+                    newUsers: {today: 0, thisWeek: 0, thisMonth: 0}
+                },
+                usageMetrics: {
+                    totalSessions: events.filter(e => e.event === 'session_start').length || 1,
+                    averageSessionDuration: 360,
+                    totalApplicationsCreated: totalApps,
+                    featuresUsage: {
+                        'applications': totalApps,
+                        'feedback': feedback.length,
+                        'analytics': events.length,
+                        'goals': goals.length
+                    }
+                },
+                deviceMetrics: {
+                    mobile: Math.floor(totalApps * 0.3),
+                    desktop: Math.floor(totalApps * 0.7),
+                    tablet: Math.floor(totalApps * 0.1)
+                },
+                engagementMetrics: {
+                    dailyActiveUsers: [
+                        {date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
+                        {date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
+                        {date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
+                        {date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
+                        {date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
+                        {date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
+                        {date: new Date().toISOString().split('T')[0], count: 1}
+                    ],
+                    featureAdoption: [
+                        {feature: 'Applications', usage: appliedCount},
+                        {feature: 'Analytics', usage: events.length},
+                        {feature: 'Feedback', usage: feedback.length},
+                        {feature: 'Goals', usage: goals.length}
+                    ],
+                    userRetention: {day1: 100, day7: 90, day30: 80}
+                },
+                cloudSyncStats: {
+                    totalSynced: totalApps + feedback.length + goals.length,
+                    pendingSync: 0,
+                    syncErrors: 0,
+                    lastSyncTime: new Date().toISOString(),
+                    dataSource: 'supabase',
+                    refreshMethod: 'safe_query'
+                }
+            };
+
+        } catch (error) {
+            console.error('❌ Safe admin analytics failed:', error);
+            console.log('📱 Falling back to local analytics...');
+            return await this.getLocalAdminAnalytics();
+        }
+    },
+
+    // ============================================================================
+    // REAL-TIME SUBSCRIPTIONS
+    // ============================================================================
+
     subscribeToRealtimeUpdates(onUpdate: (data: any) => void) {
         const client = initAdminSupabase();
         if (!client) {
@@ -542,289 +638,6 @@ export const realtimeAdminService = {
         }
     },
 
-    // ✅ Debounced unified refresh trigger
-    triggerUnifiedRefresh: (() => {
-        let timeoutId: NodeJS.Timeout | null = null;
-
-        return (onUpdate: (data: any) => void) => {
-            try {
-                if (timeoutId !== null) {
-                    clearTimeout(timeoutId);
-                }
-
-                timeoutId = setTimeout(async () => {
-                    try {
-                        console.log('🔄 Triggering unified refresh from real-time update...');
-
-                        const [analytics, feedback] = await Promise.all([
-                            realtimeAdminService.getRealtimeAdminAnalytics().catch((error: any) => {
-                                console.error('Analytics fetch failed:', error);
-                                return null;
-                            }),
-                            realtimeAdminService.getRealtimeFeedbackSummary().catch((error: any) => {
-                                console.error('Feedback fetch failed:', error);
-                                return null;
-                            })
-                        ]);
-
-                        if (analytics || feedback) {
-                            onUpdate({
-                                analytics,
-                                feedback,
-                                timestamp: new Date().toISOString(),
-                                source: 'realtime_trigger'
-                            });
-                        }
-                    } catch (error) {
-                        console.error('❌ Unified refresh trigger failed:', error);
-                    } finally {
-                        timeoutId = null;
-                    }
-                }, 1000);
-            } catch (error) {
-                console.error('❌ Error setting up refresh trigger:', error);
-            }
-        };
-    })(),
-
-    // ✅ Cleanup
-    cleanup() {
-        console.log('🧹 Cleaning up all admin subscriptions...');
-
-        if (Array.isArray(adminSubscriptions)) {
-            adminSubscriptions.forEach((sub, index) => {
-                try {
-                    sub?.unsubscribe?.();
-                    console.log(`✅ Subscription ${index + 1} cleaned up`);
-                } catch (error) {
-                    console.error(`❌ Failed to clean up subscription ${index + 1}:`, error);
-                }
-            });
-        }
-
-        adminSubscriptions = [];
-        console.log('✅ All admin subscriptions cleaned up');
-    },
-
-    // ✅ Local data fallback
-    async getLocalAdminData(): Promise<SafeUserData> {
-        try {
-            console.log('📱 Fetching local admin data...');
-
-            const applications = await databaseService.getApplications() || [];
-            const goals = await databaseService.getGoals() || [];
-            const events = await databaseService.getAnalyticsEvents() || [];
-            const feedback = await databaseService.getAllFeedback() || [];
-
-            const result: SafeUserData = {
-                applications: Array.isArray(applications) ? applications : [],
-                goals: Array.isArray(goals) ? goals : [],
-                events: Array.isArray(events) ? events : [],
-                feedback: Array.isArray(feedback) ? feedback : [],
-                users: [], // No local users
-                totalUsers: 1
-            };
-
-            console.log(`✅ Local data fetched: ${result.applications.length} applications`);
-            return result;
-        } catch (error) {
-            console.error('❌ Local admin data fetch failed:', error);
-            return {
-                applications: [],
-                goals: [],
-                events: [],
-                feedback: [],
-                users: [],
-                totalUsers: 1
-            };
-        }
-    },
-
-    // ✅ Local analytics fallback
-    async getLocalAdminAnalytics(): Promise<AdminAnalytics> {
-        try {
-            const data = await this.getLocalAdminData();
-
-            return {
-                userMetrics: {
-                    totalUsers: 1,
-                    activeUsers: { daily: 1, weekly: 1, monthly: 1 },
-                    newUsers: { today: 0, thisWeek: 0, thisMonth: 0 }
-                },
-                usageMetrics: {
-                    totalSessions: this.safeCountEvents(data.events, 'session_start'),
-                    averageSessionDuration: this.safeCalculateAverageSessionDuration(data.events),
-                    totalApplicationsCreated: data.applications.length,
-                    featuresUsage: this.safeCalculateFeatureUsage(data.events)
-                },
-                deviceMetrics: this.safeCalculateDeviceMetrics(data.applications),
-                engagementMetrics: {
-                    dailyActiveUsers: [],
-                    featureAdoption: this.safeCalculateFeatureAdoption(data.events),
-                    userRetention: { day1: 0, day7: 0, day30: 0 }
-                },
-                cloudSyncStats: {
-                    totalSynced: data.applications.length,
-                    pendingSync: 0,
-                    syncErrors: 0,
-                    lastSyncTime: new Date().toISOString(),
-                    dataSource: 'local',
-                    refreshMethod: 'local_fallback'
-                }
-            };
-        } catch (error) {
-            console.error('❌ Local analytics calculation failed:', error);
-            throw error;
-        }
-    },
-
-    // ✅ Local feedback fallback
-    async getLocalFeedbackSummary(): Promise<FeedbackSummary> {
-        try {
-            const data = await this.getLocalAdminData();
-            const feedbackArray = Array.isArray(data.feedback) ? data.feedback : [];
-
-            const totalFeedback = feedbackArray.length;
-            const validRatings = feedbackArray
-                .map((f: any) => f?.rating)
-                .filter((rating: any) => typeof rating === 'number' && !isNaN(rating));
-
-            const averageRating = validRatings.length > 0
-                ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
-                : 0;
-
-            const typeBreakdown = feedbackArray.reduce((acc: any, f: any) => {
-                const type = f?.type || 'general';
-                if (typeof type === 'string') {
-                    acc[type] = (acc[type] || 0) + 1;
-                }
-                return acc;
-            }, { bug: 0, feature: 0, general: 0, love: 0 });
-
-            return {
-                totalFeedback,
-                unreadFeedback: feedbackArray.filter((f: any) => f && !f?.metadata?.read).length,
-                averageRating: Number(averageRating.toFixed(2)),
-                recentFeedback: feedbackArray
-                    .filter((f: any) => f && f.timestamp)
-                    .sort((a: any, b: any) => {
-                        try {
-                            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-                        } catch {
-                            return 0;
-                        }
-                    })
-                    .slice(0, 10),
-                feedbackTrends: {
-                    bugs: typeBreakdown.bug || 0,
-                    features: typeBreakdown.feature || 0,
-                    general: typeBreakdown.general || 0,
-                    love: typeBreakdown.love || 0
-                },
-                topIssues: this.safeExtractTopIssues(feedbackArray),
-                refreshMetadata: {
-                    lastRefresh: new Date().toISOString(),
-                    dataSource: 'local',
-                    refreshMethod: 'local_fallback'
-                }
-            };
-        } catch (error) {
-            console.error('❌ Local feedback summary failed:', error);
-            throw error;
-        }
-    },
-
-    // ✅ FIX: Add the missing safe analytics function
-    async getRealtimeAdminAnalyticsSafe(): Promise<AdminAnalytics> {
-        try {
-            const client = initAdminSupabase();
-            if (!client) {
-                console.log('📱 No Supabase client - using local data');
-                return await this.getLocalAdminAnalytics();
-            }
-
-            console.log('📊 Fetching admin analytics from working tables only...');
-
-            // Only query tables that work (avoid users table that gives 400 error)
-            const [applicationsRes, goalsRes, feedbackRes, eventsRes] = await Promise.all([
-                client.from('applications').select('*').limit(1000),
-                client.from('goals').select('*').limit(100),
-                client.from('feedback').select('*').limit(500),
-                client.from('analytics_events').select('*').limit(1000)
-            ]);
-
-            // Check for errors and use available data
-            const applications = applicationsRes.data || [];
-            const goals = goalsRes.data || [];
-            const feedback = feedbackRes.data || [];
-            const events = eventsRes.data || [];
-
-            console.log(`📈 Data fetched: ${applications.length} apps, ${feedback.length} feedback, ${events.length} events`);
-
-            // Calculate metrics from available data
-            const totalApps = applications.length;
-            const appliedCount = applications.filter(app => app.status === 'Applied').length;
-            const interviewCount = applications.filter(app => app.status === 'Interview').length;
-            const offerCount = applications.filter(app => app.status === 'Offer').length;
-
-            return {
-                userMetrics: {
-                    totalUsers: 1, // Current authenticated user
-                    activeUsers: {daily: 1, weekly: 1, monthly: 1},
-                    newUsers: {today: 0, thisWeek: 0, thisMonth: 0}
-                },
-                usageMetrics: {
-                    totalSessions: events.filter(e => e.event === 'session_start').length || 1,
-                    averageSessionDuration: 360, // 6 minutes average
-                    totalApplicationsCreated: totalApps,
-                    featuresUsage: {
-                        'applications': totalApps,
-                        'feedback': feedback.length,
-                        'analytics': events.length,
-                        'goals': goals.length
-                    }
-                },
-                deviceMetrics: {
-                    mobile: Math.floor(totalApps * 0.3),
-                    desktop: Math.floor(totalApps * 0.7),
-                    tablet: Math.floor(totalApps * 0.1)
-                },
-                engagementMetrics: {
-                    dailyActiveUsers: [
-                        {date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
-                        {date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
-                        {date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
-                        {date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
-                        {date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
-                        {date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], count: 1},
-                        {date: new Date().toISOString().split('T')[0], count: 1}
-                    ],
-                    featureAdoption: [
-                        {feature: 'Applications', usage: appliedCount},
-                        {feature: 'Analytics', usage: events.length},
-                        {feature: 'Feedback', usage: feedback.length},
-                        {feature: 'Goals', usage: goals.length}
-                    ],
-                    userRetention: {day1: 100, day7: 90, day30: 80}
-                },
-                cloudSyncStats: {
-                    totalSynced: totalApps + feedback.length + goals.length,
-                    pendingSync: 0,
-                    syncErrors: 0,
-                    lastSyncTime: new Date().toISOString(),
-                    dataSource: 'supabase',
-                    refreshMethod: 'safe_query'
-                }
-            };
-
-        } catch (error) {
-            console.error('❌ Safe admin analytics failed:', error);
-            console.log('📱 Falling back to local analytics...');
-            return await this.getLocalAdminAnalytics();
-        }
-    },
-
-// ✅ FIX: Enhanced real-time subscriptions with error handling
     subscribeToRealtimeUpdatesSafe(onUpdate: (data: any) => void): (() => void) {
         const client = initAdminSupabase();
         if (!client) {
@@ -880,11 +693,205 @@ export const realtimeAdminService = {
         }
     },
 
+    triggerUnifiedRefresh: (() => {
+        let timeoutId: NodeJS.Timeout | null = null;
+
+        return (onUpdate: (data: any) => void) => {
+            try {
+                if (timeoutId !== null) {
+                    clearTimeout(timeoutId);
+                }
+
+                timeoutId = setTimeout(async () => {
+                    try {
+                        console.log('🔄 Triggering unified refresh from real-time update...');
+
+                        const [analytics, feedback] = await Promise.all([
+                            realtimeAdminService.getRealtimeAdminAnalytics().catch((error: any) => {
+                                console.error('Analytics fetch failed:', error);
+                                return null;
+                            }),
+                            realtimeAdminService.getRealtimeFeedbackSummary().catch((error: any) => {
+                                console.error('Feedback fetch failed:', error);
+                                return null;
+                            })
+                        ]);
+
+                        if (analytics || feedback) {
+                            onUpdate({
+                                analytics,
+                                feedback,
+                                timestamp: new Date().toISOString(),
+                                source: 'realtime_trigger'
+                            });
+                        }
+                    } catch (error) {
+                        console.error('❌ Unified refresh trigger failed:', error);
+                    } finally {
+                        timeoutId = null;
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('❌ Error setting up refresh trigger:', error);
+            }
+        };
+    })(),
+
     // ============================================================================
-    // PHASE 3: ENHANCED HELPER METHODS FOR REAL MULTI-USER ANALYTICS
+    // CLEANUP
     // ============================================================================
 
-    // ✅ PHASE 3: Real user creation date filtering
+    cleanup() {
+        console.log('🧹 Cleaning up all admin subscriptions...');
+
+        if (Array.isArray(adminSubscriptions)) {
+            adminSubscriptions.forEach((sub, index) => {
+                try {
+                    sub?.unsubscribe?.();
+                    console.log(`✅ Subscription ${index + 1} cleaned up`);
+                } catch (error) {
+                    console.error(`❌ Failed to clean up subscription ${index + 1}:`, error);
+                }
+            });
+        }
+
+        adminSubscriptions = [];
+        console.log('✅ All admin subscriptions cleaned up');
+    },
+
+    // ============================================================================
+    // LOCAL DATA FALLBACKS
+    // ============================================================================
+
+    async getLocalAdminData(): Promise<SafeUserData> {
+        try {
+            console.log('📱 Fetching local admin data...');
+
+            const applications = await databaseService.getApplications() || [];
+            const goals = await databaseService.getGoals() || [];
+            const events = await databaseService.getAnalyticsEvents() || [];
+            const feedback = await databaseService.getAllFeedback() || [];
+
+            const result: SafeUserData = {
+                applications: Array.isArray(applications) ? applications : [],
+                goals: Array.isArray(goals) ? goals : [],
+                events: Array.isArray(events) ? events : [],
+                feedback: Array.isArray(feedback) ? feedback : [],
+                users: [],
+                totalUsers: 1
+            };
+
+            console.log(`✅ Local data fetched: ${result.applications.length} applications`);
+            return result;
+        } catch (error) {
+            console.error('❌ Local admin data fetch failed:', error);
+            return {
+                applications: [],
+                goals: [],
+                events: [],
+                feedback: [],
+                users: [],
+                totalUsers: 1
+            };
+        }
+    },
+
+    async getLocalAdminAnalytics(): Promise<AdminAnalytics> {
+        try {
+            const data = await this.getLocalAdminData();
+
+            return {
+                userMetrics: {
+                    totalUsers: 1,
+                    activeUsers: { daily: 1, weekly: 1, monthly: 1 },
+                    newUsers: { today: 0, thisWeek: 0, thisMonth: 0 }
+                },
+                usageMetrics: {
+                    totalSessions: this.safeCountEvents(data.events, 'session_start'),
+                    averageSessionDuration: this.safeCalculateAverageSessionDuration(data.events),
+                    totalApplicationsCreated: data.applications.length,
+                    featuresUsage: this.safeCalculateFeatureUsage(data.events)
+                },
+                deviceMetrics: this.safeCalculateDeviceMetrics(data.applications),
+                engagementMetrics: {
+                    dailyActiveUsers: [],
+                    featureAdoption: this.safeCalculateFeatureAdoption(data.events),
+                    userRetention: { day1: 0, day7: 0, day30: 0 }
+                },
+                cloudSyncStats: {
+                    totalSynced: data.applications.length,
+                    pendingSync: 0,
+                    syncErrors: 0,
+                    lastSyncTime: new Date().toISOString(),
+                    dataSource: 'local',
+                    refreshMethod: 'local_fallback'
+                }
+            };
+        } catch (error) {
+            console.error('❌ Local analytics calculation failed:', error);
+            throw error;
+        }
+    },
+
+    async getLocalFeedbackSummary(): Promise<FeedbackSummary> {
+        try {
+            const data = await this.getLocalAdminData();
+            const feedbackArray = Array.isArray(data.feedback) ? data.feedback : [];
+
+            const totalFeedback = feedbackArray.length;
+            const validRatings = feedbackArray
+                .map((f: any) => f?.rating)
+                .filter((rating: any) => typeof rating === 'number' && !isNaN(rating));
+
+            const averageRating = validRatings.length > 0
+                ? validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length
+                : 0;
+
+            const typeBreakdown = feedbackArray.reduce((acc: any, f: any) => {
+                const type = f?.type || 'general';
+                if (typeof type === 'string') {
+                    acc[type] = (acc[type] || 0) + 1;
+                }
+                return acc;
+            }, { bug: 0, feature: 0, general: 0, love: 0 });
+
+            return {
+                totalFeedback,
+                unreadFeedback: feedbackArray.filter((f: any) => f && !f?.metadata?.read).length,
+                averageRating: Number(averageRating.toFixed(2)),
+                recentFeedback: feedbackArray
+                    .filter((f: any) => f && f.timestamp)
+                    .sort((a: any, b: any) => {
+                        try {
+                            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+                        } catch {
+                            return 0;
+                        }
+                    })
+                    .slice(0, 10),
+                feedbackTrends: {
+                    bugs: typeBreakdown.bug || 0,
+                    features: typeBreakdown.feature || 0,
+                    general: typeBreakdown.general || 0,
+                    love: typeBreakdown.love || 0
+                },
+                topIssues: this.safeExtractTopIssues(feedbackArray),
+                refreshMetadata: {
+                    lastRefresh: new Date().toISOString(),
+                    dataSource: 'local',
+                    refreshMethod: 'local_fallback'
+                }
+            };
+        } catch (error) {
+            console.error('❌ Local feedback summary failed:', error);
+            throw error;
+        }
+    },
+
+    // ============================================================================
+    // HELPER METHODS
+    // ============================================================================
+
     safeGetUsersCreatedOnDate(users: any[], targetDate: Date): number {
         if (!Array.isArray(users)) return 0;
 
@@ -923,7 +930,7 @@ export const realtimeAdminService = {
     safeCountEvents(events: any[], eventName: string): number {
         if (!Array.isArray(events) || !eventName) return 0;
         try {
-            return events.filter(e => e?.event === eventName).length;  // ✅ Confirmed: 'event' field exists
+            return events.filter(e => e?.event === eventName).length;
         } catch {
             return 0;
         }
@@ -947,9 +954,9 @@ export const realtimeAdminService = {
         if (!Array.isArray(events)) return {};
         try {
             return events
-                .filter((e: any) => e?.event === 'feature_used')  // ✅ Confirmed: 'event' field exists
+                .filter((e: any) => e?.event === 'feature_used')
                 .reduce((acc: any, e: any) => {
-                    const feature = e?.properties?.feature || 'unknown';  // ✅ Confirmed: 'properties' jsonb field exists
+                    const feature = e?.properties?.feature || 'unknown';
                     if (typeof feature === 'string') {
                         acc[feature] = (acc[feature] || 0) + 1;
                     }
@@ -960,7 +967,7 @@ export const realtimeAdminService = {
         }
     },
 
-    safeCalculateDeviceMetrics(applications: any[]): { mobile: number; desktop: number; tablet?: number } {
+    safeCalculateDeviceMetrics(applications: any[]): DeviceMetrics {
         if (!Array.isArray(applications)) return { mobile: 0, desktop: 0, tablet: 0 };
 
         try {
@@ -982,7 +989,7 @@ export const realtimeAdminService = {
             return features.map(feature => ({
                 feature,
                 usage: events.filter(e => {
-                    if (!e?.event) return false;  // ✅ Correct camelCase field
+                    if (!e?.event) return false;
                     return e.event.includes(feature) || e?.properties?.feature === feature;
                 }).length
             }));
@@ -991,10 +998,6 @@ export const realtimeAdminService = {
         }
     },
 
-    // ✅ PHASE 3: Real retention calculation using actual users
-    // ✅ FIXED: Replace the safeCalculateRetention function in your realtimeAdminService.ts
-
-// ✅ PHASE 3: Real retention calculation using actual users (FIXED SCHEMA)
     safeCalculateRetention(users: any[], applications: any[]): Record<string, number> {
         if (!Array.isArray(users) || users.length === 0) {
             return { day1: 0, day7: 0, day30: 0 };
@@ -1006,7 +1009,6 @@ export const realtimeAdminService = {
             const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-            // Users who signed up more than X days ago
             const usersSignedUpMoreThan1DayAgo = users.filter(user => {
                 if (!user?.created_at) return false;
                 try {
@@ -1034,10 +1036,8 @@ export const realtimeAdminService = {
                 }
             });
 
-            // Users who were active (created applications or have recent last_active_at)
             const recentlyActiveUserIds = new Set<string>();
 
-            // Users with recent applications
             applications.forEach(app => {
                 if (app?.user_id && app?.created_at) {
                     try {
@@ -1051,7 +1051,6 @@ export const realtimeAdminService = {
                 }
             });
 
-            // ✅ FIXED: Users with recent activity using last_active_at instead of last_sign_in_at
             users.forEach(user => {
                 if (user?.id && user?.last_active_at) {
                     try {
@@ -1065,7 +1064,6 @@ export const realtimeAdminService = {
                 }
             });
 
-            // Calculate retention rates
             const day1Retained = usersSignedUpMoreThan1DayAgo.filter(user =>
                 recentlyActiveUserIds.has(user.id.toString())
             ).length;
@@ -1098,7 +1096,7 @@ export const realtimeAdminService = {
         }
     },
 
-    safeExtractTopIssues(feedback: any[]): Array<{ issue: string; count: number; severity: string }> {
+    safeExtractTopIssues(feedback: any[]): TopIssue[] {
         if (!Array.isArray(feedback)) return [];
 
         try {

@@ -34,7 +34,8 @@
     "suppressExcessPropertyErrors": true
   },
   "include": [
-    "src"
+    "src",
+    "src/types/assets.d.ts"
   ],
   "exclude": [
     "node_modules",

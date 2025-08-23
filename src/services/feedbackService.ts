@@ -1,31 +1,42 @@
-// src/services/feedbackService.ts - User Feedback Management System (FIXED & ENHANCED)
+// src/services/feedbackService.ts - User Feedback Management System (Production Optimized)
 import type {FeedbackStats, FeedbackSubmission} from '../types';
 
+/**
+ * Production-ready feedback management service
+ * Handles user feedback collection, storage, and analytics
+ */
 class FeedbackService {
     private readonly STORAGE_KEY = 'applytrak_feedback';
-    private readonly MAX_STORED_FEEDBACK = 100; // Increased limit for better data retention
+    private readonly MAX_STORED_FEEDBACK = 100;
     private readonly FEEDBACK_VERSION = '1.0.0';
+    private readonly MESSAGE_MAX_LENGTH = 2000;
+    private readonly MESSAGE_MIN_LENGTH = 3;
+
+    // Cache for frequently accessed data
+    private feedbackCache: FeedbackSubmission[] | null = null;
+    private cacheTimestamp: number = 0;
+    private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
     // ============================================================================
-    // FEEDBACK SUBMISSION
+    // PUBLIC API - FEEDBACK SUBMISSION
     // ============================================================================
 
+    /**
+     * Submit new feedback with comprehensive validation and error handling
+     */
     async submitFeedback(
         type: FeedbackSubmission['type'],
         rating: number,
         message: string,
         email?: string
     ): Promise<FeedbackSubmission> {
-        // Validate input parameters
-        if (!this.validateFeedbackInput(type, rating, message)) {
-            throw new Error('Invalid feedback parameters');
-        }
+        // Input validation
+        this.validateFeedbackInput(type, rating, message);
 
-        // Create feedback object
         const feedback: FeedbackSubmission = {
             id: this.generateFeedbackId(),
             type,
-            rating: Math.max(1, Math.min(5, Math.round(rating))), // Ensure rating is 1-5
+            rating: this.normalizeRating(rating),
             message: this.sanitizeMessage(message),
             email: email ? this.sanitizeEmail(email) : undefined,
             timestamp: new Date().toISOString(),
@@ -36,100 +47,109 @@ class FeedbackService {
         };
 
         try {
-            // Store feedback locally
+            // Store feedback locally first
             await this.storeFeedback(feedback);
 
-            // Track feedback submission in analytics (with safe check)
+            // Track analytics
             this.trackFeedbackSubmission(feedback);
 
-            // Send to server if endpoint is available
-            await this.sendFeedbackToServer(feedback);
+            // Attempt server submission (non-blocking)
+            this.sendFeedbackToServer(feedback).catch(error =>
+                console.warn('Server submission failed:', error)
+            );
 
-            console.log('✅ Feedback submitted successfully:', feedback.id);
+            this.log('Feedback submitted successfully:', feedback.id);
             return feedback;
 
         } catch (error) {
-            console.error('❌ Failed to submit feedback:', error);
+            this.logError('Failed to submit feedback:', error);
             throw new Error('Failed to submit feedback. Please try again.');
         }
     }
 
     // ============================================================================
-    // FEEDBACK VALIDATION
+    // PUBLIC API - FEEDBACK RETRIEVAL
     // ============================================================================
 
+    /**
+     * Get all stored feedback with caching
+     */
     getAllFeedback(): FeedbackSubmission[] {
+        // Return cached data if valid
+        if (this.isCacheValid()) {
+            return this.feedbackCache!;
+        }
+
         try {
             const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (!stored) return [];
-
-            const parsed = JSON.parse(stored);
-
-            // Validate stored data structure
-            if (!Array.isArray(parsed)) {
-                console.warn('Invalid feedback data structure, resetting');
-                this.clearAllFeedback();
+            if (!stored) {
+                this.updateCache([]);
                 return [];
             }
 
-            return parsed.filter(this.isValidFeedbackSubmission);
+            const parsed = JSON.parse(stored);
+
+            if (!Array.isArray(parsed)) {
+                this.logError('Invalid feedback data structure, resetting');
+                this.clearAllFeedback();
+                this.updateCache([]);
+                return [];
+            }
+
+            const validFeedback = parsed.filter(this.isValidFeedbackSubmission);
+            this.updateCache(validFeedback);
+            return validFeedback;
+
         } catch (error) {
-            console.warn('Failed to load feedback:', error);
+            this.logError('Failed to load feedback:', error);
+            this.updateCache([]);
             return [];
         }
     }
 
+    /**
+     * Get specific feedback by ID
+     */
     getFeedbackById(id: string): FeedbackSubmission | null {
-        if (!id || typeof id !== 'string') return null;
-
-        const allFeedback = this.getAllFeedback();
-        return allFeedback.find(f => f.id === id) || null;
+        if (!this.isValidString(id)) return null;
+        return this.getAllFeedback().find(f => f.id === id) || null;
     }
 
+    /**
+     * Get feedback filtered by type
+     */
     getFeedbackByType(type: FeedbackSubmission['type']): FeedbackSubmission[] {
         return this.getAllFeedback().filter(f => f.type === type);
     }
 
-    // ============================================================================
-    // FEEDBACK RETRIEVAL (For Admin Dashboard)
-    // ============================================================================
-
+    /**
+     * Get recent feedback with safe limit enforcement
+     */
     getRecentFeedback(limit: number = 10): FeedbackSubmission[] {
-        const safeLimit = Math.max(1, Math.min(100, limit)); // Limit between 1-100
+        const safeLimit = this.clampNumber(limit, 1, 100);
 
         return this.getAllFeedback()
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, safeLimit);
     }
 
+    // ============================================================================
+    // PUBLIC API - FEEDBACK ANALYTICS
+    // ============================================================================
+
+    /**
+     * Calculate comprehensive feedback statistics
+     */
     getFeedbackStats(): FeedbackStats {
         const allFeedback = this.getAllFeedback();
 
         if (allFeedback.length === 0) {
-            return {
-                totalSubmissions: 0,
-                averageRating: 0,
-                typeDistribution: {bug: 0, feature: 0, general: 0, love: 0},
-                ratingDistribution: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-            };
+            return this.getEmptyStats();
         }
 
-        // Calculate type distribution
-        const typeDistribution = allFeedback.reduce((acc, feedback) => {
-            acc[feedback.type] = (acc[feedback.type] || 0) + 1;
-            return acc;
-        }, {bug: 0, feature: 0, general: 0, love: 0});
-
-        // Calculate rating distribution
-        const ratingDistribution = allFeedback.reduce((acc, feedback) => {
-            const rating = feedback.rating as keyof typeof acc;
-            acc[rating] = (acc[rating] || 0) + 1;
-            return acc;
-        }, {1: 0, 2: 0, 3: 0, 4: 0, 5: 0});
-
-        // Calculate average rating
-        const totalRating = allFeedback.reduce((sum, feedback) => sum + feedback.rating, 0);
-        const averageRating = Number((totalRating / allFeedback.length).toFixed(2));
+        const typeDistribution = this.calculateTypeDistribution(allFeedback);
+        const ratingDistribution = this.calculateRatingDistribution(allFeedback);
+        const averageRating = this.calculateAverageRating(allFeedback);
 
         return {
             totalSubmissions: allFeedback.length,
@@ -139,56 +159,40 @@ class FeedbackService {
         };
     }
 
-    // Get feedback trends over time
+    /**
+     * Get feedback trends over specified time period
+     */
     getFeedbackTrends(days: number = 30): Array<{
         date: string;
         total: number;
         averageRating: number;
         typeBreakdown: Record<FeedbackSubmission['type'], number>;
     }> {
-        const safeDays = Math.max(1, Math.min(365, days)); // Limit between 1-365 days
+        const safeDays = this.clampNumber(days, 1, 365);
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - safeDays);
 
         const recentFeedback = this.getAllFeedback()
             .filter(f => new Date(f.timestamp) >= cutoffDate);
 
-        // Group by day
-        const trendsByDay = recentFeedback.reduce((acc, feedback) => {
-            const day = feedback.timestamp.split('T')[0];
-            if (!acc[day]) {
-                acc[day] = {
-                    total: 0,
-                    bug: 0,
-                    feature: 0,
-                    general: 0,
-                    love: 0,
-                    totalRating: 0
-                };
-            }
-            acc[day].total++;
-            acc[day][feedback.type]++;
-            acc[day].totalRating += feedback.rating;
-            return acc;
-        }, {} as Record<string, any>);
+        const trendsByDay = this.groupFeedbackByDay(recentFeedback);
 
-        return Object.entries(trendsByDay).map(([date, stats]) => ({
-            date,
-            total: stats.total,
-            averageRating: Number((stats.totalRating / stats.total).toFixed(2)),
-            typeBreakdown: {
-                bug: stats.bug,
-                feature: stats.feature,
-                general: stats.general,
-                love: stats.love
-            }
-        })).sort((a, b) => a.date.localeCompare(b.date));
+        return Object.entries(trendsByDay)
+            .map(([date, stats]) => this.formatTrendData(date, stats))
+            .sort((a, b) => a.date.localeCompare(b.date));
     }
 
-    markFeedbackAsRead(feedbackId: string): boolean {
-        try {
-            if (!feedbackId || typeof feedbackId !== 'string') return false;
+    // ============================================================================
+    // PUBLIC API - FEEDBACK MANAGEMENT
+    // ============================================================================
 
+    /**
+     * Mark feedback as read with validation
+     */
+    markFeedbackAsRead(feedbackId: string): boolean {
+        if (!this.isValidString(feedbackId)) return false;
+
+        try {
             const allFeedback = this.getAllFeedback();
             const feedbackIndex = allFeedback.findIndex(f => f.id === feedbackId);
 
@@ -203,36 +207,42 @@ class FeedbackService {
                 }
             };
 
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allFeedback));
+            this.persistFeedback(allFeedback);
+            this.invalidateCache();
             return true;
+
         } catch (error) {
-            console.error('Failed to mark feedback as read:', error);
+            this.logError('Failed to mark feedback as read:', error);
             return false;
         }
     }
 
-    // ============================================================================
-    // FEEDBACK STATISTICS (For Admin Dashboard)
-    // ============================================================================
-
+    /**
+     * Delete specific feedback with validation
+     */
     deleteFeedback(feedbackId: string): boolean {
-        try {
-            if (!feedbackId || typeof feedbackId !== 'string') return false;
+        if (!this.isValidString(feedbackId)) return false;
 
+        try {
             const allFeedback = this.getAllFeedback();
+            const initialLength = allFeedback.length;
             const filtered = allFeedback.filter(f => f.id !== feedbackId);
 
-            if (filtered.length === allFeedback.length) return false; // Nothing was deleted
+            if (filtered.length === initialLength) return false;
 
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+            this.persistFeedback(filtered);
+            this.invalidateCache();
             return true;
+
         } catch (error) {
-            console.error('Failed to delete feedback:', error);
+            this.logError('Failed to delete feedback:', error);
             return false;
         }
     }
 
-    // Export feedback data (for admin)
+    /**
+     * Export complete feedback dataset
+     */
     exportFeedbackData() {
         return {
             feedback: this.getAllFeedback(),
@@ -243,38 +253,43 @@ class FeedbackService {
         };
     }
 
-    // ============================================================================
-    // FEEDBACK MANAGEMENT (For Admin)
-    // ============================================================================
-
-    // Clear all feedback (admin action)
+    /**
+     * Clear all feedback data
+     */
     clearAllFeedback(): void {
         try {
             localStorage.removeItem(this.STORAGE_KEY);
-            console.log('🧹 All feedback cleared');
+            this.invalidateCache();
+            this.log('All feedback cleared');
         } catch (error) {
-            console.error('Failed to clear feedback:', error);
+            this.logError('Failed to clear feedback:', error);
         }
     }
 
-    // Check if user has recently submitted feedback (to avoid spam)
+    // ============================================================================
+    // PUBLIC API - USER EXPERIENCE HELPERS
+    // ============================================================================
+
+    /**
+     * Check if user has submitted feedback recently
+     */
     hasRecentFeedback(withinMinutes: number = 30): boolean {
+        const safeMinutes = this.clampNumber(withinMinutes, 1, 1440);
+        const cutoff = new Date();
+        cutoff.setMinutes(cutoff.getMinutes() - safeMinutes);
+
         try {
-            const safeMinutes = Math.max(1, Math.min(1440, withinMinutes)); // 1 minute to 24 hours
-            const cutoff = new Date();
-            cutoff.setMinutes(cutoff.getMinutes() - safeMinutes);
-
-            const recentFeedback = this.getAllFeedback()
-                .filter(f => new Date(f.timestamp) >= cutoff);
-
-            return recentFeedback.length > 0;
+            return this.getAllFeedback()
+                .some(f => new Date(f.timestamp) >= cutoff);
         } catch (error) {
-            console.warn('Failed to check recent feedback:', error);
+            this.logError('Failed to check recent feedback:', error);
             return false;
         }
     }
 
-    // Get suggested feedback type based on user behavior
+    /**
+     * Get suggested feedback type based on user behavior
+     */
     getSuggestedFeedbackType(): FeedbackSubmission['type'] {
         try {
             const analyticsService = this.getAnalyticsService();
@@ -282,52 +297,53 @@ class FeedbackService {
 
             if (!userMetrics) return 'general';
 
-            // Suggest 'love' for highly engaged users
-            if (userMetrics.applicationsCreated >= 20 || userMetrics.featuresUsed.length >= 10) {
+            // Suggest based on user engagement
+            if (userMetrics.applicationsCreated >= 20 || userMetrics.featuresUsed?.length >= 10) {
                 return 'love';
             }
 
-            // Suggest 'feature' for moderately active users
-            if (userMetrics.applicationsCreated >= 5 || userMetrics.featuresUsed.length >= 5) {
+            if (userMetrics.applicationsCreated >= 5 || userMetrics.featuresUsed?.length >= 5) {
                 return 'feature';
             }
 
-            // Default to general for new users
             return 'general';
+
         } catch (error) {
-            console.warn('Failed to get suggested feedback type:', error);
+            this.logError('Failed to get suggested feedback type:', error);
             return 'general';
         }
     }
 
-    // Clean up old feedback data
+    /**
+     * Clean up old feedback data with safety limits
+     */
     cleanupOldFeedback(olderThanDays: number = 90): number {
-        try {
-            const safeDays = Math.max(1, Math.min(365, olderThanDays));
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - safeDays);
+        const safeDays = this.clampNumber(olderThanDays, 1, 365);
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - safeDays);
 
+        try {
             const allFeedback = this.getAllFeedback();
             const recentFeedback = allFeedback.filter(f => new Date(f.timestamp) >= cutoffDate);
             const deletedCount = allFeedback.length - recentFeedback.length;
 
             if (deletedCount > 0) {
-                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(recentFeedback));
-                console.log(`🧹 Cleaned up ${deletedCount} feedback items older than ${safeDays} days`);
+                this.persistFeedback(recentFeedback);
+                this.invalidateCache();
+                this.log(`Cleaned up ${deletedCount} feedback items older than ${safeDays} days`);
             }
 
             return deletedCount;
+
         } catch (error) {
-            console.error('Failed to cleanup old feedback:', error);
+            this.logError('Failed to cleanup old feedback:', error);
             return 0;
         }
     }
 
-    // ============================================================================
-    // PRIVATE METHODS
-    // ============================================================================
-
-    // Get storage usage statistics
+    /**
+     * Get storage usage statistics
+     */
     getStorageStats(): {
         totalFeedback: number;
         storageSize: number;
@@ -337,7 +353,6 @@ class FeedbackService {
         try {
             const allFeedback = this.getAllFeedback();
             const storageData = localStorage.getItem(this.STORAGE_KEY) || '[]';
-
             const timestamps = allFeedback.map(f => f.timestamp).sort();
 
             return {
@@ -346,8 +361,9 @@ class FeedbackService {
                 oldestFeedback: timestamps[0],
                 newestFeedback: timestamps[timestamps.length - 1]
             };
+
         } catch (error) {
-            console.error('Failed to get storage stats:', error);
+            this.logError('Failed to get storage stats:', error);
             return {
                 totalFeedback: 0,
                 storageSize: 0
@@ -355,111 +371,240 @@ class FeedbackService {
         }
     }
 
+    // ============================================================================
+    // PRIVATE METHODS - VALIDATION & SANITIZATION
+    // ============================================================================
+
     private validateFeedbackInput(
         type: FeedbackSubmission['type'],
         rating: number,
         message: string
-    ): boolean {
-        // Validate type
+    ): void {
         const validTypes: FeedbackSubmission['type'][] = ['bug', 'feature', 'general', 'love'];
+
         if (!validTypes.includes(type)) {
-            console.error('Invalid feedback type:', type);
-            return false;
+            throw new Error(`Invalid feedback type: ${type}`);
         }
 
-        // Validate rating
-        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-            console.error('Invalid rating:', rating);
-            return false;
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+            throw new Error(`Invalid rating: ${rating}. Must be integer between 1-5`);
         }
 
-        // Validate message
-        if (typeof message !== 'string' || message.trim().length < 3) {
-            console.error('Invalid message: too short');
-            return false;
+        if (!this.isValidString(message) || message.trim().length < this.MESSAGE_MIN_LENGTH) {
+            throw new Error(`Message too short. Minimum ${this.MESSAGE_MIN_LENGTH} characters required`);
         }
 
-        if (message.length > 2000) {
-            console.error('Invalid message: too long');
-            return false;
+        if (message.length > this.MESSAGE_MAX_LENGTH) {
+            throw new Error(`Message too long. Maximum ${this.MESSAGE_MAX_LENGTH} characters allowed`);
         }
-
-        return true;
     }
 
     private sanitizeMessage(message: string): string {
         return message
             .trim()
-            .substring(0, 2000) // Limit length
-            .replace(/\s+/g, ' ') // Normalize whitespace
-            .replace(/[<>]/g, ''); // Remove potential HTML tags
+            .substring(0, this.MESSAGE_MAX_LENGTH)
+            .replace(/\s+/g, ' ')
+            .replace(/[<>]/g, '');
     }
 
     private sanitizeEmail(email: string): string {
         const trimmed = email.trim().toLowerCase();
-        // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(trimmed) ? trimmed : '';
     }
 
+    private normalizeRating(rating: number): number {
+        return Math.max(1, Math.min(5, Math.round(rating)));
+    }
+
+    private isValidFeedbackSubmission = (item: any): item is FeedbackSubmission => {
+        return (
+            item &&
+            typeof item === 'object' &&
+            this.isValidString(item.id) &&
+            this.isValidString(item.type) &&
+            typeof item.rating === 'number' &&
+            this.isValidString(item.message) &&
+            this.isValidString(item.timestamp) &&
+            ['bug', 'feature', 'general', 'love'].includes(item.type) &&
+            item.rating >= 1 &&
+            item.rating <= 5
+        );
+    };
+
+    // ============================================================================
+    // PRIVATE METHODS - STORAGE & CACHING
+    // ============================================================================
+
     private async storeFeedback(feedback: FeedbackSubmission): Promise<void> {
+        const allFeedback = this.getAllFeedback();
+        allFeedback.push(feedback);
+
+        const recentFeedback = allFeedback
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, this.MAX_STORED_FEEDBACK);
+
+        this.persistFeedback(recentFeedback);
+        this.invalidateCache();
+    }
+
+    private persistFeedback(feedback: FeedbackSubmission[]): void {
         try {
-            const allFeedback = this.getAllFeedback();
-            allFeedback.push(feedback);
-
-            // Keep only the most recent feedback to prevent storage bloat
-            const recentFeedback = allFeedback
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                .slice(0, this.MAX_STORED_FEEDBACK);
-
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(recentFeedback));
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(feedback));
         } catch (error) {
-            console.warn('Failed to store feedback locally:', error);
+            this.logError('Failed to persist feedback:', error);
             throw error;
         }
     }
 
+    private updateCache(feedback: FeedbackSubmission[]): void {
+        this.feedbackCache = feedback;
+        this.cacheTimestamp = Date.now();
+    }
+
+    private invalidateCache(): void {
+        this.feedbackCache = null;
+        this.cacheTimestamp = 0;
+    }
+
+    private isCacheValid(): boolean {
+        return (
+            this.feedbackCache !== null &&
+            Date.now() - this.cacheTimestamp < this.CACHE_TTL
+        );
+    }
+
+    // ============================================================================
+    // PRIVATE METHODS - SERVER COMMUNICATION
+    // ============================================================================
+
     private async sendFeedbackToServer(feedback: FeedbackSubmission): Promise<void> {
-        try {
-            // Prepare sanitized feedback for server
-            const serverFeedback = {
-                id: feedback.id,
-                type: feedback.type,
-                rating: feedback.rating,
-                message: feedback.message,
-                email: feedback.email,
-                timestamp: feedback.timestamp,
-                url: feedback.url,
-                metadata: {
-                    deviceType: feedback.metadata?.deviceType,
-                    timezone: feedback.metadata?.timezone,
-                    language: feedback.metadata?.language
-                }
-            };
-
-            console.log('📤 Would send feedback to server:', serverFeedback);
-
-            // Example implementation for when you have a server endpoint:
-            /*
-            const response = await fetch('/api/feedback', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Feedback-Version': this.FEEDBACK_VERSION
-                },
-                body: JSON.stringify(serverFeedback)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server responded with ${response.status}`);
+        const serverFeedback = {
+            id: feedback.id,
+            type: feedback.type,
+            rating: feedback.rating,
+            message: feedback.message,
+            email: feedback.email,
+            timestamp: feedback.timestamp,
+            url: feedback.url,
+            metadata: {
+                deviceType: feedback.metadata?.deviceType,
+                timezone: feedback.metadata?.timezone,
+                language: feedback.metadata?.language
             }
-            */
+        };
 
+        this.log('Would send feedback to server:', serverFeedback);
+
+        // TODO: Implement actual server endpoint when available
+        /*
+        const response = await fetch('/api/feedback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Feedback-Version': this.FEEDBACK_VERSION
+          },
+          body: JSON.stringify(serverFeedback)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+        }
+        */
+    }
+
+    // ============================================================================
+    // PRIVATE METHODS - ANALYTICS & STATISTICS
+    // ============================================================================
+
+    private calculateTypeDistribution(feedback: FeedbackSubmission[]): Record<FeedbackSubmission['type'], number> {
+        return feedback.reduce((acc, item) => {
+            acc[item.type] = (acc[item.type] || 0) + 1;
+            return acc;
+        }, {bug: 0, feature: 0, general: 0, love: 0});
+    }
+
+    private calculateRatingDistribution(feedback: FeedbackSubmission[]): {
+        1: number;
+        2: number;
+        3: number;
+        4: number;
+        5: number
+    } {
+        return feedback.reduce((acc, item) => {
+            const rating = item.rating as keyof typeof acc;
+            acc[rating] = (acc[rating] || 0) + 1;
+            return acc;
+        }, {1: 0, 2: 0, 3: 0, 4: 0, 5: 0} as { 1: number; 2: number; 3: number; 4: number; 5: number });
+    }
+
+    private calculateAverageRating(feedback: FeedbackSubmission[]): number {
+        const totalRating = feedback.reduce((sum, item) => sum + item.rating, 0);
+        return Number((totalRating / feedback.length).toFixed(2));
+    }
+
+    private groupFeedbackByDay(feedback: FeedbackSubmission[]): Record<string, any> {
+        return feedback.reduce((acc, item) => {
+            const day = item.timestamp.split('T')[0];
+            if (!acc[day]) {
+                acc[day] = {
+                    total: 0,
+                    bug: 0,
+                    feature: 0,
+                    general: 0,
+                    love: 0,
+                    totalRating: 0
+                };
+            }
+            acc[day].total++;
+            acc[day][item.type]++;
+            acc[day].totalRating += item.rating;
+            return acc;
+        }, {} as Record<string, any>);
+    }
+
+    private formatTrendData(date: string, stats: any) {
+        return {
+            date,
+            total: stats.total,
+            averageRating: Number((stats.totalRating / stats.total).toFixed(2)),
+            typeBreakdown: {
+                bug: stats.bug,
+                feature: stats.feature,
+                general: stats.general,
+                love: stats.love
+            }
+        };
+    }
+
+    private getEmptyStats(): FeedbackStats {
+        return {
+            totalSubmissions: 0,
+            averageRating: 0,
+            typeDistribution: {bug: 0, feature: 0, general: 0, love: 0},
+            ratingDistribution: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        };
+    }
+
+    private trackFeedbackSubmission(feedback: FeedbackSubmission): void {
+        try {
+            const analyticsService = this.getAnalyticsService();
+            if (analyticsService?.isEnabled()) {
+                analyticsService.trackEvent('feedback_submitted', {
+                    type: feedback.type,
+                    rating: feedback.rating,
+                    hasEmail: !!feedback.email,
+                    messageLength: feedback.message.length
+                });
+            }
         } catch (error) {
-            console.warn('Failed to send feedback to server:', error);
-            // Don't throw error - local storage is sufficient for now
+            this.logError('Failed to track feedback submission:', error);
         }
     }
+
+    // ============================================================================
+    // PRIVATE METHODS - UTILITY & METADATA
+    // ============================================================================
 
     private generateFeedbackId(): string {
         const timestamp = Date.now().toString(36);
@@ -469,13 +614,12 @@ class FeedbackService {
 
     private getSessionId(): string {
         try {
-            // Try to get session ID from analytics service if available
-            const analyticsModule = this.getAnalyticsService();
-            if (analyticsModule?.isEnabled()) {
-                return analyticsModule.getCurrentSessionId() || this.generateSessionId();
+            const analyticsService = this.getAnalyticsService();
+            if (analyticsService?.isEnabled()) {
+                return analyticsService.getCurrentSessionId() || this.generateSessionId();
             }
             return this.generateSessionId();
-        } catch (error) {
+        } catch {
             return this.generateSessionId();
         }
     }
@@ -486,8 +630,8 @@ class FeedbackService {
 
     private getSafeUserAgent(): string {
         try {
-            return navigator.userAgent.substring(0, 200); // Limit length for storage
-        } catch (error) {
+            return navigator.userAgent.substring(0, 200);
+        } catch {
             return 'unknown';
         }
     }
@@ -495,7 +639,7 @@ class FeedbackService {
     private getCurrentUrl(): string {
         try {
             return window.location.pathname + window.location.search;
-        } catch (error) {
+        } catch {
             return '/';
         }
     }
@@ -511,7 +655,7 @@ class FeedbackService {
                 language: this.getLanguage()
             };
         } catch (error) {
-            console.warn('Failed to gather feedback metadata:', error);
+            this.logError('Failed to gather feedback metadata:', error);
             return {};
         }
     }
@@ -564,10 +708,6 @@ class FeedbackService {
         }
     }
 
-    // ============================================================================
-    // USER EXPERIENCE HELPERS
-    // ============================================================================
-
     private getLanguage(): string {
         try {
             return navigator.language || 'en';
@@ -578,7 +718,7 @@ class FeedbackService {
 
     private getAnalyticsService(): any {
         try {
-            // Dynamic import to avoid circular dependencies
+            // Use dynamic import to avoid circular dependencies
             return require('./analyticsService').analyticsService;
         } catch {
             return null;
@@ -586,42 +726,32 @@ class FeedbackService {
     }
 
     // ============================================================================
-    // CLEANUP & MAINTENANCE
+    // PRIVATE METHODS - UTILITIES
     // ============================================================================
 
-    private trackFeedbackSubmission(feedback: FeedbackSubmission): void {
-        try {
-            const analyticsService = this.getAnalyticsService();
-            if (analyticsService?.isEnabled()) {
-                analyticsService.trackEvent('feedback_submitted', {
-                    type: feedback.type,
-                    rating: feedback.rating,
-                    hasEmail: !!feedback.email,
-                    messageLength: feedback.message.length
-                });
-            }
-        } catch (error) {
-            console.warn('Failed to track feedback submission:', error);
+    private isValidString(value: any): value is string {
+        return typeof value === 'string' && value.trim().length > 0;
+    }
+
+    private clampNumber(value: number, min: number, max: number): number {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private log(message: string, ...args: any[]): void {
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`🔄 FeedbackService: ${message}`, ...args);
         }
     }
 
-    private isValidFeedbackSubmission(item: any): item is FeedbackSubmission {
-        return (
-            item &&
-            typeof item === 'object' &&
-            typeof item.id === 'string' &&
-            typeof item.type === 'string' &&
-            typeof item.rating === 'number' &&
-            typeof item.message === 'string' &&
-            typeof item.timestamp === 'string' &&
-            ['bug', 'feature', 'general', 'love'].includes(item.type) &&
-            item.rating >= 1 &&
-            item.rating <= 5
-        );
+    private logError(message: string, error?: any): void {
+        console.error(`❌ FeedbackService: ${message}`, error || '');
     }
 }
 
-// Singleton instance
+// ============================================================================
+// SINGLETON INSTANCE & EXPORTS
+// ============================================================================
+
 export const feedbackService = new FeedbackService();
 
 // Convenience functions with proper error handling

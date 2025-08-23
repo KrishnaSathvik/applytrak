@@ -1,5 +1,5 @@
-// src/components/admin/AdminDashboard.tsx - PHASE 2: UNIFIED GLOBAL REFRESH SYSTEM
-import React, {useEffect, useMemo, useState} from 'react';
+// src/components/admin/AdminDashboard.tsx - PRODUCTION READY
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {
     Activity,
@@ -17,14 +17,12 @@ import {
     Filter,
     Globe,
     Heart,
-    HelpCircle,
     Lightbulb,
     MessageSquare,
     Pause,
     Play,
     RefreshCw,
     Search,
-    Settings,
     Shield,
     Star,
     Target,
@@ -36,27 +34,31 @@ import {
 import {useAppStore} from '../../store/useAppStore';
 import {feedbackService} from '../../services/feedbackService';
 import {analyticsService} from '../../services/analyticsService';
-import AdminSettings from './AdminSettings';
-import SupportTools from './SupportTools';
 import {realtimeAdminService} from '../../services/realtimeAdminService';
 
-// ✅ COMPLETE: All section types including Settings and Support
-type SectionId = 'overview' | 'analytics' | 'feedback' | 'users' | 'settings' | 'support';
+// Type definitions
+type SectionId = 'overview' | 'analytics' | 'feedback' | 'users';
 type FeedbackFilter = 'all' | 'love' | 'bug' | 'feature' | 'general';
 type SortBy = 'newest' | 'oldest' | 'rating-high' | 'rating-low';
 type StatusFilter = 'all' | 'unread' | 'read' | 'flagged';
 
-// ✅ COMPLETE: All sections including Settings and Support
+// Constants
+const FEEDBACK_PER_PAGE = 20;
+const MAX_RETRIES = 3;
+const PING_INTERVAL = 30000;
+const POLLING_INTERVAL = 20000;
+const DEBOUNCE_DELAY = 1000;
+const AUTO_REFRESH_INTERVAL = 30;
+
+// Navigation sections configuration
 const sections = [
     {id: 'overview' as const, label: 'Overview', icon: BarChart3},
     {id: 'analytics' as const, label: 'Analytics', icon: TrendingUp},
     {id: 'feedback' as const, label: 'Feedback', icon: MessageSquare},
     {id: 'users' as const, label: 'Users', icon: Users},
-    {id: 'settings' as const, label: 'Settings', icon: Settings},
-    {id: 'support' as const, label: 'Support', icon: HelpCircle}
 ];
 
-// ✅ PHASE 2: Enhanced Real-Time Status Indicator with Global Refresh Status
+// Real-time status indicator component
 const RealtimeStatusIndicator: React.FC = () => {
     const {getAdminConnectionStatus, getGlobalRefreshStatus, isAdminRealtime} = useAppStore();
     const [status, setStatus] = useState(getAdminConnectionStatus());
@@ -69,33 +71,38 @@ const RealtimeStatusIndicator: React.FC = () => {
             setRefreshStatus(getGlobalRefreshStatus());
 
             const store = useAppStore.getState();
-            const realUserCount = store.auth?.isAuthenticated ?
-                (store.adminAnalytics?.userMetrics?.totalUsers || 1) : 1;
+            const realUserCount = store.auth?.isAuthenticated
+                ? (store.adminAnalytics?.userMetrics?.totalUsers || 1)
+                : 1;
             setUserCount(realUserCount);
         }, 1000);
 
         return () => clearInterval(interval);
     }, [getAdminConnectionStatus, getGlobalRefreshStatus]);
 
-    const getStatusColor = () => {
-        if (!status.isConnected) return 'text-gray-400';
-        if (status.isRealtime) return 'text-green-500';
-        return 'text-yellow-500';
-    };
+    const getStatusConfig = useCallback(() => {
+        if (!status.isConnected) {
+            return {
+                color: 'text-gray-400',
+                icon: '⚪',
+                text: 'Offline'
+            };
+        }
+        if (status.isRealtime) {
+            return {
+                color: 'text-green-500',
+                icon: '🟢',
+                text: 'Live SaaS Mode'
+            };
+        }
+        return {
+            color: 'text-yellow-500',
+            icon: '🟡',
+            text: 'Local Mode'
+        };
+    }, [status]);
 
-    const getStatusIcon = () => {
-        if (!status.isConnected) return '⚪';
-        if (status.isRealtime) return '🟢';
-        return '🟡';
-    };
-
-    const getStatusText = () => {
-        if (!status.isConnected) return 'Offline';
-        if (status.isRealtime) return 'Live SaaS Mode';
-        return 'Local Mode';
-    };
-
-    const formatLastUpdate = () => {
+    const formatLastUpdate = useCallback(() => {
         const timestamp = refreshStatus.lastRefreshTimestamp || status.lastUpdate;
         if (!timestamp) return 'Never';
 
@@ -106,29 +113,38 @@ const RealtimeStatusIndicator: React.FC = () => {
         if (seconds < 60) return `${seconds}s ago`;
         if (minutes < 60) return `${minutes}m ago`;
         return new Date(timestamp).toLocaleTimeString();
-    };
+    }, [refreshStatus.lastRefreshTimestamp, status.lastUpdate]);
 
-    const getRefreshStatusIcon = () => {
-        if (refreshStatus.isRefreshing) return <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />;
-        if (refreshStatus.refreshStatus === 'error') return <AlertCircle className="h-3 w-3 text-red-500" />;
-        if (refreshStatus.refreshStatus === 'success') return <CheckCircle className="h-3 w-3 text-green-500" />;
+    const getRefreshStatusIcon = useCallback(() => {
+        if (refreshStatus.isRefreshing) {
+            return <RefreshCw className="h-3 w-3 animate-spin text-blue-500"/>;
+        }
+        if (refreshStatus.refreshStatus === 'error') {
+            return <AlertCircle className="h-3 w-3 text-red-500"/>;
+        }
+        if (refreshStatus.refreshStatus === 'success') {
+            return <CheckCircle className="h-3 w-3 text-green-500"/>;
+        }
         return null;
-    };
+    }, [refreshStatus]);
+
+    const statusConfig = getStatusConfig();
 
     return (
         <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
-                <span className="text-lg">{getStatusIcon()}</span>
+                <span className="text-lg">{statusConfig.icon}</span>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${getStatusColor()}`}>
-                            {getStatusText()}
+                        <span className={`text-sm font-medium ${statusConfig.color}`}>
+                            {statusConfig.text}
                         </span>
                         {getRefreshStatusIcon()}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                         <span>
-                            {isAdminRealtime ? `${userCount} users • ` : ''}Updated: {formatLastUpdate()}
+                            {isAdminRealtime ? `${userCount} users • ` : ''}
+                            Updated: {formatLastUpdate()}
                         </span>
                         {refreshStatus.autoRefreshEnabled && (
                             <span className="text-blue-600 dark:text-blue-400 font-medium">
@@ -142,9 +158,7 @@ const RealtimeStatusIndicator: React.FC = () => {
             {status.isRealtime && (
                 <div className="flex items-center gap-1">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
-                    <span className="text-xs text-green-600 font-medium">
-                        MULTI-USER
-                    </span>
+                    <span className="text-xs text-green-600 font-medium">MULTI-USER</span>
                 </div>
             )}
 
@@ -160,6 +174,7 @@ const RealtimeStatusIndicator: React.FC = () => {
     );
 };
 
+// Connection health monitor component
 const ConnectionHealthMonitor: React.FC = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [lastPing, setLastPing] = useState<Date | null>(null);
@@ -172,20 +187,20 @@ const ConnectionHealthMonitor: React.FC = () => {
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
 
-        // Ping test every 30 seconds
+        // Network ping test
         const pingInterval = setInterval(async () => {
-            if (isOnline) {
-                const startTime = Date.now();
-                try {
-                    await fetch('/favicon.ico', {mode: 'no-cors'});
-                    const pingTime = Date.now() - startTime;
-                    setLastPing(new Date());
-                    setPingStatus(pingTime < 1000 ? 'good' : 'slow');
-                } catch {
-                    setPingStatus('error');
-                }
+            if (!isOnline) return;
+
+            const startTime = Date.now();
+            try {
+                await fetch('/favicon.ico', {mode: 'no-cors'});
+                const pingTime = Date.now() - startTime;
+                setLastPing(new Date());
+                setPingStatus(pingTime < 1000 ? 'good' : 'slow');
+            } catch {
+                setPingStatus('error');
             }
-        }, 30000);
+        }, PING_INTERVAL);
 
         return () => {
             window.removeEventListener('online', handleOnline);
@@ -198,37 +213,46 @@ const ConnectionHealthMonitor: React.FC = () => {
         return (
             <div
                 className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-red-500 rounded-full"/>
                 <span className="text-sm text-red-700 dark:text-red-300 font-medium">Offline</span>
             </div>
         );
     }
 
+    const statusConfig = {
+        good: {
+            bg: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
+            dot: 'bg-green-500',
+            text: 'text-green-700 dark:text-green-300',
+            label: 'Connected'
+        },
+        slow: {
+            bg: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800',
+            dot: 'bg-yellow-500',
+            text: 'text-yellow-700 dark:text-yellow-300',
+            label: 'Slow Connection'
+        },
+        error: {
+            bg: 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800',
+            dot: 'bg-red-500',
+            text: 'text-red-700 dark:text-red-300',
+            label: 'Connection Issues'
+        }
+    };
+
+    const config = statusConfig[pingStatus];
+
     return (
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
-            pingStatus === 'good' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' :
-                pingStatus === 'slow' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' :
-                    'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
-        }`}>
-            <div className={`w-2 h-2 rounded-full ${
-                pingStatus === 'good' ? 'bg-green-500' :
-                    pingStatus === 'slow' ? 'bg-yellow-500' :
-                        'bg-red-500'
-            }`}></div>
-            <span className={`text-sm font-medium ${
-                pingStatus === 'good' ? 'text-green-700 dark:text-green-300' :
-                    pingStatus === 'slow' ? 'text-yellow-700 dark:text-yellow-300' :
-                        'text-red-700 dark:text-red-300'
-            }`}>
-                {pingStatus === 'good' ? 'Connected' :
-                    pingStatus === 'slow' ? 'Slow Connection' :
-                        'Connection Issues'}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${config.bg}`}>
+            <div className={`w-2 h-2 rounded-full ${config.dot}`}/>
+            <span className={`text-sm font-medium ${config.text}`}>
+                {config.label}
             </span>
         </div>
     );
 };
 
-// ✅ PHASE 2: Enhanced Real-Time Toggle with Auto-Refresh
+// Real-time toggle component
 const RealtimeToggle: React.FC = () => {
     const {
         isAdminRealtime,
@@ -238,53 +262,50 @@ const RealtimeToggle: React.FC = () => {
         auth
     } = useAppStore();
 
-    const handleToggle = () => {
+    const handleToggle = useCallback(() => {
         if (isAdminRealtime) {
             disableRealtimeAdmin();
             showToast({
                 type: 'info',
-                message: '📊 Switched to local-only analytics mode'
+                message: 'Switched to local-only analytics mode'
             });
         } else {
             enableRealtimeAdmin();
             showToast({
                 type: 'success',
-                message: auth.isAuthenticated ?
-                    '🔄 Multi-user analytics enabled' :
-                    '🔄 Real-time mode enabled'
+                message: auth.isAuthenticated
+                    ? 'Multi-user analytics enabled'
+                    : 'Real-time mode enabled'
             });
         }
-    };
+    }, [isAdminRealtime, auth.isAuthenticated, enableRealtimeAdmin, disableRealtimeAdmin, showToast]);
+
+    const buttonConfig = isAdminRealtime
+        ? {
+            className: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400',
+            icon: Activity,
+            label: auth.isAuthenticated ? 'SaaS Mode ON' : 'Real-time ON'
+        }
+        : {
+            className: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300',
+            icon: RefreshCw,
+            label: 'Enable SaaS Mode'
+        };
+
+    const IconComponent = buttonConfig.icon;
 
     return (
         <button
             onClick={handleToggle}
-            className={`
-                flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
-                ${isAdminRealtime
-                ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
-                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
-            }
-            `}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${buttonConfig.className}`}
         >
-            {isAdminRealtime ? (
-                <>
-                    <Activity className="h-4 w-4"/>
-                    <span className="text-sm font-medium">
-                        {auth.isAuthenticated ? 'SaaS Mode ON' : 'Real-time ON'}
-                    </span>
-                </>
-            ) : (
-                <>
-                    <RefreshCw className="h-4 w-4"/>
-                    <span className="text-sm font-medium">Enable SaaS Mode</span>
-                </>
-            )}
+            <IconComponent className="h-4 w-4"/>
+            <span className="text-sm font-medium">{buttonConfig.label}</span>
         </button>
     );
 };
 
-// ✅ PHASE 2: New Auto-Refresh Control Component
+// Auto-refresh control component
 const AutoRefreshControl: React.FC = () => {
     const {
         getGlobalRefreshStatus,
@@ -304,11 +325,11 @@ const AutoRefreshControl: React.FC = () => {
         return () => clearInterval(interval);
     }, [getGlobalRefreshStatus]);
 
-    const handleToggleAutoRefresh = () => {
+    const handleToggleAutoRefresh = useCallback(() => {
         if (refreshStatus.autoRefreshEnabled) {
             disableAutoRefresh();
         } else {
-            const intervalSeconds = parseInt(intervalInput) || 30;
+            const intervalSeconds = parseInt(intervalInput) || AUTO_REFRESH_INTERVAL;
             if (intervalSeconds < 5) {
                 showToast({
                     type: 'warning',
@@ -318,53 +339,50 @@ const AutoRefreshControl: React.FC = () => {
             }
             enableAutoRefresh(intervalSeconds);
         }
-    };
+    }, [refreshStatus.autoRefreshEnabled, intervalInput, enableAutoRefresh, disableAutoRefresh, showToast]);
+
+    const buttonConfig = refreshStatus.autoRefreshEnabled
+        ? {
+            className: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400',
+            icon: Pause,
+            label: 'Stop Auto'
+        }
+        : {
+            className: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300',
+            icon: Play,
+            label: 'Auto Refresh'
+        };
+
+    const IconComponent = buttonConfig.icon;
 
     return (
         <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-                <button
-                    onClick={handleToggleAutoRefresh}
-                    className={`
-                        flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
-                        ${refreshStatus.autoRefreshEnabled
-                        ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400'
-                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
-                    }
-                    `}
-                >
-                    {refreshStatus.autoRefreshEnabled ? (
-                        <>
-                            <Pause className="h-4 w-4"/>
-                            <span className="text-sm font-medium">Stop Auto</span>
-                        </>
-                    ) : (
-                        <>
-                            <Play className="h-4 w-4"/>
-                            <span className="text-sm font-medium">Auto Refresh</span>
-                        </>
-                    )}
-                </button>
+            <button
+                onClick={handleToggleAutoRefresh}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${buttonConfig.className}`}
+            >
+                <IconComponent className="h-4 w-4"/>
+                <span className="text-sm font-medium">{buttonConfig.label}</span>
+            </button>
 
-                {!refreshStatus.autoRefreshEnabled && (
-                    <div className="flex items-center gap-1">
-                        <input
-                            type="number"
-                            value={intervalInput}
-                            onChange={(e) => setIntervalInput(e.target.value)}
-                            min="5"
-                            max="300"
-                            className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-center"
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">sec</span>
-                    </div>
-                )}
-            </div>
+            {!refreshStatus.autoRefreshEnabled && (
+                <div className="flex items-center gap-1">
+                    <input
+                        type="number"
+                        value={intervalInput}
+                        onChange={(e) => setIntervalInput(e.target.value)}
+                        min="5"
+                        max="300"
+                        className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-center"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">sec</span>
+                </div>
+            )}
         </div>
     );
 };
 
-// ✅ ENHANCED: User Metrics Component (unchanged from existing)
+// User metrics card component
 const UserMetricsCard: React.FC<{
     title: string;
     value: number | string;
@@ -375,60 +393,80 @@ const UserMetricsCard: React.FC<{
     bgColor: string;
 }> = ({title, value, subtitle, trend, icon: Icon, color, bgColor}) => {
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-                <ConnectionHealthMonitor />
-                <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}>
-                    <Icon className={`h-6 w-6 ${color}`}/>
+        <div
+            className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200">
+            {/* Header with status and icon */}
+            <div className="flex items-center justify-between mb-4">
+                <div
+                    className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/20 rounded-full">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"/>
+                    <span className="text-xs font-medium text-green-700 dark:text-green-400">Connected</span>
                 </div>
-                <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+                <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center`}>
+                    <Icon className={`h-5 w-5 ${color}`}/>
+                </div>
+            </div>
+
+            {/* Title */}
+            <div className="mb-3">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
+            </div>
+
+            {/* Value and trend */}
+            <div className="flex items-end justify-between">
+                <div>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+                    {subtitle && (
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{subtitle}</p>
+                    )}
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                        <TrendingUp className={`h-4 w-4 ${trend.isPositive ? '' : 'transform rotate-180'}`}/>
-                        <span className="text-xs font-medium">{trend.isPositive ? '+' : ''}{trend.value}%</span>
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${
+                        trend.isPositive
+                            ? 'bg-green-50 dark:bg-green-900/20'
+                            : 'bg-red-50 dark:bg-red-900/20'
+                    }`}>
+                        <TrendingUp className={`h-3 w-3 ${
+                            trend.isPositive
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400 transform rotate-180'
+                        }`}/>
+                        <span className={`text-xs font-medium ${
+                            trend.isPositive
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400'
+                        }`}>
+                            {trend.isPositive ? '+' : ''}{Math.abs(trend.value).toFixed(0)}%
+                        </span>
                     </div>
                 )}
             </div>
-            {subtitle && (
-                <div className="mt-3 flex items-center text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{subtitle}</span>
-                </div>
-            )}
         </div>
     );
 };
 
-// ✅ ENHANCED: Metrics Overview (unchanged from existing)
-const EnhancedMetricsOverview: React.FC<{ isRealtime: boolean; isAuthenticated: boolean }> = ({
-                                                                                                  isRealtime,
-                                                                                                  isAuthenticated
-                                                                                              }) => {
+// Enhanced metrics overview component
+const EnhancedMetricsOverview: React.FC<{
+    isRealtime: boolean;
+    isAuthenticated: boolean
+}> = ({isRealtime, isAuthenticated}) => {
     const {adminAnalytics, applications} = useAppStore();
 
     const enhancedMetrics = useMemo(() => {
         const totalUsers = adminAnalytics?.userMetrics?.totalUsers || 1;
         const activeDaily = adminAnalytics?.userMetrics?.activeUsers?.daily || (isAuthenticated ? 1 : 0);
         const activeWeekly = adminAnalytics?.userMetrics?.activeUsers?.weekly || (isAuthenticated ? 1 : 0);
-        const activeMonthly = adminAnalytics?.userMetrics?.activeUsers?.monthly || (isAuthenticated ? 1 : 0);
-
         const totalSessions = adminAnalytics?.usageMetrics?.totalSessions || 0;
         const avgSessionDuration = adminAnalytics?.usageMetrics?.averageSessionDuration || 0;
         const totalAppsCreated = adminAnalytics?.usageMetrics?.totalApplicationsCreated || applications.length;
-
-        const conversionRate = isAuthenticated ? 100 : 0;
 
         return {
             totalUsers,
             activeDaily,
             activeWeekly,
-            activeMonthly,
             totalSessions,
             avgSessionDuration,
-            totalAppsCreated,
-            conversionRate
+            totalAppsCreated
         };
     }, [isRealtime, isAuthenticated, adminAnalytics, applications.length]);
 
@@ -477,17 +515,18 @@ const EnhancedMetricsOverview: React.FC<{ isRealtime: boolean; isAuthenticated: 
     );
 };
 
-// ✅ ENHANCED: System Health (unchanged from existing)
-const SystemHealthPanel: React.FC<{ isRealtime: boolean; isAuthenticated: boolean }> = ({
-                                                                                            isRealtime,
-                                                                                            isAuthenticated
-                                                                                        }) => {
+// System health panel component
+const SystemHealthPanel: React.FC<{
+    isRealtime: boolean;
+    isAuthenticated: boolean
+}> = ({isRealtime, isAuthenticated}) => {
     const {adminAnalytics} = useAppStore();
 
     const healthMetrics = useMemo(() => {
         const sessionsCount = adminAnalytics?.usageMetrics?.totalSessions || 0;
-        const featuresUsed = adminAnalytics?.usageMetrics?.featuresUsage ?
-            Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0;
+        const featuresUsed = adminAnalytics?.usageMetrics?.featuresUsage
+            ? Object.keys(adminAnalytics.usageMetrics.featuresUsage).length
+            : 0;
 
         return {
             analyticsService: 'Active',
@@ -495,13 +534,13 @@ const SystemHealthPanel: React.FC<{ isRealtime: boolean; isAuthenticated: boolea
             userSessions: `${sessionsCount} tracked`,
             featuresActive: `${featuresUsed} features`,
             authService: isAuthenticated ? 'Authenticated' : 'Guest Mode',
-            systemMode: isRealtime ?
-                (isAuthenticated ? 'Multi-User SaaS' : 'Real-time Local') :
-                'Single-User Local'
+            systemMode: isRealtime
+                ? (isAuthenticated ? 'Multi-User SaaS' : 'Real-time Local')
+                : 'Single-User Local'
         };
     }, [isRealtime, isAuthenticated, adminAnalytics]);
 
-    const getStatusColor = (key: string, value: string) => {
+    const getStatusColor = useCallback((key: string, value: string) => {
         if (key === 'systemMode') {
             if (value.includes('Multi-User')) return 'text-blue-600 dark:text-blue-400';
             if (value.includes('Real-time')) return 'text-green-600 dark:text-green-400';
@@ -514,14 +553,24 @@ const SystemHealthPanel: React.FC<{ isRealtime: boolean; isAuthenticated: boolea
             return 'text-yellow-600 dark:text-yellow-400';
         }
         return 'text-gray-600 dark:text-gray-400';
-    };
+    }, []);
+
+    const getDotColor = useCallback((key: string, value: string) => {
+        const textColor = getStatusColor(key, value);
+        if (textColor.includes('green')) return 'bg-green-500';
+        if (textColor.includes('blue')) return 'bg-blue-500';
+        if (textColor.includes('yellow')) return 'bg-yellow-500';
+        return 'bg-gray-500';
+    }, [getStatusColor]);
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <Database className="h-5 w-5"/>
                 System Health
-                {isRealtime && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">LIVE</span>}
+                {isRealtime && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">LIVE</span>
+                )}
             </h3>
             <div className="space-y-4">
                 {Object.entries(healthMetrics).map(([key, value]) => (
@@ -530,11 +579,7 @@ const SystemHealthPanel: React.FC<{ isRealtime: boolean; isAuthenticated: boolea
                             {key.replace(/([A-Z])/g, ' $1').trim()}
                         </span>
                         <span className={`text-sm font-medium flex items-center gap-1 ${getStatusColor(key, value)}`}>
-                            <div className={`w-2 h-2 rounded-full ${
-                                getStatusColor(key, value).includes('green') ? 'bg-green-500' :
-                                    getStatusColor(key, value).includes('blue') ? 'bg-blue-500' :
-                                        getStatusColor(key, value).includes('yellow') ? 'bg-yellow-500' : 'bg-gray-500'
-                            }`}></div>
+                            <div className={`w-2 h-2 rounded-full ${getDotColor(key, value)}`}/>
                             {value}
                         </span>
                     </div>
@@ -544,6 +589,7 @@ const SystemHealthPanel: React.FC<{ isRealtime: boolean; isAuthenticated: boolea
     );
 };
 
+// Main AdminDashboard component
 const AdminDashboard: React.FC = () => {
     const {
         ui,
@@ -551,33 +597,27 @@ const AdminDashboard: React.FC = () => {
         goals,
         goalProgress,
         analytics,
-        logoutAdmin,
         closeAdminDashboard,
         setAdminSection,
         adminAnalytics,
         adminFeedback,
-        loadAdminAnalytics,
-        loadAdminFeedback,
         showToast,
         refreshAllAdminData,
-        resetRefreshErrors,    // ✅ ADD THIS
+        resetRefreshErrors,
         getGlobalRefreshStatus,
-        enableAutoRefresh,     // ✅ ADD THIS
-        disableAutoRefresh,    // ✅ ADD THIS
-        enableRealtimeAdmin,     // ✅ ADD THIS
-        disableRealtimeAdmin,    // ✅ ADD THIS
+        enableAutoRefresh,
+        disableAutoRefresh,
+        enableRealtimeAdmin,
+        disableRealtimeAdmin,
         isAdminRealtime,
         auth,
         loadRealtimeAdminAnalytics,
         loadRealtimeFeedbackSummary
     } = useAppStore();
 
+    // Local state
     const [isExporting, setIsExporting] = useState(false);
     const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
-
-    // ✅ PHASE 2: Removed individual refresh state - now using global refresh status
-
-    // Feedback management state
     const [typeFilter, setTypeFilter] = useState<FeedbackFilter>('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [sortBy, setSortBy] = useState<SortBy>('newest');
@@ -585,224 +625,16 @@ const AdminDashboard: React.FC = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedFeedback, setSelectedFeedback] = useState<string[]>([]);
     const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
+    const [feedbackPage, setFeedbackPage] = useState(1);
 
-    // Safety checks
+    // Derived state
     const adminState = ui?.admin;
     const isDashboardOpen = adminState?.dashboardOpen ?? false;
     const isAuthenticated = adminState?.authenticated ?? false;
     const currentSection = adminState?.currentSection ?? 'overview';
-
-    // ✅ PHASE 2: Get global refresh status
     const globalRefreshStatus = getGlobalRefreshStatus();
 
-    useEffect(() => {
-        let autoRefreshInterval: NodeJS.Timeout | null = null;
-        let realtimeCleanup: (() => void) | null = null;
-        let retryTimeout: NodeJS.Timeout | null = null;
-        let debounceTimeout: NodeJS.Timeout | null = null;
-        let retryCount = 0;
-        const MAX_RETRIES = 3;
-
-        const startUnifiedAdminSystem = async () => {
-            if (!isDashboardOpen || !isAuthenticated) return;
-
-            console.log('🚀 Starting unified admin dashboard system...');
-
-            try {
-                // 1. Load initial data immediately
-                console.log('📊 Loading initial admin data...');
-                await Promise.all([
-                    loadRealtimeAdminAnalytics(),
-                    loadRealtimeFeedbackSummary(),
-                    refreshAllAdminData()
-                ]);
-                console.log('✅ Initial admin data loaded successfully');
-
-                // 2. Enable global auto-refresh if not already enabled
-                if (!globalRefreshStatus.autoRefreshEnabled) {
-                    console.log('🔄 Enabling global auto-refresh system...');
-                    enableAutoRefresh(30);
-                }
-
-                // 3. Attempt real-time subscriptions with fallback
-                await setupRealtimeWithFallback();
-
-            } catch (error) {
-                console.error('❌ Failed to initialize admin system:', error);
-                showToast({
-                    type: 'error',
-                    message: 'Failed to load admin data. Check your connection.'
-                });
-            }
-        };
-
-        const setupRealtimeWithFallback = async () => {
-            try {
-                console.log(`🔌 Setting up real-time subscriptions (attempt ${retryCount + 1})...`);
-
-                realtimeCleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
-                    console.log('📡 Real-time update received:', data);
-
-                    // Debounced refresh to prevent too frequent updates
-                    if (debounceTimeout) clearTimeout(debounceTimeout);
-                    debounceTimeout = setTimeout(() => {
-                        loadRealtimeAdminAnalytics();
-                        loadRealtimeFeedbackSummary();
-
-                        showToast({
-                            type: 'success',
-                            message: 'Data updated in real-time',
-                            duration: 2000
-                        });
-                    }, 1000); // 1-second debounce
-                });
-
-                console.log('✅ Real-time subscriptions active');
-                retryCount = 0; // Reset retry count on success
-
-            } catch (error) {
-                console.error(`❌ Real-time setup failed (attempt ${retryCount + 1}):`, error);
-
-                if (retryCount < MAX_RETRIES) {
-                    retryCount++;
-                    const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
-                    console.log(`🔄 Retrying real-time setup in ${retryDelay}ms...`);
-
-                    retryTimeout = setTimeout(() => {
-                        setupRealtimeWithFallback();
-                    }, retryDelay);
-                } else {
-                    console.log('❌ Max retries exceeded, using polling fallback');
-                    startPollingFallback();
-                }
-            }
-        }; // ✅ Make sure this semicolon is here
-
-        const startPollingFallback = () => {
-            console.log('📋 Starting enhanced polling fallback...');
-
-            autoRefreshInterval = setInterval(async () => {
-                // Only poll when page is visible and online
-                if (!document.hidden && navigator.onLine) {
-                    console.log('⏰ Polling for admin data updates...');
-                    try {
-                        await Promise.all([
-                            loadRealtimeAdminAnalytics(),
-                            loadRealtimeFeedbackSummary()
-                        ]);
-                    } catch (pollError) {
-                        console.error('❌ Polling failed:', pollError);
-                    }
-                }
-            }, 20000); // 20 seconds for fallback polling
-        }; // ✅ Make sure this semicolon is here
-
-        // Initialize the unified system
-        startUnifiedAdminSystem();
-
-        // Cleanup function
-        return () => {
-            console.log('🧹 Cleaning up unified admin dashboard system...');
-
-            // Clear all intervals and timeouts
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-            }
-            if (retryTimeout) {
-                clearTimeout(retryTimeout);
-            }
-            if (debounceTimeout) {
-                clearTimeout(debounceTimeout);
-            }
-
-            // Clean up real-time subscriptions
-            if (realtimeCleanup) {
-                realtimeCleanup();
-            }
-
-            // Optionally disable global auto-refresh when dashboard closes
-            if (globalRefreshStatus.autoRefreshEnabled && !isDashboardOpen) {
-                console.log('⏹️ Disabling global auto-refresh - dashboard closing');
-                disableAutoRefresh();
-            }
-
-            console.log('✅ Admin dashboard cleanup completed');
-        };
-    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled]); // ✅ Make sure this semicolon is here
-
-// ✅ SEPARATE: Page visibility management (keeps existing logic)
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (!isDashboardOpen || !isAuthenticated) return;
-
-            if (document.hidden && globalRefreshStatus.autoRefreshEnabled) {
-                console.log('⏸️ Page hidden - pausing auto-refresh');
-                disableAutoRefresh();
-            } else if (!document.hidden && !globalRefreshStatus.autoRefreshEnabled) {
-                console.log('▶️ Page visible - resuming auto-refresh');
-                enableAutoRefresh(30);
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]); // ✅ Make sure this semicolon is here
-
-// ✅ NEW: Keyboard shortcuts for admin actions
-    useEffect(() => {
-        const handleKeyPress = (e: KeyboardEvent) => {
-            // Only handle shortcuts when admin dashboard is open
-            if (!isDashboardOpen || !isAuthenticated) return;
-
-            // Check for Ctrl/Cmd + key combinations
-            if (e.ctrlKey || e.metaKey) {
-                switch (e.key.toLowerCase()) {
-                    case 'r':
-                        e.preventDefault();
-                        handleUnifiedRefresh();
-                        break;
-                    case 'e':
-                        e.preventDefault();
-                        handleExportData();
-                        break;
-                    case '1':
-                        e.preventDefault();
-                        setAdminSection('overview');
-                        break;
-                    case '2':
-                        e.preventDefault();
-                        setAdminSection('analytics');
-                        break;
-                    case '3':
-                        e.preventDefault();
-                        setAdminSection('feedback');
-                        break;
-                    case '4':
-                        e.preventDefault();
-                        setAdminSection('users');
-                        break;
-                    case '5':
-                        e.preventDefault();
-                        setAdminSection('settings');
-                        break;
-                    case '6':
-                        e.preventDefault();
-                        setAdminSection('support');
-                        break;
-                }
-            }
-
-            // Escape key to close dashboard
-            if (e.key === 'Escape') {
-                closeAdminDashboard();
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyPress);
-        return () => document.removeEventListener('keydown', handleKeyPress);
-    }, [isDashboardOpen, isAuthenticated]);
-
-    // Calculate ApplyTrak-specific metrics
+    // Job metrics calculation
     const jobMetrics = useMemo(() => {
         const totalApps = applications.length;
         const appliedCount = applications.filter(app => app.status === 'Applied').length;
@@ -845,16 +677,13 @@ const AdminDashboard: React.FC = () => {
         };
     }, [applications]);
 
-    // Filtered feedback logic
-    const [feedbackPage, setFeedbackPage] = useState(1);
-    const FEEDBACK_PER_PAGE = 20;
-
+    // Feedback pagination
     const paginatedFeedback = useMemo(() => {
         if (!adminFeedback?.recentFeedback) return {items: [], totalPages: 0, totalCount: 0};
 
         let filtered = adminFeedback.recentFeedback;
 
-        // Apply filters (existing logic)
+        // Apply filters
         if (typeFilter !== 'all') {
             filtered = filtered.filter(feedback => feedback.type === typeFilter);
         }
@@ -884,7 +713,7 @@ const AdminDashboard: React.FC = () => {
             );
         }
 
-        // Apply sorting (existing logic)
+        // Apply sorting
         filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'newest':
@@ -909,34 +738,189 @@ const AdminDashboard: React.FC = () => {
         return {items, totalPages, totalCount};
     }, [adminFeedback?.recentFeedback, typeFilter, statusFilter, searchQuery, sortBy, feedbackPage]);
 
-    // Early return with safety check
-    if (!adminState) {
-        console.error('Admin state not initialized in store');
-        return createPortal(
-            <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
-                    <p className="text-red-600">Admin state not initialized. Please refresh the page.</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                        Refresh Page
-                    </button>
-                </div>
-            </div>,
-            document.body
-        );
-    }
+    // Unified admin system initialization
+    useEffect(() => {
+        let autoRefreshInterval: NodeJS.Timeout | null = null;
+        let realtimeCleanup: (() => void) | null = null;
+        let retryTimeout: NodeJS.Timeout | null = null;
+        let debounceTimeout: NodeJS.Timeout | null = null;
+        let retryCount = 0;
 
-    if (!isDashboardOpen || !isAuthenticated) {
-        return null;
-    }
+        const startUnifiedAdminSystem = async () => {
+            if (!isDashboardOpen || !isAuthenticated) return;
 
-    // ✅ PHASE 2: Enhanced unified refresh handler
-    const handleUnifiedRefresh = async () => {
+            console.log('🚀 Starting unified admin dashboard system...');
+
+            try {
+                // Load initial data
+                console.log('📊 Loading initial admin data...');
+                await Promise.all([
+                    loadRealtimeAdminAnalytics(),
+                    loadRealtimeFeedbackSummary(),
+                    refreshAllAdminData()
+                ]);
+                console.log('✅ Initial admin data loaded successfully');
+
+                // Enable auto-refresh if not enabled
+                if (!globalRefreshStatus.autoRefreshEnabled) {
+                    console.log('🔄 Enabling global auto-refresh system...');
+                    enableAutoRefresh(AUTO_REFRESH_INTERVAL);
+                }
+
+                // Setup real-time with fallback
+                await setupRealtimeWithFallback();
+            } catch (error) {
+                console.error('❌ Failed to initialize admin system:', error);
+                showToast({
+                    type: 'error',
+                    message: 'Failed to load admin data. Check your connection.'
+                });
+            }
+        };
+
+        const setupRealtimeWithFallback = async () => {
+            try {
+                console.log(`🔌 Setting up real-time subscriptions (attempt ${retryCount + 1})...`);
+
+                realtimeCleanup = realtimeAdminService.subscribeToRealtimeUpdates((data) => {
+                    console.log('📡 Real-time update received:', data);
+
+                    // Debounced refresh
+                    if (debounceTimeout) clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => {
+                        loadRealtimeAdminAnalytics();
+                        loadRealtimeFeedbackSummary();
+
+                        showToast({
+                            type: 'success',
+                            message: 'Data updated in real-time',
+                            duration: 2000
+                        });
+                    }, DEBOUNCE_DELAY);
+                });
+
+                console.log('✅ Real-time subscriptions active');
+                retryCount = 0;
+            } catch (error) {
+                console.error(`❌ Real-time setup failed (attempt ${retryCount + 1}):`, error);
+
+                if (retryCount < MAX_RETRIES) {
+                    retryCount++;
+                    const retryDelay = Math.pow(2, retryCount) * 1000;
+                    console.log(`🔄 Retrying real-time setup in ${retryDelay}ms...`);
+
+                    retryTimeout = setTimeout(() => {
+                        setupRealtimeWithFallback();
+                    }, retryDelay);
+                } else {
+                    console.log('❌ Max retries exceeded, using polling fallback');
+                    startPollingFallback();
+                }
+            }
+        };
+
+        const startPollingFallback = () => {
+            console.log('📋 Starting enhanced polling fallback...');
+
+            autoRefreshInterval = setInterval(async () => {
+                if (!document.hidden && navigator.onLine) {
+                    console.log('⏰ Polling for admin data updates...');
+                    try {
+                        await Promise.all([
+                            loadRealtimeAdminAnalytics(),
+                            loadRealtimeFeedbackSummary()
+                        ]);
+                    } catch (pollError) {
+                        console.error('❌ Polling failed:', pollError);
+                    }
+                }
+            }, POLLING_INTERVAL);
+        };
+
+        startUnifiedAdminSystem();
+
+        return () => {
+            console.log('🧹 Cleaning up unified admin dashboard system...');
+
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (retryTimeout) clearTimeout(retryTimeout);
+            if (debounceTimeout) clearTimeout(debounceTimeout);
+            if (realtimeCleanup) realtimeCleanup();
+
+            if (globalRefreshStatus.autoRefreshEnabled && !isDashboardOpen) {
+                console.log('⏹️ Disabling global auto-refresh - dashboard closing');
+                disableAutoRefresh();
+            }
+
+            console.log('✅ Admin dashboard cleanup completed');
+        };
+    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled]);
+
+    // Page visibility management
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!isDashboardOpen || !isAuthenticated) return;
+
+            if (document.hidden && globalRefreshStatus.autoRefreshEnabled) {
+                console.log('⏸️ Page hidden - pausing auto-refresh');
+                disableAutoRefresh();
+            } else if (!document.hidden && !globalRefreshStatus.autoRefreshEnabled) {
+                console.log('▶️ Page visible - resuming auto-refresh');
+                enableAutoRefresh(AUTO_REFRESH_INTERVAL);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isDashboardOpen, isAuthenticated, globalRefreshStatus.autoRefreshEnabled, enableAutoRefresh, disableAutoRefresh]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (!isDashboardOpen || !isAuthenticated) return;
+
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key.toLowerCase()) {
+                    case 'r':
+                        e.preventDefault();
+                        handleUnifiedRefresh();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        handleExportData();
+                        break;
+                    case '1':
+                        e.preventDefault();
+                        setAdminSection('overview');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        setAdminSection('analytics');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        setAdminSection('feedback');
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        setAdminSection('users');
+                        break;
+                }
+            }
+
+            if (e.key === 'Escape') {
+                closeAdminDashboard();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyPress);
+        return () => document.removeEventListener('keydown', handleKeyPress);
+    }, [isDashboardOpen, isAuthenticated]);
+
+    // Event handlers
+    const handleUnifiedRefresh = useCallback(async () => {
         console.log('🔄 Unified global refresh initiated from UI');
 
-        // Clear any previous errors
         if (globalRefreshStatus.refreshErrors.length > 0) {
             resetRefreshErrors();
         }
@@ -950,9 +934,9 @@ const AdminDashboard: React.FC = () => {
                 message: 'Global refresh failed from UI layer'
             });
         }
-    };
+    }, [globalRefreshStatus.refreshErrors.length, resetRefreshErrors, refreshAllAdminData, showToast]);
 
-    const handleExportData = async () => {
+    const handleExportData = useCallback(async () => {
         setIsExporting(true);
         try {
             const analyticsData = analyticsService.exportAnalyticsData();
@@ -961,9 +945,9 @@ const AdminDashboard: React.FC = () => {
             const exportData = {
                 exportDate: new Date().toISOString(),
                 timeRange,
-                mode: isAdminRealtime ?
-                    (auth.isAuthenticated ? 'Multi-User SaaS Cloud' : 'Real-time Local') :
-                    'Single-User Local',
+                mode: isAdminRealtime
+                    ? (auth.isAuthenticated ? 'Multi-User SaaS Cloud' : 'Real-time Local')
+                    : 'Single-User Local',
                 analytics: analyticsData,
                 feedback: feedbackData,
                 applyTrakData: {
@@ -977,14 +961,13 @@ const AdminDashboard: React.FC = () => {
                     activeUsersDaily: adminAnalytics?.userMetrics?.activeUsers?.daily || 0,
                     totalSessions: adminAnalytics?.usageMetrics?.totalSessions || 0
                 } : null,
-                // ✅ PHASE 2: Include global refresh metadata
                 refreshMetadata: {
                     lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
                     refreshStatus: globalRefreshStatus.refreshStatus,
                     autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
                     refreshErrors: globalRefreshStatus.refreshErrors
                 },
-                version: '2.0.0-Phase2'
+                version: '2.0.0-Production'
             };
 
             const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
@@ -1011,14 +994,13 @@ const AdminDashboard: React.FC = () => {
         } finally {
             setIsExporting(false);
         }
-    };
+    }, [timeRange, isAdminRealtime, auth.isAuthenticated, applications.length, goals, goalProgress, analytics, adminAnalytics, globalRefreshStatus, showToast]);
 
-    // ✅ PHASE 2: Fixed admin logout function
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
         console.log('🔓 Admin logout initiated');
 
         try {
-            // 1. First reset admin state in the store
+            // Reset admin state
             useAppStore.setState(state => ({
                 ui: {
                     ...state.ui,
@@ -1030,18 +1012,17 @@ const AdminDashboard: React.FC = () => {
                 }
             }));
 
-            // 2. Clear admin session (FIXED IMPORT PATH)
+            // Clear admin session
             const { adminLogout } = await import('../../utils/adminAuth');
             await adminLogout();
 
-            // 3. Sign out from regular auth
+            // Sign out from regular auth
             const { signOut } = useAppStore.getState();
             await signOut();
 
-            // 4. Show success message
             showToast({
                 type: 'success',
-                message: '👋 Logged out successfully',
+                message: 'Logged out successfully',
                 duration: 3000
             });
 
@@ -1049,7 +1030,7 @@ const AdminDashboard: React.FC = () => {
         } catch (error) {
             console.error('❌ Error during admin logout:', error);
 
-            // Force reset admin state even if other steps fail
+            // Force reset admin state
             useAppStore.setState(state => ({
                 ui: {
                     ...state.ui,
@@ -1067,10 +1048,10 @@ const AdminDashboard: React.FC = () => {
                 duration: 3000
             });
         }
-    };
+    }, [showToast]);
 
     // Helper functions
-    const getFeedbackTypeIcon = (type: string) => {
+    const getFeedbackTypeIcon = useCallback((type: string) => {
         switch (type) {
             case 'love':
                 return Heart;
@@ -1081,9 +1062,9 @@ const AdminDashboard: React.FC = () => {
             default:
                 return MessageSquare;
         }
-    };
+    }, []);
 
-    const getFeedbackTypeColor = (type: string) => {
+    const getFeedbackTypeColor = useCallback((type: string) => {
         switch (type) {
             case 'love':
                 return 'text-red-500';
@@ -1094,22 +1075,16 @@ const AdminDashboard: React.FC = () => {
             default:
                 return 'text-blue-500';
         }
-    };
+    }, []);
 
-    // ✅ PHASE 2: Removed individual feedback refresh - now uses unified refresh
-    const handleRefreshFeedback = async () => {
-        console.log('🔄 Feedback refresh redirected to unified refresh');
-        await handleUnifiedRefresh();
-    };
-
-    const handleExportFeedback = () => {
+    const handleExportFeedback = useCallback(() => {
         if (!adminFeedback?.recentFeedback) return;
 
         const exportData = {
             exportDate: new Date().toISOString(),
-            mode: isAdminRealtime ?
-                (auth.isAuthenticated ? 'Multi-User SaaS Cloud' : 'Real-time Local') :
-                'Single-User Local',
+            mode: isAdminRealtime
+                ? (auth.isAuthenticated ? 'Multi-User SaaS Cloud' : 'Real-time Local')
+                : 'Single-User Local',
             totalFeedback: adminFeedback.totalFeedback,
             averageRating: adminFeedback.averageRating,
             feedbackData: paginatedFeedback.items.map(feedback => ({
@@ -1136,9 +1111,32 @@ const AdminDashboard: React.FC = () => {
             message: 'Feedback data exported successfully!',
             duration: 3000
         });
-    };
+    }, [adminFeedback, paginatedFeedback.items, isAdminRealtime, auth.isAuthenticated, showToast]);
 
-    // ✅ PHASE 2: Main admin content with unified refresh system
+    // Early returns for error states
+    if (!adminState) {
+        console.error('Admin state not initialized in store');
+        return createPortal(
+            <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+                    <p className="text-red-600">Admin state not initialized. Please refresh the page.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                        Refresh Page
+                    </button>
+                </div>
+            </div>,
+            document.body
+        );
+    }
+
+    if (!isDashboardOpen || !isAuthenticated) {
+        return null;
+    }
+
+    // Main admin dashboard content
     const adminContent = (
         <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm overflow-hidden">
             <div className="flex h-full">
@@ -1161,19 +1159,17 @@ const AdminDashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* ✅ COMPLETE: Navigation with ALL sections */}
+                    {/* Navigation */}
                     <nav className="flex-1 p-4 space-y-2">
                         {sections.map(({id, label, icon: Icon}) => (
                             <button
                                 key={id}
                                 onClick={() => setAdminSection(id as SectionId)}
-                                className={`
-                                    w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200
-                                    ${currentSection === id
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
-                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                }
-                                `}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                                    currentSection === id
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                }`}
                             >
                                 <Icon className="h-5 w-5 flex-shrink-0"/>
                                 <span className="font-medium">{label}</span>
@@ -1181,9 +1177,8 @@ const AdminDashboard: React.FC = () => {
                         ))}
                     </nav>
 
-                    {/* ✅ PHASE 2: Enhanced Footer Actions with Unified Refresh */}
+                    {/* Footer actions */}
                     <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-
                         <button
                             onClick={handleExportData}
                             disabled={isExporting}
@@ -1205,30 +1200,26 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Main Content */}
                 <div className="flex-1 bg-gray-50 dark:bg-gray-900 overflow-auto relative z-10">
-                    {/* ✅ CLEAN: Simplified Header matching main app design */}
+                    {/* Header */}
                     <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
                         <div className="flex items-center justify-between">
-                            {/* Left: Title Section */}
+                            {/* Title Section */}
                             <div>
                                 <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                                     {currentSection === 'overview' && 'ApplyTrak Overview'}
                                     {currentSection === 'analytics' && 'Analytics'}
                                     {currentSection === 'feedback' && 'Feedback'}
                                     {currentSection === 'users' && 'Users'}
-                                    {currentSection === 'settings' && 'Settings'}
-                                    {currentSection === 'support' && 'Support'}
                                 </h1>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                     {currentSection === 'overview' && 'System overview and key job application metrics'}
                                     {currentSection === 'analytics' && 'Deep dive into job application patterns and trends'}
                                     {currentSection === 'feedback' && 'User feedback and system improvement suggestions'}
                                     {currentSection === 'users' && 'User behavior and engagement analytics'}
-                                    {currentSection === 'settings' && 'System configuration and administrator management'}
-                                    {currentSection === 'support' && 'User support and troubleshooting tools'}
                                 </p>
                             </div>
 
-                            {/* Right: Clean Control Bar */}
+                            {/* Control Bar */}
                             <div className="flex items-center gap-3">
                                 {/* Status Indicator */}
                                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
@@ -1236,17 +1227,17 @@ const AdminDashboard: React.FC = () => {
                                         isAdminRealtime
                                             ? (auth.isAuthenticated ? 'bg-green-500 animate-pulse' : 'bg-blue-500 animate-pulse')
                                             : 'bg-gray-400'
-                                    }`}></div>
+                                    }`}/>
                                     <span className="text-gray-600 dark:text-gray-400">
-                        {isAdminRealtime
-                            ? (auth.isAuthenticated ? 'SaaS Mode' : 'Live Mode')
-                            : 'Local Mode'
-                        }
-                    </span>
+                                        {isAdminRealtime
+                                            ? (auth.isAuthenticated ? 'SaaS Mode' : 'Live Mode')
+                                            : 'Local Mode'
+                                        }
+                                    </span>
                                     {globalRefreshStatus.autoRefreshEnabled && (
                                         <span className="text-blue-600 dark:text-blue-400 font-medium ml-2">
-                            Auto: {globalRefreshStatus.autoRefreshInterval}s
-                        </span>
+                                            Auto: {globalRefreshStatus.autoRefreshInterval}s
+                                        </span>
                                     )}
                                 </div>
 
@@ -1274,7 +1265,7 @@ const AdminDashboard: React.FC = () => {
                                         if (globalRefreshStatus.autoRefreshEnabled) {
                                             disableAutoRefresh();
                                         } else {
-                                            enableAutoRefresh(30);
+                                            enableAutoRefresh(AUTO_REFRESH_INTERVAL);
                                         }
                                     }}
                                     className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
@@ -1286,7 +1277,7 @@ const AdminDashboard: React.FC = () => {
                                     {globalRefreshStatus.autoRefreshEnabled ? 'Auto ON' : 'Auto Refresh'}
                                 </button>
 
-                                {/* Period Selector */}
+                                {/* Time Range Selector */}
                                 <select
                                     value={timeRange}
                                     onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d' | 'all')}
@@ -1298,16 +1289,17 @@ const AdminDashboard: React.FC = () => {
                                     <option value="all">All time</option>
                                 </select>
 
-                                {/* Main Refresh Button */}
+                                {/* Refresh Button */}
                                 <button
                                     onClick={handleUnifiedRefresh}
                                     disabled={globalRefreshStatus.isRefreshing}
                                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                                    title={globalRefreshStatus.refreshErrors.length > 0 ?
-                                        `Last refresh had ${globalRefreshStatus.refreshErrors.length} errors` :
-                                        'Refresh all admin data'}
+                                    title={globalRefreshStatus.refreshErrors.length > 0
+                                        ? `Last refresh had ${globalRefreshStatus.refreshErrors.length} errors`
+                                        : 'Refresh all admin data'}
                                 >
-                                    <RefreshCw className={`h-4 w-4 ${globalRefreshStatus.isRefreshing ? 'animate-spin' : ''}`}/>
+                                    <RefreshCw
+                                        className={`h-4 w-4 ${globalRefreshStatus.isRefreshing ? 'animate-spin' : ''}`}/>
                                     <span>Refresh All</span>
                                     {globalRefreshStatus.refreshErrors.length > 0 && (
                                         <AlertCircle className="h-4 w-4 text-red-200" />
@@ -1324,7 +1316,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Error Banner - Simplified */}
+                        {/* Error Banner */}
                         {globalRefreshStatus.refreshErrors.length > 0 && (
                             <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                                 <div className="flex items-center justify-between">
@@ -1345,7 +1337,7 @@ const AdminDashboard: React.FC = () => {
                         )}
                     </div>
 
-                    {/* ✅ COMPLETE: Content sections with ALL sections implemented */}
+                    {/* Content sections */}
                     <div className="p-6">
                         {/* Overview Section */}
                         {currentSection === 'overview' && (
@@ -1353,9 +1345,9 @@ const AdminDashboard: React.FC = () => {
                                 {/* SaaS Mode Banner */}
                                 {isAdminRealtime && (
                                     <div className={`rounded-lg p-4 border ${
-                                        auth.isAuthenticated ?
-                                            'bg-gradient-to-r from-blue-50 to-purple-100 dark:from-blue-900/20 dark:to-purple-800/20 border-blue-200/50 dark:border-blue-700/50' :
-                                            'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200/50 dark:border-green-700/50'
+                                        auth.isAuthenticated
+                                            ? 'bg-gradient-to-r from-blue-50 to-purple-100 dark:from-blue-900/20 dark:to-purple-800/20 border-blue-200/50 dark:border-blue-700/50'
+                                            : 'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200/50 dark:border-green-700/50'
                                     }`}>
                                         <div className="flex items-center gap-3">
                                             <div className={`w-2 h-2 rounded-full animate-pulse ${
@@ -1363,20 +1355,20 @@ const AdminDashboard: React.FC = () => {
                                             }`}/>
                                             <div>
                                                 <p className={`font-medium ${
-                                                    auth.isAuthenticated ?
-                                                        'text-blue-900 dark:text-blue-100' :
-                                                        'text-green-900 dark:text-green-100'
+                                                    auth.isAuthenticated
+                                                        ? 'text-blue-900 dark:text-blue-100'
+                                                        : 'text-green-900 dark:text-green-100'
                                                 }`}>
                                                     {auth.isAuthenticated ? 'Multi-User SaaS Mode Active' : 'Live Data Mode Active'}
                                                 </p>
                                                 <p className={`text-sm ${
-                                                    auth.isAuthenticated ?
-                                                        'text-blue-700 dark:text-blue-300' :
-                                                        'text-green-700 dark:text-green-300'
+                                                    auth.isAuthenticated
+                                                        ? 'text-blue-700 dark:text-blue-300'
+                                                        : 'text-green-700 dark:text-green-300'
                                                 }`}>
-                                                    {auth.isAuthenticated ?
-                                                        'Dashboard shows real-time analytics across all authenticated users' :
-                                                        'Dashboard automatically updates with real-time job application insights'
+                                                    {auth.isAuthenticated
+                                                        ? 'Dashboard shows real-time analytics across all authenticated users'
+                                                        : 'Dashboard automatically updates with real-time job application insights'
                                                     }
                                                 </p>
                                             </div>
@@ -1384,12 +1376,13 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Enhanced SaaS metrics using existing types */}
+                                {/* Metrics Overview */}
                                 {isAdminRealtime ? (
-                                    <EnhancedMetricsOverview isRealtime={isAdminRealtime}
-                                                             isAuthenticated={auth.isAuthenticated}/>
+                                    <EnhancedMetricsOverview
+                                        isRealtime={isAdminRealtime}
+                                        isAuthenticated={auth.isAuthenticated}
+                                    />
                                 ) : (
-                                    /* Original Key ApplyTrak Metrics for local mode */
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <UserMetricsCard
                                             title="Total Applications"
@@ -1420,7 +1413,7 @@ const AdminDashboard: React.FC = () => {
 
                                         <UserMetricsCard
                                             title="Monthly Goal"
-                                            value={`${Math.round(goalProgress.monthlyProgress || 0)}%`}  // ✅ FIXED: Rounded percentage
+                                            value={`${Math.round(goalProgress.monthlyProgress || 0)}%`}
                                             subtitle={`${goalProgress.monthlyApplications || 0} / ${goals.monthlyGoal || 0} apps`}
                                             icon={Target}
                                             color="text-orange-600 dark:text-orange-400"
@@ -1468,7 +1461,7 @@ const AdminDashboard: React.FC = () => {
                                                     <div key={label}>
                                                         <div className="flex items-center justify-between mb-2">
                                                             <div className="flex items-center gap-2">
-                                                                <div className={`w-3 h-3 rounded-full ${color}`}></div>
+                                                                <div className={`w-3 h-3 rounded-full ${color}`}/>
                                                                 <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2">
@@ -1480,7 +1473,7 @@ const AdminDashboard: React.FC = () => {
                                                             <div
                                                                 className={`h-2 rounded-full transition-all duration-300 ${color}`}
                                                                 style={{width: `${percentage}%`}}
-                                                            ></div>
+                                                            />
                                                         </div>
                                                     </div>
                                                 );
@@ -1489,7 +1482,8 @@ const AdminDashboard: React.FC = () => {
                                     </div>
 
                                     {/* System Health Panel */}
-                                    <SystemHealthPanel isRealtime={isAdminRealtime} isAuthenticated={auth.isAuthenticated}/>
+                                    <SystemHealthPanel isRealtime={isAdminRealtime}
+                                                       isAuthenticated={auth.isAuthenticated}/>
                                 </div>
 
                                 {/* Job Type Distribution & Feedback Overview */}
@@ -1519,13 +1513,14 @@ const AdminDashboard: React.FC = () => {
                                                     color: 'bg-blue-500',
                                                     icon: Building2
                                                 }
-                                            ].map(({label, count, color, icon: Icon}) => {
+                                            ].map(({label, count, color, icon: IconComponent}) => {
                                                 const percentage = jobMetrics.totalApps > 0 ? (count / jobMetrics.totalApps * 100) : 0;
                                                 return (
                                                     <div key={label} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                                         <div className="flex items-center gap-3">
                                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} bg-opacity-20`}>
-                                                                <Icon className={`h-4 w-4 ${color.replace('bg-', 'text-')}`}/>
+                                                                <IconComponent
+                                                                    className={`h-4 w-4 ${color.replace('bg-', 'text-')}`}/>
                                                             </div>
                                                             <div>
                                                                 <p className="font-medium text-gray-900 dark:text-gray-100">{label}</p>
@@ -1565,10 +1560,11 @@ const AdminDashboard: React.FC = () => {
                                                     </div>
                                                 </div>
                                                 {adminFeedback.recentFeedback.slice(0, 2).map((feedback) => {
-                                                    const Icon = getFeedbackTypeIcon(feedback.type);
+                                                    const IconComponent = getFeedbackTypeIcon(feedback.type);
                                                     return (
                                                         <div key={feedback.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                            <Icon className={`h-5 w-5 flex-shrink-0 ${getFeedbackTypeColor(feedback.type)}`}/>
+                                                            <IconComponent
+                                                                className={`h-5 w-5 flex-shrink-0 ${getFeedbackTypeColor(feedback.type)}`}/>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                                                                     {feedback.message}
@@ -1771,7 +1767,7 @@ const AdminDashboard: React.FC = () => {
                                     />
                                 </div>
 
-                                {/* ✅ PHASE 2: Updated Feedback Controls - Removed Individual Refresh */}
+                                {/* Feedback Management */}
                                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -1785,7 +1781,6 @@ const AdminDashboard: React.FC = () => {
                                                 <Filter className="h-4 w-4"/>
                                                 Filters
                                             </button>
-                                            {/* ✅ PHASE 2: Note - Individual refresh removed, now uses global refresh */}
                                             <button
                                                 onClick={handleExportFeedback}
                                                 className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -1844,7 +1839,8 @@ const AdminDashboard: React.FC = () => {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
                                                 <div className="relative">
-                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"/>
+                                                    <Search
+                                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"/>
                                                     <input
                                                         type="text"
                                                         value={searchQuery}
@@ -1861,7 +1857,7 @@ const AdminDashboard: React.FC = () => {
                                     <div className="space-y-4">
                                         {paginatedFeedback.items && paginatedFeedback.items.length > 0 ? (
                                             paginatedFeedback.items.slice(0, 10).map((feedback) => {
-                                                const Icon = getFeedbackTypeIcon(feedback.type);
+                                                const IconComponent = getFeedbackTypeIcon(feedback.type);
                                                 const isExpanded = expandedFeedback === feedback.id;
 
                                                 return (
@@ -1873,7 +1869,8 @@ const AdminDashboard: React.FC = () => {
                                                                         feedback.type === 'feature' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
                                                                             'bg-blue-100 dark:bg-blue-900/20'
                                                             }`}>
-                                                                <Icon className={`h-5 w-5 ${getFeedbackTypeColor(feedback.type)}`}/>
+                                                                <IconComponent
+                                                                    className={`h-5 w-5 ${getFeedbackTypeColor(feedback.type)}`}/>
                                                             </div>
 
                                                             <div className="flex-1">
@@ -1936,35 +1933,37 @@ const AdminDashboard: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Add pagination controls after feedback list */}
-                                {paginatedFeedback.totalPages > 1 && (
-                                    <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Showing {((feedbackPage - 1) * FEEDBACK_PER_PAGE) + 1} to {Math.min(feedbackPage * FEEDBACK_PER_PAGE, paginatedFeedback.totalCount)} of {paginatedFeedback.totalCount} results
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setFeedbackPage(Math.max(1, feedbackPage - 1))}
-                                                disabled={feedbackPage === 1}
-                                                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50"
-                                            >
-                                                Previous
-                                            </button>
-                                            <span className="px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                Page {feedbackPage} of {paginatedFeedback.totalPages}
-            </span>
-                                            <button
-                                                onClick={() => setFeedbackPage(Math.min(paginatedFeedback.totalPages, feedbackPage + 1))}
-                                                disabled={feedbackPage === paginatedFeedback.totalPages}
-                                                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50"
-                                            >
-                                                Next
-                                            </button>
+                                    {/* Pagination */}
+                                    {paginatedFeedback.totalPages > 1 && (
+                                        <div
+                                            className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                Showing {((feedbackPage - 1) * FEEDBACK_PER_PAGE) + 1} to {Math.min(feedbackPage * FEEDBACK_PER_PAGE, paginatedFeedback.totalCount)} of {paginatedFeedback.totalCount} results
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setFeedbackPage(Math.max(1, feedbackPage - 1))}
+                                                    disabled={feedbackPage === 1}
+                                                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50"
+                                                >
+                                                    Previous
+                                                </button>
+                                                <span
+                                                    className="px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                                    Page {feedbackPage} of {paginatedFeedback.totalPages}
+                                                </span>
+                                                <button
+                                                    onClick={() => setFeedbackPage(Math.min(paginatedFeedback.totalPages, feedbackPage + 1))}
+                                                    disabled={feedbackPage === paginatedFeedback.totalPages}
+                                                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
 
                                 {/* Feedback Trends */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2001,7 +2000,7 @@ const AdminDashboard: React.FC = () => {
 
                                                 return (
                                                     <div key={type} className="flex items-center gap-3">
-                                                        <div className={`w-3 h-3 rounded-full ${color}`}></div>
+                                                        <div className={`w-3 h-3 rounded-full ${color}`}/>
                                                         <span className="text-sm text-gray-600 dark:text-gray-400 capitalize flex-1">{type}</span>
                                                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
                                                         <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
@@ -2016,9 +2015,9 @@ const AdminDashboard: React.FC = () => {
                                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Activity</h3>
                                         <div className="space-y-3">
-                                            {paginatedFeedback.items.slice(0, 5).map((feedback, index) => (
+                                            {paginatedFeedback.items.slice(0, 5).map((feedback) => (
                                                 <div key={feedback.id} className="flex items-center gap-3">
-                                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full"/>
                                                     <span className="text-sm text-gray-600 dark:text-gray-400 flex-1">
                                                         New {feedback.type} feedback received
                                                     </span>
@@ -2047,7 +2046,7 @@ const AdminDashboard: React.FC = () => {
                                     />
 
                                     <UserMetricsCard
-                                        title={isAdminRealtime && auth.isAuthenticated ? "Active Sessions" : "Active Sessions"}
+                                        title="Active Sessions"
                                         value={adminAnalytics?.usageMetrics.totalSessions || 0}
                                         subtitle={isAdminRealtime && auth.isAuthenticated ? "Cross-platform" : "Current session"}
                                         icon={Activity}
@@ -2074,43 +2073,27 @@ const AdminDashboard: React.FC = () => {
                                 </div>
 
                                 {/* Privacy Notice */}
-                                <div className={`rounded-lg p-6 border ${
-                                    isAdminRealtime && auth.isAuthenticated ?
-                                        'bg-blue-50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-700/50' :
-                                        'bg-blue-50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-700/50'
-                                }`}>
+                                <div
+                                    className="rounded-lg p-6 border bg-blue-50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-700/50">
                                     <div className="flex items-start gap-3">
-                                        <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1"/>
+                                        <Shield
+                                            className="h-6 w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1"/>
                                         <div>
                                             <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                                                {isAdminRealtime && auth.isAuthenticated ?
-                                                    'Enterprise-Grade SaaS Privacy & Security' :
-                                                    'Privacy-First ApplyTrak Analytics'
+                                                {isAdminRealtime && auth.isAuthenticated
+                                                    ? 'Enterprise-Grade SaaS Privacy & Security'
+                                                    : 'Privacy-First ApplyTrak Analytics'
                                                 }
                                             </h4>
                                             <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed">
-                                                {isAdminRealtime && auth.isAuthenticated ?
-                                                    'Multi-user data is encrypted, isolated per user account, and stored securely in the cloud. Full GDPR compliance with user data portability and deletion rights. Admin analytics are aggregated and anonymized for business intelligence.' :
-                                                    'All user data is anonymized and stored locally. No personal information is tracked or transmitted. Users can opt-out of analytics at any time. Data includes job application patterns, feature usage, and session information only to improve the ApplyTrak experience.'
+                                                {isAdminRealtime && auth.isAuthenticated
+                                                    ? 'Multi-user data is encrypted, isolated per user account, and stored securely in the cloud. Full GDPR compliance with user data portability and deletion rights. Admin analytics are aggregated and anonymized for business intelligence.'
+                                                    : 'All user data is anonymized and stored locally. No personal information is tracked or transmitted. Users can opt-out of analytics at any time. Data includes job application patterns, feature usage, and session information only to improve the ApplyTrak experience.'
                                                 }
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* ✅ NEW: Settings Section */}
-                        {currentSection === 'settings' && (
-                            <div className="space-y-6">
-                                <AdminSettings/>
-                            </div>
-                        )}
-
-                        {/* ✅ NEW: Support Section */}
-                        {currentSection === 'support' && (
-                            <div className="space-y-6">
-                                <SupportTools/>
                             </div>
                         )}
                     </div>

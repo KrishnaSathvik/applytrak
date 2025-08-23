@@ -1,9 +1,12 @@
-// src/components/admin/AnalyticsDashboard.tsx - PHASE 3: REAL CROSS-USER ANALYTICS
-import React, { useMemo, useState, useEffect } from 'react';
+// src/components/admin/AnalyticsDashboard.tsx
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
     Activity,
+    AlertCircle,
     Award,
     BarChart3,
+    CheckCircle,
+    Clock,
     Download,
     Eye,
     PieChart,
@@ -11,16 +14,13 @@ import {
     TrendingDown,
     TrendingUp,
     Users,
-    Info,
-    AlertCircle,
-    CheckCircle,
-    Clock
+    X
 } from 'lucide-react';
-import { useAppStore } from '../../store/useAppStore';
+import {useAppStore} from '../../store/useAppStore';
 import realtimeAdminService from '../../services/realtimeAdminService';
 
 // ============================================================================
-// PHASE 3: REAL CROSS-USER ANALYTICS TYPES
+// TYPE DEFINITIONS
 // ============================================================================
 
 interface CrossUserMetric {
@@ -33,7 +33,7 @@ interface CrossUserMetric {
     target?: number;
     unit?: string;
     description: string;
-    userCount: number; // How many users contribute to this metric
+    userCount: number;
 }
 
 interface RealGrowthData {
@@ -66,10 +66,52 @@ interface PlatformInsights {
     featureAdoptionRate: number;
 }
 
+interface RealUserData {
+    analytics: any;
+    users: any[];
+    applications: any[];
+    goals: any[];
+    events: any[];
+    totalUsers: number;
+}
+
+interface GlobalRefreshStatus {
+    isRefreshing: boolean;
+    lastRefreshTimestamp?: number;
+    refreshStatus: 'idle' | 'success' | 'error';
+    autoRefreshEnabled: boolean;
+    autoRefreshInterval: number;
+    refreshErrors: string[];
+}
+
 type MetricTimeRange = '7d' | '30d' | '90d' | 'all';
 
 // ============================================================================
-// PHASE 3: MAIN ANALYTICS DASHBOARD - REAL CROSS-USER DATA
+// CONSTANTS
+// ============================================================================
+
+const TIME_RANGE_OPTIONS = [
+    {value: '7d' as const, label: 'Last 7 days'},
+    {value: '30d' as const, label: 'Last 30 days'},
+    {value: '90d' as const, label: 'Last 90 days'},
+    {value: 'all' as const, label: 'All time'}
+];
+
+const TREND_COLORS = {
+    up: 'text-green-600 dark:text-green-400',
+    down: 'text-red-600 dark:text-red-400',
+    stable: 'text-gray-500 dark:text-gray-400'
+} as const;
+
+const PROGRESS_COLORS = {
+    excellent: 'bg-green-500',
+    good: 'bg-yellow-500',
+    poor: 'bg-red-500',
+    default: 'bg-blue-500'
+} as const;
+
+// ============================================================================
+// MAIN COMPONENT
 // ============================================================================
 
 const AnalyticsDashboard: React.FC = () => {
@@ -84,19 +126,23 @@ const AnalyticsDashboard: React.FC = () => {
         getGlobalRefreshStatus
     } = useAppStore();
 
+    // State management
     const [timeRange, setTimeRange] = useState<MetricTimeRange>('30d');
     const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
     const [showTargets, setShowTargets] = useState(true);
-    const [realUserData, setRealUserData] = useState<any>(null);
+    const [realUserData, setRealUserData] = useState<RealUserData | null>(null);
     const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
     const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
     const globalRefreshStatus = getGlobalRefreshStatus();
 
-    // ✅ PHASE 3: Load real cross-user data
-    const loadCrossUserAnalytics = async () => {
+    // ============================================================================
+    // DATA LOADING
+    // ============================================================================
+
+    const loadCrossUserAnalytics = useCallback(async (): Promise<void> => {
         if (!auth.isAuthenticated || !isAdminRealtime) {
-            console.log('📱 Not in SaaS mode - using local analytics');
+            console.log('Not in SaaS mode - using local analytics');
             return;
         }
 
@@ -104,9 +150,8 @@ const AnalyticsDashboard: React.FC = () => {
         setAnalyticsError(null);
 
         try {
-            console.log('🔄 Loading real cross-user analytics...');
+            console.log('Loading real cross-user analytics...');
 
-            // Get real multi-user data
             const [analytics, allUsersData] = await Promise.all([
                 realtimeAdminService.getRealtimeAdminAnalytics(),
                 realtimeAdminService.getAllUsersData()
@@ -114,32 +159,36 @@ const AnalyticsDashboard: React.FC = () => {
 
             setRealUserData({
                 analytics,
-                users: allUsersData.users,
-                applications: allUsersData.applications,
-                goals: allUsersData.goals,
-                events: allUsersData.events,
-                totalUsers: allUsersData.totalUsers
+                users: allUsersData.users || [],
+                applications: allUsersData.applications || [],
+                goals: allUsersData.goals || [],
+                events: allUsersData.events || [],
+                totalUsers: allUsersData.totalUsers || 0
             });
 
-            console.log(`✅ Cross-user analytics loaded for ${allUsersData.totalUsers} users`);
+            console.log(`Cross-user analytics loaded for ${allUsersData.totalUsers} users`);
         } catch (error) {
-            console.error('❌ Failed to load cross-user analytics:', error);
+            console.error('Failed to load cross-user analytics:', error);
             setAnalyticsError('Failed to load real-time analytics. Showing local data.');
             showToast({
                 type: 'error',
-                message: '❌ Failed to load cross-user analytics'
+                message: 'Failed to load cross-user analytics',
+                duration: 5000
             });
         } finally {
             setIsLoadingAnalytics(false);
         }
-    };
+    }, [auth.isAuthenticated, isAdminRealtime, showToast]);
 
-    // Load cross-user analytics on mount and refresh
+    // Load analytics on mount and refresh
     useEffect(() => {
         loadCrossUserAnalytics();
-    }, [auth.isAuthenticated, isAdminRealtime, globalRefreshStatus.lastRefreshTimestamp]);
+    }, [loadCrossUserAnalytics, globalRefreshStatus.lastRefreshTimestamp]);
 
-    // ✅ PHASE 3: Generate REAL cross-user business metrics
+    // ============================================================================
+    // DATA PROCESSING
+    // ============================================================================
+
     const crossUserMetrics = useMemo((): CrossUserMetric[] => {
         const isSaasMode = isAdminRealtime && auth.isAuthenticated && realUserData;
 
@@ -172,42 +221,57 @@ const AnalyticsDashboard: React.FC = () => {
             ];
         }
 
-        // PHASE 3: Real cross-user metrics from actual database
+        // Real cross-user metrics from database
         const analytics = realUserData.analytics;
         const totalUsers = realUserData.totalUsers;
         const totalApplications = realUserData.applications.length;
-        const activeUsers = analytics.userMetrics.activeUsers.weekly;
+        const activeUsers = analytics?.userMetrics?.activeUsers?.weekly || 0;
 
-        // Calculate real cross-user trends
-        const calculateUserGrowth = () => {
-            const thisWeekUsers = analytics.userMetrics.newUsers.thisWeek;
+        const calculateUserGrowth = (): number => {
+            const thisWeekUsers = analytics?.userMetrics?.newUsers?.thisWeek || 0;
             const lastWeekUsers = Math.max(1, totalUsers - thisWeekUsers);
-            return lastWeekUsers > 0 ? ((thisWeekUsers / lastWeekUsers) * 100) : 0;
+            return lastWeekUsers > 0 ? (thisWeekUsers / lastWeekUsers) * 100 : 0;
         };
 
-        const calculateApplicationGrowth = () => {
+        const calculateApplicationGrowth = (): number => {
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             const recentApps = realUserData.applications.filter((app: any) => {
-                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                return new Date(app.created_at) >= weekAgo;
+                try {
+                    return new Date(app.created_at) >= weekAgo;
+                } catch {
+                    return false;
+                }
             }).length;
             const previousApps = Math.max(1, totalApplications - recentApps);
-            return previousApps > 0 ? ((recentApps / previousApps) * 100) : 0;
+            return previousApps > 0 ? (recentApps / previousApps) * 100 : 0;
         };
 
-        const calculateEngagementScore = () => {
-            const avgSessionTime = analytics.usageMetrics.averageSessionDuration / (1000 * 60); // minutes
-            const sessionsPerUser = totalUsers > 0 ? analytics.usageMetrics.totalSessions / totalUsers : 0;
+        const calculateEngagementScore = (): number => {
+            const avgSessionTime = (analytics?.usageMetrics?.averageSessionDuration || 0) / (1000 * 60);
+            const sessionsPerUser = totalUsers > 0 ? (analytics?.usageMetrics?.totalSessions || 0) / totalUsers : 0;
             const appsPerUser = totalUsers > 0 ? totalApplications / totalUsers : 0;
 
-            // Weighted engagement score
             return Math.round((avgSessionTime * 0.3) + (sessionsPerUser * 0.3) + (appsPerUser * 0.4));
         };
 
-        const calculateSuccessRate = () => {
+        const calculateSuccessRate = (): number => {
             const successfulApps = realUserData.applications.filter((app: any) =>
-                app.status === 'Interview' || app.status === 'Offer' || app.status === 'Accepted'
+                ['Interview', 'Offer', 'Accepted'].includes(app.status)
             ).length;
             return totalApplications > 0 ? Math.round((successfulApps / totalApplications) * 100) : 0;
+        };
+
+        const safeGetNumericValue = (path: string, fallback = 0): number => {
+            try {
+                const keys = path.split('.');
+                let value = analytics;
+                for (const key of keys) {
+                    value = value?.[key];
+                }
+                return typeof value === 'number' ? value : fallback;
+            } catch {
+                return fallback;
+            }
         };
 
         return [
@@ -216,23 +280,23 @@ const AnalyticsDashboard: React.FC = () => {
                 name: 'Total Platform Users',
                 value: totalUsers,
                 change: calculateUserGrowth(),
-                trend: analytics.userMetrics.newUsers.thisWeek > 0 ? 'up' : 'stable',
+                trend: safeGetNumericValue('userMetrics.newUsers.thisWeek') > 0 ? 'up' : 'stable',
                 period: 'vs last week',
                 target: 100,
                 unit: 'users',
-                description: `All registered users across the platform`,
+                description: 'All registered users across the platform',
                 userCount: totalUsers
             },
             {
                 id: 'active_user_base',
                 name: 'Active User Base',
                 value: activeUsers,
-                change: Math.round((activeUsers / totalUsers) * 100) - 70, // vs 70% baseline
-                trend: (activeUsers / totalUsers) > 0.7 ? 'up' : 'down',
+                change: Math.round((activeUsers / Math.max(totalUsers, 1)) * 100) - 70,
+                trend: (activeUsers / Math.max(totalUsers, 1)) > 0.7 ? 'up' : 'down',
                 period: 'weekly active',
                 target: Math.floor(totalUsers * 0.8),
                 unit: 'active users',
-                description: `Users with recent activity (sign-ins or applications)`,
+                description: 'Users with recent activity (sign-ins or applications)',
                 userCount: activeUsers
             },
             {
@@ -243,19 +307,19 @@ const AnalyticsDashboard: React.FC = () => {
                 trend: calculateApplicationGrowth() > 0 ? 'up' : 'stable',
                 period: 'total across users',
                 unit: 'applications',
-                description: `Total applications created by all users`,
+                description: 'Total applications created by all users',
                 userCount: new Set(realUserData.applications.map((app: any) => app.user_id)).size
             },
             {
                 id: 'user_engagement_score',
                 name: 'User Engagement Score',
                 value: calculateEngagementScore(),
-                change: 8.5, // Placeholder - you could track this over time
+                change: 8.5,
                 trend: 'up',
                 period: 'composite score',
                 target: 100,
                 unit: 'points',
-                description: `Weighted score based on session time, frequency, and app creation`,
+                description: 'Weighted score based on session time, frequency, and app creation',
                 userCount: totalUsers
             },
             {
@@ -267,22 +331,22 @@ const AnalyticsDashboard: React.FC = () => {
                 period: 'interviews + offers',
                 target: 25,
                 unit: '%',
-                description: `Percentage of applications resulting in interviews or offers`,
+                description: 'Percentage of applications resulting in interviews or offers',
                 userCount: new Set(realUserData.applications
-                    .filter((app: any) => app.status === 'Interview' || app.status === 'Offer')
+                    .filter((app: any) => ['Interview', 'Offer'].includes(app.status))
                     .map((app: any) => app.user_id)
                 ).size
             },
             {
                 id: 'user_retention_rate',
                 name: 'User Retention Rate',
-                value: `${analytics.engagementMetrics.userRetention.day7}%`,
+                value: `${safeGetNumericValue('engagementMetrics.userRetention.day7')}%`,
                 change: 2.1,
                 trend: 'up',
                 period: '7-day retention',
                 target: 80,
                 unit: '%',
-                description: `Percentage of users returning after 7 days`,
+                description: 'Percentage of users returning after 7 days',
                 userCount: totalUsers
             },
             {
@@ -294,30 +358,29 @@ const AnalyticsDashboard: React.FC = () => {
                 period: 'platform average',
                 target: 10,
                 unit: 'apps/user',
-                description: `Average number of applications per user`,
+                description: 'Average number of applications per user',
                 userCount: totalUsers
             },
             {
                 id: 'new_user_growth',
                 name: 'New User Growth',
-                value: analytics.userMetrics.newUsers.thisWeek,
-                change: analytics.userMetrics.newUsers.thisWeek - analytics.userMetrics.newUsers.today * 7, // Rough estimate
-                trend: analytics.userMetrics.newUsers.thisWeek > analytics.userMetrics.newUsers.today * 5 ? 'up' : 'down',
+                value: safeGetNumericValue('userMetrics.newUsers.thisWeek'),
+                change: safeGetNumericValue('userMetrics.newUsers.thisWeek') - safeGetNumericValue('userMetrics.newUsers.today', 0) * 7,
+                trend: safeGetNumericValue('userMetrics.newUsers.thisWeek') > safeGetNumericValue('userMetrics.newUsers.today', 0) * 5 ? 'up' : 'down',
                 period: 'this week',
                 target: 10,
                 unit: 'new users',
-                description: `New user registrations this week`,
-                userCount: analytics.userMetrics.newUsers.thisWeek
+                description: 'New user registrations this week',
+                userCount: safeGetNumericValue('userMetrics.newUsers.thisWeek')
             }
         ];
     }, [realUserData, adminAnalytics, applications, isAdminRealtime, auth]);
 
-    // ✅ PHASE 3: Generate REAL growth data from actual user activity
     const realGrowthData = useMemo((): RealGrowthData[] => {
         const isSaasMode = isAdminRealtime && auth.isAuthenticated && realUserData;
 
         if (!isSaasMode) {
-            // Fallback to local data pattern
+            // Fallback to local data
             return Array.from({ length: 7 }, (_, i) => ({
                 date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 totalUsers: 1,
@@ -330,7 +393,6 @@ const AnalyticsDashboard: React.FC = () => {
             })).reverse();
         }
 
-        // PHASE 3: Calculate real daily metrics from actual user data
         const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 365;
         const data: RealGrowthData[] = [];
 
@@ -338,36 +400,52 @@ const AnalyticsDashboard: React.FC = () => {
             const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
             const dateStr = date.toISOString().split('T')[0];
 
-            // Users who joined by this date
             const usersByDate = realUserData.users.filter((user: any) => {
-                const userDate = new Date(user.created_at).toISOString().split('T')[0];
-                return userDate <= dateStr;
+                try {
+                    const userDate = new Date(user.created_at).toISOString().split('T')[0];
+                    return userDate <= dateStr;
+                } catch {
+                    return false;
+                }
             });
 
-            // New users on this specific date
             const newUsersThisDay = realUserData.users.filter((user: any) => {
-                const userDate = new Date(user.created_at).toISOString().split('T')[0];
-                return userDate === dateStr;
+                try {
+                    const userDate = new Date(user.created_at).toISOString().split('T')[0];
+                    return userDate === dateStr;
+                } catch {
+                    return false;
+                }
             });
 
-            // Applications created by this date
             const applicationsByDate = realUserData.applications.filter((app: any) => {
-                const appDate = new Date(app.created_at).toISOString().split('T')[0];
-                return appDate <= dateStr;
+                try {
+                    const appDate = new Date(app.created_at).toISOString().split('T')[0];
+                    return appDate <= dateStr;
+                } catch {
+                    return false;
+                }
             });
 
-            // Active users (users with recent activity relative to this date)
             const weekBeforeDate = new Date(date.getTime() - 7 * 24 * 60 * 60 * 1000);
             const activeUsersThisDay = realUserData.users.filter((user: any) => {
-                const userSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at) : null;
-                const hasRecentActivity = userSignIn && userSignIn >= weekBeforeDate && userSignIn <= date;
+                try {
+                    const userSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at) : null;
+                    const hasRecentActivity = userSignIn && userSignIn >= weekBeforeDate && userSignIn <= date;
 
-                const hasRecentApps = realUserData.applications.some((app: any) => {
-                    const appDate = new Date(app.created_at);
-                    return app.user_id === user.id && appDate >= weekBeforeDate && appDate <= date;
-                });
+                    const hasRecentApps = realUserData.applications.some((app: any) => {
+                        try {
+                            const appDate = new Date(app.created_at);
+                            return app.user_id === user.id && appDate >= weekBeforeDate && appDate <= date;
+                        } catch {
+                            return false;
+                        }
+                    });
 
-                return hasRecentActivity || hasRecentApps;
+                    return hasRecentActivity || hasRecentApps;
+                } catch {
+                    return false;
+                }
             });
 
             data.push({
@@ -377,7 +455,7 @@ const AnalyticsDashboard: React.FC = () => {
                 newUsers: newUsersThisDay.length,
                 totalApplications: applicationsByDate.length,
                 applicationsPerUser: usersByDate.length > 0 ? applicationsByDate.length / usersByDate.length : 0,
-                averageSessionTime: 15 + Math.floor(Math.random() * 10), // Placeholder - you could track real session times
+                averageSessionTime: 15 + Math.floor(Math.random() * 10),
                 userRetention: usersByDate.length > 0 ? (activeUsersThisDay.length / usersByDate.length) * 100 : 0
             });
         }
@@ -385,7 +463,6 @@ const AnalyticsDashboard: React.FC = () => {
         return data;
     }, [realUserData, timeRange, isAdminRealtime, auth, applications]);
 
-    // ✅ PHASE 3: Generate REAL user segments from actual user data
     const realUserSegments = useMemo((): UserSegmentData[] => {
         const isSaasMode = isAdminRealtime && auth.isAuthenticated && realUserData;
 
@@ -403,44 +480,50 @@ const AnalyticsDashboard: React.FC = () => {
             ];
         }
 
-        // PHASE 3: Calculate real user segments from database
         const totalUsers = realUserData.totalUsers;
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-        // Active users (recent sign-in or applications)
         const activeUsers = realUserData.users.filter((user: any) => {
-            const hasRecentSignIn = user.last_sign_in_at && new Date(user.last_sign_in_at) >= weekAgo;
-            const hasRecentApps = realUserData.applications.some((app: any) =>
-                app.user_id === user.id && new Date(app.created_at) >= weekAgo
-            );
-            return hasRecentSignIn || hasRecentApps;
+            try {
+                const hasRecentSignIn = user.last_sign_in_at && new Date(user.last_sign_in_at) >= weekAgo;
+                const hasRecentApps = realUserData.applications.some((app: any) =>
+                    app.user_id === user.id && new Date(app.created_at) >= weekAgo
+                );
+                return hasRecentSignIn || hasRecentApps;
+            } catch {
+                return false;
+            }
         });
 
-        // New users (joined in last 30 days)
-        const newUsers = realUserData.users.filter((user: any) =>
-            new Date(user.created_at) >= monthAgo
-        );
+        const newUsers = realUserData.users.filter((user: any) => {
+            try {
+                return new Date(user.created_at) >= monthAgo;
+            } catch {
+                return false;
+            }
+        });
 
-        // Power users (users with 5+ applications)
         const powerUsers = realUserData.users.filter((user: any) => {
             const userApps = realUserData.applications.filter((app: any) => app.user_id === user.id);
             return userApps.length >= 5;
         });
 
-        // Returning users (not new, but have applications)
         const returningUsers = realUserData.users.filter((user: any) => {
-            const isNew = new Date(user.created_at) >= monthAgo;
-            const hasApps = realUserData.applications.some((app: any) => app.user_id === user.id);
-            return !isNew && hasApps;
+            try {
+                const isNew = new Date(user.created_at) >= monthAgo;
+                const hasApps = realUserData.applications.some((app: any) => app.user_id === user.id);
+                return !isNew && hasApps;
+            } catch {
+                return false;
+            }
         });
 
-        const calculateGrowth = (currentCount: number, segment: string) => {
-            // Placeholder growth calculation - you could track this over time
-            return Math.random() * 20 - 5; // -5% to +15% growth
+        const calculateGrowth = (): number => {
+            return Math.random() * 20 - 5; // Placeholder growth calculation
         };
 
-        const getAverageApplications = (users: any[]) => {
+        const getAverageApplications = (users: any[]): number => {
             if (users.length === 0) return 0;
             const totalApps = users.reduce((sum, user) => {
                 return sum + realUserData.applications.filter((app: any) => app.user_id === user.id).length;
@@ -453,7 +536,7 @@ const AnalyticsDashboard: React.FC = () => {
                 segment: 'Active Users',
                 count: activeUsers.length,
                 percentage: totalUsers > 0 ? Math.round((activeUsers.length / totalUsers) * 100) : 0,
-                growth: calculateGrowth(activeUsers.length, 'active'),
+                growth: calculateGrowth(),
                 color: 'bg-green-500',
                 applications: getAverageApplications(activeUsers),
                 avgSessionTime: 18
@@ -462,7 +545,7 @@ const AnalyticsDashboard: React.FC = () => {
                 segment: 'New Users',
                 count: newUsers.length,
                 percentage: totalUsers > 0 ? Math.round((newUsers.length / totalUsers) * 100) : 0,
-                growth: calculateGrowth(newUsers.length, 'new'),
+                growth: calculateGrowth(),
                 color: 'bg-blue-500',
                 applications: getAverageApplications(newUsers),
                 avgSessionTime: 12
@@ -471,7 +554,7 @@ const AnalyticsDashboard: React.FC = () => {
                 segment: 'Power Users',
                 count: powerUsers.length,
                 percentage: totalUsers > 0 ? Math.round((powerUsers.length / totalUsers) * 100) : 0,
-                growth: calculateGrowth(powerUsers.length, 'power'),
+                growth: calculateGrowth(),
                 color: 'bg-purple-500',
                 applications: getAverageApplications(powerUsers),
                 avgSessionTime: 25
@@ -480,15 +563,14 @@ const AnalyticsDashboard: React.FC = () => {
                 segment: 'Returning Users',
                 count: returningUsers.length,
                 percentage: totalUsers > 0 ? Math.round((returningUsers.length / totalUsers) * 100) : 0,
-                growth: calculateGrowth(returningUsers.length, 'returning'),
+                growth: calculateGrowth(),
                 color: 'bg-orange-500',
                 applications: getAverageApplications(returningUsers),
                 avgSessionTime: 20
             }
-        ].filter(segment => segment.count > 0); // Only show segments with users
+        ].filter(segment => segment.count > 0);
     }, [realUserData, isAdminRealtime, auth, applications]);
 
-    // ✅ PHASE 3: Calculate real platform insights
     const platformInsights = useMemo((): PlatformInsights => {
         const isSaasMode = isAdminRealtime && auth.isAuthenticated && realUserData;
 
@@ -504,31 +586,36 @@ const AnalyticsDashboard: React.FC = () => {
         const totalUsers = realUserData.totalUsers;
         const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-        // Churn rate (users who haven't been active in 30 days)
         const inactiveUsers = realUserData.users.filter((user: any) => {
-            const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at) : new Date(user.created_at);
-            const hasRecentApps = realUserData.applications.some((app: any) =>
-                app.user_id === user.id && new Date(app.created_at) >= monthAgo
-            );
-            return lastSignIn < monthAgo && !hasRecentApps;
+            try {
+                const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at) : new Date(user.created_at);
+                const hasRecentApps = realUserData.applications.some((app: any) =>
+                    app.user_id === user.id && new Date(app.created_at) >= monthAgo
+                );
+                return lastSignIn < monthAgo && !hasRecentApps;
+            } catch {
+                return false;
+            }
         });
 
         const churnRate = totalUsers > 0 ? (inactiveUsers.length / totalUsers) * 100 : 0;
 
-        // Monthly growth rate
-        const newUsersThisMonth = realUserData.users.filter((user: any) =>
-            new Date(user.created_at) >= monthAgo
-        ).length;
+        const newUsersThisMonth = realUserData.users.filter((user: any) => {
+            try {
+                return new Date(user.created_at) >= monthAgo;
+            } catch {
+                return false;
+            }
+        }).length;
+
         const existingUsers = totalUsers - newUsersThisMonth;
         const monthlyGrowthRate = existingUsers > 0 ? (newUsersThisMonth / existingUsers) * 100 : 0;
 
-        // Feature adoption rate (users who have created applications)
         const usersWithApps = new Set(realUserData.applications.map((app: any) => app.user_id)).size;
         const featureAdoptionRate = totalUsers > 0 ? (usersWithApps / totalUsers) * 100 : 0;
 
-        // Lifetime value (placeholder - based on application creation)
         const avgAppsPerUser = totalUsers > 0 ? realUserData.applications.length / totalUsers : 0;
-        const lifetimeValue = Math.round(avgAppsPerUser * 25); // $25 per application value
+        const lifetimeValue = Math.round(avgAppsPerUser * 25);
 
         return {
             churnRate: Math.round(churnRate * 10) / 10,
@@ -538,66 +625,269 @@ const AnalyticsDashboard: React.FC = () => {
         };
     }, [realUserData, isAdminRealtime, auth]);
 
-    const handleExport = () => {
-        const exportData = {
-            exportDate: new Date().toISOString(),
-            timeRange,
-            mode: isAdminRealtime && auth.isAuthenticated ? 'Multi-User SaaS Analytics' : 'Local Mode Analytics',
-            crossUserMetrics,
-            realGrowthData,
-            realUserSegments,
-            platformInsights,
-            userCount: realUserData?.totalUsers || 1,
-            totalApplications: realUserData?.applications.length || applications.length,
-            analyticsSource: realUserData ? 'Real cross-user database' : 'Local user data',
-            refreshMetadata: {
-                lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
-                refreshStatus: globalRefreshStatus.refreshStatus,
-                autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
-                refreshErrors: globalRefreshStatus.refreshErrors
-            }
-        };
+    // ============================================================================
+    // EVENT HANDLERS
+    // ============================================================================
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `applytrak-cross-user-analytics-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    const handleExport = useCallback((): void => {
+        try {
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                timeRange,
+                mode: isAdminRealtime && auth.isAuthenticated ? 'Multi-User SaaS Analytics' : 'Local Mode Analytics',
+                crossUserMetrics,
+                realGrowthData,
+                realUserSegments,
+                platformInsights,
+                userCount: realUserData?.totalUsers || 1,
+                totalApplications: realUserData?.applications.length || applications.length,
+                analyticsSource: realUserData ? 'Real cross-user database' : 'Local user data',
+                refreshMetadata: {
+                    lastRefreshTimestamp: globalRefreshStatus.lastRefreshTimestamp,
+                    refreshStatus: globalRefreshStatus.refreshStatus,
+                    autoRefreshEnabled: globalRefreshStatus.autoRefreshEnabled,
+                    refreshErrors: globalRefreshStatus.refreshErrors
+                }
+            };
 
-        showToast({
-            type: 'success',
-            message: `📊 Cross-user analytics exported (${realUserData?.totalUsers || 1} users)`,
-            duration: 3000
-        });
-    };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
 
-    // Helper functions
-    const formatTrend = (change: number, trend: string) => {
+            link.href = url;
+            link.download = `applytrak-cross-user-analytics-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast({
+                type: 'success',
+                message: `Cross-user analytics exported (${realUserData?.totalUsers || 1} users)`,
+                duration: 3000
+            });
+        } catch (error) {
+            console.error('Export failed:', error);
+            showToast({
+                type: 'error',
+                message: 'Failed to export analytics data',
+                duration: 3000
+            });
+        }
+    }, [
+        timeRange, isAdminRealtime, auth.isAuthenticated, crossUserMetrics, realGrowthData,
+        realUserSegments, platformInsights, realUserData, applications.length,
+        globalRefreshStatus, showToast
+    ]);
+
+    // ============================================================================
+    // UTILITY FUNCTIONS
+    // ============================================================================
+
+    const formatTrend = useCallback((change: number, trend: string) => {
         const isPositive = trend === 'up';
         const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-        const color = isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+        const color = TREND_COLORS[trend as keyof typeof TREND_COLORS];
 
         return (
             <div className={`flex items-center gap-1 ${color}`}>
                 <TrendIcon className="h-4 w-4" />
                 <span className="text-sm font-medium">
-                    {isPositive ? '+' : ''}{Math.abs(change).toFixed(1)}%
-                </span>
+          {isPositive ? '+' : ''}{Math.abs(change).toFixed(1)}%
+        </span>
             </div>
         );
-    };
+    }, []);
 
-    const getProgressColor = (value: number, target?: number) => {
-        if (!target) return 'bg-blue-500';
+    const getProgressColor = useCallback((value: number, target?: number): string => {
+        if (!target) return PROGRESS_COLORS.default;
         const percentage = (value / target) * 100;
-        if (percentage >= 90) return 'bg-green-500';
-        if (percentage >= 70) return 'bg-yellow-500';
-        return 'bg-red-500';
-    };
+        if (percentage >= 90) return PROGRESS_COLORS.excellent;
+        if (percentage >= 70) return PROGRESS_COLORS.good;
+        return PROGRESS_COLORS.poor;
+    }, []);
+
+    const formatNumber = useCallback((num: number): string => {
+        return num.toLocaleString();
+    }, []);
+
+    const formatDate = useCallback((dateStr: string): string => {
+        try {
+            return new Date(dateStr).toLocaleDateString('en', {
+                month: 'short',
+                day: 'numeric'
+            });
+        } catch {
+            return dateStr;
+        }
+    }, []);
+
+    // ============================================================================
+    // RENDER COMPONENTS
+    // ============================================================================
+
+    const MetricCard: React.FC<{ metric: CrossUserMetric }> = ({metric}) => (
+        <div
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+            onClick={() => setSelectedMetric(metric.id)}
+        >
+            {/* Header with metric name */}
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate pr-2">
+                    {metric.name}
+                </h3>
+                <div className="flex-shrink-0">
+                    {metric.trend !== 'stable' && (
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                            metric.trend === 'up'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                        }`}>
+                            {metric.trend === 'up' ? (
+                                <TrendingUp className="h-3 w-3"/>
+                            ) : (
+                                <TrendingDown className="h-3 w-3"/>
+                            )}
+                            <span>{metric.change > 0 ? '+' : ''}{metric.change.toFixed(1)}%</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Main value display */}
+            <div className="mb-4">
+                <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                        {typeof metric.value === 'number'
+                            ? formatNumber(metric.value)
+                            : metric.value
+                        }
+                    </p>
+                    {metric.unit && metric.unit !== '%' && (
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {metric.unit}
+            </span>
+                    )}
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{metric.period}</p>
+            </div>
+
+            {/* User count badge */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-full">
+                    <Users className="h-3 w-3 text-blue-600 dark:text-blue-400"/>
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+            {formatNumber(metric.userCount)} user{metric.userCount !== 1 ? 's' : ''}
+          </span>
+                </div>
+            </div>
+
+            {/* Progress bar for targets */}
+            {showTargets && metric.target && (
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-600 dark:text-gray-400">
+              Target: {formatNumber(metric.target)}{metric.unit}
+            </span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+              {Math.round(
+                  (typeof metric.value === 'number'
+                          ? metric.value
+                          : parseFloat(metric.value.toString().replace('%', ''))
+                  ) / metric.target * 100
+              )}%
+            </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                        <div
+                            className={`h-2 rounded-full transition-all duration-500 ease-out ${getProgressColor(
+                                typeof metric.value === 'number'
+                                    ? metric.value
+                                    : parseFloat(metric.value.toString().replace('%', '')),
+                                metric.target
+                            )}`}
+                            style={{
+                                width: `${Math.min(100, Math.round(
+                                    (typeof metric.value === 'number'
+                                            ? metric.value
+                                            : parseFloat(metric.value.toString().replace('%', ''))
+                                    ) / metric.target * 100
+                                ))}%`
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Hover indicator */}
+            <div
+                className="opacity-0 group-hover:opacity-100 transition-opacity mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <Eye className="h-3 w-3"/>
+                    <span>Click for details</span>
+                </div>
+            </div>
+        </div>
+    );
+
+    const GrowthChart: React.FC<{
+        data: RealGrowthData[];
+        title: string;
+        icon: React.ComponentType<{ className?: string }>;
+        dataKey: keyof RealGrowthData;
+        color: string;
+        subtitle: string;
+    }> = ({data, title, icon: Icon, dataKey, color, subtitle}) => (
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Icon className={`h-5 w-5 ${color}`}/>
+                    {title}
+                </h3>
+                <div className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</div>
+            </div>
+
+            <div className="h-48 flex items-end justify-between gap-1">
+                {data.slice(-20).map((point, index) => {
+                    const maxValue = Math.max(...data.map(d => Number(d[dataKey])));
+                    const value = Number(point[dataKey]);
+                    const height = Math.max(10, (value / Math.max(maxValue, 1)) * 100);
+
+                    return (
+                        <div key={index} className="flex flex-col items-center gap-1 flex-1">
+                            <div
+                                className={`w-full bg-gradient-to-t ${color.replace('text-', 'from-').replace('-600', '-500')} ${color.replace('text-', 'to-').replace('-600', '-300')} rounded-t-sm transition-all duration-300 hover:opacity-80 relative group cursor-pointer`}
+                                style={{height: `${height}%`}}
+                            >
+                                <div
+                                    className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                    <div>{formatNumber(value)} {dataKey === 'totalUsers' ? 'total users' : dataKey === 'totalApplications' ? 'total apps' : ''}</div>
+                                    {dataKey === 'totalUsers' && (
+                                        <>
+                                            <div>{formatNumber(point.activeUsers)} active users</div>
+                                            <div>{formatNumber(point.newUsers)} new users</div>
+                                        </>
+                                    )}
+                                    {dataKey === 'totalApplications' && (
+                                        <div>{point.applicationsPerUser.toFixed(1)} apps/user</div>
+                                    )}
+                                </div>
+                            </div>
+                            {index % 5 === 0 && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  {formatDate(point.date)}
+                </span>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
+    // ============================================================================
+    // MAIN RENDER
+    // ============================================================================
 
     return (
         <div className="space-y-6">
@@ -609,14 +899,14 @@ const AnalyticsDashboard: React.FC = () => {
                         Cross-User Analytics
                         {isAdminRealtime && auth.isAuthenticated && (
                             <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 px-2 py-1 rounded-full">
-                                REAL MULTI-USER DATA
-                            </span>
+                REAL MULTI-USER DATA
+              </span>
                         )}
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {isAdminRealtime && auth.isAuthenticated ?
-                            `Platform-wide analytics across ${realUserData?.totalUsers || 'loading'} users` :
-                            'Personal analytics and goal tracking (local mode)'
+                        {isAdminRealtime && auth.isAuthenticated
+                            ? `Platform-wide analytics across ${realUserData?.totalUsers || 'loading'} users`
+                            : 'Personal analytics and goal tracking (local mode)'
                         }
                     </p>
                 </div>
@@ -625,12 +915,13 @@ const AnalyticsDashboard: React.FC = () => {
                     <select
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value as MetricTimeRange)}
-                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                     >
-                        <option value="7d">Last 7 days</option>
-                        <option value="30d">Last 30 days</option>
-                        <option value="90d">Last 90 days</option>
-                        <option value="all">All time</option>
+                        {TIME_RANGE_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
                     </select>
 
                     <button
@@ -647,7 +938,8 @@ const AnalyticsDashboard: React.FC = () => {
 
                     <button
                         onClick={handleExport}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        disabled={isLoadingAnalytics}
+                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         <Download className="h-4 w-4" />
                         Export
@@ -659,7 +951,8 @@ const AnalyticsDashboard: React.FC = () => {
             {isLoadingAnalytics && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-center gap-3 text-blue-800 dark:text-blue-200">
-                        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div
+                            className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"/>
                         <span className="font-medium">Loading real cross-user analytics...</span>
                     </div>
                 </div>
@@ -683,22 +976,22 @@ const AnalyticsDashboard: React.FC = () => {
                             <>
                                 <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                                 <span className="text-gray-700 dark:text-gray-300">
-                                    Real-time data from {realUserData.totalUsers} users
-                                </span>
+                  Real-time data from {formatNumber(realUserData.totalUsers)} users
+                </span>
                             </>
                         ) : (
                             <>
                                 <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                 <span className="text-gray-700 dark:text-gray-300">
-                                    Local user data (not connected to multi-user analytics)
-                                </span>
+                  Local user data (not connected to multi-user analytics)
+                </span>
                             </>
                         )}
                     </div>
                     {globalRefreshStatus.lastRefreshTimestamp && (
                         <span className="text-gray-500 dark:text-gray-400">
-                            Last updated: {new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()}
-                        </span>
+              Last updated: {new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()}
+            </span>
                     )}
                 </div>
             </div>
@@ -706,158 +999,28 @@ const AnalyticsDashboard: React.FC = () => {
             {/* Cross-User Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {crossUserMetrics.map((metric) => (
-                    <div
-                        key={metric.id}
-                        className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => setSelectedMetric(metric.id)}
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{metric.name}</h3>
-                            {formatTrend(metric.change, metric.trend)}
-                        </div>
-
-                        <div className="mb-2">
-                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                {metric.value}
-                                {metric.unit && metric.unit !== '%' && (
-                                    <span className="text-sm font-normal text-gray-600 dark:text-gray-400 ml-1">
-                                        {metric.unit}
-                                    </span>
-                                )}
-                            </p>
-                        </div>
-
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">{metric.period}</p>
-
-                        <div className="text-xs text-blue-600 dark:text-blue-400 mb-3">
-                            {metric.userCount} user{metric.userCount !== 1 ? 's' : ''} contributing
-                        </div>
-
-                        {/* Progress bar for metrics with targets */}
-                        {showTargets && metric.target && (
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600 dark:text-gray-400">
-                                        Target: {metric.target}{metric.unit}
-                                    </span>
-                                    <span className="font-medium">
-                                        {typeof metric.value === 'number'
-                                            ? Math.round((metric.value / metric.target) * 100)
-                                            : Math.round((parseFloat(metric.value.toString().replace('%', '')) / metric.target) * 100)
-                                        }%
-                                    </span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                    <div
-                                        className={`h-2 rounded-full transition-all duration-300 ${
-                                            getProgressColor(
-                                                typeof metric.value === 'number'
-                                                    ? metric.value
-                                                    : parseFloat(metric.value.toString().replace('%', '')),
-                                                metric.target
-                                            )
-                                        }`}
-                                        style={{
-                                            width: `${Math.min(100, Math.round(
-                                                (typeof metric.value === 'number'
-                                                        ? metric.value
-                                                        : parseFloat(metric.value.toString().replace('%', ''))
-                                                ) / metric.target * 100
-                                            ))}%`
-                                        }}
-                                    ></div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <MetricCard key={metric.id} metric={metric}/>
                 ))}
             </div>
 
             {/* Growth Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Real User Growth Chart */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            Real User Growth
-                        </h3>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {realUserData ? 'Live database data' : 'Local data'}
-                        </div>
-                    </div>
-
-                    {/* Growth Chart */}
-                    <div className="h-48 flex items-end justify-between gap-1">
-                        {realGrowthData.slice(-20).map((point, index) => {
-                            const maxUsers = Math.max(...realGrowthData.map(d => d.totalUsers));
-                            const height = Math.max(10, (point.totalUsers / Math.max(maxUsers, 1)) * 100);
-                            return (
-                                <div key={index} className="flex flex-col items-center gap-1 flex-1">
-                                    <div
-                                        className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-400 relative group cursor-pointer"
-                                        style={{ height: `${height}%` }}
-                                    >
-                                        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                            <div>{point.totalUsers} total users</div>
-                                            <div>{point.activeUsers} active users</div>
-                                            <div>{point.newUsers} new users</div>
-                                        </div>
-                                    </div>
-                                    {index % 5 === 0 && (
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                            {new Date(point.date).toLocaleDateString('en', {
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Real Application Activity Chart */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
-                            Platform Applications
-                        </h3>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Cross-user activity
-                        </div>
-                    </div>
-
-                    <div className="h-48 flex items-end justify-between gap-1">
-                        {realGrowthData.slice(-20).map((point, index) => {
-                            const maxApps = Math.max(...realGrowthData.map(d => d.totalApplications));
-                            const height = Math.max(10, (point.totalApplications / Math.max(maxApps, 1)) * 100);
-                            return (
-                                <div key={index} className="flex flex-col items-center gap-1 flex-1">
-                                    <div
-                                        className="w-full bg-gradient-to-t from-green-500 to-green-300 rounded-t-sm transition-all duration-300 hover:from-green-600 hover:to-green-400 relative group cursor-pointer"
-                                        style={{ height: `${height}%` }}
-                                    >
-                                        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                            <div>{point.totalApplications} total apps</div>
-                                            <div>{point.applicationsPerUser.toFixed(1)} apps/user</div>
-                                        </div>
-                                    </div>
-                                    {index % 5 === 0 && (
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                            {new Date(point.date).toLocaleDateString('en', {
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                <GrowthChart
+                    data={realGrowthData}
+                    title="Real User Growth"
+                    icon={Users}
+                    dataKey="totalUsers"
+                    color="text-blue-600 dark:text-blue-400"
+                    subtitle={realUserData ? 'Live database data' : 'Local data'}
+                />
+                <GrowthChart
+                    data={realGrowthData}
+                    title="Platform Applications"
+                    icon={Activity}
+                    dataKey="totalApplications"
+                    color="text-green-600 dark:text-green-400"
+                    subtitle="Cross-user activity"
+                />
             </div>
 
             {/* User Segments & Platform Insights */}
@@ -876,11 +1039,11 @@ const AnalyticsDashboard: React.FC = () => {
                                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-4 h-4 rounded-full ${segment.color}`}></div>
+                                    <div className={`w-4 h-4 rounded-full ${segment.color}`}/>
                                     <div>
                                         <p className="font-medium text-gray-900 dark:text-gray-100">{segment.segment}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            {segment.count} users • {segment.applications} avg apps
+                                            {formatNumber(segment.count)} users • {segment.applications} avg apps
                                         </p>
                                     </div>
                                 </div>
@@ -908,7 +1071,6 @@ const AnalyticsDashboard: React.FC = () => {
                     </h3>
 
                     <div className="space-y-4">
-                        {/* Platform Health Metrics */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                 <p className="text-xl font-bold text-green-600 dark:text-green-400">
@@ -933,28 +1095,27 @@ const AnalyticsDashboard: React.FC = () => {
                             </div>
                             <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                                 <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                                    ${platformInsights.lifetimeValue}
+                                    ${formatNumber(platformInsights.lifetimeValue)}
                                 </p>
                                 <p className="text-sm text-purple-700 dark:text-purple-300">Lifetime Value</p>
                             </div>
                         </div>
 
-                        {/* Data Source Info */}
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-600 dark:text-gray-400">Analytics Source:</span>
                                 <span className={`font-medium ${
                                     realUserData ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
                                 }`}>
-                                    {realUserData ? 'Real Database' : 'Local Data'}
-                                </span>
+                  {realUserData ? 'Real Database' : 'Local Data'}
+                </span>
                             </div>
                             {globalRefreshStatus.lastRefreshTimestamp && (
                                 <div className="flex items-center justify-between text-sm mt-1">
                                     <span className="text-gray-600 dark:text-gray-400">Last Updated:</span>
                                     <span className="font-medium text-gray-900 dark:text-gray-100">
-                                        {new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()}
-                                    </span>
+                    {new Date(globalRefreshStatus.lastRefreshTimestamp).toLocaleTimeString()}
+                  </span>
                                 </div>
                             )}
                         </div>
@@ -978,7 +1139,7 @@ const AnalyticsDashboard: React.FC = () => {
                                     onClick={() => setSelectedMetric(null)}
                                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                                 >
-                                    <Eye className="h-5 w-5 text-gray-400" />
+                                    <X className="h-5 w-5 text-gray-400"/>
                                 </button>
                             </div>
 
@@ -986,11 +1147,11 @@ const AnalyticsDashboard: React.FC = () => {
                                 <div>
                                     <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Current Value</h4>
                                     <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                        {metric.value}
+                                        {typeof metric.value === 'number' ? formatNumber(metric.value) : metric.value}
                                         {metric.unit && metric.unit !== '%' && (
                                             <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-1">
-                                                {metric.unit}
-                                            </span>
+                        {metric.unit}
+                      </span>
                                         )}
                                     </p>
                                 </div>
@@ -1003,7 +1164,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 <div>
                                     <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Contributing Users</h4>
                                     <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                                        {metric.userCount} user{metric.userCount !== 1 ? 's' : ''}
+                                        {formatNumber(metric.userCount)} user{metric.userCount !== 1 ? 's' : ''}
                                     </p>
                                 </div>
 
@@ -1020,26 +1181,26 @@ const AnalyticsDashboard: React.FC = () => {
                                         </h4>
                                         <div className="space-y-2">
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600 dark:text-gray-400">
-                                                    Target: {metric.target}{metric.unit}
-                                                </span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Target: {formatNumber(metric.target)}{metric.unit}
+                        </span>
                                                 <span className="font-medium">
-                                                    {typeof metric.value === 'number'
-                                                        ? Math.round((metric.value / metric.target) * 100)
-                                                        : Math.round((parseFloat(metric.value.toString().replace('%', '')) / metric.target) * 100)
-                                                    }%
-                                                </span>
+                          {Math.round(
+                              (typeof metric.value === 'number'
+                                      ? metric.value
+                                      : parseFloat(metric.value.toString().replace('%', ''))
+                              ) / metric.target * 100
+                          )}%
+                        </span>
                                             </div>
                                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                                                 <div
-                                                    className={`h-3 rounded-full transition-all duration-300 ${
-                                                        getProgressColor(
-                                                            typeof metric.value === 'number'
-                                                                ? metric.value
-                                                                : parseFloat(metric.value.toString().replace('%', '')),
-                                                            metric.target
-                                                        )
-                                                    }`}
+                                                    className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(
+                                                        typeof metric.value === 'number'
+                                                            ? metric.value
+                                                            : parseFloat(metric.value.toString().replace('%', '')),
+                                                        metric.target
+                                                    )}`}
                                                     style={{
                                                         width: `${Math.min(100, Math.round(
                                                             (typeof metric.value === 'number'
@@ -1048,7 +1209,7 @@ const AnalyticsDashboard: React.FC = () => {
                                                             ) / metric.target * 100
                                                         ))}%`
                                                     }}
-                                                ></div>
+                                                />
                                             </div>
                                         </div>
                                     </div>

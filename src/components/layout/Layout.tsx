@@ -1,4 +1,4 @@
-// src/components/layout/Layout.tsx - Enhanced with Footer Integration
+// src/components/layout/Layout.tsx
 import React, {useEffect, useState} from 'react';
 import {ChevronUp} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
@@ -14,44 +14,41 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({children}) => {
     const {ui} = useAppStore();
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [isDesktop, setIsDesktop] = useState(false);
 
-    // Handle scroll visibility for FAB
+    // Handle scroll visibility for scroll-to-top button
     useEffect(() => {
         const handleScroll = () => {
             setShowScrollTop(window.scrollY > 400);
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, {passive: true});
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     // Handle responsive behavior
     useEffect(() => {
         const handleResize = () => {
-            const isDesktop = window.innerWidth >= 1024;
-            // Auto-close sidebar on mobile when resizing to mobile
-            if (!isDesktop && ui.sidebarOpen) {
-                // Only close if user manually opened it (not default state)
-                // You might want to add this logic to your store
-            }
+            setIsDesktop(window.innerWidth >= 1024);
         };
 
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [ui.sidebarOpen]);
+    }, []);
 
     const getMainContentMargin = () => {
-        if (typeof window === 'undefined') return 'ml-0';
+        if (!isDesktop) return 'ml-0';
+        return ui.sidebarOpen ? 'ml-64' : 'ml-16';
+    };
 
-        if (window.innerWidth >= 1024) {
-            return ui.sidebarOpen ? 'ml-64' : 'ml-16';
-        }
-        return 'ml-0';
+    const scrollToTop = () => {
+        window.scrollTo({top: 0, behavior: 'smooth'});
     };
 
     return (
         <div className="min-h-screen relative overflow-x-hidden flex flex-col">
-            {/* Enhanced Background */}
+            {/* Background Layers */}
             <div
                 className="fixed inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900"/>
 
@@ -60,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
                 <div className="absolute inset-0 bg-grid dark:bg-grid-dark"/>
             </div>
 
-            {/* Enhanced Background Decorative Elements */}
+            {/* Decorative Background Elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div
                     className="absolute -top-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-float"/>
@@ -80,23 +77,20 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
             {/* Sidebar */}
             <Sidebar/>
 
-            {/* Main Content Area - Flex grow to push footer down */}
-            <main className="relative z-10 pt-16 flex-1"> {/* pt-16 accounts for fixed header height */}
-                {/* Content Container with proper responsive margins */}
+            {/* Main Content Area */}
+            <main className="relative z-10 pt-16 flex-1">
                 <div className={`
-                    min-h-[calc(100vh-4rem-200px)] 
-                    transition-all duration-300 ease-out
-                    ${getMainContentMargin()}
-                `}>
-                    {/* Inner content wrapper */}
+          min-h-[calc(100vh-4rem-200px)] 
+          transition-all duration-300 ease-out
+          ${getMainContentMargin()}
+        `}>
                     <div className="p-4 sm:p-6 lg:p-8">
-                        {/* Content area with enhanced glass effect */}
                         <div className="relative">
-                            {/* Enhanced content background with better blur */}
+                            {/* Content background with glass effect */}
                             <div
                                 className="absolute inset-0 bg-white/30 dark:bg-black/30 rounded-2xl backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg"/>
 
-                            {/* Main content with enhanced spacing */}
+                            {/* Main content */}
                             <div className="relative z-10 p-2 sm:p-4 lg:p-6">
                                 {children}
                             </div>
@@ -105,36 +99,36 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
                 </div>
             </main>
 
-            {/* Footer - Now properly positioned at bottom */}
+            {/* Footer */}
             <div className={`
-                relative z-10 transition-all duration-300 ease-out
-                ${getMainContentMargin()}
-            `}>
+        relative z-10 transition-all duration-300 ease-out
+        ${getMainContentMargin()}
+      `}>
                 <Footer/>
             </div>
 
-            {/* Enhanced Scroll to top FAB with typography */}
+            {/* Scroll to top button */}
             {showScrollTop && (
                 <button
-                    onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
-                    className="fab fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group hover:scale-110 animate-fade-in"
+                    onClick={scrollToTop}
+                    className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group hover:scale-110 animate-fade-in"
                     aria-label="Scroll to top"
                 >
                     <ChevronUp className="w-6 h-6 group-hover:scale-110 transition-transform duration-300"/>
                 </button>
             )}
 
-            {/* Enhanced Loading State Overlay */}
+            {/* Loading overlay */}
             {ui.isLoading && (
                 <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 flex items-center space-x-3">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"/>
                         <span className="font-medium text-gray-900 dark:text-gray-100">Loading...</span>
                     </div>
                 </div>
             )}
 
-            {/* Toast Container - Positioned above everything except loading overlay */}
+            {/* Toast notifications */}
             <ToastContainer/>
         </div>
     );

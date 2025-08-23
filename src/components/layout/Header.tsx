@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx - ENHANCED WITH AUTHENTICATION INTEGRATION + CONSISTENT STYLING
+// src/components/layout/Header.tsx
 import React, {useEffect, useState} from 'react';
 import {
     Briefcase,
@@ -10,6 +10,7 @@ import {
     Menu,
     Monitor,
     Moon,
+    Shield,
     Smartphone,
     Sun,
     TrendingUp,
@@ -21,39 +22,56 @@ import {useAppStore} from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 import {createPortal} from 'react-dom';
 
-
 // ============================================================================
-// 🔐 USER MENU DROPDOWN COMPONENT - Authentication user interface
+// Types
 // ============================================================================
 
 interface UserMenuProps {
-    user: any; // Supabase User type
+    user: any;
     isOpen: boolean;
     onToggle: () => void;
     onClose: () => void;
     onSignOut: () => void;
+    onPrivacySettings: () => void;
 }
 
-// Replace your UserMenu component with this debug version temporarily
-// Add this to your Header.tsx file
-// Replace your entire UserMenu component with this ULTRA SIMPLE version:
+interface AuthButtonsProps {
+    onLogin: () => void;
+    onSignup: () => void;
+    isLoading?: boolean;
+}
 
-// Final working UserMenu component - replace your current one with this:
+interface AuthStatusProps {
+    isAuthenticated: boolean;
+    isLoading: boolean;
+}
 
-// Let's go back to the simple version that was working and improve it gradually:
+// ============================================================================
+// User Menu Component
+// ============================================================================
 
-// Final working UserMenu with proper positioning:
-// Final professional UserMenu - replace the debug version with this:
-
-const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onSignOut}) => {
+const UserMenu: React.FC<UserMenuProps> = ({
+                                               user,
+                                               isOpen,
+                                               onToggle,
+                                               onClose,
+                                               onSignOut,
+                                               onPrivacySettings
+                                           }) => {
     const [buttonRef, setButtonRef] = useState<HTMLButtonElement | null>(null);
-    const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+
+    const displayName = user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split('@')[0] ||
+        'User';
     const email = user?.email || '';
 
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (isOpen && !(event.target as Element).closest('.user-menu-container') && !(event.target as Element).closest('.user-dropdown-portal')) {
+            if (isOpen &&
+                !(event.target as Element).closest('.user-menu-container') &&
+                !(event.target as Element).closest('.user-dropdown-portal')) {
                 onClose();
             }
         };
@@ -73,6 +91,16 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
         };
     };
 
+    const handleSignOutClick = () => {
+        onClose();
+        onSignOut();
+    };
+
+    const handlePrivacyClick = () => {
+        onClose();
+        onPrivacySettings();
+    };
+
     return (
         <div className="user-menu-container relative">
             {/* User Menu Button */}
@@ -80,12 +108,12 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
                 ref={setButtonRef}
                 onClick={onToggle}
                 className="
-                    flex items-center gap-3 p-2.5 rounded-xl
-                    bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20
-                    border border-green-200/50 dark:border-green-700/50
-                    hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-800/30 dark:hover:to-emerald-800/30
-                    transition-all duration-200 shadow-sm hover:shadow-md group
-                "
+          flex items-center gap-3 p-2.5 rounded-xl
+          bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20
+          border border-green-200/50 dark:border-green-700/50
+          hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-800/30 dark:hover:to-emerald-800/30
+          transition-all duration-200 shadow-sm hover:shadow-md group
+        "
                 title={`Signed in as ${displayName}`}
             >
                 {/* User Avatar */}
@@ -107,10 +135,11 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
 
                 {/* Dropdown Arrow */}
                 <ChevronDown
-                    className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}/>
+                    className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                />
             </button>
 
-            {/* Portal-based Dropdown - Renders at document body level */}
+            {/* Portal-based Dropdown */}
             {isOpen && buttonRef && createPortal(
                 <div
                     className="user-dropdown-portal fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl w-80"
@@ -138,8 +167,8 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
                                 <div className="flex items-center gap-1 mt-1">
                                     <CheckCircle className="h-3 w-3 text-green-500"/>
                                     <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                        Cloud Sync Active
-                                    </span>
+                    Cloud Sync Active
+                  </span>
                                 </div>
                             </div>
                         </div>
@@ -149,7 +178,7 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
                     <div className="p-2">
                         {/* Sync Status */}
                         <div
-                            className="px-3 py-2.5 border-l-2 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-lg my-1">
+                            className="px-3 py-2.5 border-l-2 border-green-500 bg-green-50 dark:bg-green-900/20 rounded-lg my-2">
                             <div className="flex items-center gap-2 text-sm">
                                 <Cloud className="h-4 w-4 text-green-600 dark:text-green-400"/>
                                 <span className="font-medium text-green-800 dark:text-green-200">Sync Status</span>
@@ -163,16 +192,29 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
                                     <Smartphone className="h-3 w-3"/>
                                     <span>Mobile</span>
                                 </div>
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
                             </div>
                         </div>
 
+                        {/* Privacy Settings */}
+                        <button
+                            onClick={handlePrivacyClick}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <Shield className="h-4 w-4 text-gray-600 dark:text-gray-400"/>
+                            <div className="flex-1">
+                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Privacy Settings
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Manage your data preferences
+                                </div>
+                            </div>
+                        </button>
+
                         {/* Sign Out */}
                         <button
-                            onClick={() => {
-                                onClose();
-                                onSignOut();
-                            }}
+                            onClick={handleSignOutClick}
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                         >
                             <LogOut className="h-4 w-4"/>
@@ -185,57 +227,52 @@ const UserMenu: React.FC<UserMenuProps> = ({user, isOpen, onToggle, onClose, onS
         </div>
     );
 };
-// ============================================================================
-// 🔐 AUTHENTICATION BUTTONS COMPONENT - Consistent with Design System
-// ============================================================================
 
-interface AuthButtonsProps {
-    onLogin: () => void;
-    onSignup: () => void;
-    isLoading?: boolean;
-}
+// ============================================================================
+// Authentication Buttons Component
+// ============================================================================
 
 const AuthButtons: React.FC<AuthButtonsProps> = ({onLogin, onSignup, isLoading = false}) => {
     return (
         <div className="flex items-center gap-1 sm:gap-2">
-            {/* Sign In Button - Mobile Optimized */}
+            {/* Sign In Button */}
             <button
                 onClick={onLogin}
                 disabled={isLoading}
                 className="
-                    flex items-center justify-center gap-1 sm:gap-2
-                    px-2 sm:px-3 py-2 sm:py-2.5
-                    text-xs sm:text-sm font-medium
-                    bg-gray-100 dark:bg-gray-800
-                    hover:bg-gray-200 dark:hover:bg-gray-700
-                    border border-gray-200 dark:border-gray-700
-                    rounded-lg sm:rounded-xl
-                    transition-all duration-200
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                    min-w-[44px] min-h-[44px]
-                "
+          flex items-center justify-center gap-1 sm:gap-2
+          px-2 sm:px-3 py-2 sm:py-2.5
+          text-xs sm:text-sm font-medium
+          bg-gray-100 dark:bg-gray-800
+          hover:bg-gray-200 dark:hover:bg-gray-700
+          border border-gray-200 dark:border-gray-700
+          rounded-lg sm:rounded-xl
+          transition-all duration-200
+          disabled:opacity-50 disabled:cursor-not-allowed
+          min-w-[44px] min-h-[44px]
+        "
                 title="Sign in to sync across devices"
             >
                 <LogIn className="h-4 w-4 text-gray-600 dark:text-gray-400"/>
                 <span className="hidden sm:inline text-gray-700 dark:text-gray-300">Sign In</span>
             </button>
 
-            {/* Sign Up Button - Mobile Optimized */}
+            {/* Sign Up Button */}
             <button
                 onClick={onSignup}
                 disabled={isLoading}
                 className="
-                    flex items-center justify-center gap-1 sm:gap-2
-                    px-2 sm:px-3 py-2 sm:py-2.5
-                    text-xs sm:text-sm font-medium text-white
-                    bg-gradient-to-r from-blue-600 to-purple-600
-                    hover:from-blue-700 hover:to-purple-700
-                    border border-blue-500
-                    rounded-lg sm:rounded-xl
-                    transition-all duration-200 shadow-sm hover:shadow-md
-                    disabled:opacity-50 disabled:cursor-not-allowed group
-                    min-w-[44px] min-h-[44px]
-                "
+          flex items-center justify-center gap-1 sm:gap-2
+          px-2 sm:px-3 py-2 sm:py-2.5
+          text-xs sm:text-sm font-medium text-white
+          bg-gradient-to-r from-blue-600 to-purple-600
+          hover:from-blue-700 hover:to-purple-700
+          border border-blue-500
+          rounded-lg sm:rounded-xl
+          transition-all duration-200 shadow-sm hover:shadow-md
+          disabled:opacity-50 disabled:cursor-not-allowed group
+          min-w-[44px] min-h-[44px]
+        "
                 title="Create account for cloud sync"
             >
                 <UserPlus className="h-4 w-4 group-hover:scale-110 transition-transform"/>
@@ -246,13 +283,8 @@ const AuthButtons: React.FC<AuthButtonsProps> = ({onLogin, onSignup, isLoading =
 };
 
 // ============================================================================
-// 🔐 AUTHENTICATION STATUS INDICATOR - Visual sync status
+// Authentication Status Component
 // ============================================================================
-
-interface AuthStatusProps {
-    isAuthenticated: boolean;
-    isLoading: boolean;
-}
 
 const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => {
     if (isLoading) {
@@ -260,7 +292,7 @@ const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => 
             <div
                 className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-50 dark:bg-gray-800 rounded-md sm:rounded-lg">
                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-400 rounded-full animate-pulse"/>
-                <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">Loading...</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">Loading…</span>
             </div>
         );
     }
@@ -289,10 +321,8 @@ const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => 
 };
 
 // ============================================================================
-// MAIN HEADER COMPONENT - ENHANCED WITH AUTHENTICATION INTEGRATION
+// Main Header Component
 // ============================================================================
-
-// Mobile-Optimized Header - Replace the main Header component structure with this:
 
 const Header: React.FC = () => {
     const {
@@ -300,12 +330,11 @@ const Header: React.FC = () => {
         setTheme,
         toggleSidebar,
         applications,
-        filteredApplications,
-        goalProgress,
         auth,
         openAuthModal,
         signOut,
-        showToast
+        showToast,
+        openPrivacySettings
     } = useAppStore();
 
     const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -351,7 +380,11 @@ const Header: React.FC = () => {
         openAuthModal('signup');
     };
 
-    // Calculate success metrics
+    const handlePrivacySettings = () => {
+        openPrivacySettings();
+    };
+
+    // Calculate metrics
     const activeApplications = applications.filter(app => app.status !== 'Rejected').length;
     const successRate = applications.length > 0
         ? Math.round((applications.filter(app => app.status === 'Offer').length / applications.length) * 100)
@@ -360,11 +393,10 @@ const Header: React.FC = () => {
     return (
         <header
             className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-            {/* Mobile-First Layout */}
             <div className="h-full px-3 sm:px-4 lg:px-6">
                 <div className="flex items-center justify-between h-full">
 
-                    {/* LEFT SECTION - Mobile Optimized */}
+                    {/* LEFT SECTION */}
                     <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
                         {/* Mobile Sidebar Toggle */}
                         <button
@@ -379,58 +411,50 @@ const Header: React.FC = () => {
                             )}
                         </button>
 
-                        {/* Logo and Title - Mobile Optimized */}
+                        {/* Logo and Title */}
                         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                            {/* Compact Logo */}
                             <div className="relative">
                                 <div
                                     className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
-                                    <ApplyTrakLogo
-                                        size="sm"
-                                        className="transition-transform duration-300"
-                                        priority={true}
-                                    />
+                                    <ApplyTrakLogo size="sm" className="transition-transform duration-300"/>
                                 </div>
-                                {/* Auth indicator */}
                                 {auth.isAuthenticated && (
                                     <div
-                                        className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white dark:border-gray-900 animate-pulse"></div>
+                                        className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border border-white dark:border-gray-900 animate-pulse"/>
                                 )}
                             </div>
 
-                            {/* Title - Responsive */}
                             <div className="min-w-0 flex-1">
                                 <h1 className="font-display text-lg sm:text-xl lg:text-2xl font-extrabold text-gradient-static tracking-tight truncate">
                                     ApplyTrak
                                 </h1>
-                                {/* Subtitle - Hidden on small mobile */}
                                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hidden sm:block truncate leading-tight">
                                     Your Personal Career Dashboard
                                 </p>
                             </div>
                         </div>
 
-                        {/* Mobile Stats - Compact */}
+                        {/* Mobile Stats */}
                         <div className="hidden sm:flex md:hidden items-center space-x-2">
                             <div
                                 className="flex items-center space-x-1.5 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200/50 dark:border-green-800/50">
-                                <span className="text-sm font-bold text-green-700 dark:text-green-300">
-                                    {applications.length}
-                                </span>
+                <span className="text-sm font-bold text-green-700 dark:text-green-300">
+                  {applications.length}
+                </span>
                                 <span className="text-xs text-green-600 dark:text-green-400">Apps</span>
                                 {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
                             </div>
                         </div>
                     </div>
 
-                    {/* CENTER SECTION - Tablet/Desktop Stats */}
+                    {/* CENTER SECTION - Tablet Stats */}
                     <div className="hidden md:flex lg:hidden items-center space-x-3 px-4">
                         <div
                             className="flex items-center space-x-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-800/50">
                             <Briefcase className="h-4 w-4 text-green-600 dark:text-green-400"/>
                             <span className="text-sm font-bold text-green-700 dark:text-green-300">
-                                {applications.length} Apps
-                            </span>
+                {applications.length} Apps
+              </span>
                             {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
                         </div>
 
@@ -438,12 +462,12 @@ const Header: React.FC = () => {
                             className="flex items-center space-x-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
                             <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                             <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
-                                {successRate}%
-                            </span>
+                {successRate}%
+              </span>
                         </div>
                     </div>
 
-                    {/* Desktop Stats - Full Display */}
+                    {/* Desktop Stats */}
                     <div className="hidden lg:flex items-center space-x-4 px-6">
                         <div
                             className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
@@ -490,28 +514,20 @@ const Header: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Auth Status */}
                         <div
                             className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-                            <AuthStatus
-                                isAuthenticated={auth.isAuthenticated}
-                                isLoading={auth.isLoading}
-                            />
+                            <AuthStatus isAuthenticated={auth.isAuthenticated} isLoading={auth.isLoading}/>
                         </div>
                     </div>
 
-                    {/* RIGHT SECTION - Mobile Optimized */}
+                    {/* RIGHT SECTION */}
                     <div className="flex items-center space-x-1 sm:space-x-2">
-
-                        {/* Mobile Status Indicator */}
+                        {/* Mobile Status */}
                         <div className="sm:hidden">
-                            <AuthStatus
-                                isAuthenticated={auth.isAuthenticated}
-                                isLoading={auth.isLoading}
-                            />
+                            <AuthStatus isAuthenticated={auth.isAuthenticated} isLoading={auth.isLoading}/>
                         </div>
 
-                        {/* Authentication Section */}
+                        {/* Authentication */}
                         <div className="flex items-center">
                             {auth.isAuthenticated ? (
                                 <UserMenu
@@ -520,6 +536,7 @@ const Header: React.FC = () => {
                                     onToggle={() => setUserMenuOpen(!userMenuOpen)}
                                     onClose={() => setUserMenuOpen(false)}
                                     onSignOut={handleSignOut}
+                                    onPrivacySettings={handlePrivacySettings}
                                 />
                             ) : (
                                 <AuthButtons
@@ -545,7 +562,7 @@ const Header: React.FC = () => {
                             )}
                         </button>
 
-                        {/* Welcome Message - Only on 2XL screens */}
+                        {/* Welcome Message - 2XL screens only */}
                         <div className="hidden 2xl:flex items-center">
                             <div
                                 className="px-5 py-3 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-2xl border border-blue-200/50 dark:border-blue-800/50 shadow-lg backdrop-blur-sm">
@@ -554,7 +571,10 @@ const Header: React.FC = () => {
                                     <div>
                                         <div
                                             className="text-sm font-bold text-gradient-static leading-tight tracking-wide">
-                                            {auth.isAuthenticated ? `Welcome back, ${auth.user?.user_metadata?.full_name?.split(' ')[0] || 'User'}!` : 'Welcome back!'}
+                                            {auth.isAuthenticated
+                                                ? `Welcome back, ${auth.user?.user_metadata?.full_name?.split(' ')[0] || 'User'}!`
+                                                : 'Welcome back!'
+                                            }
                                         </div>
                                         <div
                                             className="text-xs font-semibold text-blue-700 dark:text-blue-300 tracking-wider">

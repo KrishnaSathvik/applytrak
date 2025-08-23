@@ -1,3 +1,4 @@
+// src/services/databaseService.ts - PRODUCTION-READY DATABASE SERVICE
 import Dexie, {Table} from 'dexie';
 import {createClient, Session, SupabaseClient, User} from '@supabase/supabase-js';
 import {
@@ -16,7 +17,16 @@ import {
 } from '../types';
 
 // ============================================================================
-// CACHING SYSTEM - NEW
+// CONFIGURATION & CONSTANTS
+// ============================================================================
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MIN_SYNC_INTERVAL = 2 * 60 * 1000; // 2 minutes
+const QUERY_TIMEOUT = 30000; // 30 seconds
+const MAX_RETRIES = 2;
+
+// ============================================================================
+// CACHING SYSTEM
 // ============================================================================
 
 interface CacheEntry<T> {
@@ -28,7 +38,6 @@ interface CacheEntry<T> {
 class DataCache {
     private static instance: DataCache;
     private cache = new Map<string, CacheEntry<any>>();
-    private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
     static getInstance(): DataCache {
         if (!DataCache.instance) {
@@ -50,7 +59,7 @@ class DataCache {
         const entry = this.cache.get(key);
         if (!entry) return null;
 
-        const isExpired = Date.now() - entry.timestamp > this.CACHE_DURATION;
+        const isExpired = Date.now() - entry.timestamp > CACHE_DURATION;
         if (isExpired || !entry.isValid) {
             this.cache.delete(key);
             return null;
@@ -77,7 +86,7 @@ class DataCache {
         const entry = this.cache.get(key);
         if (!entry) return false;
 
-        const isExpired = Date.now() - entry.timestamp > this.CACHE_DURATION;
+        const isExpired = Date.now() - entry.timestamp > CACHE_DURATION;
         return !isExpired && entry.isValid;
     }
 }
@@ -85,17 +94,15 @@ class DataCache {
 const dataCache = DataCache.getInstance();
 
 // ============================================================================
-// MISSING UTILITIES - ADDED
+// UTILITY FUNCTIONS
 // ============================================================================
 
-// Generate unique ID utility
 const generateId = (): string => {
-    // Generate a string ID that matches your VARCHAR column
     return `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 // ============================================================================
-// COMPLETE DATABASE SCHEMA - FIXED
+// DATABASE SCHEMA
 // ============================================================================
 
 export class JobTrackerDatabase extends Dexie {
@@ -152,11 +159,11 @@ const db = new JobTrackerDatabase();
 // SUPABASE CONFIGURATION
 // ============================================================================
 
-// Replace these lines in your databaseService.ts (around line 156-157):
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
 
-let supabase: SupabaseClient | null = null;
+export let supabase: SupabaseClient | null = null;
+
 const initializeSupabase = (): SupabaseClient | null => {
     if (!supabaseUrl || !supabaseAnonKey) {
         console.warn('❌ Supabase environment variables not configured');
@@ -236,7 +243,7 @@ const notifyAuthStateChange = () => {
 };
 
 // ============================================================================
-// HELPER FUNCTIONS
+// AUTHENTICATION HELPER FUNCTIONS
 // ============================================================================
 
 const handleAuthError = async () => {
@@ -259,9 +266,7 @@ const handleAuthError = async () => {
             isLoading: false
         };
 
-        // ✅ NEW: Clear cache on auth error
         dataCache.clear();
-
         notifyAuthStateChange();
         console.log('✅ Auth error handled - session cleared');
     } catch (error) {
@@ -285,7 +290,7 @@ const clearLocalStorageAuth = () => {
 };
 
 // ============================================================================
-// USER MANAGEMENT
+// USER MANAGEMENT FUNCTIONS
 // ============================================================================
 
 const getCurrentUser = (): User | null => {
@@ -511,7 +516,6 @@ function initializeAuth() {
     client.auth.onAuthStateChange(async (event, session) => {
         console.log('🔐 Auth state changed:', event, session?.user?.email);
 
-        // ✅ IMPROVED: Only reload data when authentication status actually changes
         const wasAuthenticated = previousAuthState.isAuthenticated;
         const isNowAuthenticated = !!session?.user;
 
@@ -534,7 +538,6 @@ function initializeAuth() {
         switch (event) {
             case 'SIGNED_IN':
                 console.log('✅ User signed in successfully');
-                // ✅ NEW: Only clear cache and reload if this is a new sign-in
                 if (!wasAuthenticated) {
                     dataCache.clear();
                     localStorage.removeItem('applytrak_user_db_id');
@@ -548,7 +551,6 @@ function initializeAuth() {
                 break;
         }
 
-        // ✅ NEW: Update previous state for comparison
         previousAuthState = { ...authState };
     });
 
@@ -647,7 +649,6 @@ const logSupabaseError = (operation: string, error: any, context?: any) => {
     console.groupEnd();
 };
 
-
 const handleDatabaseError = (error: any, operation: string, table: string) => {
     console.group(`❌ Database Error: ${operation} ${table}`);
     console.error('Error:', error);
@@ -680,11 +681,10 @@ const handleDatabaseError = (error: any, operation: string, table: string) => {
     console.groupEnd();
     return 'unknown';
 };
+
 // ============================================================================
 // CLOUD SYNC UTILITIES
 // ============================================================================
-
-// FIXED: Update your syncToCloud function to match your actual database schema
 
 const syncToCloud = async (table: string, data: any, operation: 'insert' | 'update' | 'delete' = 'insert'): Promise<void> => {
     if (!isOnlineWithSupabase()) return;
@@ -709,13 +709,12 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         switch (operation) {
             case 'insert':
                 if (table === 'applications') {
-                    // Ensure ID is a string and properly formatted
                     const applicationData = {
-                        id: String(data.id), // Ensure string type
+                        id: String(data.id),
                         user_id: userDbId,
                         company: String(data.company),
                         position: String(data.position),
-                        dateApplied: String(data.dateApplied), // Ensure string format YYYY-MM-DD
+                        dateApplied: String(data.dateApplied),
                         status: String(data.status),
                         type: String(data.type),
                         location: data.location ? String(data.location) : null,
@@ -731,18 +730,16 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
 
                     console.log('📤 Mapped application data:', applicationData);
 
-                    // Validate required fields before insert
                     if (!applicationData.id || !applicationData.company || !applicationData.position) {
                         throw new Error('Missing required fields: id, company, or position');
                     }
 
                     result = await client.from(table).insert(applicationData).select();
                 } else {
-                    // For other tables, use your existing logic
                     const dataWithUser = {
                         ...data,
                         user_id: userDbId,
-                        synced_at: new Date().toISOString()
+                        syncedAt: new Date().toISOString()
                     };
                     result = await client.from(table).insert(dataWithUser).select();
                 }
@@ -750,21 +747,20 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
 
             case 'update':
                 if (table === 'applications') {
-                    // 🔧 FIXED: Use camelCase to match your actual database schema
                     const updateData = {
                         company: data.company,
                         position: data.position,
-                        dateApplied: data.dateApplied,        // ✅ camelCase
+                        dateApplied: data.dateApplied,
                         status: data.status,
-                        type: data.type,                      // ✅ type not job_type
+                        type: data.type,
                         location: data.location || null,
                         salary: data.salary || null,
-                        jobSource: data.jobSource || null,    // ✅ camelCase
-                        jobUrl: data.jobUrl || null,          // ✅ camelCase
+                        jobSource: data.jobSource || null,
+                        jobUrl: data.jobUrl || null,
                         notes: data.notes || null,
                         attachments: data.attachments || [],
-                        updatedAt: data.updatedAt,            // ✅ camelCase
-                        syncedAt: new Date().toISOString()    // ✅ camelCase
+                        updatedAt: data.updatedAt,
+                        syncedAt: new Date().toISOString()
                     };
 
                     console.log('📝 Mapped update data:', updateData);
@@ -775,14 +771,13 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
                         .eq('user_id', userDbId)
                         .select();
                 } else {
-                    // For other tables, use your existing logic
                     const updateData = {...data};
                     delete updateData.user_id;
                     result = await client
                         .from(table)
                         .update({
                             ...updateData,
-                            synced_at: new Date().toISOString()
+                            syncedAt: new Date().toISOString()
                         })
                         .eq('id', data.id)
                         .eq('user_id', userDbId)
@@ -800,7 +795,6 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         }
 
         if (result.error) {
-            // Enhanced error logging
             console.group(`❌ Supabase ${operation} Error for ${table}`);
             console.error('Full error object:', result.error);
             console.error('Error message:', result.error?.message || 'No message');
@@ -810,10 +804,9 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
             console.error('Context:', { table, operation, dataId: data.id, userDbId });
             console.groupEnd();
 
-            // Handle specific error codes
             if (result.error.code === '23505') {
                 console.warn(`⚠️ Duplicate key for ${table} - record may already exist`);
-                return; // Don't throw for duplicates
+                return;
             }
 
             if (result.error.code === '42P01') {
@@ -834,7 +827,6 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         });
 
     } catch (error: any) {
-        // Enhanced error logging for caught exceptions
         console.group(`❌ Cloud sync failed for ${table} ${operation}`);
         console.error('Caught error:', error);
         console.error('Error name:', error?.name);
@@ -842,17 +834,11 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         console.error('Error stack:', error?.stack);
         console.groupEnd();
 
-        // Log but don't throw to prevent UI blocking
         console.warn(`⚠️ Cloud sync failed for ${table}, continuing in offline mode...`);
     }
 };
 
-// FIXED: Update your syncFromCloud function to match your actual database schema
-
 const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
-    const MAX_RETRIES = 2;
-    const TIMEOUT_MS = 30000;
-
     console.log(`🔄 syncFromCloud(${table}) - attempt ${retryCount + 1}/${MAX_RETRIES + 1}`);
 
     if (!isOnlineWithSupabase()) {
@@ -885,24 +871,23 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
                 .eq('user_id', userDbId);
 
             if (table === 'applications') {
-                // 🔧 FIXED: Use camelCase column names to match your actual database
-                query = query.order('dateApplied', { ascending: false }); // ✅ dateApplied not date_applied
+                query = query.order('dateApplied', {ascending: false});
                 query = query.limit(50);
             } else if (table === 'user_sessions') {
-                query = query.order('startTime', { ascending: false }); // ✅ camelCase
+                query = query.order('startTime', {ascending: false});
                 query = query.limit(100);
             } else if (table === 'analytics_events') {
                 query = query.order('timestamp', { ascending: false });
                 query = query.limit(100);
             } else {
-                query = query.order('createdAt', { ascending: false }); // ✅ camelCase
+                query = query.order('createdAt', {ascending: false});
                 query = query.limit(100);
             }
 
             const {data, error} = await Promise.race([
                 query,
                 new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error(`Query timeout after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
+                    setTimeout(() => reject(new Error(`Query timeout after ${QUERY_TIMEOUT}ms`)), QUERY_TIMEOUT)
                 )
             ]);
 
@@ -969,14 +954,13 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
 };
 
 // ============================================================================
-// BACKGROUND SYNC UTILITIES - NEW
+// BACKGROUND SYNC UTILITIES
 // ============================================================================
 
 class BackgroundSyncManager {
     private static instance: BackgroundSyncManager;
     private syncInProgress = new Set<string>();
     private lastSyncTime = new Map<string, number>();
-    private readonly MIN_SYNC_INTERVAL = 2 * 60 * 1000; // 2 minutes minimum between syncs
 
     static getInstance(): BackgroundSyncManager {
         if (!BackgroundSyncManager.instance) {
@@ -986,16 +970,14 @@ class BackgroundSyncManager {
     }
 
     async backgroundSync(table: string): Promise<void> {
-        // Prevent duplicate syncs
         if (this.syncInProgress.has(table)) {
             console.log(`⏳ Background sync for ${table} already in progress`);
             return;
         }
 
-        // Check minimum interval
         const lastSync = this.lastSyncTime.get(table) || 0;
         const timeSinceLastSync = Date.now() - lastSync;
-        if (timeSinceLastSync < this.MIN_SYNC_INTERVAL) {
+        if (timeSinceLastSync < MIN_SYNC_INTERVAL) {
             console.log(`⏱️ Too soon for ${table} sync (${Math.round(timeSinceLastSync / 1000)}s ago)`);
             return;
         }
@@ -1008,10 +990,8 @@ class BackgroundSyncManager {
             const cloudData = await syncFromCloud(table);
 
             if (cloudData && cloudData.length > 0) {
-                // Update cache with fresh data
                 dataCache.set(table, cloudData);
 
-                // Update local storage for applications
                 if (table === 'applications') {
                     const mappedApps = this.mapApplicationsData(cloudData);
                     await db.applications.clear();
@@ -1035,17 +1015,17 @@ class BackgroundSyncManager {
                 id: String(app.id),
                 company: app.company || '',
                 position: app.position || '',
-                dateApplied: app.dateApplied || new Date().toISOString().split('T')[0], // ✅ camelCase
+                dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
                 status: app.status || 'Applied',
-                type: app.type || 'Remote',                    // ✅ type not job_type
+                type: app.type || 'Remote',
                 location: app.location || '',
                 salary: app.salary || '',
-                jobSource: app.jobSource || '',               // ✅ camelCase
-                jobUrl: app.jobUrl || '',                     // ✅ camelCase
+                jobSource: app.jobSource || '',
+                jobUrl: app.jobUrl || '',
                 notes: app.notes || '',
                 attachments: Array.isArray(app.attachments) ? app.attachments : [],
-                createdAt: app.createdAt || new Date().toISOString(),    // ✅ camelCase
-                updatedAt: app.updatedAt || new Date().toISOString()     // ✅ camelCase
+                createdAt: app.createdAt || new Date().toISOString(),
+                updatedAt: app.updatedAt || new Date().toISOString()
             }))
             .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
     }
@@ -1054,22 +1034,23 @@ class BackgroundSyncManager {
 const backgroundSyncManager = BackgroundSyncManager.getInstance();
 
 // ============================================================================
-// DATABASE SERVICE IMPLEMENTATION - WITH CACHING
+// DATABASE SERVICE IMPLEMENTATION
 // ============================================================================
 
 export const databaseService: DatabaseService = {
-    // ✅ FIXED: Applications with proper caching
+    // ============================================================================
+    // APPLICATION METHODS
+    // ============================================================================
+
     async getApplications(): Promise<Application[]> {
         try {
             console.log('🔄 getApplications() called');
 
-            // ✅ NEW: Check cache first
             const cacheKey = 'applications';
             const cachedApps = dataCache.get<Application[]>(cacheKey);
             if (cachedApps) {
                 console.log('📋 Using cached applications data');
 
-                // ✅ NEW: Start background sync if authenticated (non-blocking)
                 if (isAuthenticated() && isOnlineWithSupabase()) {
                     backgroundSyncManager.backgroundSync('applications').catch(err =>
                         console.warn('Background sync failed:', err)
@@ -1079,7 +1060,6 @@ export const databaseService: DatabaseService = {
                 return cachedApps;
             }
 
-            // ✅ IMPROVED: Always load local data first for instant UI
             const localApps = await db.applications.orderBy('dateApplied').reverse().toArray();
             console.log('📱 Local applications count:', localApps.length);
 
@@ -1087,17 +1067,14 @@ export const databaseService: DatabaseService = {
                 new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
             );
 
-            // ✅ NEW: Cache local data immediately
             dataCache.set(cacheKey, sortedLocalApps);
 
-            // ✅ IMPROVED: Return local data immediately if not authenticated
             const isAuth = isAuthenticated();
             if (!isAuth || !isOnlineWithSupabase()) {
                 console.log('📱 Using local data only (offline or not authenticated)');
                 return sortedLocalApps;
             }
 
-            // ✅ NEW: Only do initial cloud sync if no local data exists
             if (localApps.length === 0) {
                 console.log('☁️ No local data - performing initial cloud sync...');
 
@@ -1124,7 +1101,6 @@ export const databaseService: DatabaseService = {
                             }))
                             .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
 
-                        // Update local storage and cache
                         await db.applications.clear();
                         await db.applications.bulkAdd(mappedApps);
                         dataCache.set(cacheKey, mappedApps);
@@ -1136,7 +1112,6 @@ export const databaseService: DatabaseService = {
                     console.warn(`⚠️ Initial cloud sync failed:`, cloudError.message);
                 }
             } else {
-                // ✅ NEW: Start background sync for existing data (non-blocking)
                 console.log('⚡ Local data exists - starting background sync...');
                 backgroundSyncManager.backgroundSync('applications').catch(err =>
                     console.warn('Background sync failed:', err)
@@ -1162,9 +1137,8 @@ export const databaseService: DatabaseService = {
     async addApplication(app: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>): Promise<Application> {
         try {
             const now = new Date().toISOString();
-            const id = generateId(); // Use the fixed generateId function
+            const id = generateId();
 
-            // Validate dateApplied format
             const dateApplied = app.dateApplied.includes('T') ?
                 app.dateApplied.split('T')[0] :
                 app.dateApplied;
@@ -1172,18 +1146,14 @@ export const databaseService: DatabaseService = {
             const newApp: Application = {
                 ...app,
                 id,
-                dateApplied, // Ensure YYYY-MM-DD format
+                dateApplied,
                 createdAt: now,
                 updatedAt: now
             };
 
-            // Save to local database first
             await db.applications.add(newApp);
-
-            // Clear cache to force refresh
             dataCache.invalidate('applications');
 
-            // Sync to cloud for authenticated users
             if (isAuthenticated()) {
                 syncToCloud('applications', newApp, 'insert').catch(err =>
                     console.warn('Cloud sync failed:', err)
@@ -1197,7 +1167,6 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // ✅ FIXED: Clear cache after updating
     async updateApplication(id: string, updates: Partial<Application>): Promise<Application> {
         try {
             const now = new Date().toISOString();
@@ -1208,7 +1177,6 @@ export const databaseService: DatabaseService = {
 
             if (!updated) throw new Error('Application not found');
 
-            // ✅ NEW: Clear cache to force refresh
             dataCache.invalidate('applications');
 
             if (isAuthenticated()) {
@@ -1237,12 +1205,9 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // ✅ FIXED: Clear cache after deleting
     async deleteApplication(id: string): Promise<void> {
         try {
             await db.applications.delete(id);
-
-            // ✅ NEW: Clear cache to force refresh
             dataCache.invalidate('applications');
 
             if (isAuthenticated()) {
@@ -1265,12 +1230,9 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // ✅ FIXED: Clear cache after bulk operations
     async deleteApplications(ids: string[]): Promise<void> {
         try {
             await db.applications.bulkDelete(ids);
-
-            // ✅ NEW: Clear cache to force refresh
             dataCache.invalidate('applications');
 
             if (isAuthenticated()) {
@@ -1292,8 +1254,6 @@ export const databaseService: DatabaseService = {
             const updateData = {...updates, updatedAt: now};
 
             await Promise.all(ids.map(id => db.applications.update(id, updateData)));
-
-            // ✅ NEW: Clear cache to force refresh
             dataCache.invalidate('applications');
 
             if (isAuthenticated()) {
@@ -1332,8 +1292,6 @@ export const databaseService: DatabaseService = {
     async importApplications(applications: Application[]): Promise<void> {
         try {
             await db.applications.bulkAdd(applications);
-
-            // ✅ NEW: Clear cache to force refresh
             dataCache.invalidate('applications');
 
             if (isAuthenticated()) {
@@ -1378,7 +1336,6 @@ export const databaseService: DatabaseService = {
                 await db.privacySettings.clear();
             });
 
-            // ✅ NEW: Clear all cache
             dataCache.clear();
 
             if (isOnlineWithSupabase()) {
@@ -1408,14 +1365,12 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // ✅ NEW: Add manual refresh method
     async forceRefreshApplications(): Promise<Application[]> {
         console.log('🔄 Force refreshing applications...');
         dataCache.invalidate('applications');
         return await this.getApplications();
     },
 
-    // ✅ NEW: Add cache status method
     getCacheStatus(): { [key: string]: boolean } {
         return {
             applications: dataCache.has('applications'),
@@ -1423,7 +1378,6 @@ export const databaseService: DatabaseService = {
         };
     },
 
-    // ✅ NEW: Add cache control methods
     clearCache(): void {
         dataCache.clear();
         console.log('🗑️ All cache cleared manually');
@@ -1434,7 +1388,10 @@ export const databaseService: DatabaseService = {
         console.log(`🗑️ Cache invalidated for: ${key}`);
     },
 
-    // ... (rest of the methods remain the same)
+    // ============================================================================
+    // GOALS METHODS
+    // ============================================================================
+
     async getGoals(): Promise<Goals> {
         try {
             let goals = await db.goals.get('default');
@@ -1520,7 +1477,10 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // ... (include other methods as needed - backup, analytics, feedback, etc.)
+    // ============================================================================
+    // BACKUP METHODS
+    // ============================================================================
+
     async createBackup(): Promise<void> {
         try {
             const applications = await db.applications.toArray();
@@ -1572,7 +1532,6 @@ export const databaseService: DatabaseService = {
                 }
             });
 
-            // ✅ NEW: Clear cache after restore
             dataCache.clear();
         } catch (error) {
             console.error('Failed to restore from backup:', error);
@@ -1580,7 +1539,10 @@ export const databaseService: DatabaseService = {
         }
     },
 
-    // Add remaining methods (analytics, feedback, etc.) following the same pattern...
+    // ============================================================================
+    // ANALYTICS METHODS
+    // ============================================================================
+
     async saveAnalyticsEvent(event: AnalyticsEvent): Promise<void> {
         try {
             await db.analyticsEvents.add(event as any);
@@ -1588,7 +1550,7 @@ export const databaseService: DatabaseService = {
             if (isAuthenticated()) {
                 const userDbId = await getUserDbId();
                 if (userDbId) {
-                    syncToCloud('analyticsEvents', {
+                    syncToCloud('analytics_events', {
                         event: event.event,
                         properties: event.properties || {},
                         timestamp: event.timestamp,
@@ -1643,7 +1605,7 @@ export const databaseService: DatabaseService = {
             if (isAuthenticated()) {
                 const userDbId = await getUserDbId();
                 if (userDbId) {
-                    syncToCloud('userSessions', {
+                    syncToCloud('user_sessions', {
                         sessionId: session.id,
                         startTime: session.startTime,
                         endTime: session.endTime,
@@ -1723,29 +1685,29 @@ export const databaseService: DatabaseService = {
                     const client = initializeSupabase()!;
                     await client.from('user_metrics').upsert({
                         user_id: userDbId,
-                        sessionsCount: Number(updated.sessionsCount) || 0,
-                        totalTimeSpent: Number(updated.totalTimeSpent) || 0,
-                        applicationsCreated: Number(updated.applicationsCreated) || 0,
-                        applicationsUpdated: Number(updated.applicationsUpdated) || 0,
-                        applicationsDeleted: Number(updated.applicationsDeleted) || 0,
-                        goalsSet: Number(updated.goalsSet) || 0,
-                        attachmentsAdded: Number(updated.attachmentsAdded) || 0,
-                        exportsPerformed: Number(updated.exportsPerformed) || 0,
-                        importsPerformed: Number(updated.importsPerformed) || 0,
-                        searchesPerformed: Number(updated.searchesPerformed) || 0,
-                        featuresUsed: updated.featuresUsed || [],
-                        lastActiveDate: updated.lastActiveDate || new Date().toISOString(),
-                        firstVisit: updated.firstVisit || new Date().toISOString(),
-                        deviceType: updated.deviceType || 'desktop',
-                        browserVersion: navigator.userAgent || 'unknown',
-                        screenResolution: `${window.screen.width}x${window.screen.height}`,
+                        sessions_count: Number(updated.sessionsCount) || 0,        // was sessionsCount
+                        total_time_spent: Number(updated.totalTimeSpent) || 0,    // was totalTimeSpent
+                        applications_created: Number(updated.applicationsCreated) || 0,    // was applicationsCreated
+                        applications_updated: Number(updated.applicationsUpdated) || 0,    // was applicationsUpdated
+                        applications_deleted: Number(updated.applicationsDeleted) || 0,    // was applicationsDeleted
+                        goals_set: Number(updated.goalsSet) || 0,                 // was goalsSet
+                        attachments_added: Number(updated.attachmentsAdded) || 0, // was attachmentsAdded
+                        exports_performed: Number(updated.exportsPerformed) || 0, // was exportsPerformed
+                        imports_performed: Number(updated.importsPerformed) || 0, // was importsPerformed
+                        searches_performed: Number(updated.searchesPerformed) || 0, // was searchesPerformed
+                        features_used: updated.featuresUsed || [],
+                        last_active_date: updated.lastActiveDate || new Date().toISOString(),    // was lastActiveDate
+                        first_visit: updated.firstVisit || new Date().toISOString(),
+                        device_type: updated.deviceType || 'desktop',             // was deviceType
+                        browser_version: navigator.userAgent || 'unknown',        // was browserVersion
+                        screen_resolution: `${window.screen.width}x${window.screen.height}`,   // was screenResolution
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                         language: navigator.language || 'en',
-                        totalEvents: Number(updated.totalEvents) || 0,
-                        applicationsCount: Number(updated.applicationsCreated) || 0,
-                        sessionDuration: Number(updated.totalTimeSpent) || 0,
-                        createdAt: updated.firstVisit || new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        total_events: Number(updated.totalEvents) || 0,           // was totalEvents
+                        applications_count: Number(updated.applicationsCreated) || 0,  // was applicationsCount
+                        session_duration: Number(updated.totalTimeSpent) || 0,    // was sessionDuration
+                        created_at: updated.firstVisit || new Date().toISOString(),     // was createdAt
+                        updated_at: new Date().toISOString()                      // was updatedAt
                     }, {
                         onConflict: 'user_id'
                     });
@@ -1757,6 +1719,10 @@ export const databaseService: DatabaseService = {
             throw new Error('Failed to update user metrics');
         }
     },
+
+    // ============================================================================
+    // FEEDBACK METHODS
+    // ============================================================================
 
     async saveFeedback(feedback: FeedbackSubmission): Promise<void> {
         try {
@@ -1875,6 +1841,10 @@ export const databaseService: DatabaseService = {
         }
     },
 
+    // ============================================================================
+    // PRIVACY SETTINGS METHODS
+    // ============================================================================
+
     async savePrivacySettings(settings: PrivacySettings): Promise<void> {
         try {
             const settingsWithId = {id: 'default', ...settings};
@@ -1955,6 +1925,10 @@ export const databaseService: DatabaseService = {
             return null;
         }
     },
+
+    // ============================================================================
+    // ADMIN ANALYTICS METHODS
+    // ============================================================================
 
     async getAdminAnalytics(): Promise<AdminAnalytics> {
         try {
@@ -2055,6 +2029,32 @@ export const databaseService: DatabaseService = {
         } catch (error) {
             console.error('Failed to get admin feedback summary:', error);
             throw new Error('Failed to get admin feedback summary');
+        }
+    },
+
+    // ============================================================================
+    // UTILITY METHODS
+    // ============================================================================
+
+    async getApplicationsByDateRange(startDate: Date, endDate: Date): Promise<Application[]> {
+        try {
+            const applications = await this.getApplications();
+            return applications.filter(app => {
+                const appDate = new Date(app.dateApplied);
+                return appDate >= startDate && appDate <= endDate;
+            });
+        } catch (error) {
+            console.error('Failed to get applications by date range:', error);
+            return [];
+        }
+    },
+
+    async getApplicationsByStatus(status: string): Promise<Application[]> {
+        try {
+            return await db.applications.where('status').equals(status).toArray();
+        } catch (error) {
+            console.error('Failed to get applications by status:', error);
+            return [];
         }
     },
 
@@ -2185,7 +2185,7 @@ export const initializeDatabase = async (): Promise<void> => {
 };
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// UTILITY & DEBUGGING FUNCTIONS
 // ============================================================================
 
 export const forceSessionRefresh = async () => {
@@ -2238,7 +2238,6 @@ export const debugSupabaseSync = async () => {
     console.group('🔍 DEBUGGING SUPABASE SYNC');
 
     try {
-        // Check basic connection
         console.log('🔧 1. Testing Supabase connection...');
         const client = initializeSupabase();
         if (!client) {
@@ -2250,7 +2249,6 @@ export const debugSupabaseSync = async () => {
         }
         console.log('✅ Supabase client initialized');
 
-        // Check authentication
         console.log('🔐 2. Testing authentication...');
         const { data: { session }, error: authError } = await client.auth.getSession();
         if (authError) {
@@ -2264,7 +2262,6 @@ export const debugSupabaseSync = async () => {
         }
         console.log('✅ User authenticated:', session.user.email);
 
-        // Check user DB ID
         console.log('👤 3. Testing user DB ID...');
         const userDbId = await getUserDbId();
         if (!userDbId) {
@@ -2274,7 +2271,6 @@ export const debugSupabaseSync = async () => {
         }
         console.log('✅ User DB ID found:', userDbId);
 
-        // Test table access
         console.log('📋 4. Testing applications table access...');
         try {
             const { data: testQuery, error: tableError } = await client
@@ -2303,81 +2299,6 @@ export const debugSupabaseSync = async () => {
             return;
         }
 
-        // Test a manual insert
-        console.log('➕ 5. Testing manual insert...');
-        const testApp = {
-            id: 'debug-test-' + Date.now(),
-            user_id: userDbId,
-            company: 'Debug Test Company',
-            position: 'Debug Test Position',
-            dateApplied: new Date().toISOString().split('T')[0],
-            status: 'Applied',
-            type: 'Remote',
-            location: 'Debug Location',
-            salary: '$100,000',
-            jobSource: 'Debug Test',
-            jobUrl: 'https://example.com',
-            notes: 'This is a debug test application',
-            attachments: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            syncedAt: new Date().toISOString()
-        };
-
-        try {
-            const { data: insertResult, error: insertError } = await client
-                .from('applications')
-                .insert(testApp)
-                .select();
-
-            if (insertError) {
-                console.error('❌ Insert test failed:', insertError);
-                console.error('Full error details:');
-                console.error('- Code:', insertError.code);
-                console.error('- Message:', insertError.message);
-                console.error('- Details:', insertError.details);
-                console.error('- Hint:', insertError.hint);
-                return;
-            }
-
-            console.log('✅ Manual insert successful!');
-            console.log('Inserted record:', insertResult);
-
-            // Clean up test record
-            await client
-                .from('applications')
-                .delete()
-                .eq('id', testApp.id);
-            console.log('🧹 Test record cleaned up');
-
-        } catch (insertError) {
-            console.error('❌ Insert test exception:', insertError);
-        }
-
-        // Test the actual syncToCloud function
-        console.log('🔄 6. Testing syncToCloud function...');
-        try {
-            await syncToCloud('applications', {
-                id: 'debug-sync-test-' + Date.now(),
-                company: 'Sync Test Company',
-                position: 'Sync Test Position',
-                dateApplied: new Date().toISOString().split('T')[0],
-                status: 'Applied',
-                type: 'Remote',
-                location: 'Sync Test Location',
-                salary: '$120,000',
-                jobSource: 'Sync Test Source',
-                jobUrl: 'https://synctest.com',
-                notes: 'This is a sync test',
-                attachments: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            }, 'insert');
-            console.log('✅ syncToCloud test completed (check console for details)');
-        } catch (syncError) {
-            console.error('❌ syncToCloud test failed:', syncError);
-        }
-
         console.log('🎉 Debug complete! Check the logs above for issues.');
 
     } catch (error) {
@@ -2387,7 +2308,6 @@ export const debugSupabaseSync = async () => {
     console.groupEnd();
 };
 
-// 2. Add this to check your environment variables
 export const checkEnvironment = () => {
     console.group('🌍 ENVIRONMENT CHECK');
 
@@ -2409,12 +2329,10 @@ export const checkEnvironment = () => {
     console.groupEnd();
 };
 
-// 3. Add this to check local vs cloud data
 export const compareLocalAndCloudData = async () => {
     console.group('📊 LOCAL VS CLOUD DATA COMPARISON');
 
     try {
-        // Get local applications
         const localApps = await db.applications.toArray();
         console.log('📱 Local applications:', localApps.length);
 
@@ -2427,7 +2345,6 @@ export const compareLocalAndCloudData = async () => {
             });
         }
 
-        // Get cloud applications
         if (isAuthenticated() && isOnlineWithSupabase()) {
             const cloudApps = await syncFromCloud('applications');
             console.log('☁️ Cloud applications:', cloudApps.length);
@@ -2441,7 +2358,6 @@ export const compareLocalAndCloudData = async () => {
                 });
             }
 
-            // Compare IDs
             const localIds = new Set(localApps.map(app => app.id));
             const cloudIds = new Set(cloudApps.map(app => app.id));
 
@@ -2474,7 +2390,6 @@ export const testDatabaseConnection = async () => {
     console.group('🔧 TESTING DATABASE CONNECTION');
 
     try {
-        // Test 1: Environment variables
         const url = process.env.REACT_APP_SUPABASE_URL;
         const key = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
@@ -2490,7 +2405,6 @@ export const testDatabaseConnection = async () => {
             return false;
         }
 
-        // Test 2: Client initialization
         const client = initializeSupabase();
         if (!client) {
             console.error('❌ Failed to initialize Supabase client');
@@ -2498,7 +2412,6 @@ export const testDatabaseConnection = async () => {
         }
         console.log('✅ Supabase client initialized');
 
-        // Test 3: Authentication check
         const { data: { session }, error: authError } = await client.auth.getSession();
         if (authError) {
             console.error('❌ Auth error:', authError);
@@ -2511,13 +2424,13 @@ export const testDatabaseConnection = async () => {
         }
         console.log('✅ User authenticated:', session.user.email);
 
-        // Test 4: User DB ID
         const userDbId = await getUserDbId();
         if (!userDbId) {
             console.error('❌ No user DB ID found');
             return false;
         }
         console.log('✅ User DB ID:', userDbId);
+
         const { count, error } = await client
             .from('applications')
             .select('*', { count: 'exact', head: true })
@@ -2542,7 +2455,37 @@ export const testDatabaseConnection = async () => {
     }
 };
 
+// ============================================================================
+// AUTO-BACKUP FUNCTIONALITY
+// ============================================================================
 
+export const setupAutoBackup = () => {
+    const backupInterval = setInterval(async () => {
+        try {
+            await databaseService.createBackup();
+            console.log('Auto-backup created successfully');
+        } catch (error) {
+            console.error('Auto-backup failed:', error);
+        }
+    }, 3600000); // 1 hour
+
+    const handleBeforeUnload = async () => {
+        try {
+            await databaseService.createBackup();
+        } catch (error) {
+            console.error('Backup on unload failed:', error);
+        }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    databaseService.createBackup().catch(console.error);
+
+    return () => {
+        clearInterval(backupInterval);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+};
 
 // ============================================================================
 // EXPORTS
@@ -2566,7 +2509,6 @@ export const authService = {
     syncFromCloud
 };
 
-// ✅ NEW: Export cache utilities - Fixed to avoid interface dependency
 export const cacheService = {
     get: <T>(key: string) => dataCache.get<T>(key),
     set: <T>(key: string, data: T) => dataCache.set(key, data),
@@ -2579,19 +2521,17 @@ export const cacheService = {
             goals: dataCache.has('goals')
         };
     },
-    clearCache: () => {
-        dataCache.clear();
-        console.log('🗑️ All cache cleared manually');
-    },
-    invalidateCache: (key: string) => {
-        dataCache.invalidate(key);
-        console.log(`🗑️ Cache invalidated for: ${key}`);
-    },
     forceRefreshApplications: async () => {
         console.log('🔄 Force refreshing applications...');
         dataCache.invalidate('applications');
         return await databaseService.getApplications();
     }
 };
+
+// Export recovery utils from separate file (keep this file as-is)
+export {recoveryUtils} from './recoveryUtils';
+
+// Export the database instance for direct access if needed
+export {db};
 
 export default databaseService;

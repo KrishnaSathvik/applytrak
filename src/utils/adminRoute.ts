@@ -1,572 +1,703 @@
-// src/utils/adminRoute.ts - Enhanced Admin Routing with Dedicated /admin Route
+// src/utils/adminRoute.ts - Production Ready Admin Routing
 import {useAppStore} from '../store/useAppStore';
-import {verifyCurrentAdmin, getSessionStatus} from './adminAuth';
+import {getSessionStatus, verifyCurrentAdmin} from './adminAuth';
 
-// Legacy admin access patterns (for backwards compatibility)
+// Enhanced interfaces for better type safety
+interface AdminRouteState {
+    isInitialized: boolean;
+    shortcutSequence: string[];
+    shortcutTimer: ReturnType<typeof setTimeout> | null;
+    eventListeners: Set<() => void>;
+}
+
+interface AdminAccessResult {
+    success: boolean;
+    requiresAuth: boolean;
+    message?: string;
+}
+
+interface AdminStatusInfo {
+    userAuthenticated: boolean;
+    hasAdminPrivileges: boolean;
+    adminSessionValid: boolean;
+    sessionValidAdmin: boolean;
+    currentRoute: string;
+}
+
+// Constants with better organization
+const ADMIN_CONFIG = {
+    ROUTE_PATH: '/admin',
+    SHORTCUT_TIMEOUT: 2000,
+    TOAST_DURATION: {
+        SUCCESS: 4000,
+        WARNING: 5000,
+        ERROR: 4000,
+        INFO: 10000
+    }
+} as const;
+
 const LEGACY_ADMIN_PATTERNS = [
     'admin-dashboard-krishna-2024',
     'applytrak-admin',
     'secret-analytics',
     'admin-panel-2024'
-];
+] as const;
 
-// Keyboard shortcut pattern (Ctrl+Shift+A+D+M)
-const ADMIN_SHORTCUT_SEQUENCE = ['KeyA', 'KeyD', 'KeyM'];
-let shortcutSequence: string[] = [];
-let shortcutTimer: ReturnType<typeof setTimeout> | null = null;
+const ADMIN_SHORTCUT_SEQUENCE = ['KeyA', 'KeyD', 'KeyM'] as const;
 
-// Track if admin routes are initialized to prevent double initialization
-let isInitialized = false;
-
-/**
- * NEW: Check if current URL is /admin route
- */
-const isAdminRoute = (): boolean => {
-    return window.location.pathname === '/admin';
+// State management with better encapsulation
+const adminRouteState: AdminRouteState = {
+    isInitialized: false,
+    shortcutSequence: [],
+    shortcutTimer: null,
+    eventListeners: new Set()
 };
 
-/**
- * NEW: Navigate to /admin route
- */
-const navigateToAdmin = () => {
+// Utility Functions
+const isValidString = (value: unknown): value is string => {
+    return typeof value === 'string' && value.length > 0;
+};
+
+const safeParseUrl = (url: string): URL | null => {
     try {
-        window.history.pushState({}, '', '/admin');
-
-        // Trigger a custom event so App.tsx can detect the route change
-        window.dispatchEvent(new CustomEvent('adminRouteChange', { detail: { path: '/admin' } }));
-
-        console.log('🔗 Navigated to /admin route');
-    } catch (error) {
-        console.error('❌ Error navigating to admin route:', error);
-        // Fallback to hash-based navigation
-        window.location.hash = 'admin-access';
+        return new URL(url, window.location.origin);
+    } catch {
+        return null;
     }
 };
 
-/**
- * Enhanced: Check if current user has admin privileges
- */
+const addEventListenerWithCleanup = (
+    target: EventTarget,
+    event: string,
+    handler: EventListener,
+    options?: AddEventListenerOptions
+): void => {
+    target.addEventListener(event, handler, options);
+
+    const cleanup = () => target.removeEventListener(event, handler);
+    adminRouteState.eventListeners.add(cleanup);
+};
+
+// Enhanced Route Detection and Navigation
+export const isAdminRoute = (): boolean => {
+    try {
+        return window.location.pathname === ADMIN_CONFIG.ROUTE_PATH;
+    } catch (error) {
+        console.warn('Failed to check admin route:', error);
+        return false;
+    }
+};
+
+export const navigateToAdmin = (): void => {
+    try {
+        // Validate current state
+        if (isAdminRoute()) {
+            console.log('Already on admin route');
+            return;
+        }
+
+        // Use modern navigation with fallback
+        if (window.history?.pushState) {
+            window.history.pushState({}, '', ADMIN_CONFIG.ROUTE_PATH);
+
+            // Dispatch custom event for App.tsx
+            const event = new CustomEvent('adminRouteChange', {
+                detail: {path: ADMIN_CONFIG.ROUTE_PATH}
+            });
+            window.dispatchEvent(event);
+
+            console.log('Navigated to admin route');
+        } else {
+            // Fallback for older browsers
+            window.location.hash = 'admin-access';
+            console.log('Used fallback navigation');
+        }
+    } catch (error) {
+        console.error('Navigation to admin route failed:', error);
+
+        // Ultimate fallback
+        try {
+            window.location.hash = 'admin-access';
+        } catch (fallbackError) {
+            console.error('Fallback navigation also failed:', fallbackError);
+        }
+    }
+};
+
+// Enhanced Authentication and Privilege Checking
 const checkAdminPrivileges = async (): Promise<boolean> => {
     try {
         const store = useAppStore.getState();
 
-        // First check if user is authenticated
-        if (!store.auth?.isAuthenticated) {
-            console.log('🔐 User not authenticated - opening login first');
+        // Validate store state
+        if (!store || typeof store !== 'object') {
+            console.error('Invalid store state');
             return false;
         }
 
-        // Check admin status in database
-        const isAdmin = await verifyCurrentAdmin();
+        // Check user authentication
+        if (!store.auth?.isAuthenticated) {
+            console.log('User not authenticated - login required');
+            return false;
+        }
+
+        // Verify admin status with timeout
+        const timeoutPromise = new Promise<boolean>((_, reject) => {
+            setTimeout(() => reject(new Error('Admin verification timeout')), 10000);
+        });
+
+        const adminCheckPromise = verifyCurrentAdmin();
+        const isAdmin = await Promise.race([adminCheckPromise, timeoutPromise]);
 
         if (!isAdmin) {
-            console.log('❌ User authenticated but not admin');
-            store.showToast({
-                type: 'warning',
-                message: 'Admin privileges required. Please contact an administrator.',
-                duration: 5000
-            });
+            console.log('User authenticated but lacks admin privileges');
+
+            if (store.showToast && typeof store.showToast === 'function') {
+                store.showToast({
+                    type: 'warning',
+                    message: 'Admin privileges required. Please contact an administrator.',
+                    duration: ADMIN_CONFIG.TOAST_DURATION.WARNING
+                });
+            }
             return false;
         }
 
-        console.log('✅ Admin privileges verified');
+        console.log('Admin privileges verified successfully');
         return true;
     } catch (error) {
-        console.error('❌ Error checking admin privileges:', error);
+        console.error('Admin privilege check failed:', error);
         return false;
     }
 };
 
-/**
- * NEW: Handle /admin route access
- */
-const handleAdminRouteAccess = async (): Promise<boolean> => {
+// Enhanced Admin Route Access Handler
+export const handleAdminRouteAccess = async (): Promise<boolean> => {
     try {
         const store = useAppStore.getState();
 
-        // Check if user is already authenticated and admin
+        if (!store || typeof store !== 'object') {
+            console.error('Invalid store state during route access');
+            return false;
+        }
+
+        // Handle authenticated users
         if (store.auth?.isAuthenticated) {
             const hasAdminPrivileges = await checkAdminPrivileges();
 
             if (hasAdminPrivileges) {
-                // User is admin - open dashboard directly
-                console.log('🎯 Opening admin dashboard for authenticated admin');
+                console.log('Opening admin dashboard for authenticated admin');
 
-                useAppStore.setState(state => ({
-                    ui: {
-                        ...state.ui,
-                        admin: {
-                            ...state.ui.admin,
-                            authenticated: true,
-                            dashboardOpen: true
+                // Safely update store state
+                try {
+                    useAppStore.setState(state => ({
+                        ui: {
+                            ...state.ui,
+                            admin: {
+                                ...state.ui?.admin,
+                                authenticated: true,
+                                dashboardOpen: true
+                            }
                         }
-                    }
-                }));
+                    }));
 
-                useAppStore.getState().showToast({
-                    type: 'success',
-                    message: '🔑 Welcome to ApplyTrak Admin Dashboard',
-                    duration: 4000
-                });
-                return true;
+                    // Show success message
+                    if (store.showToast && typeof store.showToast === 'function') {
+                        store.showToast({
+                            type: 'success',
+                            message: 'Welcome to ApplyTrak Admin Dashboard',
+                            duration: ADMIN_CONFIG.TOAST_DURATION.SUCCESS
+                        });
+                    }
+                    return true;
+                } catch (stateError) {
+                    console.error('Failed to update admin state:', stateError);
+                    return false;
+                }
             } else {
-                // User is authenticated but not admin - redirect to home
-                window.history.replaceState({}, '', '/');
+                // Redirect non-admin users
+                if (window.history?.replaceState) {
+                    window.history.replaceState({}, '', '/');
+                }
                 return false;
             }
         }
 
-        // User is not authenticated - show admin login modal
-        console.log('🔑 Opening admin login modal for /admin route');
-        useAppStore.setState(state => ({
-            modals: {
-                ...state.modals,
-                adminLogin: {isOpen: true}
-            }
-        }));
+        // Handle unauthenticated users
+        console.log('Opening admin login modal for unauthenticated user');
 
-        return false; // Don't show admin dashboard yet
+        try {
+            useAppStore.setState(state => ({
+                modals: {
+                    ...state.modals,
+                    adminLogin: {isOpen: true}
+                }
+            }));
+        } catch (modalError) {
+            console.error('Failed to open admin login modal:', modalError);
+        }
+
+        return false;
     } catch (error) {
-        console.error('❌ Error handling admin route access:', error);
-        // Redirect to home on error
-        window.history.replaceState({}, '', '/');
+        console.error('Admin route access handling failed:', error);
+
+        // Safe redirect on error
+        try {
+            if (window.history?.replaceState) {
+                window.history.replaceState({}, '', '/');
+            }
+        } catch (redirectError) {
+            console.error('Failed to redirect after error:', redirectError);
+        }
+
         return false;
     }
 };
 
-/**
- * Enhanced: Open admin access - now routes to /admin
- */
-const openAdminAccess = async () => {
+// Enhanced Admin Access Function
+const openAdminAccess = async (): Promise<void> => {
     try {
-        console.log('🔑 Admin access requested - routing to /admin');
+        console.log('Admin access requested - routing to admin');
         navigateToAdmin();
     } catch (error) {
-        console.error('❌ Error opening admin access:', error);
-        useAppStore.getState().showToast({
-            type: 'error',
-            message: 'Error accessing admin panel. Please try again.',
-            duration: 4000
-        });
+        console.error('Failed to open admin access:', error);
+
+        const store = useAppStore.getState();
+        if (store?.showToast && typeof store.showToast === 'function') {
+            store.showToast({
+                type: 'error',
+                message: 'Error accessing admin panel. Please try again.',
+                duration: ADMIN_CONFIG.TOAST_DURATION.ERROR
+            });
+        }
     }
 };
 
-/**
- * Enhanced: Initialize admin route handlers with database authentication
- */
-export const initializeAdminRoutes = (): (() => void) => {
-    // Prevent double initialization
-    if (isInitialized) {
-        console.warn('⚠️ Admin routes already initialized');
-        return () => {}; // Return empty cleanup function
-    }
+// Enhanced URL Pattern Detection
+const checkUrlForLegacyAdmin = async (): Promise<void> => {
+    try {
+        const currentUrl = window.location;
+        const hash = currentUrl.hash.substring(1);
+        const params = new URLSearchParams(currentUrl.search);
+        const adminParam = params.get('admin');
+        const accessParam = params.get('access');
 
-    console.log('🔑 Initializing enhanced admin routes with database authentication...');
-    isInitialized = true;
+        // Check for legacy patterns
+        const hasLegacyPattern =
+            LEGACY_ADMIN_PATTERNS.includes(hash as any) ||
+            LEGACY_ADMIN_PATTERNS.includes(adminParam as any) ||
+            accessParam === 'admin';
 
-    // Enhanced: URL Hash Detection (legacy patterns) - now redirects to /admin
-    const checkUrlForLegacyAdmin = async () => {
-        try {
-            const hash = window.location.hash.substring(1); // Remove #
-            const params = new URLSearchParams(window.location.search);
-            const adminParam = params.get('admin');
-            const accessParam = params.get('access');
+        if (hasLegacyPattern) {
+            console.log('Legacy admin pattern detected - redirecting to admin route');
 
-            if (LEGACY_ADMIN_PATTERNS.includes(hash) ||
-                LEGACY_ADMIN_PATTERNS.includes(adminParam || '') ||
-                accessParam === 'admin') {
-
-                console.log('🔑 Legacy admin pattern detected in URL - redirecting to /admin');
-
-                // Clean the URL and redirect to /admin
-                const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+            // Clean URL
+            const cleanUrl = `${currentUrl.origin}${currentUrl.pathname}`;
+            if (window.history?.replaceState) {
                 window.history.replaceState({}, document.title, cleanUrl);
-
-                // Navigate to /admin route
-                navigateToAdmin();
             }
-        } catch (error) {
-            console.error('❌ Error checking URL for legacy admin access:', error);
+
+            // Navigate to admin
+            navigateToAdmin();
+        }
+    } catch (error) {
+        console.error('URL pattern check failed:', error);
+    }
+};
+
+// Enhanced Keyboard Shortcut Handler
+const createKeyboardHandler = (): EventListener => {
+    const resetShortcutSequence = (): void => {
+        adminRouteState.shortcutSequence = [];
+        if (adminRouteState.shortcutTimer) {
+            clearTimeout(adminRouteState.shortcutTimer);
+            adminRouteState.shortcutTimer = null;
         }
     };
 
-    // Enhanced: Keyboard Shortcut Detection with authentication check
-    const handleKeyDown = async (event: KeyboardEvent) => {
+    return async (event: Event): Promise<void> => {
+        if (!(event instanceof KeyboardEvent)) return;
+
         try {
-            // Only trigger if Ctrl+Shift are held
+            // Check for required modifiers
             if (!event.ctrlKey || !event.shiftKey) {
                 resetShortcutSequence();
                 return;
             }
 
-            // Add key to sequence
-            if (ADMIN_SHORTCUT_SEQUENCE.includes(event.code)) {
-                shortcutSequence.push(event.code);
-
-                // Reset timer
-                if (shortcutTimer) clearTimeout(shortcutTimer);
-                shortcutTimer = setTimeout(resetShortcutSequence, 2000);
-
-                // Check if sequence is complete
-                if (shortcutSequence.length === ADMIN_SHORTCUT_SEQUENCE.length) {
-                    const isCorrectSequence = shortcutSequence.every(
-                        (key, index) => key === ADMIN_SHORTCUT_SEQUENCE[index]
-                    );
-
-                    if (isCorrectSequence) {
-                        event.preventDefault();
-                        console.log('🎯 Admin keyboard shortcut activated - routing to /admin');
-                        await openAdminAccess();
-                        resetShortcutSequence();
-                    }
-                }
-            } else {
+            // Validate key code
+            if (!isValidString(event.code) || !ADMIN_SHORTCUT_SEQUENCE.includes(event.code as any)) {
                 resetShortcutSequence();
-            }
-        } catch (error) {
-            console.error('❌ Error in keyboard shortcut handler:', error);
-            resetShortcutSequence();
-        }
-    };
-
-    // Reset shortcut sequence with proper cleanup
-    const resetShortcutSequence = () => {
-        shortcutSequence = [];
-        if (shortcutTimer) {
-            clearTimeout(shortcutTimer);
-            shortcutTimer = null;
-        }
-    };
-
-    // Enhanced: Console Command Detection with database authentication
-    const addConsoleCommands = () => {
-        try {
-            // Enhanced admin console command - now routes to /admin
-            (window as any).__applytrak_admin = async () => {
-                console.log('🔑 Opening ApplyTrak Admin Dashboard - routing to /admin');
-                await openAdminAccess();
-                return 'Navigated to /admin route';
-            };
-
-            // Enhanced analytics console command
-            (window as any).__applytrak_analytics = async () => {
-                try {
-                    const store = useAppStore.getState();
-                    console.log('📊 Opening Analytics...');
-
-                    // Check authentication and admin privileges
-                    if (store.auth?.isAuthenticated) {
-                        const hasAdminPrivileges = await checkAdminPrivileges();
-
-                        if (hasAdminPrivileges && store.ui.admin.authenticated) {
-                            // Use the store's setAdminSection method if available
-                            if (store.setAdminSection) {
-                                store.setAdminSection('analytics');
-                            }
-                            // Use the store's openAdminDashboard method if available
-                            if (store.openAdminDashboard && !store.ui.admin.dashboardOpen) {
-                                store.openAdminDashboard();
-                            }
-                            return 'Analytics section opened';
-                        } else {
-                            await openAdminAccess();
-                            return 'Admin authentication required';
-                        }
-                    } else {
-                        await openAdminAccess();
-                        return 'User authentication required';
-                    }
-                } catch (error) {
-                    console.error('❌ Error opening analytics:', error);
-                    return 'Error opening analytics';
-                }
-            };
-
-            // Enhanced info console command
-            (window as any).__applytrak_info = async () => {
-                const store = useAppStore.getState();
-                const sessionStatus = await getSessionStatus();
-
-                return {
-                    authenticated: store.ui.admin.authenticated,
-                    dashboardOpen: store.ui.admin.dashboardOpen,
-                    currentSection: store.ui.admin.currentSection,
-                    analyticsEnabled: store.analyticsSettings.enabled,
-                    userAuthenticated: store.auth?.isAuthenticated || false,
-                    adminSessionValid: sessionStatus.authenticated,
-                    adminPrivileges: sessionStatus.isValidAdmin,
-                    shortcuts: 'Ctrl+Shift+A+D+M for admin access'
-                };
-            };
-
-            // NEW: Admin status check command
-            (window as any).__applytrak_admin_status = async () => {
-                try {
-                    const store = useAppStore.getState();
-                    const isAdmin = await verifyCurrentAdmin();
-                    const sessionStatus = await getSessionStatus();
-
-                    console.log('🔐 Admin Status Check:');
-                    console.log(`  User Authenticated: ${store.auth?.isAuthenticated || false}`);
-                    console.log(`  Has Admin Privileges: ${isAdmin}`);
-                    console.log(`  Admin Session Valid: ${sessionStatus.authenticated}`);
-                    console.log(`  Session Valid Admin: ${sessionStatus.isValidAdmin}`);
-
-                    return {
-                        userAuthenticated: store.auth?.isAuthenticated || false,
-                        hasAdminPrivileges: isAdmin,
-                        adminSessionValid: sessionStatus.authenticated,
-                        sessionValidAdmin: sessionStatus.isValidAdmin
-                    };
-                } catch (error) {
-                    console.error('❌ Error checking admin status:', error);
-                    return { error: 'Failed to check admin status' };
-                }
-            };
-
-            // Add helpful console messages
-            console.log(
-                '%c🔑 ApplyTrak Admin Access Available (Enhanced)',
-                'color: #3b82f6; font-weight: bold; font-size: 16px; background: #f0f9ff; padding: 8px; border-radius: 4px;'
-            );
-            console.log(
-                '%c📋 Available Commands:',
-                'color: #374151; font-weight: bold; font-size: 14px;'
-            );
-            console.log(
-                '%c  • __applytrak_admin() - Open admin access (database-verified)',
-                'color: #6b7280; font-size: 12px;'
-            );
-            console.log(
-                '%c  • __applytrak_analytics() - Open analytics (admin required)',
-                'color: #6b7280; font-size: 12px;'
-            );
-            console.log(
-                '%c  • __applytrak_info() - Show admin status',
-                'color: #6b7280; font-size: 12px;'
-            );
-            console.log(
-                '%c  • __applytrak_admin_status() - Check admin privileges',
-                'color: #6b7280; font-size: 12px;'
-            );
-            console.log(
-                '%c  • Ctrl+Shift+A+D+M - Keyboard shortcut',
-                'color: #6b7280; font-size: 12px;'
-            );
-            console.log(
-                '%c  • URL: ?access=admin or #admin-dashboard-krishna-2024',
-                'color: #6b7280; font-size: 12px;'
-            );
-            console.log(
-                '%c🔐 Enhanced Security: Database admin verification enabled',
-                'color: #059669; font-weight: bold; font-size: 12px;'
-            );
-
-        } catch (error) {
-            console.error('❌ Error setting up console commands:', error);
-        }
-    };
-
-    // Enhanced: Special URL Pattern Detection
-    const handleSpecialUrls = async () => {
-        try {
-            await checkUrlForLegacyAdmin(); // This already handles most URL patterns
-        } catch (error) {
-            console.error('❌ Error handling special URLs:', error);
-        }
-    };
-
-    // Listen for popstate events (back/forward button)
-    const handlePopState = async () => {
-        setTimeout(() => checkUrlForLegacyAdmin(), 100); // Small delay to ensure URL is updated
-    };
-
-    // Enhanced: Initialize all handlers with error handling
-    try {
-        handleSpecialUrls();
-        addConsoleCommands();
-
-        // Add event listeners
-        document.addEventListener('keydown', handleKeyDown, {passive: false});
-        window.addEventListener('hashchange', checkUrlForLegacyAdmin);
-        window.addEventListener('popstate', handlePopState);
-
-        console.log('✅ Enhanced admin routes initialized successfully with database authentication');
-    } catch (error) {
-        console.error('❌ Error initializing admin routes:', error);
-        isInitialized = false; // Reset flag on error
-    }
-
-    // Enhanced: Return comprehensive cleanup function
-    return () => {
-        try {
-            console.log('🧹 Cleaning up enhanced admin routes...');
-
-            // Remove event listeners
-            document.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('hashchange', checkUrlForLegacyAdmin);
-            window.removeEventListener('popstate', handlePopState);
-
-            // Clear timers
-            if (shortcutTimer) {
-                clearTimeout(shortcutTimer);
-                shortcutTimer = null;
+                return;
             }
 
-            // Reset sequence
-            resetShortcutSequence();
+            // Add to sequence
+            adminRouteState.shortcutSequence.push(event.code);
 
-            // Clean up console commands
-            delete (window as any).__applytrak_admin;
-            delete (window as any).__applytrak_analytics;
-            delete (window as any).__applytrak_info;
-            delete (window as any).__applytrak_admin_status;
+            // Reset timer
+            if (adminRouteState.shortcutTimer) {
+                clearTimeout(adminRouteState.shortcutTimer);
+            }
+            adminRouteState.shortcutTimer = setTimeout(resetShortcutSequence, ADMIN_CONFIG.SHORTCUT_TIMEOUT);
 
-            // Reset initialization flag
-            isInitialized = false;
+            // Check sequence completion
+            if (adminRouteState.shortcutSequence.length === ADMIN_SHORTCUT_SEQUENCE.length) {
+                const isCorrectSequence = adminRouteState.shortcutSequence.every(
+                    (key, index) => key === ADMIN_SHORTCUT_SEQUENCE[index]
+                );
 
-            console.log('✅ Enhanced admin routes cleanup completed');
+                if (isCorrectSequence) {
+                    event.preventDefault();
+                    console.log('Admin keyboard shortcut activated');
+                    await openAdminAccess();
+                    resetShortcutSequence();
+                }
+            }
         } catch (error) {
-            console.error('❌ Error during admin routes cleanup:', error);
+            console.error('Keyboard shortcut handler error:', error);
+            resetShortcutSequence();
         }
     };
 };
 
-/**
- * Enhanced: Create admin bookmark for /admin route
- */
+// Enhanced Console Commands
+const setupConsoleCommands = (): void => {
+    try {
+        const windowAny = window as any;
+
+        // Main admin command
+        windowAny.__applytrak_admin = async (): Promise<string> => {
+            try {
+                console.log('Opening ApplyTrak Admin Dashboard via console');
+                await openAdminAccess();
+                return 'Navigated to admin route';
+            } catch (error) {
+                console.error('Console admin command failed:', error);
+                return 'Failed to access admin panel';
+            }
+        };
+
+        // Analytics command
+        windowAny.__applytrak_analytics = async (): Promise<string> => {
+            try {
+                const store = useAppStore.getState();
+                console.log('Opening Analytics via console');
+
+                if (!store?.auth?.isAuthenticated) {
+                    await openAdminAccess();
+                    return 'Authentication required';
+                }
+
+                const hasAdminPrivileges = await checkAdminPrivileges();
+                if (!hasAdminPrivileges) {
+                    await openAdminAccess();
+                    return 'Admin privileges required';
+                }
+
+                // Navigate to analytics if admin authenticated
+                if (store.ui?.admin?.authenticated) {
+                    if (typeof store.setAdminSection === 'function') {
+                        store.setAdminSection('analytics');
+                    }
+                    if (typeof store.openAdminDashboard === 'function' && !store.ui.admin.dashboardOpen) {
+                        store.openAdminDashboard();
+                    }
+                    return 'Analytics section opened';
+                }
+
+                await openAdminAccess();
+                return 'Admin authentication required';
+            } catch (error) {
+                console.error('Analytics command failed:', error);
+                return 'Error opening analytics';
+            }
+        };
+
+        // Info command
+        windowAny.__applytrak_info = async (): Promise<Record<string, any>> => {
+            try {
+                const store = useAppStore.getState();
+                const sessionStatus = await getSessionStatus();
+
+                return {
+                    authenticated: store?.ui?.admin?.authenticated || false,
+                    dashboardOpen: store?.ui?.admin?.dashboardOpen || false,
+                    currentSection: store?.ui?.admin?.currentSection || 'unknown',
+                    analyticsEnabled: store?.analyticsSettings?.enabled || false,
+                    userAuthenticated: store?.auth?.isAuthenticated || false,
+                    adminSessionValid: sessionStatus?.authenticated || false,
+                    adminPrivileges: sessionStatus?.isValidAdmin || false,
+                    shortcuts: 'Ctrl+Shift+A+D+M for admin access',
+                    currentRoute: window.location.pathname
+                };
+            } catch (error) {
+                console.error('Info command failed:', error);
+                return {error: 'Failed to retrieve info'};
+            }
+        };
+
+        // Admin status command
+        windowAny.__applytrak_admin_status = async (): Promise<AdminStatusInfo | { error: string }> => {
+            try {
+                const store = useAppStore.getState();
+                const isAdmin = await verifyCurrentAdmin();
+                const sessionStatus = await getSessionStatus();
+
+                const status: AdminStatusInfo = {
+                    userAuthenticated: store?.auth?.isAuthenticated || false,
+                    hasAdminPrivileges: isAdmin,
+                    adminSessionValid: sessionStatus?.authenticated || false,
+                    sessionValidAdmin: sessionStatus?.isValidAdmin || false,
+                    currentRoute: window.location.pathname
+                };
+
+                console.log('Admin Status Check:', status);
+                return status;
+            } catch (error) {
+                console.error('Admin status check failed:', error);
+                return {error: 'Failed to check admin status'};
+            }
+        };
+
+        // Log available commands
+        console.log(
+            '%cApplyTrak Admin Access Available (Production)',
+            'color: #3b82f6; font-weight: bold; font-size: 16px; background: #f0f9ff; padding: 8px; border-radius: 4px;'
+        );
+        console.log('%cAvailable Commands:', 'color: #374151; font-weight: bold; font-size: 14px;');
+        console.log('%c  • __applytrak_admin() - Open admin access', 'color: #6b7280; font-size: 12px;');
+        console.log('%c  • __applytrak_analytics() - Open analytics', 'color: #6b7280; font-size: 12px;');
+        console.log('%c  • __applytrak_info() - Show admin status', 'color: #6b7280; font-size: 12px;');
+        console.log('%c  • __applytrak_admin_status() - Check privileges', 'color: #6b7280; font-size: 12px;');
+        console.log('%c  • Ctrl+Shift+A+D+M - Keyboard shortcut', 'color: #6b7280; font-size: 12px;');
+        console.log('%cDatabase admin verification enabled', 'color: #059669; font-weight: bold; font-size: 12px;');
+    } catch (error) {
+        console.error('Console commands setup failed:', error);
+    }
+};
+
+// Enhanced Initialization
+export const initializeAdminRoutes = (): (() => void) => {
+    if (adminRouteState.isInitialized) {
+        console.warn('Admin routes already initialized');
+        return () => {
+        };
+    }
+
+    try {
+        console.log('Initializing admin routes with enhanced security...');
+        adminRouteState.isInitialized = true;
+
+        // Create event handlers
+        const keyboardHandler = createKeyboardHandler();
+        const hashChangeHandler = () => {
+            setTimeout(checkUrlForLegacyAdmin, 100);
+        };
+        const popStateHandler = () => {
+            setTimeout(checkUrlForLegacyAdmin, 100);
+        };
+
+        // Initialize components
+        checkUrlForLegacyAdmin();
+        setupConsoleCommands();
+
+        // Add event listeners with cleanup tracking
+        addEventListenerWithCleanup(document, 'keydown', keyboardHandler, {passive: false});
+        addEventListenerWithCleanup(window, 'hashchange', hashChangeHandler);
+        addEventListenerWithCleanup(window, 'popstate', popStateHandler);
+
+        console.log('Admin routes initialized successfully');
+    } catch (error) {
+        console.error('Admin routes initialization failed:', error);
+        adminRouteState.isInitialized = false;
+    }
+
+    // Return comprehensive cleanup function
+    return (): void => {
+        try {
+            console.log('Cleaning up admin routes...');
+
+            // Clear all event listeners
+            adminRouteState.eventListeners.forEach(cleanup => {
+                try {
+                    cleanup();
+                } catch (error) {
+                    console.warn('Event listener cleanup failed:', error);
+                }
+            });
+            adminRouteState.eventListeners.clear();
+
+            // Clear timers
+            if (adminRouteState.shortcutTimer) {
+                clearTimeout(adminRouteState.shortcutTimer);
+                adminRouteState.shortcutTimer = null;
+            }
+
+            // Reset state
+            adminRouteState.shortcutSequence = [];
+            adminRouteState.isInitialized = false;
+
+            // Clean up console commands
+            const windowAny = window as any;
+            delete windowAny.__applytrak_admin;
+            delete windowAny.__applytrak_analytics;
+            delete windowAny.__applytrak_info;
+            delete windowAny.__applytrak_admin_status;
+
+            console.log('Admin routes cleanup completed');
+        } catch (error) {
+            console.error('Admin routes cleanup failed:', error);
+        }
+    };
+};
+
+// Enhanced Bookmark Creation
 const createAdminBookmark = async (): Promise<void> => {
     return new Promise<void>((resolve) => {
         try {
-            const adminUrl = `${window.location.origin}/admin`;
+            const adminUrl = `${window.location.origin}${ADMIN_CONFIG.ROUTE_PATH}`;
 
-            // Try modern clipboard API first
+            const showSuccessMessage = (): void => {
+                const store = useAppStore.getState();
+                if (store?.showToast && typeof store.showToast === 'function') {
+                    store.showToast({
+                        type: 'success',
+                        message: 'Admin URL copied! Bookmark /admin for easy access.',
+                        duration: ADMIN_CONFIG.TOAST_DURATION.WARNING
+                    });
+                }
+            };
+
+            const showErrorMessage = (): void => {
+                const store = useAppStore.getState();
+                if (store?.showToast && typeof store.showToast === 'function') {
+                    store.showToast({
+                        type: 'info',
+                        message: `Admin URL: ${adminUrl}`,
+                        duration: ADMIN_CONFIG.TOAST_DURATION.INFO
+                    });
+                }
+            };
+
+            // Try modern clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(adminUrl)
                     .then(() => {
-                        useAppStore.getState().showToast({
-                            type: 'success',
-                            message: '🔑 Admin URL copied! Bookmark /admin for easy access. Database authentication required.',
-                            duration: 5000
-                        });
+                        showSuccessMessage();
                         resolve();
                     })
                     .catch(() => {
-                        fallbackCopyMethod(adminUrl);
+                        fallbackCopyMethod(adminUrl, showSuccessMessage, showErrorMessage);
                         resolve();
                     });
             } else {
-                fallbackCopyMethod(adminUrl);
+                fallbackCopyMethod(adminUrl, showSuccessMessage, showErrorMessage);
                 resolve();
             }
         } catch (error) {
-            console.error('❌ Error creating admin bookmark:', error);
-            useAppStore.getState().showToast({
-                type: 'error',
-                message: 'Failed to create admin bookmark',
-                duration: 3000
-            });
+            console.error('Bookmark creation failed:', error);
+
+            const store = useAppStore.getState();
+            if (store?.showToast && typeof store.showToast === 'function') {
+                store.showToast({
+                    type: 'error',
+                    message: 'Failed to create admin bookmark',
+                    duration: ADMIN_CONFIG.TOAST_DURATION.ERROR
+                });
+            }
             resolve();
         }
     });
 };
 
-/**
- * Fallback copy method for older browsers
- */
-const fallbackCopyMethod = (text: string) => {
+// Enhanced Fallback Copy Method
+const fallbackCopyMethod = (
+    text: string,
+    onSuccess: () => void,
+    onError: () => void
+): void => {
     try {
-        // Create temporary textarea
         const textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
         textarea.style.opacity = '0';
+
         document.body.appendChild(textarea);
         textarea.select();
+        textarea.setSelectionRange(0, 99999);
 
         const successful = document.execCommand('copy');
         document.body.removeChild(textarea);
 
         if (successful) {
-            useAppStore.getState().showToast({
-                type: 'success',
-                message: '🔑 Admin URL copied! Bookmark it for easy access.',
-                duration: 5000
-            });
+            onSuccess();
         } else {
-            throw new Error('Copy command failed');
+            onError();
         }
     } catch (error) {
-        // Final fallback: show URL in toast
-        useAppStore.getState().showToast({
-            type: 'info',
-            message: `🔑 Admin URL: ${text}`,
-            duration: 10000
-        });
+        console.warn('Fallback copy method failed:', error);
+        onError();
     }
 };
 
-/**
- * Enhanced: Quick admin access methods with /admin routing
- */
+// Enhanced Admin Access API
 export const adminAccess = {
-    // Direct access to /admin route
-    route: async () => {
-        console.log('🎯 Direct admin route access requested');
+    // Direct route access
+    route: async (): Promise<void> => {
+        console.log('Direct admin route access requested');
         await openAdminAccess();
     },
 
-    // Legacy URL-based access (redirects to /admin)
-    byUrl: async () => {
+    // Legacy URL access (redirects to /admin)
+    byUrl: async (): Promise<void> => {
         try {
             window.location.hash = 'admin-dashboard-krishna-2024';
-            console.log('🔗 Legacy admin URL hash set - will redirect to /admin');
+            console.log('Legacy admin URL hash set - will redirect to /admin');
         } catch (error) {
-            console.error('❌ Error setting admin URL:', error);
+            console.error('Legacy URL access failed:', error);
         }
     },
 
-    // Create bookmark for /admin route
-    bookmark: async () => {
-        console.log('🔖 Creating admin bookmark for /admin route...');
+    // Create bookmark
+    bookmark: async (): Promise<void> => {
+        console.log('Creating admin bookmark...');
         await createAdminBookmark();
     },
 
-    // Check if admin mode is available
+    // Check availability
     isAvailable: async (): Promise<boolean> => {
         try {
             const store = useAppStore.getState();
 
-            // Check if user is authenticated
-            if (!store.auth?.isAuthenticated) {
+            if (!store?.auth?.isAuthenticated) {
                 return false;
             }
 
-            // Check admin privileges
             return await verifyCurrentAdmin();
         } catch (error) {
-            console.error('❌ Error checking admin availability:', error);
+            console.error('Admin availability check failed:', error);
             return false;
         }
     },
 
-    // Check admin status
-    status: async () => {
-        return (window as any).__applytrak_admin_status();
+    // Get status
+    status: async (): Promise<AdminStatusInfo | { error: string }> => {
+        const windowAny = window as any;
+        if (typeof windowAny.__applytrak_admin_status === 'function') {
+            return await windowAny.__applytrak_admin_status();
+        }
+        return {error: 'Admin status function not available'};
     },
 
-    // NEW: Check if currently on /admin route
-    isOnAdminRoute: (): boolean => {
-        return isAdminRoute();
-    },
+    // Route checks
+    isOnAdminRoute: (): boolean => isAdminRoute(),
 
-    // NEW: Handle /admin route access (for App.tsx)
-    handleRouteAccess: async (): Promise<boolean> => {
-        return await handleAdminRouteAccess();
-    }
+    // Handle route access
+    handleRouteAccess: async (): Promise<boolean> => handleAdminRouteAccess()
 };
 
-// Enhanced: Export additional utilities for /admin routing
+// Enhanced Admin Utils
 export const adminUtils = {
     checkAdminPrivileges,
     handleAdminRouteAccess,
@@ -574,7 +705,8 @@ export const adminUtils = {
     navigateToAdmin,
     createAdminBookmark,
     patterns: LEGACY_ADMIN_PATTERNS,
-    shortcutSequence: ADMIN_SHORTCUT_SEQUENCE
+    shortcutSequence: ADMIN_SHORTCUT_SEQUENCE,
+    config: ADMIN_CONFIG
 };
 
 export default {

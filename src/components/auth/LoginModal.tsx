@@ -1,7 +1,21 @@
-import React, {useCallback, useState} from 'react';
+// Fixed LoginModal.tsx
+import React, {useState} from 'react';
 import {Eye, EyeOff, Lock, LogIn, Mail, Monitor, Smartphone, Zap} from 'lucide-react';
 import {Modal} from '../ui/Modal';
 import {useAppStore} from '../../store/useAppStore';
+
+const EMAIL_PATTERN = /\S+@\S+\.\S+/;
+const MIN_PASSWORD_LENGTH = 6;
+
+interface FormData {
+    email: string;
+    password: string;
+}
+
+interface FormErrors {
+    email?: string;
+    password?: string;
+}
 
 const LoginModal: React.FC = () => {
     const {
@@ -9,44 +23,80 @@ const LoginModal: React.FC = () => {
         closeAuthModal,
         openAuthModal,
         signIn,
-        auth,
-        showToast
+        auth
     } = useAppStore();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         email: '',
         password: ''
     });
-    const [showPassword, setShowPassword] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const handleClose = () => {
-        setFormData({email: '', password: ''});
+    const [showPassword, setShowPassword] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
+
+    const resetForm = () => {
+        setFormData({
+            email: '',
+            password: ''
+        });
         setShowPassword(false);
         setErrors({});
+    };
+
+    const handleClose = () => {
+        resetForm();
         closeAuthModal();
     };
 
-    const validateForm = () => {
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Please enter a valid email address';
+    // Simplified input handlers
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({...prev, email: value}));
+        if (errors.email) {
+            setErrors(prev => ({...prev, email: undefined}));
         }
+    };
 
-        if (!formData.password) {
-            newErrors.password = 'Password is required';
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({...prev, password: value}));
+        if (errors.password) {
+            setErrors(prev => ({...prev, password: undefined}));
         }
+    };
+
+    const validateField = (field: keyof FormData, value: string): string => {
+        switch (field) {
+            case 'email':
+                if (!value.trim()) return 'Email is required';
+                if (!EMAIL_PATTERN.test(value)) return 'Please enter a valid email address';
+                return '';
+
+            case 'password':
+                if (!value) return 'Password is required';
+                if (value.length < MIN_PASSWORD_LENGTH) return 'Password must be at least 6 characters';
+                return '';
+
+            default:
+                return '';
+        }
+    };
+
+    const validateForm = (): boolean => {
+        const newErrors: FormErrors = {};
+
+        (Object.keys(formData) as Array<keyof FormData>).forEach(field => {
+            const error = validateField(field, formData[field]);
+            if (error) {
+                newErrors[field] = error;
+            }
+        });
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) return;
@@ -55,14 +105,6 @@ const LoginModal: React.FC = () => {
             await signIn(formData.email, formData.password);
         } catch (error) {
             // Error handling is done in the store
-        }
-    }, [formData, signIn]);
-
-    const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({...prev, [field]: e.target.value}));
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({...prev, [field]: ''}));
         }
     };
 
@@ -73,9 +115,25 @@ const LoginModal: React.FC = () => {
         }
     };
 
+    const handleForgotPassword = () => {
+        openAuthModal('reset');
+    };
+
+    const handleSignUp = () => {
+        openAuthModal('signup');
+    };
+
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const isFormValid = (): boolean => {
+        return formData.email.trim() !== '' && formData.password !== '';
+    };
+
     return (
         <Modal
-            isOpen={modals.auth.loginOpen}
+            isOpen={modals.auth?.loginOpen || false}
             onClose={handleClose}
             title="Welcome Back"
             size="sm"
@@ -126,7 +184,7 @@ const LoginModal: React.FC = () => {
                         <input
                             type="email"
                             value={formData.email}
-                            onChange={handleInputChange('email')}
+                            onChange={handleEmailChange}
                             onKeyPress={handleKeyPress}
                             placeholder="you@example.com"
                             className={`form-input-enhanced ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
@@ -149,7 +207,7 @@ const LoginModal: React.FC = () => {
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 value={formData.password}
-                                onChange={handleInputChange('password')}
+                                onChange={handlePasswordChange}
                                 onKeyPress={handleKeyPress}
                                 placeholder="Enter your password"
                                 className={`form-input-enhanced pr-12 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
@@ -158,7 +216,7 @@ const LoginModal: React.FC = () => {
                             />
                             <button
                                 type="button"
-                                onClick={() => setShowPassword(!showPassword)}
+                                onClick={togglePasswordVisibility}
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                 disabled={auth.isLoading}
                             >
@@ -187,12 +245,8 @@ const LoginModal: React.FC = () => {
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        disabled={auth.isLoading || !formData.email || !formData.password}
-                        className="
-                            w-full btn btn-primary form-btn group relative overflow-hidden
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                            min-h-[3.25rem] justify-center
-                        "
+                        disabled={auth.isLoading || !isFormValid()}
+                        className="w-full btn btn-primary form-btn group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed min-h-[3.25rem] justify-center"
                     >
                         {auth.isLoading ? (
                             <>
@@ -212,7 +266,7 @@ const LoginModal: React.FC = () => {
                 {/* Action Links */}
                 <div className="space-y-3 pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
                     <button
-                        onClick={() => openAuthModal('reset')}
+                        onClick={handleForgotPassword}
                         className="w-full text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors font-medium"
                         disabled={auth.isLoading}
                     >
@@ -222,7 +276,7 @@ const LoginModal: React.FC = () => {
                     <div className="text-center text-sm text-gray-600 dark:text-gray-400">
                         Don't have an account?{' '}
                         <button
-                            onClick={() => openAuthModal('signup')}
+                            onClick={handleSignUp}
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
                             disabled={auth.isLoading}
                         >
@@ -234,7 +288,7 @@ const LoginModal: React.FC = () => {
                 {/* Security Note */}
                 <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        🔐 Your data is encrypted and secure
+                        Your data is encrypted and secure
                     </p>
                 </div>
             </div>

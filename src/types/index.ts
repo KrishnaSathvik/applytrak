@@ -1,6 +1,5 @@
 // src/types/index.ts - COMPLETE FIXED VERSION WITH ALL TYPES
 import * as React from 'react';
-
 // ============================================================================
 // CORE APPLICATION TYPES
 // ============================================================================
