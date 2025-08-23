@@ -1,6 +1,6 @@
 // src/components/layout/Footer.tsx
 import React, {useMemo} from 'react';
-import {Heart, Mail, MessageSquare} from 'lucide-react';
+import {Heart, Mail, MessageSquare, Github} from 'lucide-react';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 import {useAppStore} from '../../store/useAppStore';
 
@@ -57,6 +57,17 @@ const Footer: React.FC = () => {
                             <MessageSquare className="h-3 w-3"/>
                             <span className="text-xs">Feedback</span>
                         </button>
+
+                        <a
+                            href="https://github.com/KrishnaSathvik/applytrak-showcase"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300 transition-colors"
+                            aria-label="View on GitHub"
+                        >
+                            <Github className="h-3 w-3"/>
+                            <span className="text-xs">GitHub</span>
+                        </a>
 
                         <a
                             href="mailto:applytrak@gmail.com"
