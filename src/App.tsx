@@ -210,12 +210,12 @@ const TrackerTab: React.FC = () => {
                 <div className="flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between">
                     <div className="space-y-4 sm:space-y-6">
                         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-static tracking-tight leading-none text-shadow-lg animate-text-shimmer">
-                            🚀 Application Tracker
+                            Application Tracker
                         </h1>
 
                         <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 font-medium leading-relaxed max-w-2xl">
-                            Keep your job search on track with <span
-                            className="font-display font-bold text-gradient-blue tracking-wide">ApplyTrak</span>
+                            Turn your job search into success stories
+                            <span className="font-display font-bold text-gradient-blue tracking-wide"></span>
                         </p>
 
                         {/* Key Metrics Display */}
@@ -332,9 +332,8 @@ const TrackerTab: React.FC = () => {
 // ============================================================================
 // ANALYTICS TAB COMPONENT
 // ============================================================================
-
 const AnalyticsTab: React.FC = () => {
-    const {privacySettings} = useAppStore();
+    const { privacySettings, auth } = useAppStore();
 
     return (
         <div className="space-y-8 sm:space-y-10">
@@ -343,13 +342,13 @@ const AnalyticsTab: React.FC = () => {
                 className="glass-card bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-600/10 border-2 border-blue-200/30 dark:border-blue-700/30 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div className="space-y-4 sm:space-y-6">
-                        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-blue tracking-tight leading-none text-shadow-lg animate-text-shimmer">
-                            📊 Analytics
+                        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-medium text-gradient-blue tracking-tight leading-none text-shadow-lg animate-text-shimmer">
+                            Analytics Dashboard
                         </h1>
 
-                        <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 font-medium leading-relaxed max-w-2xl">
+                        <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 font-normal leading-relaxed max-w-2xl">
                             Insights about your <span
-                            className="font-display font-bold text-gradient-purple tracking-wide">job search journey</span>
+                            className="font-display font-medium text-gradient-purple tracking-wide">job search journey</span>
                         </p>
 
                         {/* Analytics Feature Grid */}
@@ -359,11 +358,11 @@ const AnalyticsTab: React.FC = () => {
                                 <span className="text-2xl animate-bounce-gentle">📈</span>
                                 <div>
                                     <div
-                                        className="text-sm font-bold text-gray-900 dark:text-gray-100 text-gradient-static tracking-wide">
+                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-wide">
                                         Success Metrics
                                     </div>
                                     <div
-                                        className="text-xs text-gray-600 dark:text-gray-400 font-medium tracking-wider">
+                                        className="text-xs text-gray-600 dark:text-gray-400 font-normal tracking-wider">
                                         Track your progress
                                     </div>
                                 </div>
@@ -374,11 +373,11 @@ const AnalyticsTab: React.FC = () => {
                                 <span className="text-2xl animate-pulse">🎯</span>
                                 <div>
                                     <div
-                                        className="text-sm font-bold text-gray-900 dark:text-gray-100 text-gradient-purple tracking-wide">
+                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 text-gradient-purple tracking-wide">
                                         Performance
                                     </div>
                                     <div
-                                        className="text-xs text-gray-600 dark:text-gray-400 font-medium tracking-wider">
+                                        className="text-xs text-gray-600 dark:text-gray-400 font-normal tracking-wider">
                                         Analyze trends
                                     </div>
                                 </div>
@@ -389,11 +388,11 @@ const AnalyticsTab: React.FC = () => {
                                 <span className="text-2xl animate-spin-slow">📅</span>
                                 <div>
                                     <div
-                                        className="text-sm font-bold text-gray-900 dark:text-gray-100 text-gradient-blue tracking-wide">
+                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 text-gradient-blue tracking-wide">
                                         Timeline
                                     </div>
                                     <div
-                                        className="text-xs text-gray-600 dark:text-gray-400 font-medium tracking-wider">
+                                        className="text-xs text-gray-600 dark:text-gray-400 font-normal tracking-wider">
                                         View history
                                     </div>
                                 </div>
@@ -408,32 +407,57 @@ const AnalyticsTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* Analytics Dashboard Component - Only show if user has consented */}
-            {privacySettings?.analytics ? (
-                <React.Suspense fallback={
-                    <div
-                        className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 h-96 sm:h-[32rem] rounded-2xl animate-pulse shadow-lg"/>
-                }>
-                    <AnalyticsDashboard/>
-                </React.Suspense>
-            ) : (
-                <div className="glass-card text-center space-y-4 py-12">
-                    <div className="text-6xl">🔒</div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        Analytics Disabled
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                        Analytics are currently disabled in your privacy settings. Enable analytics to see insights
-                        about your job search progress.
-                    </p>
-                    <button
-                        onClick={() => useAppStore.getState().openPrivacySettings()}
-                        className="btn btn-primary"
-                    >
-                        Update Privacy Settings
-                    </button>
-                </div>
-            )}
+            {/* Analytics Dashboard Component - Show based on auth and privacy state */}
+            {(() => {
+                // User is not authenticated - show login prompt
+                if (!auth.isAuthenticated) {
+                    return (
+                        <div className="glass-card text-center space-y-6 py-12">
+                            <div className="text-6xl"></div>
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                Analytics Requires Cloud Account
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
+                                Sign up or login to your ApplyTrak cloud account to unlock powerful analytics about your job search progress, success rates, and trends over time.
+                            </p>
+                            <div className="text-sm text-gray-500 dark:text-gray-500 mt-4">
+                                Your local data stays private - only you can see it
+                            </div>
+                        </div>
+                    );
+                }
+
+                // User is authenticated but hasn't enabled analytics
+                if (!privacySettings?.analytics) {
+                    return (
+                        <div className="glass-card text-center space-y-4 py-12">
+                            <div className="text-6xl">🔒</div>
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                Analytics Disabled
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+                                Enable analytics in your privacy settings to see insights about your job search progress and success patterns.
+                            </p>
+                            <button
+                                onClick={() => useAppStore.getState().openPrivacySettings()}
+                                className="btn btn-primary"
+                            >
+                                Update Privacy Settings
+                            </button>
+                        </div>
+                    );
+                }
+
+                // User is authenticated and has enabled analytics
+                return (
+                    <React.Suspense fallback={
+                        <div
+                            className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 h-96 sm:h-[32rem] rounded-2xl animate-pulse shadow-lg"/>
+                    }>
+                        <AnalyticsDashboard/>
+                    </React.Suspense>
+                );
+            })()}
         </div>
     );
 };

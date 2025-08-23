@@ -196,9 +196,17 @@ module.exports = {
             animation: {
                 'fade-in': 'fadeIn var(--duration-normal) ease-out',
                 'slide-up': 'slideUp var(--duration-normal) ease-out',
+                'slide-down': 'slideDown 0.2s ease-out',
                 'scale-in': 'scaleIn var(--duration-fast) ease-out',
                 'shimmer': 'shimmer 1.2s ease-in-out infinite',
                 'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'skeleton-wave': 'skeletonWave 1.2s ease-in-out infinite',
+                'slide-up-mobile': 'slideUpMobile var(--duration-normal) ease-out',
+                'slide-in-right': 'slideInRight var(--duration-normal) ease-out',
+                'modal-scale-desktop': 'modalScaleDesktop var(--duration-normal) ease-out',
+                'slide-down-fade': 'slideDownFade 0.2s ease-out',
+                'float': 'float 4s ease-in-out infinite',
+                'rotate': 'rotate 1.5s linear infinite',
             },
 
             keyframes: {
@@ -210,6 +218,10 @@ module.exports = {
                     '0%': {transform: 'translateY(100%) translateZ(0)', opacity: '0'},
                     '100%': {transform: 'translateY(0) translateZ(0)', opacity: '1'},
                 },
+                slideDown: {
+                    '0%': {opacity: '0', transform: 'translateY(-10px) scale(0.95)'},
+                    '100%': {opacity: '1', transform: 'translateY(0) scale(1)'},
+                },
                 scaleIn: {
                     '0%': {transform: 'scale(0.95) translateZ(0)', opacity: '0'},
                     '100%': {transform: 'scale(1) translateZ(0)', opacity: '1'},
@@ -217,6 +229,34 @@ module.exports = {
                 shimmer: {
                     '0%': {transform: 'translateX(-100%) translateZ(0)'},
                     '100%': {transform: 'translateX(100%) translateZ(0)'},
+                },
+                skeletonWave: {
+                    '0%': {backgroundPosition: '-200% 0'},
+                    '100%': {backgroundPosition: '200% 0'},
+                },
+                slideUpMobile: {
+                    '0%': {transform: 'translateY(100%) translateZ(0)', opacity: '0'},
+                    '100%': {transform: 'translateY(0) translateZ(0)', opacity: '1'},
+                },
+                slideInRight: {
+                    '0%': {transform: 'translateX(100%) translateZ(0)', opacity: '0'},
+                    '100%': {transform: 'translateX(0) translateZ(0)', opacity: '1'},
+                },
+                modalScaleDesktop: {
+                    '0%': {transform: 'scale(0.95) translateZ(0)', opacity: '0'},
+                    '100%': {transform: 'scale(1) translateZ(0)', opacity: '1'},
+                },
+                slideDownFade: {
+                    '0%': {opacity: '0', transform: 'translateY(-10px) scale(0.95)'},
+                    '100%': {opacity: '1', transform: 'translateY(0) scale(1)'},
+                },
+                float: {
+                    '0%, 100%': {transform: 'translateY(0px) translateZ(0)'},
+                    '50%': {transform: 'translateY(-8px) translateZ(0)'},
+                },
+                rotate: {
+                    '0%': {transform: 'rotate(0deg)'},
+                    '100%': {transform: 'rotate(360deg)'},
                 },
             },
 
@@ -246,6 +286,15 @@ module.exports = {
                 'gradient-glass': 'var(--gradient-glass)',
                 'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
                 'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+                'grid-pattern': 'linear-gradient(color-mix(in srgb, var(--color-primary) 3%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 3%, transparent) 1px, transparent 1px)',
+            },
+
+            // =================================================================
+            // BACKGROUND SIZE - For grid patterns
+            // =================================================================
+            backgroundSize: {
+                'grid': '24px 24px',
+                'mobile-grid': '16px 16px',
             },
         },
     },
@@ -347,6 +396,29 @@ module.exports = {
                     },
                 },
 
+                '.btn-ghost': {
+                    background: 'transparent',
+                    color: 'var(--color-text-secondary)',
+                    border: '1px solid transparent',
+
+                    '&:hover:not(:disabled)': {
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text-primary)',
+                        borderColor: 'var(--color-border)',
+                    },
+                },
+
+                '.btn-outline': {
+                    background: 'transparent',
+                    color: 'var(--color-primary)',
+                    border: '2px solid var(--color-primary)',
+
+                    '&:hover:not(:disabled)': {
+                        background: 'var(--color-primary)',
+                        color: 'white',
+                    },
+                },
+
                 // Form system
                 '.form-input': {
                     fontFamily: 'var(--font-family-primary)',
@@ -370,6 +442,34 @@ module.exports = {
                     },
                 },
 
+                '.form-input-enhanced': {
+                    fontFamily: 'var(--font-family-primary)',
+                    fontSize: '1rem',
+                    fontWeight: 'var(--font-weight-medium)',
+                    letterSpacing: '-0.01em',
+                    transition: 'transform var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
+                    transform: 'translateY(0) translateZ(0)',
+                    borderRadius: 'var(--radius-xl)',
+                    border: '2px solid var(--color-border)',
+                    background: 'var(--color-background)',
+                    color: 'var(--color-text-primary)',
+                    padding: '1rem 1.25rem',
+                    minHeight: '3.25rem',
+
+                    '&:focus': {
+                        outline: 'none',
+                        borderColor: 'var(--color-primary)',
+                        boxShadow: '0 0 0 4px color-mix(in srgb, var(--color-primary) 15%, transparent)',
+                        transform: 'translateY(-1px) translateZ(0)',
+                        background: 'color-mix(in srgb, var(--color-background) 98%, var(--color-primary))',
+                    },
+
+                    '&:hover:not(:focus)': {
+                        borderColor: 'var(--color-text-muted)',
+                        transform: 'translateY(-1px) translateZ(0)',
+                    },
+                },
+
                 '.form-label': {
                     fontFamily: 'var(--font-family-primary)',
                     fontSize: '0.875rem',
@@ -378,6 +478,18 @@ module.exports = {
                     marginBottom: 'var(--space-2)',
                     display: 'block',
                     transition: 'color var(--duration-normal) ease',
+                },
+
+                '.form-label-enhanced': {
+                    fontFamily: 'var(--font-family-primary)',
+                    fontSize: '0.9375rem',
+                    fontWeight: 'var(--font-weight-semibold)',
+                    color: 'var(--color-text-primary)',
+                    marginBottom: 'var(--space-3)',
+                    display: 'block',
+                    transition: 'color var(--duration-normal) ease',
+                    letterSpacing: '-0.01em',
+                    lineHeight: '1.4',
                 },
 
                 // Card system
@@ -396,6 +508,14 @@ module.exports = {
                     },
                 },
 
+                '.card-compact': {
+                    padding: 'var(--space-4)',
+                },
+
+                '.card-spacious': {
+                    padding: 'var(--space-8)',
+                },
+
                 // Glass effect
                 '.glass-effect': {
                     background: 'var(--gradient-glass)',
@@ -403,6 +523,21 @@ module.exports = {
                     '-webkit-backdrop-filter': 'blur(8px)',
                     border: '1px solid var(--color-border)',
                     boxShadow: 'var(--shadow-lg)',
+                },
+
+                '.glass-card': {
+                    padding: 'var(--space-6)',
+                    borderRadius: 'var(--radius-2xl)',
+                    backdropFilter: 'blur(8px)',
+                    '-webkit-backdrop-filter': 'blur(8px)',
+                    transition: 'transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
+                    transform: 'translateY(0) translateZ(0)',
+                    contain: 'layout style',
+
+                    '&:hover': {
+                        boxShadow: 'var(--shadow-xl)',
+                        transform: 'translateY(-2px) translateZ(0)',
+                    },
                 },
 
                 // Table system
@@ -433,6 +568,15 @@ module.exports = {
                     transition: 'color var(--duration-normal) ease',
                 },
 
+                '.table-container': {
+                    background: 'var(--gradient-glass)',
+                    borderRadius: 'var(--radius-2xl)',
+                    overflow: 'hidden',
+                    boxShadow: 'var(--shadow-md)',
+                    width: '100%',
+                    transition: 'background-color var(--duration-normal) ease',
+                },
+
                 // Status badges
                 '.status-badge': {
                     fontFamily: 'var(--font-family-primary)',
@@ -453,12 +597,45 @@ module.exports = {
                     },
                 },
 
+                '.status-applied': {
+                    background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)',
+                    color: '#1d4ed8',
+                    borderColor: '#93c5fd',
+                },
+
+                '.status-interview': {
+                    background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                    color: '#d97706',
+                    borderColor: '#fbbf24',
+                },
+
+                '.status-offer': {
+                    background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)',
+                    color: '#059669',
+                    borderColor: '#86efac',
+                },
+
+                '.status-rejected': {
+                    background: 'linear-gradient(135deg, #fee2e2, #fecaca)',
+                    color: '#dc2626',
+                    borderColor: '#fca5a5',
+                },
+
                 // Loading skeleton
                 '.skeleton': {
                     background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-surface) 50%, var(--color-border) 75%)',
                     backgroundSize: '200% 100%',
                     borderRadius: 'var(--radius-lg)',
                     animation: 'shimmer 1.2s ease-in-out infinite',
+                    minHeight: 'var(--space-6)',
+                    transform: 'translateZ(0)',
+                },
+
+                '.mobile-skeleton': {
+                    background: 'linear-gradient(90deg, var(--color-border) 25%, var(--color-surface) 50%, var(--color-border) 75%)',
+                    backgroundSize: '200% 100%',
+                    borderRadius: 'var(--radius-lg)',
+                    animation: 'skeletonWave 1.2s ease-in-out infinite',
                     minHeight: 'var(--space-6)',
                     transform: 'translateZ(0)',
                 },
@@ -524,6 +701,16 @@ module.exports = {
                     },
                 },
 
+                '.desktop-hover-lift': {
+                    transition: 'transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease',
+                    transform: 'translateY(0) translateZ(0)',
+
+                    '&:hover': {
+                        transform: 'translateY(-2px) translateZ(0)',
+                        boxShadow: 'var(--shadow-lg)',
+                    },
+                },
+
                 // Interactive states
                 '.interactive': {
                     transition: 'transform var(--duration-fast) ease',
@@ -536,6 +723,27 @@ module.exports = {
 
                     '&:active': {
                         transform: 'translateY(0) translateZ(0)',
+                    },
+                },
+
+                '.desktop-interactive': {
+                    transition: 'transform var(--duration-fast) ease',
+                    transform: 'translateY(0) translateZ(0)',
+                    cursor: 'pointer',
+
+                    '&:hover': {
+                        transform: 'translateY(-1px) translateZ(0)',
+                    },
+
+                    '&:active': {
+                        transform: 'translateY(0) translateZ(0)',
+                    },
+                },
+
+                '.mobile-interactive': {
+                    '&:active': {
+                        transform: 'translateY(1px) translateZ(0)',
+                        opacity: '0.9',
                     },
                 },
 
@@ -556,11 +764,33 @@ module.exports = {
                     },
                 },
 
+                '.desktop-focus-enhanced': {
+                    '&:focus-visible': {
+                        outline: '3px solid var(--color-primary)',
+                        outlineOffset: '3px',
+                        borderRadius: 'var(--radius-lg)',
+                        transition: 'outline-color var(--duration-fast) ease, outline-offset var(--duration-fast) ease',
+                    },
+                },
+
+                '.mobile-focus': {
+                    '&:focus-visible': {
+                        outline: '3px solid var(--color-primary)',
+                        outlineOffset: '2px',
+                        borderRadius: 'var(--radius-sm)',
+                    },
+                },
+
                 // Scroll utilities
                 '.mobile-scroll': {
                     '-webkit-overflow-scrolling': 'touch',
                     scrollBehavior: 'smooth',
                     overscrollBehavior: 'contain',
+                },
+
+                '.desktop-scroll-smooth': {
+                    scrollBehavior: 'smooth',
+                    '-webkit-overflow-scrolling': 'touch',
                 },
 
                 // Containment utilities
@@ -609,9 +839,172 @@ module.exports = {
                     paddingRight: 'max(var(--space-4), env(safe-area-inset-right))',
                 },
 
+                '.mobile-safe-top': {
+                    paddingTop: 'max(var(--space-4), env(safe-area-inset-top))',
+                },
+
+                '.mobile-safe-bottom': {
+                    paddingBottom: 'max(var(--space-4), env(safe-area-inset-bottom))',
+                },
+
+                '.mobile-safe-left': {
+                    paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
+                },
+
+                '.mobile-safe-right': {
+                    paddingRight: 'max(var(--space-4), env(safe-area-inset-right))',
+                },
+
+                '.mobile-safe-all': {
+                    paddingTop: 'max(var(--space-4), env(safe-area-inset-top))',
+                    paddingBottom: 'max(var(--space-4), env(safe-area-inset-bottom))',
+                    paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
+                    paddingRight: 'max(var(--space-4), env(safe-area-inset-right))',
+                },
+
+                // Logo utilities
+                '.logo-crisp': {
+                    imageRendering: '-webkit-optimize-contrast',
+                    imageRendering: '-moz-crisp-edges',
+                    imageRendering: 'crisp-edges',
+                    imageRendering: 'pixelated',
+                    objectFit: 'contain',
+                    objectPosition: 'center',
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden',
+                    maxWidth: '100%',
+                    height: 'auto',
+                    filter: 'none',
+                },
+
+                '.logo-retina': {
+                    imageRendering: '-webkit-optimize-contrast',
+                    transform: 'translateZ(0)',
+                },
+
+                // Layout utilities
+                '.desktop-container': {
+                    maxWidth: '1200px',
+                    margin: '0 auto',
+                    padding: '0 var(--space-6)',
+                },
+
+                '.mobile-container': {
+                    maxWidth: '100%',
+                    paddingLeft: 'var(--space-4)',
+                    paddingRight: 'var(--space-4)',
+                },
+
+                '.container-desktop': {
+                    maxWidth: '1400px',
+                    margin: '0 auto',
+                },
+
+                '.ultra-wide-container': {
+                    maxWidth: '1600px',
+                    margin: '0 auto',
+                },
+
+                // Grid utilities
+                '.desktop-grid-2': {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: 'var(--space-6)',
+                },
+
+                '.desktop-grid-3': {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 'var(--space-6)',
+                },
+
+                '.desktop-grid-4': {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: 'var(--space-6)',
+                },
+
+                // Background utilities
+                '.bg-grid': {
+                    backgroundImage: 'var(--tw-gradient-to, linear-gradient(color-mix(in srgb, var(--color-primary) 3%, transparent) 1px, transparent 1px)), linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 3%, transparent) 1px, transparent 1px)',
+                    backgroundSize: '24px 24px',
+                },
+
+                // Animation utilities
+                '.animate-float': {
+                    animation: 'float 4s ease-in-out infinite',
+                    transform: 'translateZ(0)',
+                },
+
+                // Visibility utilities
+                '.mobile-only': {
+                    '@media (min-width: 768px)': {
+                        display: 'none',
+                    },
+                },
+
+                '.desktop-only': {
+                    display: 'none',
+                    '@media (min-width: 768px)': {
+                        display: 'block',
+                    },
+                },
+
+                '.tablet-only': {
+                    display: 'none',
+                    '@media (min-width: 768px) and (max-width: 1023px)': {
+                        display: 'block',
+                    },
+                },
+
+                '.desktop-md-only': {
+                    display: 'none',
+                    '@media (min-width: 1024px) and (max-width: 1279px)': {
+                        display: 'block',
+                    },
+                },
+
+                '.desktop-lg-only': {
+                    display: 'none',
+                    '@media (min-width: 1280px)': {
+                        display: 'block',
+                    },
+                },
+
+                '.tablet-hidden': {
+                    '@media (min-width: 768px) and (max-width: 1023px)': {
+                        display: 'none',
+                    },
+                },
+
+                '.desktop-hidden': {
+                    '@media (min-width: 768px)': {
+                        display: 'none',
+                    },
+                },
+
+                '.desktop-md-hidden': {
+                    '@media (min-width: 1024px) and (max-width: 1279px)': {
+                        display: 'none',
+                    },
+                },
+
+                '.desktop-lg-hidden': {
+                    '@media (min-width: 1280px)': {
+                        display: 'none',
+                    },
+                },
+
+                '.desktop-visible': {
+                    display: 'none',
+                    '@media (min-width: 768px)': {
+                        display: 'block',
+                    },
+                },
+
                 // Reduced motion support
                 '@media (prefers-reduced-motion: reduce)': {
-                    '.hover-lift, .hover-lift-sm, .interactive': {
+                    '.hover-lift, .hover-lift-sm, .interactive, .desktop-hover-lift, .desktop-interactive': {
                         '&:hover': {
                             transform: 'translateY(0) translateZ(0) !important',
                         },
@@ -640,6 +1033,21 @@ module.exports = {
                         background: 'var(--color-primary)',
                         border: '2px solid var(--color-primary-dark)',
                     },
+
+                    '.form-input-enhanced': {
+                        borderWidth: '2px',
+                        borderColor: 'var(--color-text-primary)',
+                    },
+
+                    '.form-input-enhanced:focus': {
+                        borderWidth: '3px',
+                        boxShadow: '0 0 0 2px var(--color-primary)',
+                    },
+
+                    '.form-label-enhanced': {
+                        fontWeight: 'var(--font-weight-bold)',
+                        color: 'var(--color-text-primary)',
+                    },
                 },
 
                 // Touch device optimizations
@@ -649,11 +1057,11 @@ module.exports = {
                         minWidth: '44px',
                     },
 
-                    '.hover-lift:hover, .hover-lift-sm:hover, .interactive:hover': {
+                    '.hover-lift:hover, .hover-lift-sm:hover, .interactive:hover, .desktop-hover-lift:hover, .desktop-interactive:hover': {
                         transform: 'translateY(0) translateZ(0)',
                     },
                 },
             });
         },
     ],
-}
+};

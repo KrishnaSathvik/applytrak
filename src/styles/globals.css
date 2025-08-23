@@ -1,7 +1,7 @@
 /* =============================================================================
    JOB APPLICATION TRACKER - ENTERPRISE OPTIMIZED GLOBALS CSS
    Performance-first, conflict-free, enterprise-grade styling system
-   Version: 2.1 | CONSOLIDATED with Enhanced Form Styles
+   Version: 3.0 | CONSOLIDATED Main Stylesheet
    ============================================================================= */
 
 /* =============================================================================
@@ -12,8 +12,7 @@
 @import 'tailwindcss/utilities';
 
 /* Responsive enhancement imports */
-@import './mobile.css';
-@import './desktop.css';
+@import './responsive.css';
 
 /* =============================================================================
    GEIST FONT SYSTEM - Modern minimalist typography
@@ -243,7 +242,8 @@ h6 {
     left: 0;
     right: 0;
     z-index: var(--z-header);
-    height: var(--space-16);
+    height: 64px;
+    min-height: 64px;
     background: var(--gradient-glass);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -254,9 +254,9 @@ h6 {
 
 .sidebar-fixed {
     position: fixed;
-    top: var(--space-16);
+    top: 64px;
     left: 0;
-    height: calc(100vh - var(--space-16));
+    height: calc(100vh - 64px);
     z-index: var(--z-sidebar);
     background: var(--gradient-glass);
     backdrop-filter: blur(8px);
@@ -268,7 +268,7 @@ h6 {
 }
 
 .main-content {
-    padding-top: var(--space-16);
+    padding-top: 64px;
     min-height: 100vh;
     flex: 1;
     transition: margin-left var(--duration-normal) ease;
@@ -399,34 +399,34 @@ h6 {
    ENHANCED FORM SYSTEM - Professional form controls with better proportions
    ============================================================================= */
 
-/* 🔧 ENHANCED: Form label styling with better hierarchy */
+/* Enhanced Form Labels */
 .form-label-enhanced {
     font-family: var(--font-family-primary);
-    font-size: 0.9375rem; /* 🔧 INCREASED: 15px for better readability */
-    font-weight: var(--font-weight-semibold); /* 🔧 INCREASED: more prominent */
-    color: var(--color-text-primary); /* 🔧 CHANGED: better contrast */
-    margin-bottom: var(--space-3); /* 🔧 INCREASED: more space */
+    font-size: 0.9375rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-3);
     display: block;
     transition: color var(--duration-normal) ease;
     letter-spacing: -0.01em;
     line-height: 1.4;
 }
 
-/* 🔧 ENHANCED: Form input styling with optimized proportions */
+/* Enhanced Form Inputs */
 .form-input-enhanced {
     font-family: var(--font-family-primary);
     font-size: 1rem;
-    font-weight: var(--font-weight-medium); /* 🔧 INCREASED: more readable */
+    font-weight: var(--font-weight-medium);
     letter-spacing: -0.01em;
     display: block;
     width: 100%;
-    border-radius: var(--radius-xl); /* 🔧 INCREASED: more modern */
+    border-radius: var(--radius-xl);
     border: 2px solid var(--color-border);
     background: var(--color-background);
-    padding: 1rem 1.25rem; /* 🔧 OPTIMIZED: better proportions */
+    padding: 1rem 1.25rem;
     color: var(--color-text-primary);
     line-height: 1.5;
-    min-height: 3.25rem; /* 🔧 OPTIMIZED: 52px for better touch */
+    min-height: 3.25rem;
     transform: translateY(0) translateZ(0);
     transition: transform var(--duration-fast) ease,
     border-color var(--duration-fast) ease,
@@ -434,7 +434,7 @@ h6 {
     background-color var(--duration-normal) ease;
 }
 
-/* 🔧 ENHANCED: Focus states with better visual feedback */
+/* Enhanced Focus States */
 .form-input-enhanced:focus {
     outline: none;
     border-color: var(--color-primary);
@@ -443,13 +443,13 @@ h6 {
     background: color-mix(in srgb, var(--color-background) 98%, var(--color-primary));
 }
 
-/* 🔧 ENHANCED: Hover states */
+/* Enhanced Hover States */
 .form-input-enhanced:hover:not(:focus) {
     border-color: var(--color-text-muted);
     transform: translateY(-1px) translateZ(0);
 }
 
-/* 🔧 ENHANCED: Select styling to match inputs */
+/* Enhanced Select Styling */
 .form-input-enhanced[type="select"],
 select.form-input-enhanced {
     appearance: none;
@@ -457,22 +457,22 @@ select.form-input-enhanced {
     background-position: right 0.75rem center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
-    padding-right: 3rem; /* Account for dropdown arrow */
+    padding-right: 3rem;
     cursor: pointer;
 }
 
-/* 🔧 ENHANCED: Textarea styling */
+/* Enhanced Textarea Styling */
 textarea.form-input-enhanced {
     resize: vertical;
-    min-height: 8rem; /* 🔧 Better default height for textareas */
-    line-height: 1.6; /* 🔧 Better readability */
-    padding: 1rem 1.25rem; /* 🔧 Consistent with inputs */
+    min-height: 8rem;
+    line-height: 1.6;
+    padding: 1rem 1.25rem;
 }
 
-/* 🔧 ENHANCED: Error styling with better visibility */
+/* Enhanced Error Styling */
 .form-error {
     font-family: var(--font-family-primary);
-    font-size: 0.8125rem; /* 🔧 INCREASED: 13px */
+    font-size: 0.8125rem;
     font-weight: var(--font-weight-medium);
     color: var(--color-error);
     margin-top: var(--space-2);
@@ -482,16 +482,16 @@ textarea.form-input-enhanced {
     gap: var(--space-1);
 }
 
-/* 🔧 ENHANCED: Button proportions to match form */
+/* Enhanced Button for Forms */
 .btn.form-btn {
-    min-height: 3.25rem; /* 🔧 Match input height */
-    padding: 1rem 2rem; /* 🔧 Better proportions */
+    min-height: 3.25rem;
+    padding: 1rem 2rem;
     font-size: 1rem;
     font-weight: var(--font-weight-semibold);
     letter-spacing: -0.01em;
 }
 
-/* 🔧 ENHANCED: Input group styling for URL with button */
+/* Enhanced Input Group Styling */
 .form-input-group {
     display: flex;
     gap: 0.75rem;
@@ -637,22 +637,22 @@ textarea.form-input-enhanced {
 .table thead,
 table thead,
 thead {
-    background: var(--gradient-primary) !important;
+    background: var(--gradient-primary);
 }
 
 .table thead th,
 table thead th,
 thead th {
-    padding: var(--space-4) !important;
-    text-align: left !important;
-    font-size: 0.75rem !important;
-    font-weight: var(--font-weight-bold) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    color: white !important;
-    background: transparent !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
-    border: none !important;
+    padding: var(--space-4);
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: white;
+    background: transparent;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    border: none;
 }
 
 .table tbody tr {
@@ -715,206 +715,101 @@ thead th {
 }
 
 /* =============================================================================
-   RESPONSIVE DESIGN - Mobile-first optimizations for enhanced forms
+   SELECT DROPDOWN SYSTEM - Enhanced Select Controls
    ============================================================================= */
-@media (max-width: 768px) {
-    .main-content {
-        padding-top: var(--space-16);
-    }
 
-    .modal-content {
-        width: 95vw;
-        margin: var(--space-4);
-        max-height: 85vh;
-    }
-
-    .btn {
-        min-height: 44px;
-        min-width: 44px;
-    }
-
-    .content-container {
-        padding: 0 var(--space-3);
-    }
-
-    /* 🔧 ENHANCED: Mobile form optimizations */
-    .form-label-enhanced {
-        font-size: 1rem; /* 🔧 INCREASED for mobile */
-        font-weight: var(--font-weight-bold);
-        margin-bottom: var(--space-4);
-    }
-
-    .form-input-enhanced {
-        font-size: 1.0625rem; /* 🔧 17px prevents iOS zoom */
-        padding: 1.125rem 1.25rem; /* 🔧 Better touch targets */
-        min-height: 3.5rem; /* 🔧 56px for mobile */
-        border-width: 2px;
-    }
-
-    .btn.form-btn {
-        min-height: 3.5rem; /* 🔧 Match mobile input height */
-        padding: 1.125rem 2rem;
-        font-size: 1.0625rem;
-    }
-
-    /* Mobile form input group stacks vertically */
-    .form-input-group {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .form-input-group .btn {
-        width: 100%;
-    }
+/* Target the specific select elements */
+select.form-input-enhanced {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    display: block;
+    position: relative;
+    width: 100%;
+    background-color: var(--color-background);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    color: var(--color-text-primary);
+    font-family: var(--font-family-primary);
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    min-height: 3.25rem;
+    height: 3rem;
+    padding: 0.75rem 3rem 0.75rem 1.25rem;
+    cursor: pointer;
+    user-select: none;
+    z-index: 10;
+    transition: all var(--duration-fast) ease;
 }
 
-@media (min-width: 768px) {
-    .content-container {
-        padding: 0 var(--space-6);
-    }
-
-    /* 🔧 ENHANCED: Desktop form optimizations */
-    .form-input-enhanced {
-        font-size: 0.9375rem; /* 🔧 Clean desktop look */
-        padding: 0.875rem 1.125rem; /* 🔧 Desktop proportions */
-        min-height: 3rem; /* 🔧 48px for desktop */
-        border-width: 1.5px;
-    }
-
-    .form-label-enhanced {
-        font-size: 0.875rem;
-        font-weight: var(--font-weight-semibold);
-    }
-
-    .btn.form-btn {
-        min-height: 3rem; /* 🔧 Match desktop input height */
-        padding: 0.875rem 2rem;
-        font-size: 0.9375rem;
-    }
-
-    /* Desktop form input group stays horizontal */
-    .form-input-group {
-        flex-direction: row;
-        align-items: stretch;
-    }
-}
-
-@media (min-width: 1024px) {
-    .content-container {
-        padding: 0 var(--space-8);
-    }
-
-    /* 🔧 ENHANCED: Large desktop optimizations */
-    .form-input-enhanced {
-        font-size: 1rem; /* 🔧 Slightly larger on large screens */
-        padding: 1rem 1.25rem;
-        min-height: 3.25rem; /* 🔧 52px for large desktop */
-    }
-
-    .form-label-enhanced {
-        font-size: 0.9375rem; /* 🔧 15px on large screens */
-    }
-
-    .btn.form-btn {
-        min-height: 3.25rem;
-        padding: 1rem 2.5rem; /* 🔧 More padding on large screens */
-        font-size: 1rem;
-    }
-}
-
-/* =============================================================================
-   DARK MODE OPTIMIZATIONS - Enhanced form support
-   ============================================================================= */
-:root.dark .form-input-enhanced {
-    background: color-mix(in srgb, var(--color-background) 95%, var(--color-surface));
-    border-color: var(--color-border);
-}
-
-:root.dark .form-input-enhanced:focus {
-    background: color-mix(in srgb, var(--color-background) 90%, var(--color-primary));
+/* Focus states for selects */
+select.form-input-enhanced:focus {
+    outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    transform: translateY(-1px);
+    background-color: rgba(255, 255, 255, 0.98);
 }
 
-:root.dark .form-input-enhanced:hover:not(:focus) {
+/* Hover states for selects */
+select.form-input-enhanced:hover:not(:focus) {
     border-color: var(--color-text-muted);
+    transform: translateY(-1px);
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Option styling for better visibility */
+select.form-input-enhanced option {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-family-primary);
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
 }
 
 /* =============================================================================
-   ACCESSIBILITY - Motion and contrast preferences with enhanced form support
+   LOGO SYSTEM - Enhanced logo clarity
    ============================================================================= */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-
-    .card,
-    .btn,
-    .form-input,
-    .form-select,
-    .form-textarea,
-    .form-input-enhanced,
-    .btn.form-btn {
-        transform: none !important;
-        transition: none !important;
-    }
-
-    .form-input-enhanced:focus,
-    .form-input-enhanced:hover {
-        transform: none !important;
-    }
+.logo-crisp {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    object-fit: contain;
+    object-position: center;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    max-width: 100%;
+    height: auto;
+    filter: none;
 }
 
-@media (prefers-contrast: high) {
-    .text-gradient-primary,
-    .text-gradient-blue,
-    .text-gradient-purple {
-        background: none;
-        color: var(--color-text-primary);
-    }
-
-    .btn-primary {
-        background: var(--color-primary);
-        border: 2px solid var(--color-primary-dark);
-    }
-
-    /* 🔧 ENHANCED: High contrast form support */
-    .form-input-enhanced {
-        border-width: 2px;
-        border-color: var(--color-text-primary);
-    }
-
-    .form-input-enhanced:focus {
-        border-width: 3px;
-        box-shadow: 0 0 0 2px var(--color-primary);
-    }
-
-    .form-label-enhanced {
-        font-weight: var(--font-weight-bold);
-        color: var(--color-text-primary);
-    }
+.logo-retina {
+    image-rendering: -webkit-optimize-contrast;
+    transform: translateZ(0);
 }
 
-/* =============================================================================
-   TOUCH DEVICES - Mobile interaction optimizations
-   ============================================================================= */
-@media (hover: none) and (pointer: coarse) {
-    .btn,
-    .clickable,
-    button {
-        min-height: 44px;
-        min-width: 44px;
-    }
+/* Logo size variants */
+.logo-sm {
+    width: 24px;
+    height: 24px;
+}
 
-    .btn:hover,
-    .card:hover {
-        transform: translateZ(0);
-    }
+.logo-md {
+    width: 32px;
+    height: 32px;
+}
+
+.logo-lg {
+    width: 48px;
+    height: 48px;
 }
 
 /* =============================================================================
@@ -928,16 +823,6 @@ thead th {
     display: none;
 }
 
-@media (min-width: 768px) {
-    .mobile-only {
-        display: none;
-    }
-
-    .desktop-only {
-        display: block;
-    }
-}
-
 /* Animation Classes */
 .animate-fade-in {
     animation: fadeIn var(--duration-normal) ease-out;
@@ -945,6 +830,10 @@ thead th {
 
 .animate-slide-up {
     animation: slideUp var(--duration-normal) ease-out;
+}
+
+.animate-slideDown {
+    animation: slideDown 0.2s ease-out;
 }
 
 .gpu-accelerated {
@@ -993,104 +882,55 @@ thead th {
 }
 
 /* =============================================================================
-   PRINT STYLES - Document printing optimizations
+   COMPONENT VARIANTS - Extended styling options
    ============================================================================= */
-@media print {
-    * {
-        background: white !important;
-        color: black !important;
-        box-shadow: none !important;
-        transform: none !important;
-    }
+.card-compact {
+    padding: var(--space-4);
+}
 
-    .header-fixed,
-    .sidebar-fixed,
-    .modal-overlay,
-    .toast-container {
-        display: none !important;
-    }
+.card-spacious {
+    padding: var(--space-8);
+}
 
-    .main-content {
-        padding-top: 0 !important;
-        margin-left: 0 !important;
-    }
+.btn-ghost {
+    background: transparent;
+    color: var(--color-text-secondary);
+    border: 1px solid transparent;
+}
 
-    .mobile-only {
-        display: none !important;
-    }
+.btn-ghost:hover {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
 
-    .desktop-only {
-        display: block !important;
-    }
+.btn-outline {
+    background: transparent;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
+}
+
+.btn-outline:hover {
+    background: var(--color-primary);
+    color: white;
 }
 
 /* =============================================================================
-   KEYFRAME ANIMATIONS - Smooth micro-interactions
+   USER DROPDOWN ANIMATIONS
    ============================================================================= */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(8px) translateZ(0);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) translateZ(0);
-    }
+.user-menu-container {
+    position: relative;
+    z-index: 50;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translateY(100%) translateZ(0);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) translateZ(0);
-        opacity: 1;
-    }
+.user-menu-container > div:last-child {
+    z-index: 51;
 }
 
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes modalSlideUp {
-    from {
-        transform: translateY(32px) scale(0.96) translateZ(0);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1) translateZ(0);
-        opacity: 1;
-    }
-}
-
-/* =============================================================================
-   Z-INDEX MANAGEMENT - Layer hierarchy
-   ============================================================================= */
-.dropdown-menu,
-.popover {
-    z-index: var(--z-dropdown);
-}
-
-.sticky-element {
-    z-index: var(--z-sticky);
-}
-
-.overlay {
-    z-index: var(--z-overlay);
-}
-
-.toast-container {
-    z-index: var(--z-toast);
-}
-
-.tooltip {
-    z-index: var(--z-tooltip);
+/* Hover effects for better user experience */
+.user-menu-container .animate-slideDown {
+    animation-fill-mode: both;
+    transform-origin: top right;
 }
 
 /* =============================================================================
@@ -1145,270 +985,53 @@ thead th {
 }
 
 /* =============================================================================
-   COMPONENT VARIANTS - Extended styling options
+   Z-INDEX MANAGEMENT - Layer hierarchy
    ============================================================================= */
-.card-compact {
-    padding: var(--space-4);
+.dropdown-menu,
+.popover {
+    z-index: var(--z-dropdown);
 }
 
-.card-spacious {
-    padding: var(--space-8);
+.sticky-element {
+    z-index: var(--z-sticky);
 }
 
-.btn-ghost {
-    background: transparent;
-    color: var(--color-text-secondary);
-    border: 1px solid transparent;
+.overlay {
+    z-index: var(--z-overlay);
 }
 
-.btn-ghost:hover {
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-    border-color: var(--color-border);
+.toast-container {
+    z-index: var(--z-toast);
 }
 
-.btn-outline {
-    background: transparent;
-    color: var(--color-primary);
-    border: 2px solid var(--color-primary);
-}
-
-.btn-outline:hover {
-    background: var(--color-primary);
-    color: white;
-}
-
-/* Add this to your globals.css for maximum logo clarity */
-
-.logo-crisp {
-    /* Prevent blurry scaling */
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-
-    /* Ensure proper object fitting */
-    object-fit: contain;
-    object-position: center;
-
-    /* Prevent browser anti-aliasing blur */
-    transform: translateZ(0);
-    backface-visibility: hidden;
-
-    /* Ensure proper sizing */
-    max-width: 100%;
-    height: auto;
-
-    /* Remove any default filters */
-    filter: none;
-}
-
-/* For retina displays */
-.logo-retina {
-    image-rendering: -webkit-optimize-contrast;
-    transform: translateZ(0);
-}
-
-/* Specific sizes with pixel-perfect scaling */
-.logo-sm {
-    width: 24px;
-    height: 24px;
-}
-
-.logo-md {
-    width: 32px;
-    height: 32px;
-}
-
-.logo-lg {
-    width: 48px;
-    height: 48px;
+.tooltip {
+    z-index: var(--z-tooltip);
 }
 
 /* =============================================================================
-   SELECT DROPDOWN FIX - For EditApplicationModal Job Type and Status dropdowns
+   KEYFRAME ANIMATIONS - Smooth micro-interactions
    ============================================================================= */
-
-/* Target the specific select elements in the EditApplicationModal */
-select.form-input-enhanced {
-    /* Remove all browser default styling */
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
-
-    /* Force proper display and positioning */
-    display: block !important;
-    position: relative !important;
-    width: 100% !important;
-
-    /* Background and styling */
-    background-color: var(--color-background) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
-    background-position: right 1rem center !important;
-    background-repeat: no-repeat !important;
-    background-size: 1.25em 1.25em !important;
-
-    /* Ensure proper text and typography */
-    color: var(--color-text-primary) !important;
-    font-family: var(--font-family-primary) !important;
-    font-size: 1rem !important;
-    font-weight: var(--font-weight-medium) !important;
-    line-height: 1.5 !important;
-    letter-spacing: -0.01em !important;
-
-    /* Border and dimensions */
-    border: 2px solid var(--color-border) !important;
-    border-radius: var(--radius-xl) !important;
-    min-height: 3.25rem !important;
-    height: 3rem !important;
-
-    /* Padding - ensure space for dropdown arrow */
-    padding: 0.75rem 3rem 0.75rem 1.25rem !important;
-
-    /* Prevent text selection and ensure cursor */
-    cursor: pointer !important;
-    user-select: none !important;
-
-    /* Z-index to prevent blocking */
-    z-index: 10 !important;
-
-    /* Smooth transitions */
-    transition: all var(--duration-fast) ease !important;
-}
-
-/* Focus states for selects */
-select.form-input-enhanced:focus {
-    outline: none !important;
-    border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
-    transform: translateY(-1px) !important;
-    background-color: rgba(255, 255, 255, 0.98) !important;
-}
-
-/* Hover states for selects */
-select.form-input-enhanced:hover:not(:focus) {
-    border-color: var(--color-text-muted) !important;
-    transform: translateY(-1px) !important;
-    background-color: rgba(255, 255, 255, 0.95) !important;
-}
-
-/* Option styling for better visibility */
-select.form-input-enhanced option {
-    background-color: var(--color-background) !important;
-    color: var(--color-text-primary) !important;
-    padding: 0.75rem 1rem !important;
-    font-family: var(--font-family-primary) !important;
-    font-size: 1rem !important;
-    font-weight: var(--font-weight-medium) !important;
-}
-
-/* Dark mode specific fixes */
-:root.dark select.form-input-enhanced {
-    background-color: var(--color-background) !important;
-    border-color: var(--color-border) !important;
-    color: var(--color-text-primary) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
-}
-
-:root.dark select.form-input-enhanced:focus {
-    background-color: rgba(15, 23, 42, 0.98) !important;
-    border-color: var(--color-primary) !important;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
-}
-
-:root.dark select.form-input-enhanced:hover:not(:focus) {
-    background-color: rgba(15, 23, 42, 0.95) !important;
-    border-color: var(--color-text-muted) !important;
-}
-
-:root.dark select.form-input-enhanced option {
-    background-color: var(--color-surface) !important;
-    color: var(--color-text-primary) !important;
-}
-
-/* Mobile specific optimizations */
-@media (max-width: 768px) {
-    select.form-input-enhanced {
-        font-size: 1.0625rem !important; /* 17px prevents iOS zoom */
-        min-height: 3.5rem !important;
-        height: 3.5rem !important;
-        padding: 1rem 3rem 1rem 1.25rem !important;
-        border-width: 2px !important;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
     }
 }
 
-/* Desktop specific optimizations */
-@media (min-width: 768px) {
-    select.form-input-enhanced {
-        font-size: 0.9375rem !important;
-        min-height: 3rem !important;
-        height: 3rem !important;
-        padding: 0.75rem 3rem 0.75rem 1.125rem !important;
-        border-width: 1.5px !important;
+@keyframes slideUp {
+    from {
+        transform: translateY(100%) translateZ(0);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) translateZ(0);
+        opacity: 1;
     }
 }
-
-/* Large desktop specific optimizations */
-@media (min-width: 1024px) {
-    select.form-input-enhanced {
-        font-size: 1rem !important;
-        min-height: 3.25rem !important;
-        height: 3rem !important;
-        padding: 0.75rem 3rem 0.75rem 1.25rem !important;
-        border-width: 2px !important;
-    }
-}
-
-/* Additional browser-specific fixes */
-select.form-input-enhanced::-ms-expand {
-    display: none !important;
-}
-
-/* Firefox specific fixes */
-@-moz-document url-prefix() {
-    select.form-input-enhanced {
-        text-indent: 0.01px !important;
-        text-overflow: '' !important;
-    }
-}
-
-/* Safari specific fixes */
-@supports (-webkit-appearance: none) {
-    select.form-input-enhanced {
-        -webkit-appearance: none !important;
-        background-attachment: scroll !important;
-    }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-    select.form-input-enhanced {
-        border-width: 3px !important;
-        border-color: var(--color-text-primary) !important;
-    }
-
-    select.form-input-enhanced:focus {
-        border-width: 4px !important;
-        box-shadow: 0 0 0 2px var(--color-primary) !important;
-    }
-}
-
-/* Motion reduction support */
-@media (prefers-reduced-motion: reduce) {
-    select.form-input-enhanced {
-        transition: none !important;
-        transform: none !important;
-    }
-
-    select.form-input-enhanced:focus,
-    select.form-input-enhanced:hover {
-        transform: none !important;
-    }
-}
-
-/* =============================================================================
-   USER DROPDOWN ANIMATIONS - Add to globals.css
-   ============================================================================= */
 
 @keyframes slideDown {
     from {
@@ -1421,25 +1044,202 @@ select.form-input-enhanced::-ms-expand {
     }
 }
 
-.animate-slideDown {
-    animation: slideDown 0.2s ease-out;
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
-/* Hover effects for better user experience */
-.user-menu-container .animate-slideDown {
-    animation-fill-mode: both;
-    transform-origin: top right;
+@keyframes modalSlideUp {
+    from {
+        transform: translateY(32px) scale(0.96) translateZ(0);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1) translateZ(0);
+        opacity: 1;
+    }
 }
 
-/* Ensure proper z-index for dropdown */
-.user-menu-container {
-    position: relative;
-    z-index: 50;
-}
-
-.user-menu-container > div:last-child {
-    z-index: 51;
-}
 /* =============================================================================
-   END OF STYLES - Total: ~1000+ lines optimized for performance and maintainability
+   PRINT STYLES - Document printing optimizations
+   ============================================================================= */
+@media print {
+    * {
+        background: white;
+        color: black;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .header-fixed,
+    .sidebar-fixed,
+    .modal-overlay,
+    .toast-container {
+        display: none;
+    }
+
+    .main-content {
+        padding-top: 0;
+        margin-left: 0;
+    }
+
+    .mobile-only {
+        display: none;
+    }
+
+    .desktop-only {
+        display: block;
+    }
+}
+
+/* =============================================================================
+   ACCESSIBILITY - Motion and contrast preferences
+   ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+        scroll-behavior: auto;
+    }
+
+    .card,
+    .btn,
+    .form-input,
+    .form-select,
+    .form-textarea,
+    .form-input-enhanced,
+    .btn.form-btn {
+        transform: none;
+        transition: none;
+    }
+
+    .form-input-enhanced:focus,
+    .form-input-enhanced:hover {
+        transform: none;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .text-gradient-primary,
+    .text-gradient-blue,
+    .text-gradient-purple {
+        background: none;
+        color: var(--color-text-primary);
+    }
+
+    .btn-primary {
+        background: var(--color-primary);
+        border: 2px solid var(--color-primary-dark);
+    }
+
+    /* High contrast form support */
+    .form-input-enhanced {
+        border-width: 2px;
+        border-color: var(--color-text-primary);
+    }
+
+    .form-input-enhanced:focus {
+        border-width: 3px;
+        box-shadow: 0 0 0 2px var(--color-primary);
+    }
+
+    .form-label-enhanced {
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-primary);
+    }
+}
+
+/* =============================================================================
+   TOUCH DEVICES - Mobile interaction optimizations
+   ============================================================================= */
+@media (hover: none) and (pointer: coarse) {
+    .btn,
+    .clickable,
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .btn:hover,
+    .card:hover {
+        transform: translateZ(0);
+    }
+}
+
+/* =============================================================================
+   DARK MODE OPTIMIZATIONS - Enhanced form support
+   ============================================================================= */
+:root.dark .form-input-enhanced {
+    background: color-mix(in srgb, var(--color-background) 95%, var(--color-surface));
+    border-color: var(--color-border);
+}
+
+:root.dark .form-input-enhanced:focus {
+    background: color-mix(in srgb, var(--color-background) 90%, var(--color-primary));
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+:root.dark .form-input-enhanced:hover:not(:focus) {
+    border-color: var(--color-text-muted);
+}
+
+/* Dark mode specific fixes for selects */
+:root.dark select.form-input-enhanced {
+    background-color: var(--color-background);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+:root.dark select.form-input-enhanced:focus {
+    background-color: rgba(15, 23, 42, 0.98);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+:root.dark select.form-input-enhanced:hover:not(:focus) {
+    background-color: rgba(15, 23, 42, 0.95);
+    border-color: var(--color-text-muted);
+}
+
+:root.dark select.form-input-enhanced option {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+/* =============================================================================
+   BROWSER-SPECIFIC FIXES
+   ============================================================================= */
+
+/* Additional browser-specific fixes */
+select.form-input-enhanced::-ms-expand {
+    display: none;
+}
+
+/* Firefox specific fixes */
+@-moz-document url-prefix() {
+    select.form-input-enhanced {
+        text-indent: 0.01px;
+        text-overflow: '';
+    }
+}
+
+/* Safari specific fixes */
+@supports (-webkit-appearance: none) {
+    select.form-input-enhanced {
+        -webkit-appearance: none;
+        background-attachment: scroll;
+    }
+}
+
+/* =============================================================================
+   END OF STYLES - Consolidated main stylesheet
    ============================================================================= */
