@@ -5,7 +5,7 @@ import {
     AdminAnalytics,
     AdminFeedbackSummary,
     AnalyticsEvent,
-    Application,
+    Application, Attachment,
     Backup,
     DatabaseService,
     FeedbackStats,
@@ -209,6 +209,168 @@ const initializeSupabase = (): SupabaseClient | null => {
     }
     return supabase;
 };
+// ========================== STORAGE HELPERS ==========================
+// Put this near the bottom of services/databaseService.ts (where your Supabase client lives)
+// Make sure the file already has the Supabase client imported/created as `supabase`.
+// And import the Attachment type:
+// import type { Attachment } from '@/types';
+
+function sanitizeFileName(name: string): string {
+    return name.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+}
+
+function isoStamp(): string {
+    return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function randomToken(): string {
+    if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
+        const buf = new Uint32Array(1);
+        crypto.getRandomValues(buf);
+        return buf[0].toString(36);
+    }
+    return Math.random().toString(36).slice(2, 10);
+}
+
+/** Maps auth.uid() -> users.id (bigint). Requires SQL function `public.current_user_id()` */
+export async function getCurrentUserId(): Promise<number> {
+    const { data, error } = await supabase.rpc("current_user_id");
+    if (error || data == null) throw error ?? new Error("current_user_id() returned null");
+    return data as number;
+}
+
+/**
+ * Upload a file to the private 'attachments' bucket with history.
+ * Path: <internalUserId>/<timestamp>-<rand>-<index>/<safeName>
+ * (RLS requires first segment to be the numeric users.id.)
+ */
+export async function uploadAttachment(
+    internalUserId: number,
+    file: File,
+    fileIndex = 0
+): Promise<Attachment> {
+    const safeName = sanitizeFileName(file.name);
+    const uniqueFolder = `${isoStamp()}-${randomToken()}-${fileIndex}`;
+    const storagePath = `${internalUserId}/${uniqueFolder}/${safeName}`;
+
+    const { error } = await supabase.storage
+        .from("attachments")
+        .upload(storagePath, file, {
+            upsert: false, // keep history (no overwrites)
+            contentType: file.type || undefined,
+            cacheControl: "3600",
+        });
+
+    if (error) throw error;
+
+    return {
+        id: uniqueFolder,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        storagePath, // where the file lives
+        uploadedAt: new Date().toISOString(),
+    };
+}
+
+/** Get a short-lived signed URL to view/download a stored file */
+export async function getAttachmentSignedUrl(
+    storagePath: string,
+    expiresInSeconds = 300
+): Promise<string> {
+    const { data, error } = await supabase.storage
+        .from("attachments")
+        .createSignedUrl(storagePath, expiresInSeconds);
+
+    if (error || !data?.signedUrl) throw error ?? new Error("Failed to create signed URL");
+    return data.signedUrl;
+}
+
+/** Resolve a VIEW URL (checks storagePath first, then legacy data) */
+export async function resolveViewUrl(att: Attachment, ttlSeconds = 300): Promise<string> {
+    if (att.storagePath) {
+        return getAttachmentSignedUrl(att.storagePath, ttlSeconds);
+    }
+    if (att.data) {
+        return att.data; // base64 data URL (legacy/offline)
+    }
+    throw new Error("Attachment has no storagePath or data to view.");
+}
+
+/** Resolve a DOWNLOAD URL (same as view for private buckets) */
+export async function resolveDownloadUrl(att: Attachment, ttlSeconds = 300): Promise<string> {
+    return resolveViewUrl(att, ttlSeconds);
+}
+
+/** Delete a stored file by its storagePath */
+export async function deleteAttachment(storagePath: string): Promise<void> {
+    const { error } = await supabase.storage
+        .from("attachments")
+        .remove([storagePath]);
+
+    if (error) throw error;
+}
+
+/** Delete from cloud if the attachment has storagePath; no-op for legacy base64 */
+export async function deleteAttachmentFromCloud(att: Attachment): Promise<void> {
+    if (att.storagePath) {
+        await deleteAttachment(att.storagePath);
+    }
+}
+
+/**
+ * List all attachments for a given user (simple walker).
+ * If you persist uploads in DB, prefer listing from DB instead.
+ */
+export async function listUserAttachments(
+    internalUserId: number
+): Promise<{ path: string; name: string; isFolder: boolean }[]> {
+    const results: { path: string; name: string; isFolder: boolean }[] = [];
+
+    // list top-level entries under <userId>/
+    const { data: top, error: topErr } = await supabase.storage
+        .from("attachments")
+        .list(`${internalUserId}`, { limit: 100 });
+
+    if (topErr) throw topErr;
+
+    const folders = (top || []).filter((e) => e.name && e.metadata?.name == null); // folders have no metadata.name
+    const filesTop = (top || []).filter((e) => e.metadata?.name);                  // files
+
+    for (const f of filesTop) {
+        results.push({
+            path: `${internalUserId}/${f.name}`,
+            name: f.name!,
+            isFolder: false,
+        });
+    }
+
+    // walk each subfolder and list files
+    for (const folder of folders) {
+        const folderPath = `${internalUserId}/${folder.name}`;
+        const { data: children, error } = await supabase.storage
+            .from("attachments")
+            .list(folderPath, { limit: 100 });
+
+        if (error) throw error;
+
+        for (const c of children || []) {
+            const p = `${folderPath}/${c.name}`;
+            const isFolder = !c.metadata?.name;
+            results.push({
+                path: p,
+                name: c.name!,
+                isFolder,
+            });
+        }
+    }
+
+    return results;
+}
+// ======================== END STORAGE HELPERS ========================
+
+
+
 
 // ============================================================================
 // AUTHENTICATION STATE MANAGEMENT

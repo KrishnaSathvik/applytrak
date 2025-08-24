@@ -1425,6 +1425,17 @@ export const useAppStore = create<AppState>()(
                     },
 
                     addApplication: async (applicationData) => {
+                        const { auth, applications } = get();
+
+                        // Limit non-authenticated users to 100 applications
+                        if (!auth.isAuthenticated && applications.length >= 100) {
+                            get().showToast({
+                                type: 'warning',
+                                message: 'Application limit reached. Sign up for unlimited applications!',
+                                duration: 5000
+                            });
+                            return;
+                        }
                         try {
                             const newApplication = await databaseService.addApplication(applicationData);
                             set(state => {

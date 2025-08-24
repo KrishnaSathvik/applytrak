@@ -286,18 +286,6 @@ const TrackerTab: React.FC = () => {
                 </div>
             </div>
 
-            {/* Backup Status Component */}
-            <React.Suspense fallback={
-                <div
-                    className="bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/20 dark:to-green-900/20 h-32 rounded-2xl animate-pulse shadow-lg"/>
-            }>
-                <BackupStatus
-                    applications={applications}
-                    onRestore={handleRestoreFromBackup}
-                    onShowToast={showToast}
-                />
-            </React.Suspense>
-
             {/* Recovery Alert System */}
             <React.Suspense fallback={null}>
                 <RecoveryAlert/>
@@ -711,14 +699,14 @@ const App: React.FC = () => {
                 }
 
                 // Theme System Setup
-                const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-                const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                const initialTheme = savedTheme || systemTheme;
+                // Theme System Setup (light by default)
+                const savedTheme = (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
+                const initialTheme = savedTheme;
 
                 setTheme(initialTheme);
+
                 const isDark = initialTheme === 'dark';
                 document.documentElement.classList.toggle('dark', isDark);
-                document.body.classList.toggle('dark', isDark);
                 document.documentElement.style.colorScheme = initialTheme;
 
                 const metaThemeColor = document.querySelector('meta[name="theme-color"]');

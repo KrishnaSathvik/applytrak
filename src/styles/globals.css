@@ -1,26 +1,24 @@
 /* =============================================================================
-   JOB APPLICATION TRACKER - ENTERPRISE OPTIMIZED GLOBALS CSS
-   Performance-first, conflict-free, enterprise-grade styling system
-   Version: 3.0 | CONSOLIDATED Main Stylesheet
+   JOB APPLICATION TRACKER - CLEAN GLOBALS CSS
+   Performance-first, conflict-free styling system
+   Version: 3.1 | Clean & Optimized
    ============================================================================= */
 
 /* =============================================================================
-   TAILWIND CSS IMPORTS - Base layer
+   TAILWIND CSS IMPORTS
    ============================================================================= */
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
-
-/* Responsive enhancement imports */
 @import './responsive.css';
 
 /* =============================================================================
-   GEIST FONT SYSTEM - Modern minimalist typography
+   GEIST FONT SYSTEM
    ============================================================================= */
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap&subset=latin');
 
 /* =============================================================================
-   CSS CUSTOM PROPERTIES - Design system foundation
+   CSS CUSTOM PROPERTIES
    ============================================================================= */
 :root {
     /* Typography Scale */
@@ -32,22 +30,22 @@
     --font-weight-bold: 700;
 
     /* Spacing Scale - 8px base unit */
-    --space-1: 0.25rem; /* 4px */
-    --space-2: 0.5rem; /* 8px */
-    --space-3: 0.75rem; /* 12px */
-    --space-4: 1rem; /* 16px */
-    --space-6: 1.5rem; /* 24px */
-    --space-8: 2rem; /* 32px */
-    --space-12: 3rem; /* 48px */
-    --space-16: 4rem; /* 64px */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
 
     /* Border Radius Scale */
-    --radius-xs: 0.125rem; /* 2px */
-    --radius-sm: 0.25rem; /* 4px */
-    --radius-md: 0.375rem; /* 6px */
-    --radius-lg: 0.5rem; /* 8px */
-    --radius-xl: 0.75rem; /* 12px */
-    --radius-2xl: 1rem; /* 16px */
+    --radius-xs: 0.125rem;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
     --radius-full: 9999px;
 
     /* Shadow System */
@@ -58,7 +56,7 @@
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
     --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
 
-    /* Z-Index Scale - Centralized layer management */
+    /* Z-Index Scale */
     --z-base: 1;
     --z-dropdown: 100;
     --z-sticky: 200;
@@ -116,7 +114,7 @@
 }
 
 /* =============================================================================
-   BASE STYLES - Modern CSS reset and foundation
+   BASE STYLES
    ============================================================================= */
 *,
 *::before,
@@ -150,13 +148,12 @@ body {
     background: var(--gradient-surface);
     color: var(--color-text-primary);
     min-height: 100vh;
-    transition: background-color var(--duration-normal) ease,
-    color var(--duration-normal) ease;
+    transition: background-color var(--duration-normal) ease, color var(--duration-normal) ease;
     -webkit-overflow-scrolling: touch;
 }
 
 /* =============================================================================
-   TYPOGRAPHY SYSTEM - Semantic heading hierarchy
+   TYPOGRAPHY SYSTEM
    ============================================================================= */
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-family-primary);
@@ -227,7 +224,7 @@ h6 {
 }
 
 /* =============================================================================
-   LAYOUT SYSTEM - Modern flexible layouts
+   LAYOUT SYSTEM
    ============================================================================= */
 .layout-container {
     min-height: 100vh;
@@ -248,8 +245,7 @@ h6 {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--color-border);
-    transition: background-color var(--duration-normal) ease,
-    border-color var(--duration-normal) ease;
+    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease;
 }
 
 .sidebar-fixed {
@@ -262,9 +258,7 @@ h6 {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-right: 1px solid var(--color-border);
-    transition: transform var(--duration-normal) ease,
-    background-color var(--duration-normal) ease,
-    border-color var(--duration-normal) ease;
+    transition: transform var(--duration-normal) ease, background-color var(--duration-normal) ease, border-color var(--duration-normal) ease;
 }
 
 .main-content {
@@ -282,7 +276,7 @@ h6 {
 }
 
 /* =============================================================================
-   COMPONENT SYSTEM - Reusable UI elements
+   COMPONENT SYSTEM
    ============================================================================= */
 .glass-effect {
     background: var(--gradient-glass);
@@ -290,9 +284,7 @@ h6 {
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-lg);
-    transition: background-color var(--duration-normal) ease,
-    border-color var(--duration-normal) ease,
-    box-shadow var(--duration-normal) ease;
+    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease;
 }
 
 .card {
@@ -303,10 +295,7 @@ h6 {
     box-shadow: var(--shadow-md);
     margin-bottom: var(--space-6);
     transform: translateZ(0);
-    transition: transform var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease,
-    background-color var(--duration-normal) ease,
-    border-color var(--duration-normal) ease;
+    transition: transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background-color var(--duration-normal) ease, border-color var(--duration-normal) ease;
 }
 
 .card:hover {
@@ -326,7 +315,7 @@ h6 {
 }
 
 /* =============================================================================
-   BUTTON SYSTEM - Comprehensive button variants
+   BUTTON SYSTEM
    ============================================================================= */
 .btn {
     font-family: var(--font-family-primary);
@@ -343,10 +332,7 @@ h6 {
     min-height: 44px;
     padding: var(--space-3) var(--space-6);
     transform: translateZ(0);
-    transition: transform var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease,
-    background-color var(--duration-normal) ease,
-    color var(--duration-normal) ease;
+    transition: transform var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background-color var(--duration-normal) ease, color var(--duration-normal) ease;
 }
 
 .btn-primary {
@@ -376,7 +362,6 @@ h6 {
     border-color: var(--color-text-muted);
 }
 
-/* Button Size Variants */
 .btn-sm {
     min-height: 36px;
     padding: var(--space-2) var(--space-4);
@@ -396,10 +381,10 @@ h6 {
 }
 
 /* =============================================================================
-   ENHANCED FORM SYSTEM - Professional form controls with better proportions
+   FORM SYSTEM - CLEAN & OPTIMIZED
    ============================================================================= */
 
-/* Enhanced Form Labels */
+/* Form Labels */
 .form-label-enhanced {
     font-family: var(--font-family-primary);
     font-size: 0.9375rem;
@@ -412,7 +397,7 @@ h6 {
     line-height: 1.4;
 }
 
-/* Enhanced Form Inputs */
+/* Form Inputs */
 .form-input-enhanced {
     font-family: var(--font-family-primary);
     font-size: 1rem;
@@ -428,13 +413,9 @@ h6 {
     line-height: 1.5;
     min-height: 3.25rem;
     transform: translateY(0) translateZ(0);
-    transition: transform var(--duration-fast) ease,
-    border-color var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease,
-    background-color var(--duration-normal) ease;
+    transition: transform var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background-color var(--duration-normal) ease;
 }
 
-/* Enhanced Focus States */
 .form-input-enhanced:focus {
     outline: none;
     border-color: var(--color-primary);
@@ -443,25 +424,45 @@ h6 {
     background: color-mix(in srgb, var(--color-background) 98%, var(--color-primary));
 }
 
-/* Enhanced Hover States */
 .form-input-enhanced:hover:not(:focus) {
     border-color: var(--color-text-muted);
     transform: translateY(-1px) translateZ(0);
 }
 
-/* Enhanced Select Styling */
-.form-input-enhanced[type="select"],
+/* CLEAN SELECT STYLING - Single definition to prevent conflicts */
 select.form-input-enhanced {
+    -webkit-appearance: none;
+    -moz-appearance: none;
     appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.75rem center;
+    background-position: right 1rem center;
     background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
+    background-size: 1.25em 1.25em;
     padding-right: 3rem;
     cursor: pointer;
 }
 
-/* Enhanced Textarea Styling */
+/* Dark mode select styling */
+:root.dark select.form-input-enhanced {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Option styling */
+select.form-input-enhanced option {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-family-primary);
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
+}
+
+:root.dark select.form-input-enhanced option {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+}
+
+/* Textarea styling */
 textarea.form-input-enhanced {
     resize: vertical;
     min-height: 8rem;
@@ -469,7 +470,7 @@ textarea.form-input-enhanced {
     padding: 1rem 1.25rem;
 }
 
-/* Enhanced Error Styling */
+/* Form Errors */
 .form-error {
     font-family: var(--font-family-primary);
     font-size: 0.8125rem;
@@ -482,7 +483,7 @@ textarea.form-input-enhanced {
     gap: var(--space-1);
 }
 
-/* Enhanced Button for Forms */
+/* Form Buttons */
 .btn.form-btn {
     min-height: 3.25rem;
     padding: 1rem 2rem;
@@ -491,7 +492,7 @@ textarea.form-input-enhanced {
     letter-spacing: -0.01em;
 }
 
-/* Enhanced Input Group Styling */
+/* Input Groups */
 .form-input-group {
     display: flex;
     gap: 0.75rem;
@@ -507,7 +508,7 @@ textarea.form-input-enhanced {
 }
 
 /* =============================================================================
-   LEGACY FORM SYSTEM - Maintained for compatibility
+   LEGACY FORM SYSTEM
    ============================================================================= */
 .form-label {
     font-family: var(--font-family-primary);
@@ -536,11 +537,7 @@ textarea.form-input-enhanced {
     letter-spacing: -0.01em;
     min-height: 44px;
     transform: translateZ(0);
-    transition: transform var(--duration-fast) ease,
-    border-color var(--duration-fast) ease,
-    box-shadow var(--duration-fast) ease,
-    background-color var(--duration-normal) ease,
-    color var(--duration-normal) ease;
+    transition: transform var(--duration-fast) ease, border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease, background-color var(--duration-normal) ease, color var(--duration-normal) ease;
 }
 
 .form-input:focus,
@@ -553,7 +550,7 @@ textarea.form-input-enhanced {
 }
 
 /* =============================================================================
-   MODAL SYSTEM - Accessible modal components
+   MODAL SYSTEM
    ============================================================================= */
 .modal-overlay {
     position: fixed;
@@ -593,7 +590,6 @@ textarea.form-input-enhanced {
     letter-spacing: -0.01em;
 }
 
-/* Modal Size Variants */
 .modal-sm {
     max-width: 400px;
 }
@@ -615,7 +611,7 @@ textarea.form-input-enhanced {
 }
 
 /* =============================================================================
-   TABLE SYSTEM - Enterprise data tables
+   TABLE SYSTEM
    ============================================================================= */
 .table-container {
     background: var(--gradient-glass);
@@ -633,7 +629,6 @@ textarea.form-input-enhanced {
     border-collapse: collapse;
 }
 
-/* Enhanced Table Headers */
 .table thead,
 table thead,
 thead {
@@ -673,7 +668,7 @@ thead th {
 }
 
 /* =============================================================================
-   STATUS SYSTEM - Application status indicators
+   STATUS SYSTEM
    ============================================================================= */
 .status-badge {
     font-family: var(--font-family-primary);
@@ -715,105 +710,7 @@ thead th {
 }
 
 /* =============================================================================
-   SELECT DROPDOWN SYSTEM - Enhanced Select Controls
-   ============================================================================= */
-
-/* Target the specific select elements */
-select.form-input-enhanced {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    display: block;
-    position: relative;
-    width: 100%;
-    background-color: var(--color-background);
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 1rem center;
-    background-repeat: no-repeat;
-    background-size: 1.25em 1.25em;
-    color: var(--color-text-primary);
-    font-family: var(--font-family-primary);
-    font-size: 1rem;
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-    letter-spacing: -0.01em;
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    min-height: 3.25rem;
-    height: 3rem;
-    padding: 0.75rem 3rem 0.75rem 1.25rem;
-    cursor: pointer;
-    user-select: none;
-    z-index: 10;
-    transition: all var(--duration-fast) ease;
-}
-
-/* Focus states for selects */
-select.form-input-enhanced:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-    transform: translateY(-1px);
-    background-color: rgba(255, 255, 255, 0.98);
-}
-
-/* Hover states for selects */
-select.form-input-enhanced:hover:not(:focus) {
-    border-color: var(--color-text-muted);
-    transform: translateY(-1px);
-    background-color: rgba(255, 255, 255, 0.95);
-}
-
-/* Option styling for better visibility */
-select.form-input-enhanced option {
-    background-color: var(--color-background);
-    color: var(--color-text-primary);
-    padding: 0.75rem 1rem;
-    font-family: var(--font-family-primary);
-    font-size: 1rem;
-    font-weight: var(--font-weight-medium);
-}
-
-/* =============================================================================
-   LOGO SYSTEM - Enhanced logo clarity
-   ============================================================================= */
-.logo-crisp {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-    object-fit: contain;
-    object-position: center;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    max-width: 100%;
-    height: auto;
-    filter: none;
-}
-
-.logo-retina {
-    image-rendering: -webkit-optimize-contrast;
-    transform: translateZ(0);
-}
-
-/* Logo size variants */
-.logo-sm {
-    width: 24px;
-    height: 24px;
-}
-
-.logo-md {
-    width: 32px;
-    height: 32px;
-}
-
-.logo-lg {
-    width: 48px;
-    height: 48px;
-}
-
-/* =============================================================================
-   UTILITY SYSTEM - Responsive and accessibility helpers
+   UTILITY SYSTEM
    ============================================================================= */
 .mobile-only {
     display: block;
@@ -823,7 +720,6 @@ select.form-input-enhanced option {
     display: none;
 }
 
-/* Animation Classes */
 .animate-fade-in {
     animation: fadeIn var(--duration-normal) ease-out;
 }
@@ -842,7 +738,7 @@ select.form-input-enhanced option {
 }
 
 /* =============================================================================
-   SCROLLBAR SYSTEM - Custom scrollbar styling
+   SCROLLBAR SYSTEM
    ============================================================================= */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -865,7 +761,7 @@ select.form-input-enhanced option {
 }
 
 /* =============================================================================
-   FOCUS SYSTEM - Accessibility and keyboard navigation
+   FOCUS SYSTEM
    ============================================================================= */
 *:focus {
     outline: none;
@@ -882,7 +778,7 @@ select.form-input-enhanced option {
 }
 
 /* =============================================================================
-   COMPONENT VARIANTS - Extended styling options
+   COMPONENT VARIANTS
    ============================================================================= */
 .card-compact {
     padding: var(--space-4);
@@ -927,14 +823,13 @@ select.form-input-enhanced option {
     z-index: 51;
 }
 
-/* Hover effects for better user experience */
 .user-menu-container .animate-slideDown {
     animation-fill-mode: both;
     transform-origin: top right;
 }
 
 /* =============================================================================
-   IMPORT/EXPORT MODAL CONSISTENCY - Unified styling
+   IMPORT/EXPORT MODAL CONSISTENCY
    ============================================================================= */
 .import-export-modal {
     background: var(--gradient-glass);
@@ -960,7 +855,7 @@ select.form-input-enhanced option {
 }
 
 /* =============================================================================
-   PERFORMANCE OPTIMIZATIONS - GPU acceleration and efficiency
+   PERFORMANCE OPTIMIZATIONS
    ============================================================================= */
 .card,
 .btn,
@@ -972,20 +867,18 @@ select.form-input-enhanced option {
     will-change: transform;
 }
 
-/* Optimize composite layers */
 .header-fixed,
 .sidebar-fixed,
 .modal-overlay {
     contain: layout style paint;
 }
 
-/* Critical content optimization */
 .main-content {
     contain: layout;
 }
 
 /* =============================================================================
-   Z-INDEX MANAGEMENT - Layer hierarchy
+   Z-INDEX MANAGEMENT
    ============================================================================= */
 .dropdown-menu,
 .popover {
@@ -1009,7 +902,133 @@ select.form-input-enhanced option {
 }
 
 /* =============================================================================
-   KEYFRAME ANIMATIONS - Smooth micro-interactions
+   DARK MODE OPTIMIZATIONS
+   ============================================================================= */
+:root.dark .form-input-enhanced {
+    background: color-mix(in srgb, var(--color-background) 95%, var(--color-surface));
+    border-color: var(--color-border);
+}
+
+:root.dark .form-input-enhanced:focus {
+    background: color-mix(in srgb, var(--color-background) 90%, var(--color-primary));
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+:root.dark .form-input-enhanced:hover:not(:focus) {
+    border-color: var(--color-text-muted);
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
+        scroll-behavior: auto;
+    }
+
+    .card,
+    .btn,
+    .form-input,
+    .form-select,
+    .form-textarea,
+    .form-input-enhanced,
+    .btn.form-btn {
+        transform: none;
+        transition: none;
+    }
+
+    .form-input-enhanced:focus,
+    .form-input-enhanced:hover {
+        transform: none;
+    }
+}
+
+@media (prefers-contrast: high) {
+    .text-gradient-primary,
+    .text-gradient-blue,
+    .text-gradient-purple {
+        background: none;
+        color: var(--color-text-primary);
+    }
+
+    .btn-primary {
+        background: var(--color-primary);
+        border: 2px solid var(--color-primary-dark);
+    }
+
+    .form-input-enhanced {
+        border-width: 2px;
+        border-color: var(--color-text-primary);
+    }
+
+    .form-input-enhanced:focus {
+        border-width: 3px;
+        box-shadow: 0 0 0 2px var(--color-primary);
+    }
+
+    .form-label-enhanced {
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-primary);
+    }
+}
+
+/* =============================================================================
+   TOUCH DEVICES
+   ============================================================================= */
+@media (hover: none) and (pointer: coarse) {
+    .btn,
+    .clickable,
+    button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .btn:hover,
+    .card:hover {
+        transform: translateZ(0);
+    }
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+@media print {
+    * {
+        background: white;
+        color: black;
+        box-shadow: none;
+        transform: none;
+    }
+
+    .header-fixed,
+    .sidebar-fixed,
+    .modal-overlay,
+    .toast-container {
+        display: none;
+    }
+
+    .main-content {
+        padding-top: 0;
+        margin-left: 0;
+    }
+
+    .mobile-only {
+        display: none;
+    }
+
+    .desktop-only {
+        display: block;
+    }
+}
+
+/* =============================================================================
+   KEYFRAME ANIMATIONS
    ============================================================================= */
 @keyframes fadeIn {
     from {
@@ -1065,166 +1084,12 @@ select.form-input-enhanced option {
 }
 
 /* =============================================================================
-   PRINT STYLES - Document printing optimizations
-   ============================================================================= */
-@media print {
-    * {
-        background: white;
-        color: black;
-        box-shadow: none;
-        transform: none;
-    }
-
-    .header-fixed,
-    .sidebar-fixed,
-    .modal-overlay,
-    .toast-container {
-        display: none;
-    }
-
-    .main-content {
-        padding-top: 0;
-        margin-left: 0;
-    }
-
-    .mobile-only {
-        display: none;
-    }
-
-    .desktop-only {
-        display: block;
-    }
-}
-
-/* =============================================================================
-   ACCESSIBILITY - Motion and contrast preferences
-   ============================================================================= */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms;
-        animation-iteration-count: 1;
-        transition-duration: 0.01ms;
-        scroll-behavior: auto;
-    }
-
-    .card,
-    .btn,
-    .form-input,
-    .form-select,
-    .form-textarea,
-    .form-input-enhanced,
-    .btn.form-btn {
-        transform: none;
-        transition: none;
-    }
-
-    .form-input-enhanced:focus,
-    .form-input-enhanced:hover {
-        transform: none;
-    }
-}
-
-@media (prefers-contrast: high) {
-    .text-gradient-primary,
-    .text-gradient-blue,
-    .text-gradient-purple {
-        background: none;
-        color: var(--color-text-primary);
-    }
-
-    .btn-primary {
-        background: var(--color-primary);
-        border: 2px solid var(--color-primary-dark);
-    }
-
-    /* High contrast form support */
-    .form-input-enhanced {
-        border-width: 2px;
-        border-color: var(--color-text-primary);
-    }
-
-    .form-input-enhanced:focus {
-        border-width: 3px;
-        box-shadow: 0 0 0 2px var(--color-primary);
-    }
-
-    .form-label-enhanced {
-        font-weight: var(--font-weight-bold);
-        color: var(--color-text-primary);
-    }
-}
-
-/* =============================================================================
-   TOUCH DEVICES - Mobile interaction optimizations
-   ============================================================================= */
-@media (hover: none) and (pointer: coarse) {
-    .btn,
-    .clickable,
-    button {
-        min-height: 44px;
-        min-width: 44px;
-    }
-
-    .btn:hover,
-    .card:hover {
-        transform: translateZ(0);
-    }
-}
-
-/* =============================================================================
-   DARK MODE OPTIMIZATIONS - Enhanced form support
-   ============================================================================= */
-:root.dark .form-input-enhanced {
-    background: color-mix(in srgb, var(--color-background) 95%, var(--color-surface));
-    border-color: var(--color-border);
-}
-
-:root.dark .form-input-enhanced:focus {
-    background: color-mix(in srgb, var(--color-background) 90%, var(--color-primary));
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
-}
-
-:root.dark .form-input-enhanced:hover:not(:focus) {
-    border-color: var(--color-text-muted);
-}
-
-/* Dark mode specific fixes for selects */
-:root.dark select.form-input-enhanced {
-    background-color: var(--color-background);
-    border-color: var(--color-border);
-    color: var(--color-text-primary);
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-}
-
-:root.dark select.form-input-enhanced:focus {
-    background-color: rgba(15, 23, 42, 0.98);
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-}
-
-:root.dark select.form-input-enhanced:hover:not(:focus) {
-    background-color: rgba(15, 23, 42, 0.95);
-    border-color: var(--color-text-muted);
-}
-
-:root.dark select.form-input-enhanced option {
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-}
-
-/* =============================================================================
    BROWSER-SPECIFIC FIXES
    ============================================================================= */
-
-/* Additional browser-specific fixes */
 select.form-input-enhanced::-ms-expand {
     display: none;
 }
 
-/* Firefox specific fixes */
 @-moz-document url-prefix() {
     select.form-input-enhanced {
         text-indent: 0.01px;
@@ -1232,7 +1097,6 @@ select.form-input-enhanced::-ms-expand {
     }
 }
 
-/* Safari specific fixes */
 @supports (-webkit-appearance: none) {
     select.form-input-enhanced {
         -webkit-appearance: none;
@@ -1240,6 +1104,43 @@ select.form-input-enhanced::-ms-expand {
     }
 }
 
+/* base (already good) */
+select.form-input-enhanced{
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg ...%3e");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;           /* ensure single arrow */
+    background-size: 1.25em 1.25em;
+    padding-right: 3rem;
+}
+
+/* dark mode — restate ALL sub-properties to avoid tiling */
+:root.dark select.form-input-enhanced{
+    background-image: url("data:image/svg+xml,%3csvg ...%3e"); /* light arrow color -> dark */
+    background-position: right 1rem center;
+    background-repeat: no-repeat;           /* critical */
+    background-size: 1.25em 1.25em;
+    padding-right: 3rem;                     /* keep text clear of arrow */
+}
+
+/* optional: hide old IE arrow and harden Safari */
+select.form-input-enhanced::-ms-expand{ display:none; }
+/* Show a normal color until we’re sure text clipping is supported */
+.heading-gradient {
+    color: var(--color-text-primary);        /* fallback visible color */
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* Only then hide the fill (prevents “invisible” text flashes) */
+@supports (-webkit-background-clip: text) {
+    .heading-gradient { color: transparent; }
+}
+
+
 /* =============================================================================
-   END OF STYLES - Consolidated main stylesheet
+   END OF STYLES
    ============================================================================= */

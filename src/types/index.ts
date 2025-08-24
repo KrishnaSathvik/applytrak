@@ -33,7 +33,19 @@ export interface Attachment {
     name: string;
     type: string;
     size: number;
-    data: string; // Base64 data URL
+
+    /**
+     * NEW: where the file actually lives in Supabase Storage,
+     * e.g. "12345/2025-08-23T18-09-12-abc123/resume.pdf"
+     */
+    storagePath?: string;
+
+    /**
+     * Legacy: keep optional so older drafts/records with base64 still compile.
+     * New uploads won’t set this.
+     */
+    data?: string; // Base64 data URL (legacy)
+
     uploadedAt?: string;
 }
 

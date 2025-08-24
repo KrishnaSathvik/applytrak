@@ -147,44 +147,17 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Resume & Attachments"
+            title="Documents"
             size="lg"
             variant="primary"
             className="resume-modal"
         >
-            {/* Application Info Header */}
-            <div
-                className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-3">
-                    <div className={cn(
-                        "w-4 h-4 rounded-full border-2",
-                        getCompanyColor(application.company).split(' ')[0],
-                        getCompanyColor(application.company).split(' ')[2]
-                    )}/>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                            {application.company}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                            {application.position}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            Applied: {new Date(application.dateApplied).toLocaleDateString('en-US', {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
             {/* Resume Content */}
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
                     <Paperclip className="h-5 w-5 text-green-600 dark:text-green-400"/>
                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                        Resume & Attachments
+                        Resume
                     </h4>
                     <span
                         className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
@@ -1140,44 +1113,6 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                         </div>
                     )}
                 </div>
-
-                {/* Notes Preview */}
-                {hasNotes && (
-                    <div
-                        className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-l-4 border-blue-500">
-                        <div className="flex items-start gap-2">
-                            <MessageSquare className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0"/>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between mb-1">
-                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-wider uppercase">Notes
-                                        Preview:</p>
-                                    <NotesIcon
-                                        application={application}
-                                        variant="mobile"
-                                        onClick={onNotesClick}
-                                        className="text-xs px-2 py-0.5"
-                                    />
-                                </div>
-                                <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                                    <p className="whitespace-pre-wrap">
-                                        {application.notes!.length > 100
-                                            ? `${application.notes!.substring(0, 100)}...`
-                                            : application.notes
-                                        }
-                                    </p>
-                                    {application.notes!.length > 100 && (
-                                        <button
-                                            onClick={onNotesClick}
-                                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1 font-medium text-xs hover:underline"
-                                        >
-                                            Read full notes
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 <div
                     className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">

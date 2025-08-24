@@ -6,6 +6,7 @@ import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {ApplicationFormData, Attachment} from '../../types';
 import {applicationFormSchema} from '../../utils/validation';
+import { getAttachmentSignedUrl, deleteAttachment, getCurrentUserId, uploadAttachment } from '../../services/databaseService';
 
 // Constants
 const FORM_STORAGE_KEY = 'applytrak_draft_application';
@@ -225,35 +226,38 @@ const ApplicationForm: React.FC = () => {
         return true;
     };
 
-    const processFile = (file: File, fileIndex: number): Promise<Attachment> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
+// ================== UPLOAD (history) ==================
+    const processFile = async (file: File, fileIndex: number): Promise<Attachment> => {
+        const isSignedIn = !!useAppStore.getState().auth?.isAuthenticated;
 
-            reader.onload = (e) => {
-                const result = e.target?.result;
-                if (!result) {
-                    reject(new Error('Failed to read file'));
-                    return;
-                }
+        // common metadata
+        const base: Partial<Attachment> = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${fileIndex}`,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            uploadedAt: new Date().toISOString(),
+        };
 
-                const attachment: Attachment = {
-                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${fileIndex}`,
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    data: result as string,
-                    uploadedAt: new Date().toISOString()
+        // LOCAL MODE (no auth) -> store as data URL
+        if (!isSignedIn) {
+            const data = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const result = e.target?.result;
+                    if (!result) return reject(new Error('Failed to read file'));
+                    resolve(result as string);
                 };
+                reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+            return { ...base, data } as Attachment;
+        }
 
-                resolve(attachment);
-            };
-
-            reader.onerror = () => {
-                reject(new Error(`Failed to read file: ${file.name}`));
-            };
-
-            reader.readAsDataURL(file);
-        });
+        // CLOUD MODE (signed in) -> upload to Supabase Storage
+        const internalUserId = await getCurrentUserId(); // numeric users.id (auto-upserts if missing)
+        const uploaded = await uploadAttachment(internalUserId, file, fileIndex); // returns { storagePath, ... }
+        return { ...base, storagePath: uploaded.storagePath } as Attachment;
     };
 
     const handleFileSelect = useCallback(async (files: FileList | null) => {
@@ -267,18 +271,28 @@ const ApplicationForm: React.FC = () => {
                 validFiles.map((file, index) => processFile(file, index))
             );
 
-            setAttachments(prev => [...prev, ...newAttachments]);
+            setAttachments((prev) => {
+                const next = [...prev, ...newAttachments];
+                try {
+                    if (next.length > 0) {
+                        localStorage.setItem(ATTACHMENTS_STORAGE_KEY, JSON.stringify(next));
+                    } else {
+                        localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
+                    }
+                } catch {}
+                return next;
+            });
 
             showToast({
                 type: 'success',
                 message: `${newAttachments.length} file(s) attached successfully!`,
-                duration: 2000
+                duration: 2000,
             });
         } catch (error) {
             console.error('Error processing files:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to process some files. Please try again.'
+                message: 'Failed to process some files. Please try again.',
             });
         }
     }, [showToast]);
@@ -291,31 +305,108 @@ const ApplicationForm: React.FC = () => {
         e.target.value = '';
     }, [handleFileSelect]);
 
-    const removeAttachment = useCallback((index: number) => {
-        setAttachments(current => {
-            if (index < 0 || index >= current.length) {
-                console.error('Invalid attachment index:', index);
-                return current;
+// ================== VIEW / DOWNLOAD ==================
+    const viewAttachment = useCallback(async (att: Attachment) => {
+        try {
+            if (att.storagePath) {
+                const url = await getAttachmentSignedUrl(att.storagePath, 300);
+                window.open(url, '_blank', 'noopener,noreferrer');
+                return;
             }
-            return current.filter((_, i) => i !== index);
-        });
-    }, []);
+            if (att.data) {
+                window.open(att.data, '_blank', 'noopener,noreferrer'); // local data URL
+                return;
+            }
+            showToast({ type: 'error', message: 'No file available to view.' });
+        } catch (err: any) {
+            showToast({ type: 'error', message: `View failed: ${err.message ?? err}` });
+        }
+    }, [showToast]);
 
+    const downloadAttachment = useCallback(async (att: Attachment) => {
+        try {
+            if (att.storagePath) {
+                // cloud: use signed URL
+                const href = await getAttachmentSignedUrl(att.storagePath, 300);
+                const a = document.createElement('a');
+                a.href = href;
+                a.download = att.name || 'download';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                return;
+            }
+
+            if (att.data) {
+                // local: convert data URL to Blob for a clean download
+                const res = await fetch(att.data);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = att.name || 'download';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                return;
+            }
+
+            showToast({ type: 'error', message: 'No file available to download.' });
+        } catch (err: any) {
+            showToast({ type: 'error', message: `Download failed: ${err.message ?? err}` });
+        }
+    }, [showToast]);
+
+// ================== DELETE (cloud + UI) ==================
+    const removeAttachment = useCallback(async (index: number) => {
+        const att = attachments[index];
+        if (!att) {
+            console.error('Invalid attachment index:', index);
+            return;
+        }
+
+        // Cloud-backed: try delete from Storage first
+        if (att.storagePath) {
+            try {
+                await deleteAttachment(att.storagePath);
+            } catch (err: any) {
+                console.error('Failed to delete from storage:', err);
+                showToast({
+                    type: 'error',
+                    message: `Could not delete ${att.name} from cloud: ${err.message ?? err}`,
+                });
+                return; // keep in UI if cloud delete failed
+            }
+        }
+        // Local-only (or cloud delete succeeded): remove from state + draft
+        setAttachments((current) => {
+            const next = current.filter((_, i) => i !== index);
+            try {
+                if (next.length > 0) {
+                    localStorage.setItem(ATTACHMENTS_STORAGE_KEY, JSON.stringify(next));
+                } else {
+                    localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
+                }
+            } catch {}
+            return next;
+        });
+
+        showToast({ type: 'success', message: `Deleted: ${att.name}` });
+    }, [attachments, showToast]);
+
+// ================== DRAG & DROP ==================
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!isDragOver) {
-            setIsDragOver(true);
-        }
+        if (!isDragOver) setIsDragOver(true);
     }, [isDragOver]);
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-
         const rect = e.currentTarget.getBoundingClientRect();
-        const {clientX: x, clientY: y} = e;
-
+        const { clientX: x, clientY: y } = e;
         if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
             setIsDragOver(false);
         }
@@ -324,15 +415,14 @@ const ApplicationForm: React.FC = () => {
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-
         const droppedFiles = e.dataTransfer.files;
         setIsDragOver(false);
-
         if (droppedFiles.length > 0) {
             handleFileSelect(droppedFiles);
         }
     }, [handleFileSelect]);
 
+// ================== SUBMIT ==================
     const onSubmit: SubmitHandler<ApplicationFormData> = async (data) => {
         try {
             await addApplication({
@@ -346,7 +436,7 @@ const ApplicationForm: React.FC = () => {
                 jobSource: data.jobSource || undefined,
                 jobUrl: data.jobUrl || undefined,
                 notes: data.notes || undefined,
-                attachments: attachments.length > 0 ? attachments : undefined
+                attachments: attachments.length > 0 ? attachments : undefined,
             });
 
             clearDraft();
@@ -360,20 +450,16 @@ const ApplicationForm: React.FC = () => {
                 salary: '',
                 jobSource: '',
                 jobUrl: '',
-                notes: ''
+                notes: '',
             });
 
             setAttachments([]);
-
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-
+            if (fileInputRef.current) fileInputRef.current.value = '';
         } catch (error) {
             console.error('Error submitting application:', error);
             showToast({
                 type: 'error',
-                message: 'Failed to add application. Please try again.'
+                message: 'Failed to add application. Please try again.',
             });
         }
     };
@@ -383,6 +469,7 @@ const ApplicationForm: React.FC = () => {
         if (length > 1500) return 'bg-yellow-500';
         return 'bg-blue-500';
     };
+
 
     const getCharacterCountTextStyle = (length: number) => {
         if (length > 1800) {
@@ -413,15 +500,6 @@ const ApplicationForm: React.FC = () => {
                         </p>
                     </div>
                 </div>
-
-                {/* Auto-Save Status */}
-                {lastSaved && (
-                    <div
-                        className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
-                        Auto-saved at {lastSaved.toLocaleTimeString()}
-                    </div>
-                )}
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
@@ -652,8 +730,7 @@ Feel free to include any relevant information that will help you track this oppo
 
                 {/* Attachments */}
                 <div className="space-y-4">
-                    <label className="form-label-enhanced">Resume & Documents</label>
-
+                    <label className="form-label-enhanced">Resume</label>
                     {attachments.length > 0 && (
                         <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-4 mb-4">
                             {attachments.map((attachment, index) => (
@@ -661,10 +738,11 @@ Feel free to include any relevant information that will help you track this oppo
                                     key={attachment.id || index}
                                     className="glass rounded-xl p-4 hover:bg-white/30 dark:hover:bg-black/30 transition-all duration-300 group border border-gray-200/50 dark:border-gray-700/50"
                                 >
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between gap-3">
+                                        {/* Left: file info */}
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className="glass rounded-lg p-2 flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-                                                <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
+                                                <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate tracking-tight">
@@ -672,23 +750,52 @@ Feel free to include any relevant information that will help you track this oppo
                                                 </p>
                                                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 tracking-wider">
                                                     {(attachment.size / 1024 / 1024).toFixed(2)} MB
+                                                    {attachment.storagePath ? (
+                                                        <span className="ml-2 text-green-600 dark:text-green-400">• cloud</span>
+                                                    ) : (
+                                                        <span className="ml-2 text-yellow-600 dark:text-yellow-400">• local</span>
+                                                    )}
                                                 </p>
                                             </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeAttachment(index)}
-                                            className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:scale-110 transition-all duration-200 p-2 flex-shrink-0 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
-                                            title="Remove attachment"
-                                        >
-                                            <X className="h-4 w-4"/>
-                                        </button>
+
+                                        {/* Right: actions */}
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            {/* View */}
+                                            <button
+                                                type="button"
+                                                onClick={() => viewAttachment(attachment)}
+                                                className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-blue-600 hover:text-blue-700 hover:scale-110 transition-all duration-200 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                                title="View file"
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </button>
+
+                                            {/* Download (text label to avoid extra icon import) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => downloadAttachment(attachment)}
+                                                className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-indigo-600 hover:text-indigo-700 hover:scale-110 transition-all duration-200 px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-xs font-bold"
+                                                title="Download file"
+                                            >
+                                                Download
+                                            </button>
+
+                                            {/* Delete */}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeAttachment(index)}
+                                                className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:scale-110 transition-all duration-200 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                title="Remove file"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
-
                     {/* Drop zone */}
                     <div
                         className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all duration-300 ${
@@ -703,7 +810,7 @@ Feel free to include any relevant information that will help you track this oppo
                         <div className="space-y-3 sm:space-y-4">
                             <div className="flex justify-center">
                                 <div className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400"/>
+                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
                                 </div>
                             </div>
 
@@ -729,31 +836,30 @@ Feel free to include any relevant information that will help you track this oppo
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Submit Button */}
-                <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="btn btn-primary form-btn w-full sm:w-auto group relative overflow-hidden font-bold tracking-wide shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"/>
-                                <span className="hidden sm:inline font-bold tracking-wide">Adding Application...</span>
-                                <span className="sm:hidden font-bold">Adding...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300"/>
-                                <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
-                                <span className="sm:hidden font-bold">Add Application</span>
-                                <Sparkles
-                                    className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
-                            </>
-                        )}
-                    </button>
+                    {/* Submit Button */}
+                    <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="btn btn-primary form-btn w-full sm:w-auto group relative overflow-hidden font-bold tracking-wide shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                                    <span className="hidden sm:inline font-bold tracking-wide">Adding Application...</span>
+                                    <span className="sm:hidden font-bold">Adding...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                                    <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
+                                    <span className="sm:hidden font-bold">Add Application</span>
+                                    <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300" />
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
