@@ -346,7 +346,133 @@ export const exportToPDF = async (applications: Application[]): Promise<void> =>
     }
 };
 
-// Enhanced JSON Import
+// --- helpers for JSON import ---
+const sanitizeAttachment = (att: any) => ({
+    // keep ONLY metadata; drop huge base64 "data"
+    id: String(att?.id ?? ''),
+    name: att?.name != null ? String(att.name) : '',
+    size: typeof att?.size === 'number' ? att.size : Number(att?.size ?? 0) || 0,
+    type: att?.type != null ? String(att.type) : undefined,
+    uploadedAt: att?.uploadedAt != null ? String(att.uploadedAt) : undefined,
+    ...(att?.storagePath ? {storagePath: String(att.storagePath)} : {})
+});
+
+const sanitizeIncomingApplication = (a: any): Partial<Application> => {
+    // normalize attachments: drop base64 "data", keep metadata
+    const attachments = Array.isArray(a?.attachments)
+        ? a.attachments.map(sanitizeAttachment)
+        : [];
+
+    // company variants we’ve seen in the wild
+    const company =
+        (typeof a?.company === 'string' && a.company) ||
+        (typeof a?.companyName === 'string' && a.companyName) ||
+        (typeof a?.employer === 'string' && a.employer) ||
+        (typeof a?.organization === 'string' && a.organization) ||
+        (typeof a?.org === 'string' && a.org) ||
+        (typeof a?.company_name === 'string' && a.company_name) ||
+        '';
+
+    // position / title variants
+    const position =
+        (typeof a?.position === 'string' && a.position) ||
+        (typeof a?.role === 'string' && a.role) ||
+        (typeof a?.jobTitle === 'string' && a.jobTitle) ||
+        (typeof a?.title === 'string' && a.title) ||
+        (typeof a?.job === 'string' && a.job) ||
+        (typeof a?.job_position === 'string' && a.job_position) ||
+        '';
+
+    // dates / status / type variants
+    const dateAppliedRaw =
+        a?.dateApplied ??
+        a?.appliedDate ??
+        a?.applicationDate ??
+        a?.applied_on ??
+        a?.date;
+
+    const statusRaw = a?.status ?? a?.applicationStatus;
+    const typeRaw = a?.type ?? a?.jobType ?? a?.workType;
+
+    return {
+        id:
+            a?.id != null
+                ? String(a.id)
+                : `imported-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        company: String(company).trim(),
+        position: String(position).trim(),
+        dateApplied: dateAppliedRaw != null ? String(dateAppliedRaw) : '',
+        // cast as any; validator clamps to VALID_* lists
+        status: (statusRaw != null ? String(statusRaw) : '') as any,
+        type: (typeRaw != null ? String(typeRaw) : '') as any,
+        location: a?.location == null ? '' : String(a.location),
+        salary: a?.salary == null ? '' : String(a.salary),
+        jobSource: a?.jobSource == null ? '' : String(a.jobSource ?? a?.source),
+        jobUrl: a?.jobUrl == null ? '' : String(a.jobUrl ?? a?.url ?? a?.link),
+        notes: a?.notes == null ? '' : String(a.notes),
+        attachments,
+        createdAt: a?.createdAt ? String(a.createdAt) : undefined,
+        updatedAt: a?.updatedAt ? String(a.updatedAt) : undefined,
+    };
+};
+
+// Find an applications array regardless of wrapper key
+const extractApplicationsArray = (data: any): any[] => {
+    if (Array.isArray(data)) return data;
+
+    // Common wrappers we see in the wild
+    const candidates = [
+        'applications', 'data', 'records', 'items', 'rows', 'results', 'apps'
+    ];
+
+    for (const key of candidates) {
+        const arr = (data as any)?.[key];
+        if (Array.isArray(arr)) return arr;
+    }
+
+    // Last-ditch: if the object has exactly one array value, use it
+    if (data && typeof data === 'object') {
+        const arrays = Object.values(data).filter(v => Array.isArray(v)) as any[];
+        if (arrays.length === 1) return arrays[0];
+    }
+
+    return [];
+};
+
+const validateApplications = (applications: any[]): ImportResult => {
+    const validApplications: Application[] = [];
+    const warnings: string[] = [];
+    const reasons: Record<string, number> = {};
+
+    applications.forEach((app, index) => {
+        try {
+            const validatedApp = validateAndCleanApplication(app, index);
+            validApplications.push(validatedApp);
+        } catch (error) {
+            const msg = (error as Error).message || 'Unknown validation error';
+            warnings.push(`Application ${index + 1}: ${msg}`);
+            reasons[msg] = (reasons[msg] || 0) + 1;
+        }
+    });
+
+    if (validApplications.length === 0) {
+        const topReasons = Object.entries(reasons)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([msg, count]) => `• ${msg} (x${count})`)
+            .join('\n');
+        throw new Error(
+            `No valid applications found after validation.\nMost common issues:\n${topReasons || 'No reasons captured.'}`
+        );
+    }
+
+    return {
+        applications: validApplications,
+        warnings,
+        totalProcessed: applications.length,
+    };
+};
+
 export const importFromJSON = async (file: File): Promise<ImportResult> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -356,20 +482,62 @@ export const importFromJSON = async (file: File): Promise<ImportResult> => {
                 const content = event.target?.result as string;
                 const data = JSON.parse(content);
 
-                let applications: Application[];
+                // 1) Find apps array regardless of wrapper key
+                const rawApps = extractApplicationsArray(data);
 
-                // Handle different JSON structures
-                if (Array.isArray(data)) {
-                    applications = data;
-                } else if (data.applications && Array.isArray(data.applications)) {
-                    applications = data.applications;
-                } else if (data.data && Array.isArray(data.data)) {
-                    applications = data.data;
-                } else {
-                    throw new Error('Invalid JSON format. Expected an array of applications or an object with an "applications" property.');
+                // ---- DIAGNOSTICS ----
+                const rootKeys = data && typeof data === 'object' ? Object.keys(data) : [];
+                console.log('[Import] root keys:', rootKeys.length ? rootKeys : '(not object)');
+                console.log('[Import] detected apps length:', rawApps.length);
+                console.log('[Import] first raw keys:', rawApps[0] ? Object.keys(rawApps[0]) : '(none)');
+
+                if (!rawApps.length) {
+                    throw new Error(
+                        'Invalid JSON format. Expected an array of applications or an object containing one (e.g., "applications").'
+                    );
                 }
 
-                const result = validateApplications(applications);
+                // 2) Sanitize (drops attachments.data; coerces types/strings; maps alt keys)
+                const sanitized = rawApps.map(sanitizeIncomingApplication);
+
+                // More DIAGNOSTICS
+                const countNonEmpty = (k: 'company' | 'position') =>
+                    sanitized.reduce((n, a) => n + (a?.[k] ? 1 : 0), 0);
+
+                console.log('[Import] sanitized counts:', {
+                    companyNonEmpty: countNonEmpty('company'),
+                    positionNonEmpty: countNonEmpty('position'),
+                });
+                if (sanitized[0]) {
+                    // print a trimmed sample (avoid huge logs)
+                    const {attachments, notes, ...rest} = sanitized[0];
+                    console.log('[Import] sample sanitized (trimmed):', {
+                        ...rest,
+                        attachmentsCount: Array.isArray(attachments) ? attachments.length : 0,
+                        notesLen: typeof notes === 'string' ? notes.length : 0,
+                    });
+                }
+
+                // 3) Quick guard: keep only objects
+                const prefiltered = sanitized.filter(a => a && typeof a === 'object');
+                console.log('[Import] prefiltered length:', prefiltered.length);
+
+                // 4) Validate & return (cast to satisfy TS unions; validator enforces actual values)
+                let result: ImportResult;
+                try {
+                    result = validateApplications(prefiltered as unknown as Partial<Application>[]);
+                } catch (e: any) {
+                    console.error('[Import] validateApplications threw:', e?.message || e);
+                    // Surface a concise error up to UI
+                    throw new Error(e?.message || 'Validation failed');
+                }
+
+                console.log('[Import] validation passed:', {
+                    totalProcessed: result.totalProcessed,
+                    validCount: result.applications.length,
+                    warnings: result.warnings?.length || 0,
+                });
+
                 resolve(result);
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -526,31 +694,6 @@ const createApplicationFromCSVRow = (
     };
 };
 
-// Validation Functions
-const validateApplications = (applications: Partial<Application>[]): ImportResult => {
-    const validApplications: Application[] = [];
-    const warnings: string[] = [];
-
-    applications.forEach((app, index) => {
-        try {
-            const validatedApp = validateAndCleanApplication(app, index);
-            validApplications.push(validatedApp);
-        } catch (error) {
-            warnings.push(`Application ${index + 1}: ${(error as Error).message}`);
-        }
-    });
-
-    if (validApplications.length === 0) {
-        throw new Error('No valid applications found after validation.');
-    }
-
-    return {
-        applications: validApplications,
-        warnings,
-        totalProcessed: applications.length
-    };
-};
-
 const validateAndCleanApplication = (app: any, index: number): Application => {
     if (!app || typeof app !== 'object') {
         throw new Error('Invalid application data');
@@ -576,17 +719,20 @@ const validateAndCleanApplication = (app: any, index: number): Application => {
 
     return {
         id: app.id || `imported-${Date.now()}-${index}`,
-        company: app.company.trim(),
-        position: app.position.trim(),
+        company: String(app.company).trim(),
+        position: String(app.position).trim(),
         dateApplied,
         status: status as any,
         type: type as any,
-        location: app.location?.trim() || '',
-        salary: app.salary?.trim() || '',
-        jobSource: app.jobSource?.trim() || '',
-        jobUrl: app.jobUrl?.trim() || '',
-        notes: app.notes?.trim() || '',
-        attachments: Array.isArray(app.attachments) ? app.attachments : [],
+        location: app.location?.trim?.() || '',
+        salary: app.salary?.trim?.() || '',
+        jobSource: app.jobSource?.trim?.() || '',
+        jobUrl: app.jobUrl?.trim?.() || '',
+        notes: app.notes?.trim?.() || '',
+        // ensure attachments are metadata-only
+        attachments: Array.isArray(app.attachments)
+            ? app.attachments.map(sanitizeAttachment)
+            : [],
         createdAt: app.createdAt || new Date().toISOString(),
         updatedAt: app.updatedAt || new Date().toISOString()
     };

@@ -6,7 +6,12 @@ import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {ApplicationFormData, Attachment} from '../../types';
 import {applicationFormSchema} from '../../utils/validation';
-import { getAttachmentSignedUrl, deleteAttachment, getCurrentUserId, uploadAttachment } from '../../services/databaseService';
+import {
+    deleteAttachment,
+    getAttachmentSignedUrl,
+    getCurrentUserId,
+    uploadAttachment
+} from '../../services/databaseService';
 
 // Constants
 const FORM_STORAGE_KEY = 'applytrak_draft_application';
@@ -105,7 +110,7 @@ const ApplicationForm: React.FC = () => {
 
                     Object.keys(parsedData).forEach(key => {
                         if (parsedData[key] !== undefined && parsedData[key] !== '') {
-                            setValue(key as keyof ApplicationFormData, parsedData[key], { shouldDirty: true });
+                            setValue(key as keyof ApplicationFormData, parsedData[key], {shouldDirty: true});
                         }
                     });
 
@@ -239,25 +244,16 @@ const ApplicationForm: React.FC = () => {
             uploadedAt: new Date().toISOString(),
         };
 
-        // LOCAL MODE (no auth) -> store as data URL
+        // LOCAL MODE (no auth) -> store as Blob URL (safer than data URL for window.open)
         if (!isSignedIn) {
-            const data = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const result = e.target?.result;
-                    if (!result) return reject(new Error('Failed to read file'));
-                    resolve(result as string);
-                };
-                reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
-                reader.readAsDataURL(file);
-            });
-            return { ...base, data } as Attachment;
+            const objectUrl = URL.createObjectURL(file);
+            return {...base, data: objectUrl} as Attachment;
         }
 
         // CLOUD MODE (signed in) -> upload to Supabase Storage
         const internalUserId = await getCurrentUserId(); // numeric users.id (auto-upserts if missing)
         const uploaded = await uploadAttachment(internalUserId, file, fileIndex); // returns { storagePath, ... }
-        return { ...base, storagePath: uploaded.storagePath } as Attachment;
+        return {...base, storagePath: uploaded.storagePath} as Attachment;
     };
 
     const handleFileSelect = useCallback(async (files: FileList | null) => {
@@ -279,7 +275,8 @@ const ApplicationForm: React.FC = () => {
                     } else {
                         localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
                     }
-                } catch {}
+                } catch {
+                }
                 return next;
             });
 
@@ -314,12 +311,24 @@ const ApplicationForm: React.FC = () => {
                 return;
             }
             if (att.data) {
-                window.open(att.data, '_blank', 'noopener,noreferrer'); // local data URL
+                // If we already stored a Blob URL (blob:…), open directly
+                if (att.data.startsWith('blob:')) {
+                    window.open(att.data, '_blank', 'noopener,noreferrer');
+                    return;
+                }
+
+                // Legacy fallback for older saved drafts: convert data: URL -> Blob URL
+                const res = await fetch(att.data);
+                const blob = await res.blob();
+                const objUrl = URL.createObjectURL(blob);
+                window.open(objUrl, '_blank', 'noopener,noreferrer');
+                // revoke after a minute to give the new tab time to load
+                setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
                 return;
             }
-            showToast({ type: 'error', message: 'No file available to view.' });
+            showToast({type: 'error', message: 'No file available to view.'});
         } catch (err: any) {
-            showToast({ type: 'error', message: `View failed: ${err.message ?? err}` });
+            showToast({type: 'error', message: `View failed: ${err.message ?? err}`});
         }
     }, [showToast]);
 
@@ -338,23 +347,31 @@ const ApplicationForm: React.FC = () => {
             }
 
             if (att.data) {
-                // local: convert data URL to Blob for a clean download
-                const res = await fetch(att.data);
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
+
+                if (att.data.startsWith('blob:')) {
+                    // For Blob URLs, no need to refetch — link directly to the object URL
+                    a.href = att.data;
+                } else {
+                    // Legacy data: URL -> convert to a Blob and use an object URL for a clean download
+                    const res = await fetch(att.data);
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    a.href = url;
+                    // cleanup after click
+                    setTimeout(() => URL.revokeObjectURL(url), 0);
+                }
+
                 a.download = att.name || 'download';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                URL.revokeObjectURL(url);
                 return;
             }
 
-            showToast({ type: 'error', message: 'No file available to download.' });
+            showToast({type: 'error', message: 'No file available to download.'});
         } catch (err: any) {
-            showToast({ type: 'error', message: `Download failed: ${err.message ?? err}` });
+            showToast({type: 'error', message: `Download failed: ${err.message ?? err}`});
         }
     }, [showToast]);
 
@@ -388,11 +405,12 @@ const ApplicationForm: React.FC = () => {
                 } else {
                     localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
                 }
-            } catch {}
+            } catch {
+            }
             return next;
         });
 
-        showToast({ type: 'success', message: `Deleted: ${att.name}` });
+        showToast({type: 'success', message: `Deleted: ${att.name}`});
     }, [attachments, showToast]);
 
 // ================== DRAG & DROP ==================
@@ -406,7 +424,7 @@ const ApplicationForm: React.FC = () => {
         e.preventDefault();
         e.stopPropagation();
         const rect = e.currentTarget.getBoundingClientRect();
-        const { clientX: x, clientY: y } = e;
+        const {clientX: x, clientY: y} = e;
         if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
             setIsDragOver(false);
         }
@@ -482,11 +500,13 @@ const ApplicationForm: React.FC = () => {
     };
 
     return (
-        <div className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
+        <div
+            className="glass-card bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 border-2 border-green-200/30 dark:border-green-700/30">
             {/* Header with Auto-Save Status */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
+                    <div
+                        className="glass rounded-lg sm:rounded-xl p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-blue-500/20 flex-shrink-0">
                         <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400"/>
                     </div>
                     <div>
@@ -656,7 +676,8 @@ const ApplicationForm: React.FC = () => {
                 </div>
 
                 {/* Notes Section */}
-                <div className="space-y-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl p-6 border border-blue-200/30 dark:border-blue-700/30">
+                <div
+                    className="space-y-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl p-6 border border-blue-200/30 dark:border-blue-700/30">
                     <div className="flex items-center justify-between">
                         <label className="form-label-enhanced text-lg font-bold text-blue-900 dark:text-blue-100 mb-0">
                             📝 Notes
@@ -741,8 +762,9 @@ Feel free to include any relevant information that will help you track this oppo
                                     <div className="flex items-center justify-between gap-3">
                                         {/* Left: file info */}
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                                            <div className="glass rounded-lg p-2 flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-                                                <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                            <div
+                                                className="glass rounded-lg p-2 flex-shrink-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                                                <Upload className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate tracking-tight">
@@ -768,7 +790,7 @@ Feel free to include any relevant information that will help you track this oppo
                                                 className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-blue-600 hover:text-blue-700 hover:scale-110 transition-all duration-200 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                                 title="View file"
                                             >
-                                                <ExternalLink className="h-4 w-4" />
+                                                <ExternalLink className="h-4 w-4"/>
                                             </button>
 
                                             {/* Download (text label to avoid extra icon import) */}
@@ -788,7 +810,7 @@ Feel free to include any relevant information that will help you track this oppo
                                                 className="opacity-70 sm:opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 hover:scale-110 transition-all duration-200 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 title="Remove file"
                                             >
-                                                <X className="h-4 w-4" />
+                                                <X className="h-4 w-4"/>
                                             </button>
                                         </div>
                                     </div>
@@ -809,15 +831,17 @@ Feel free to include any relevant information that will help you track this oppo
                     >
                         <div className="space-y-3 sm:space-y-4">
                             <div className="flex justify-center">
-                                <div className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400" />
+                                <div
+                                    className="glass rounded-full p-3 sm:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                                    <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 dark:text-blue-400"/>
                                 </div>
                             </div>
 
                             <div>
                                 <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
                                     <span className="hidden sm:inline">Drop files here, or </span>
-                                    <label className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
+                                    <label
+                                        className="text-primary-600 hover:text-primary-700 cursor-pointer font-extrabold text-gradient-blue underline decoration-primary-500/30 hover:decoration-primary-500 transition-all duration-200 tracking-tight">
                                         <span className="sm:hidden">Tap to </span>browse
                                         <input
                                             ref={fileInputRef}
@@ -846,16 +870,19 @@ Feel free to include any relevant information that will help you track this oppo
                         >
                             {isSubmitting ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                                    <span className="hidden sm:inline font-bold tracking-wide">Adding Application...</span>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"/>
+                                    <span
+                                        className="hidden sm:inline font-bold tracking-wide">Adding Application...</span>
                                     <span className="sm:hidden font-bold">Adding...</span>
                                 </>
                             ) : (
                                 <>
-                                    <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                                    <Plus
+                                        className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300"/>
                                     <span className="hidden sm:inline font-bold tracking-wide">Add Application</span>
                                     <span className="sm:hidden font-bold">Add Application</span>
-                                    <Sparkles className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300" />
+                                    <Sparkles
+                                        className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform duration-300"/>
                                 </>
                             )}
                         </button>

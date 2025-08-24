@@ -447,7 +447,7 @@ export const authenticateAdmin = async (email: string, password: string): Promis
         console.log('Attempting admin authentication for:', email);
 
         // Authenticate with Supabase
-        const { data: authData, error: authError } = await client.auth.signInWithPassword({
+        const {data: authData, error: authError} = await client.auth.signInWithPassword({
             email: email.trim(),
             password
         });

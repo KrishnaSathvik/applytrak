@@ -131,7 +131,8 @@ const RealtimeStatusIndicator: React.FC = () => {
     const statusConfig = getStatusConfig();
 
     return (
-        <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div
+            className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2">
                 <span className="text-lg">{statusConfig.icon}</span>
                 <div className="flex flex-col">
@@ -164,7 +165,7 @@ const RealtimeStatusIndicator: React.FC = () => {
 
             {refreshStatus.refreshErrors.length > 0 && (
                 <div className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3 text-red-500" />
+                    <AlertCircle className="h-3 w-3 text-red-500"/>
                     <span className="text-xs text-red-600 font-medium">
                         {refreshStatus.refreshErrors.length} errors
                     </span>
@@ -1013,11 +1014,11 @@ const AdminDashboard: React.FC = () => {
             }));
 
             // Clear admin session
-            const { adminLogout } = await import('../../utils/adminAuth');
+            const {adminLogout} = await import('../../utils/adminAuth');
             await adminLogout();
 
             // Sign out from regular auth
-            const { signOut } = useAppStore.getState();
+            const {signOut} = useAppStore.getState();
             await signOut();
 
             showToast({
@@ -1141,11 +1142,13 @@ const AdminDashboard: React.FC = () => {
         <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm overflow-hidden">
             <div className="flex h-full">
                 {/* Sidebar */}
-                <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                <div
+                    className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
                     {/* Header */}
                     <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <div
+                                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                                 <Shield className="h-6 w-6 text-white"/>
                             </div>
                             <div>
@@ -1222,7 +1225,8 @@ const AdminDashboard: React.FC = () => {
                             {/* Control Bar */}
                             <div className="flex items-center gap-3">
                                 {/* Status Indicator */}
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+                                <div
+                                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
                                     <div className={`w-2 h-2 rounded-full ${
                                         isAdminRealtime
                                             ? (auth.isAuthenticated ? 'bg-green-500 animate-pulse' : 'bg-blue-500 animate-pulse')
@@ -1302,7 +1306,7 @@ const AdminDashboard: React.FC = () => {
                                         className={`h-4 w-4 ${globalRefreshStatus.isRefreshing ? 'animate-spin' : ''}`}/>
                                     <span>Refresh All</span>
                                     {globalRefreshStatus.refreshErrors.length > 0 && (
-                                        <AlertCircle className="h-4 w-4 text-red-200" />
+                                        <AlertCircle className="h-4 w-4 text-red-200"/>
                                     )}
                                 </button>
 
@@ -1318,10 +1322,11 @@ const AdminDashboard: React.FC = () => {
 
                         {/* Error Banner */}
                         {globalRefreshStatus.refreshErrors.length > 0 && (
-                            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <div
+                                className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400"/>
                                         <p className="text-sm font-medium text-red-800 dark:text-red-200">
                                             {globalRefreshStatus.refreshErrors.length} refresh errors occurred
                                         </p>
@@ -1425,7 +1430,8 @@ const AdminDashboard: React.FC = () => {
                                 {/* Application Status Breakdown & System Health */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Status Distribution */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
                                             {isAdminRealtime && auth.isAuthenticated ? 'Cross-User Application Status' : 'Application Status Distribution'}
                                         </h3>
@@ -1462,14 +1468,18 @@ const AdminDashboard: React.FC = () => {
                                                         <div className="flex items-center justify-between mb-2">
                                                             <div className="flex items-center gap-2">
                                                                 <div className={`w-3 h-3 rounded-full ${color}`}/>
-                                                                <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+                                                                <span
+                                                                    className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
-                                                                <span className={`text-xs ${textColor}`}>({percentage.toFixed(1)}%)</span>
+                                                                <span
+                                                                    className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
+                                                                <span
+                                                                    className={`text-xs ${textColor}`}>({percentage.toFixed(1)}%)</span>
                                                             </div>
                                                         </div>
-                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                        <div
+                                                            className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                                             <div
                                                                 className={`h-2 rounded-full transition-all duration-300 ${color}`}
                                                                 style={{width: `${percentage}%`}}
@@ -1489,7 +1499,8 @@ const AdminDashboard: React.FC = () => {
                                 {/* Job Type Distribution & Feedback Overview */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Job Type Distribution */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
                                             {isAdminRealtime && auth.isAuthenticated ? 'Platform Job Type Trends' : 'Job Type Preferences'}
                                         </h3>
@@ -1516,15 +1527,18 @@ const AdminDashboard: React.FC = () => {
                                             ].map(({label, count, color, icon: IconComponent}) => {
                                                 const percentage = jobMetrics.totalApps > 0 ? (count / jobMetrics.totalApps * 100) : 0;
                                                 return (
-                                                    <div key={label} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                    <div key={label}
+                                                         className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} bg-opacity-20`}>
+                                                            <div
+                                                                className={`w-8 h-8 rounded-lg flex items-center justify-center ${color} bg-opacity-20`}>
                                                                 <IconComponent
                                                                     className={`h-4 w-4 ${color.replace('bg-', 'text-')}`}/>
                                                             </div>
                                                             <div>
                                                                 <p className="font-medium text-gray-900 dark:text-gray-100">{label}</p>
-                                                                <p className="text-sm text-gray-600 dark:text-gray-400">{percentage.toFixed(1)}% of applications</p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-400">{percentage.toFixed(1)}%
+                                                                    of applications</p>
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
@@ -1537,20 +1551,24 @@ const AdminDashboard: React.FC = () => {
                                     </div>
 
                                     {/* Quick Feedback Overview */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                             {isAdminRealtime && auth.isAuthenticated ? 'Platform Feedback Overview' : 'User Feedback Overview'}
                                         </h3>
                                         {adminFeedback?.recentFeedback && adminFeedback.recentFeedback.length > 0 ? (
                                             <div className="space-y-3">
                                                 <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                                                    <div
+                                                        className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                                                         <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                                                             {adminFeedback.averageRating?.toFixed(1) || 'N/A'}
                                                         </p>
-                                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">Avg Rating</p>
+                                                        <p className="text-sm text-yellow-700 dark:text-yellow-300">Avg
+                                                            Rating</p>
                                                     </div>
-                                                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                    <div
+                                                        className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                                             {adminFeedback.totalFeedback || 0}
                                                         </p>
@@ -1562,7 +1580,8 @@ const AdminDashboard: React.FC = () => {
                                                 {adminFeedback.recentFeedback.slice(0, 2).map((feedback) => {
                                                     const IconComponent = getFeedbackTypeIcon(feedback.type);
                                                     return (
-                                                        <div key={feedback.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                        <div key={feedback.id}
+                                                             className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                                             <IconComponent
                                                                 className={`h-5 w-5 flex-shrink-0 ${getFeedbackTypeColor(feedback.type)}`}/>
                                                             <div className="flex-1 min-w-0">
@@ -1641,29 +1660,37 @@ const AdminDashboard: React.FC = () => {
                                 {/* Advanced Analytics Charts */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Application Trends Chart */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                                             <TrendingUp className="h-5 w-5"/>
                                             {isAdminRealtime && auth.isAuthenticated ? 'Platform Application Trends' : 'Application Trends'}
                                         </h3>
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">This Week</span>
-                                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{jobMetrics.weeklyApps}</span>
+                                                <span
+                                                    className="text-sm text-gray-600 dark:text-gray-400">This Week</span>
+                                                <span
+                                                    className="text-lg font-bold text-gray-900 dark:text-gray-100">{jobMetrics.weeklyApps}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">This Month</span>
-                                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{jobMetrics.monthlyApps}</span>
+                                                <span
+                                                    className="text-sm text-gray-600 dark:text-gray-400">This Month</span>
+                                                <span
+                                                    className="text-lg font-bold text-gray-900 dark:text-gray-100">{jobMetrics.monthlyApps}</span>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">Success Rate</span>
-                                                <span className="text-lg font-bold text-green-600 dark:text-green-400">{jobMetrics.successRate.toFixed(1)}%</span>
+                                                <span
+                                                    className="text-sm text-gray-600 dark:text-gray-400">Success Rate</span>
+                                                <span
+                                                    className="text-lg font-bold text-green-600 dark:text-green-400">{jobMetrics.successRate.toFixed(1)}%</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Success Metrics */}
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                                             <Target className="h-5 w-5"/>
                                             Success Metrics
@@ -1687,7 +1714,8 @@ const AdminDashboard: React.FC = () => {
                                                 }
                                             ].map(({label, count, color}) => (
                                                 <div key={label} className="flex items-center justify-between">
-                                                    <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+                                                    <span
+                                                        className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
                                                     <span className={`text-lg font-bold ${color}`}>{count}</span>
                                                 </div>
                                             ))}
@@ -1696,7 +1724,8 @@ const AdminDashboard: React.FC = () => {
                                 </div>
 
                                 {/* Detailed Analytics Table */}
-                                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                <div
+                                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                                     <div className="flex items-center justify-between mb-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                             {isAdminRealtime && auth.isAuthenticated ? 'Platform Performance Breakdown' : 'Performance Breakdown'}
@@ -1713,7 +1742,8 @@ const AdminDashboard: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                             <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{jobMetrics.totalApps}</p>
-                                            <p className="text-sm text-blue-700 dark:text-blue-300">Total Applications</p>
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">Total
+                                                Applications</p>
                                         </div>
                                         <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                             <p className="text-2xl font-bold text-green-600 dark:text-green-400">{jobMetrics.responseRate.toFixed(1)}%</p>
@@ -1768,8 +1798,10 @@ const AdminDashboard: React.FC = () => {
                                 </div>
 
                                 {/* Feedback Management */}
-                                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                <div
+                                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                    <div
+                                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                             {isAdminRealtime && auth.isAuthenticated ? 'Platform Feedback Management' : 'Feedback Management'}
                                         </h3>
@@ -1793,9 +1825,11 @@ const AdminDashboard: React.FC = () => {
 
                                     {/* Feedback Filters */}
                                     {showFilters && (
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                        <div
+                                            className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                                                <label
+                                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
                                                 <select
                                                     value={typeFilter}
                                                     onChange={(e) => setTypeFilter(e.target.value as FeedbackFilter)}
@@ -1810,7 +1844,8 @@ const AdminDashboard: React.FC = () => {
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                                                <label
+                                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
                                                 <select
                                                     value={statusFilter}
                                                     onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
@@ -1823,7 +1858,9 @@ const AdminDashboard: React.FC = () => {
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
+                                                <label
+                                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort
+                                                    By</label>
                                                 <select
                                                     value={sortBy}
                                                     onChange={(e) => setSortBy(e.target.value as SortBy)}
@@ -1837,7 +1874,8 @@ const AdminDashboard: React.FC = () => {
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+                                                <label
+                                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
                                                 <div className="relative">
                                                     <Search
                                                         className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"/>
@@ -1861,21 +1899,24 @@ const AdminDashboard: React.FC = () => {
                                                 const isExpanded = expandedFeedback === feedback.id;
 
                                                 return (
-                                                    <div key={feedback.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                                    <div key={feedback.id}
+                                                         className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                                         <div className="flex items-start gap-4">
-                                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                                                feedback.type === 'love' ? 'bg-red-100 dark:bg-red-900/20' :
-                                                                    feedback.type === 'bug' ? 'bg-red-100 dark:bg-red-900/20' :
-                                                                        feedback.type === 'feature' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
-                                                                            'bg-blue-100 dark:bg-blue-900/20'
-                                                            }`}>
+                                                            <div
+                                                                className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                                                    feedback.type === 'love' ? 'bg-red-100 dark:bg-red-900/20' :
+                                                                        feedback.type === 'bug' ? 'bg-red-100 dark:bg-red-900/20' :
+                                                                            feedback.type === 'feature' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+                                                                                'bg-blue-100 dark:bg-blue-900/20'
+                                                                }`}>
                                                                 <IconComponent
                                                                     className={`h-5 w-5 ${getFeedbackTypeColor(feedback.type)}`}/>
                                                             </div>
 
                                                             <div className="flex-1">
                                                                 <div className="flex items-center gap-3 mb-2">
-                                                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                                                                    <span
+                                                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
                                                                         {feedback.type}
                                                                     </span>
                                                                     <div className="flex items-center gap-1">
@@ -1890,7 +1931,8 @@ const AdminDashboard: React.FC = () => {
                                                                             />
                                                                         ))}
                                                                     </div>
-                                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                                    <span
+                                                                        className="text-xs text-gray-500 dark:text-gray-400">
                                                                         {new Date(feedback.timestamp).toLocaleDateString()}
                                                                     </span>
                                                                 </div>
@@ -1921,7 +1963,8 @@ const AdminDashboard: React.FC = () => {
                                         ) : (
                                             <div className="text-center py-12">
                                                 <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4"/>
-                                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No feedback found</h3>
+                                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No
+                                                    feedback found</h3>
                                                 <p className="text-gray-500 dark:text-gray-400">
                                                     {searchQuery || typeFilter !== 'all' || statusFilter !== 'all'
                                                         ? 'Try adjusting your filters to see more feedback.'
@@ -1967,8 +2010,10 @@ const AdminDashboard: React.FC = () => {
 
                                 {/* Feedback Trends */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Feedback Types</h3>
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Feedback
+                                            Types</h3>
                                         <div className="space-y-3">
                                             {[
                                                 {
@@ -2001,9 +2046,12 @@ const AdminDashboard: React.FC = () => {
                                                 return (
                                                     <div key={type} className="flex items-center gap-3">
                                                         <div className={`w-3 h-3 rounded-full ${color}`}/>
-                                                        <span className="text-sm text-gray-600 dark:text-gray-400 capitalize flex-1">{type}</span>
-                                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
-                                                        <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
+                                                        <span
+                                                            className="text-sm text-gray-600 dark:text-gray-400 capitalize flex-1">{type}</span>
+                                                        <span
+                                                            className="text-sm font-medium text-gray-900 dark:text-gray-100">{count}</span>
+                                                        <span
+                                                            className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">
                                                             {percentage.toFixed(0)}%
                                                         </span>
                                                     </div>
@@ -2012,8 +2060,10 @@ const AdminDashboard: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Activity</h3>
+                                    <div
+                                        className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent
+                                            Activity</h3>
                                         <div className="space-y-3">
                                             {paginatedFeedback.items.slice(0, 5).map((feedback) => (
                                                 <div key={feedback.id} className="flex items-center gap-3">

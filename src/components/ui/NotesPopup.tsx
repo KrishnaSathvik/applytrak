@@ -127,9 +127,6 @@ export const NotesPopup: React.FC<NotesPopupProps> = ({
                             >
                                 Notes
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {companyName} • {position}
-                            </p>
                         </div>
                     </div>
 

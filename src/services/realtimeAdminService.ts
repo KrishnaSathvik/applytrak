@@ -145,7 +145,7 @@ export const realtimeAdminService = {
                 return [];
             }
 
-            const { data: users, error } = await client
+            const {data: users, error} = await client
                 .from('users')
                 .select(`
                     id,
@@ -159,7 +159,7 @@ export const realtimeAdminService = {
                     timezone,
                     language
                 `)
-                .order('created_at', { ascending: false });
+                .order('created_at', {ascending: false});
 
             if (error) {
                 console.error('❌ Failed to fetch users:', error);
@@ -194,18 +194,18 @@ export const realtimeAdminService = {
                 client.from('applications')
                     .select('*')
                     .limit(10000)
-                    .order('created_at', { ascending: false }),
+                    .order('created_at', {ascending: false}),
                 client.from('goals')
                     .select('*')
                     .limit(5000),
                 client.from('analytics_events')
                     .select('*')
                     .limit(20000)
-                    .order('timestamp', { ascending: false }),
+                    .order('timestamp', {ascending: false}),
                 client.from('feedback')
                     .select('*')
                     .limit(5000)
-                    .order('timestamp', { ascending: false }),
+                    .order('timestamp', {ascending: false}),
                 this.getAllUsers()
             ]);
 
@@ -342,7 +342,7 @@ export const realtimeAdminService = {
             const newUsersThisWeek = this.safeGetUsersCreatedSince(data.users, weekAgo);
             const newUsersThisMonth = this.safeGetUsersCreatedSince(data.users, monthAgo);
 
-            const last30Days = Array.from({ length: 30 }, (_, i) => {
+            const last30Days = Array.from({length: 30}, (_, i) => {
                 const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
                 const dateStart = new Date(date);
                 dateStart.setHours(0, 0, 0, 0);
@@ -442,7 +442,7 @@ export const realtimeAdminService = {
                     acc[type] = (acc[type] || 0) + 1;
                 }
                 return acc;
-            }, { bug: 0, feature: 0, general: 0, love: 0 });
+            }, {bug: 0, feature: 0, general: 0, love: 0});
 
             const unreadFeedback = feedbackArray.filter((f: any) => {
                 return f && !f?.metadata?.read;
@@ -582,7 +582,8 @@ export const realtimeAdminService = {
         const client = initAdminSupabase();
         if (!client) {
             console.log('📱 No Supabase client - real-time subscriptions disabled');
-            return () => { };
+            return () => {
+            };
         }
 
         console.log('🔄 Setting up real-time subscriptions for unified refresh...');
@@ -591,21 +592,21 @@ export const realtimeAdminService = {
             const subscription = client
                 .channel('admin-realtime-unified')
                 .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'applications' },
+                    {event: '*', schema: 'public', table: 'applications'},
                     (payload: any) => {
                         console.log('📊 Real-time update: Applications changed', payload?.eventType);
                         this.triggerUnifiedRefresh(onUpdate);
                     }
                 )
                 .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'feedback' },
+                    {event: '*', schema: 'public', table: 'feedback'},
                     (payload: any) => {
                         console.log('💬 Real-time update: Feedback changed', payload?.eventType);
                         this.triggerUnifiedRefresh(onUpdate);
                     }
                 )
                 .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'goals' },
+                    {event: '*', schema: 'public', table: 'goals'},
                     (payload: any) => {
                         console.log('🎯 Real-time update: Goals changed', payload?.eventType);
                         this.triggerUnifiedRefresh(onUpdate);
@@ -634,7 +635,8 @@ export const realtimeAdminService = {
             };
         } catch (error) {
             console.error('❌ Failed to set up real-time subscriptions:', error);
-            return () => { };
+            return () => {
+            };
         }
     },
 
@@ -803,8 +805,8 @@ export const realtimeAdminService = {
             return {
                 userMetrics: {
                     totalUsers: 1,
-                    activeUsers: { daily: 1, weekly: 1, monthly: 1 },
-                    newUsers: { today: 0, thisWeek: 0, thisMonth: 0 }
+                    activeUsers: {daily: 1, weekly: 1, monthly: 1},
+                    newUsers: {today: 0, thisWeek: 0, thisMonth: 0}
                 },
                 usageMetrics: {
                     totalSessions: this.safeCountEvents(data.events, 'session_start'),
@@ -816,7 +818,7 @@ export const realtimeAdminService = {
                 engagementMetrics: {
                     dailyActiveUsers: [],
                     featureAdoption: this.safeCalculateFeatureAdoption(data.events),
-                    userRetention: { day1: 0, day7: 0, day30: 0 }
+                    userRetention: {day1: 0, day7: 0, day30: 0}
                 },
                 cloudSyncStats: {
                     totalSynced: data.applications.length,
@@ -853,7 +855,7 @@ export const realtimeAdminService = {
                     acc[type] = (acc[type] || 0) + 1;
                 }
                 return acc;
-            }, { bug: 0, feature: 0, general: 0, love: 0 });
+            }, {bug: 0, feature: 0, general: 0, love: 0});
 
             return {
                 totalFeedback,
@@ -968,7 +970,7 @@ export const realtimeAdminService = {
     },
 
     safeCalculateDeviceMetrics(applications: any[]): DeviceMetrics {
-        if (!Array.isArray(applications)) return { mobile: 0, desktop: 0, tablet: 0 };
+        if (!Array.isArray(applications)) return {mobile: 0, desktop: 0, tablet: 0};
 
         try {
             const total = applications.length;
@@ -978,7 +980,7 @@ export const realtimeAdminService = {
                 tablet: Math.floor(total * 0.1)
             };
         } catch {
-            return { mobile: 0, desktop: 0, tablet: 0 };
+            return {mobile: 0, desktop: 0, tablet: 0};
         }
     },
 
@@ -1000,7 +1002,7 @@ export const realtimeAdminService = {
 
     safeCalculateRetention(users: any[], applications: any[]): Record<string, number> {
         if (!Array.isArray(users) || users.length === 0) {
-            return { day1: 0, day7: 0, day30: 0 };
+            return {day1: 0, day7: 0, day30: 0};
         }
 
         try {
@@ -1092,7 +1094,7 @@ export const realtimeAdminService = {
             return result;
         } catch (error) {
             console.error('❌ Retention calculation error:', error);
-            return { day1: 0, day7: 0, day30: 0 };
+            return {day1: 0, day7: 0, day30: 0};
         }
     },
 

@@ -5,7 +5,8 @@ import {
     AdminAnalytics,
     AdminFeedbackSummary,
     AnalyticsEvent,
-    Application, Attachment,
+    Application,
+    Attachment,
     Backup,
     DatabaseService,
     FeedbackStats,
@@ -24,6 +25,9 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const MIN_SYNC_INTERVAL = 2 * 60 * 1000; // 2 minutes
 const QUERY_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 2;
+// chunked cloud sync helpers
+const IMPORT_BATCH_SIZE = 50;
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 // ============================================================================
 // CACHING SYSTEM
@@ -234,7 +238,7 @@ function randomToken(): string {
 
 /** Maps auth.uid() -> users.id (bigint). Requires SQL function `public.current_user_id()` */
 export async function getCurrentUserId(): Promise<number> {
-    const { data, error } = await supabase.rpc("current_user_id");
+    const {data, error} = await supabase.rpc("current_user_id");
     if (error || data == null) throw error ?? new Error("current_user_id() returned null");
     return data as number;
 }
@@ -253,12 +257,13 @@ export async function uploadAttachment(
     const uniqueFolder = `${isoStamp()}-${randomToken()}-${fileIndex}`;
     const storagePath = `${internalUserId}/${uniqueFolder}/${safeName}`;
 
-    const { error } = await supabase.storage
+    const {error} = await supabase.storage
         .from("attachments")
         .upload(storagePath, file, {
             upsert: false, // keep history (no overwrites)
             contentType: file.type || undefined,
             cacheControl: "3600",
+            contentDisposition: `inline; filename="${safeName}"`
         });
 
     if (error) throw error;
@@ -278,7 +283,7 @@ export async function getAttachmentSignedUrl(
     storagePath: string,
     expiresInSeconds = 300
 ): Promise<string> {
-    const { data, error } = await supabase.storage
+    const {data, error} = await supabase.storage
         .from("attachments")
         .createSignedUrl(storagePath, expiresInSeconds);
 
@@ -304,7 +309,7 @@ export async function resolveDownloadUrl(att: Attachment, ttlSeconds = 300): Pro
 
 /** Delete a stored file by its storagePath */
 export async function deleteAttachment(storagePath: string): Promise<void> {
-    const { error } = await supabase.storage
+    const {error} = await supabase.storage
         .from("attachments")
         .remove([storagePath]);
 
@@ -328,9 +333,9 @@ export async function listUserAttachments(
     const results: { path: string; name: string; isFolder: boolean }[] = [];
 
     // list top-level entries under <userId>/
-    const { data: top, error: topErr } = await supabase.storage
+    const {data: top, error: topErr} = await supabase.storage
         .from("attachments")
-        .list(`${internalUserId}`, { limit: 100 });
+        .list(`${internalUserId}`, {limit: 100});
 
     if (topErr) throw topErr;
 
@@ -348,9 +353,9 @@ export async function listUserAttachments(
     // walk each subfolder and list files
     for (const folder of folders) {
         const folderPath = `${internalUserId}/${folder.name}`;
-        const { data: children, error } = await supabase.storage
+        const {data: children, error} = await supabase.storage
             .from("attachments")
-            .list(folderPath, { limit: 100 });
+            .list(folderPath, {limit: 100});
 
         if (error) throw error;
 
@@ -367,9 +372,8 @@ export async function listUserAttachments(
 
     return results;
 }
+
 // ======================== END STORAGE HELPERS ========================
-
-
 
 
 // ============================================================================
@@ -391,7 +395,7 @@ let authState: AuthState = {
 };
 
 const authListeners = new Set<(state: AuthState) => void>();
-let previousAuthState: AuthState = { ...authState };
+let previousAuthState: AuthState = {...authState};
 
 const subscribeToAuthChanges = (callback: (state: AuthState) => void) => {
     authListeners.add(callback);
@@ -658,7 +662,7 @@ function initializeAuth() {
             user: session?.user || null,
             session,
             isAuthenticated: !!session?.user,
-            isLoading: false
+            isLoading: false,
         };
 
         if (session?.user?.id) {
@@ -669,8 +673,8 @@ function initializeAuth() {
         notifyAuthStateChange();
 
         if (session?.user?.id) {
-            getUserDbId().catch(error => {
-                console.warn('⚠️ Failed to verify user database record:', error);
+            getUserDbId().catch((err) => {
+                console.warn('⚠️ Failed to verify user database record:', err);
             });
         }
     });
@@ -685,7 +689,7 @@ function initializeAuth() {
             user: session?.user || null,
             session,
             isAuthenticated: isNowAuthenticated,
-            isLoading: false
+            isLoading: false,
         };
 
         if (session?.user?.id) {
@@ -698,18 +702,51 @@ function initializeAuth() {
         notifyAuthStateChange();
 
         switch (event) {
-            case 'SIGNED_IN':
+            case 'SIGNED_IN': {
                 console.log('✅ User signed in successfully');
+
                 if (!wasAuthenticated) {
                     dataCache.clear();
                     localStorage.removeItem('applytrak_user_db_id');
                     console.log('🔄 New sign-in detected - cache cleared');
+
+                    // One-time local → cloud migration
+                    (async () => {
+                        try {
+                            const userDbId = await getUserDbId();
+                            if (!userDbId) {
+                                console.warn('⚠️ Could not resolve userDbId; skipping migration');
+                                return;
+                            }
+
+                            const localApps = await db.applications.toArray();
+                            if (!localApps?.length) {
+                                console.log('ℹ️ No local applications to migrate');
+                                return;
+                            }
+
+                            console.log(`🚚 Migrating ${localApps.length} local applications to cloud...`);
+                            for (const app of localApps) {
+                                await syncToCloud('applications', app, 'insert'); // uses your existing path
+                            }
+                            console.log('🎉 Local → cloud migration complete');
+                        } catch (err) {
+                            console.warn('⚠️ Local → cloud migration failed:', err);
+                        }
+                    })();
                 }
+
                 break;
-            case 'SIGNED_OUT':
+            }
+
+            case 'SIGNED_OUT': {
                 console.log('🚪 User signed out');
                 clearLocalStorageAuth();
                 dataCache.clear();
+                break;
+            }
+
+            default:
                 break;
         }
 
@@ -746,7 +783,7 @@ const signIn = async (email: string, password: string) => {
     if (!client) throw new Error('Supabase not initialized');
 
     try {
-        const { data, error } = await client.auth.signInWithPassword({
+        const {data, error} = await client.auth.signInWithPassword({
             email,
             password
         });
@@ -773,7 +810,7 @@ const signOut = async () => {
     if (!client) throw new Error('Supabase not initialized');
 
     try {
-        const { error } = await client.auth.signOut();
+        const {error} = await client.auth.signOut();
         if (error) {
             console.warn('⚠️ Sign out error (non-critical):', error);
         }
@@ -848,7 +885,11 @@ const handleDatabaseError = (error: any, operation: string, table: string) => {
 // CLOUD SYNC UTILITIES
 // ============================================================================
 
-const syncToCloud = async (table: string, data: any, operation: 'insert' | 'update' | 'delete' = 'insert'): Promise<void> => {
+const syncToCloud = async (
+    table: string,
+    data: any | any[],
+    operation: 'insert' | 'update' | 'delete' = 'insert'
+): Promise<void> => {
     if (!isOnlineWithSupabase()) return;
 
     try {
@@ -860,54 +901,79 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
             return;
         }
 
+        const isArray = Array.isArray(data);
+        const nowIso = new Date().toISOString();
+
+        // Smarter logging for single vs array
         console.log(`🔄 Starting ${operation} for ${table}:`, {
-            dataId: data.id,
+            isArray,
+            count: isArray ? data.length : 1,
             userDbId,
-            dataKeys: Object.keys(data)
+            dataId: !isArray ? data?.id : undefined,
         });
 
         let result;
 
         switch (operation) {
-            case 'insert':
+            case 'insert': {
                 if (table === 'applications') {
-                    const applicationData = {
-                        id: String(data.id),
-                        user_id: userDbId,
-                        company: String(data.company),
-                        position: String(data.position),
-                        dateApplied: String(data.dateApplied),
-                        status: String(data.status),
-                        type: String(data.type),
-                        location: data.location ? String(data.location) : null,
-                        salary: data.salary ? String(data.salary) : null,
-                        jobSource: data.jobSource ? String(data.jobSource) : null,
-                        jobUrl: data.jobUrl ? String(data.jobUrl) : null,
-                        notes: data.notes ? String(data.notes) : null,
-                        attachments: Array.isArray(data.attachments) ? data.attachments : [],
-                        createdAt: data.createdAt || new Date().toISOString(),
-                        updatedAt: data.updatedAt || new Date().toISOString(),
-                        syncedAt: new Date().toISOString()
-                    };
+                    // Normalize to an array and map each row like your single-record path
+                    const rows = (isArray ? data : [data]).map((d) => {
+                        const applicationData = {
+                            id: String(d.id),
+                            user_id: userDbId,
+                            company: String(d.company),
+                            position: String(d.position),
+                            dateApplied: String(d.dateApplied),
+                            status: String(d.status),
+                            type: String(d.type),
+                            location: d.location ? String(d.location) : null,
+                            salary: d.salary ? String(d.salary) : null,
+                            jobSource: d.jobSource ? String(d.jobSource) : null,
+                            jobUrl: d.jobUrl ? String(d.jobUrl) : null,
+                            notes: d.notes ? String(d.notes) : null,
+                            attachments: Array.isArray(d.attachments) ? d.attachments : [],
+                            createdAt: d.createdAt || nowIso,
+                            updatedAt: d.updatedAt || nowIso,
+                            syncedAt: nowIso,
+                        };
 
-                    console.log('📤 Mapped application data:', applicationData);
+                        if (!applicationData.id || !applicationData.company || !applicationData.position) {
+                            throw new Error('Missing required fields: id, company, or position');
+                        }
+                        return applicationData;
+                    });
 
-                    if (!applicationData.id || !applicationData.company || !applicationData.position) {
-                        throw new Error('Missing required fields: id, company, or position');
-                    }
+                    console.log(`📤 Mapped application data (${rows.length} rows)`);
 
-                    result = await client.from(table).insert(applicationData).select();
+                    // Use upsert on 'id' like your original
+                    result = await client
+                        .from(table)
+                        .upsert(rows, {onConflict: 'id'}) // PK is 'id' in your schema
+                        .select(); // keep .select() if you need it; remove for speed
                 } else {
-                    const dataWithUser = {
-                        ...data,
+                    // Other tables: attach user + syncedAt; accept single or array
+                    const rows = (isArray ? data : [data]).map((d) => ({
+                        ...d,
                         user_id: userDbId,
-                        syncedAt: new Date().toISOString()
-                    };
-                    result = await client.from(table).insert(dataWithUser).select();
+                        syncedAt: nowIso,
+                    }));
+
+                    result = await client.from(table).insert(rows).select();
                 }
                 break;
+            }
 
-            case 'update':
+            case 'update': {
+                // Keep existing single-record update logic (no batch update support here)
+                if (isArray) {
+                    console.warn('Batch update not supported in syncToCloud; processing items one by one.');
+                    for (const item of data as any[]) {
+                        await syncToCloud(table, item, 'update'); // reuse single path
+                    }
+                    return;
+                }
+
                 if (table === 'applications') {
                     const updateData = {
                         company: data.company,
@@ -921,8 +987,8 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
                         jobUrl: data.jobUrl || null,
                         notes: data.notes || null,
                         attachments: data.attachments || [],
-                        updatedAt: data.updatedAt,
-                        syncedAt: new Date().toISOString()
+                        updatedAt: data.updatedAt || nowIso,
+                        syncedAt: nowIso,
                     };
 
                     console.log('📝 Mapped update data:', updateData);
@@ -934,50 +1000,56 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
                         .select();
                 } else {
                     const updateData = {...data};
-                    delete updateData.user_id;
+                    delete (updateData as any).user_id;
                     result = await client
                         .from(table)
-                        .update({
-                            ...updateData,
-                            syncedAt: new Date().toISOString()
-                        })
+                        .update({...updateData, syncedAt: nowIso})
                         .eq('id', data.id)
                         .eq('user_id', userDbId)
                         .select();
                 }
                 break;
+            }
 
-            case 'delete':
-                result = await client
-                    .from(table)
-                    .delete()
-                    .eq('id', data.id)
-                    .eq('user_id', userDbId);
+            case 'delete': {
+                // Keep existing single-record delete logic (no batch delete support here)
+                if (isArray) {
+                    console.warn('Batch delete not supported in syncToCloud; processing items one by one.');
+                    for (const item of data as any[]) {
+                        await syncToCloud(table, item, 'delete'); // reuse single path
+                    }
+                    return;
+                }
+
+                result = await client.from(table).delete().eq('id', data.id).eq('user_id', userDbId);
                 break;
+            }
         }
 
-        if (result.error) {
+        if (result?.error) {
             console.group(`❌ Supabase ${operation} Error for ${table}`);
             console.error('Full error object:', result.error);
             console.error('Error message:', result.error?.message || 'No message');
             console.error('Error code:', result.error?.code || 'No code');
             console.error('Error details:', result.error?.details || 'No details');
             console.error('Error hint:', result.error?.hint || 'No hint');
-            console.error('Context:', { table, operation, dataId: data.id, userDbId });
+            console.error('Context:', {
+                table,
+                operation,
+                userDbId,
+                isArray,
+                count: isArray ? (data as any[]).length : 1,
+            });
             console.groupEnd();
 
             if (result.error.code === '23505') {
                 console.warn(`⚠️ Duplicate key for ${table} - record may already exist`);
                 return;
             }
-
             if (result.error.code === '42P01') {
-                console.error(`❌ Table ${table} does not exist in database`);
                 throw new Error(`Table ${table} does not exist`);
             }
-
             if (result.error.code === '42501') {
-                console.error(`❌ Permission denied for ${table}`);
                 throw new Error(`Permission denied for ${table}`);
             }
 
@@ -985,9 +1057,8 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         }
 
         console.log(`✅ ${operation} successful for ${table}:`, {
-            recordsAffected: result.data?.length || 'unknown'
+            recordsAffected: result?.data?.length ?? 'unknown',
         });
-
     } catch (error: any) {
         console.group(`❌ Cloud sync failed for ${table} ${operation}`);
         console.error('Caught error:', error);
@@ -995,7 +1066,6 @@ const syncToCloud = async (table: string, data: any, operation: 'insert' | 'upda
         console.error('Error message:', error?.message);
         console.error('Error stack:', error?.stack);
         console.groupEnd();
-
         console.warn(`⚠️ Cloud sync failed for ${table}, continuing in offline mode...`);
     }
 };
@@ -1039,7 +1109,7 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
                 query = query.order('startTime', {ascending: false});
                 query = query.limit(100);
             } else if (table === 'analytics_events') {
-                query = query.order('timestamp', { ascending: false });
+                query = query.order('timestamp', {ascending: false});
                 query = query.limit(100);
             } else {
                 query = query.order('createdAt', {ascending: false});
@@ -1453,12 +1523,19 @@ export const databaseService: DatabaseService = {
 
     async importApplications(applications: Application[]): Promise<void> {
         try {
+            // Local import — Dexie handles large arrays well
             await db.applications.bulkAdd(applications);
+
+            // Invalidate local cache immediately
             dataCache.invalidate('applications');
 
-            if (isAuthenticated()) {
-                applications.forEach(app => {
-                    syncToCloud('applications', {
+            // Cloud sync (only if signed in): ONE request per chunk
+            if (isAuthenticated() && applications.length) {
+                for (let i = 0; i < applications.length; i += IMPORT_BATCH_SIZE) {
+                    const batch = applications.slice(i, i + IMPORT_BATCH_SIZE);
+
+                    // shape the payload array once per chunk
+                    const payloadArray = batch.map(app => ({
                         id: app.id,
                         company: app.company,
                         position: app.position,
@@ -1473,8 +1550,15 @@ export const databaseService: DatabaseService = {
                         attachments: app.attachments,
                         createdAt: app.createdAt,
                         updatedAt: app.updatedAt
-                    }, 'insert').catch(err => console.warn('Cloud sync failed:', err));
-                });
+                    }));
+
+                    // 👇 ONE network call per chunk instead of N calls
+                    await syncToCloud('applications', payloadArray, 'insert')
+                        .catch(err => console.warn('Cloud batch sync failed:', err));
+
+                    // gentle pause between chunks to avoid 429s
+                    await sleep(120);
+                }
             }
         } catch (error) {
             console.error('Failed to import applications:', error);
@@ -2355,7 +2439,7 @@ export const forceSessionRefresh = async () => {
     if (!client) return false;
 
     try {
-        const { data, error } = await client.auth.refreshSession();
+        const {data, error} = await client.auth.refreshSession();
         if (error) {
             console.error('❌ Force refresh failed:', error);
             await handleAuthError();
@@ -2381,7 +2465,7 @@ export const recoverAuthSession = async () => {
         const client = initializeSupabase();
 
         if (client) {
-            const { data, error } = await client.auth.getSession();
+            const {data, error} = await client.auth.getSession();
             if (!error && data.session) {
                 console.log('✅ Auth session recovered');
                 return true;
@@ -2412,7 +2496,7 @@ export const debugSupabaseSync = async () => {
         console.log('✅ Supabase client initialized');
 
         console.log('🔐 2. Testing authentication...');
-        const { data: { session }, error: authError } = await client.auth.getSession();
+        const {data: {session}, error: authError} = await client.auth.getSession();
         if (authError) {
             console.error('❌ Auth error:', authError);
             return;
@@ -2435,7 +2519,7 @@ export const debugSupabaseSync = async () => {
 
         console.log('📋 4. Testing applications table access...');
         try {
-            const { data: testQuery, error: tableError } = await client
+            const {data: testQuery, error: tableError} = await client
                 .from('applications')
                 .select('*')
                 .eq('user_id', userDbId)
@@ -2574,7 +2658,7 @@ export const testDatabaseConnection = async () => {
         }
         console.log('✅ Supabase client initialized');
 
-        const { data: { session }, error: authError } = await client.auth.getSession();
+        const {data: {session}, error: authError} = await client.auth.getSession();
         if (authError) {
             console.error('❌ Auth error:', authError);
             return false;
@@ -2593,9 +2677,9 @@ export const testDatabaseConnection = async () => {
         }
         console.log('✅ User DB ID:', userDbId);
 
-        const { count, error } = await client
+        const {count, error} = await client
             .from('applications')
-            .select('*', { count: 'exact', head: true })
+            .select('*', {count: 'exact', head: true})
             .eq('user_id', userDbId);
 
         if (error) {

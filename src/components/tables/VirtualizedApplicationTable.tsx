@@ -658,6 +658,29 @@ const PopupAttachments: React.FC<PopupAttachmentsProps> = memo(({attachments}) =
           <span className="text-gray-900 dark:text-gray-100 truncate flex-1">
             {attachment.name}
           </span>
+                    {/* View (inline) */}
+                    <button
+                        onClick={() => {
+                            if (attachment.data) {
+                                (async () => {
+                                    const res = await fetch(attachment.data);
+                                    const blob = await res.blob();
+                                    const objUrl = URL.createObjectURL(blob);
+                                    window.open(objUrl, '_blank', 'noopener,noreferrer');
+                                    setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+                                })();
+                            } else if ((attachment as any).storagePath) {
+                                // getAttachmentSignedUrl(...).then(u => window.open(u, '_blank', 'noopener,noreferrer'));
+                            }
+                        }}
+                        className="ml-2 text-blue-600 hover:text-blue-700 transition-colors"
+                        title={`View ${attachment.name}`}
+                        aria-label={`View ${attachment.name}`}
+                    >
+                        <ExternalLink className="h-3 w-3"/>
+                    </button>
+
+                    {/* Download (forced) */}
                     <a
                         href={attachment.data}
                         download={attachment.name}
@@ -667,6 +690,7 @@ const PopupAttachments: React.FC<PopupAttachmentsProps> = memo(({attachments}) =
                     >
                         <ExternalLink className="h-3 w-3"/>
                     </a>
+
                 </div>
             ))}
         </div>

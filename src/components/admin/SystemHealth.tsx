@@ -716,7 +716,7 @@ const SystemHealth: React.FC = () => {
                 },
             };
 
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -830,10 +830,11 @@ const SystemHealth: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                        <Activity className="h-7 w-7 text-green-600 dark:text-green-400" />
+                        <Activity className="h-7 w-7 text-green-600 dark:text-green-400"/>
                         Real System Health
                         {isAdminRealtime && auth.isAuthenticated && (
-                            <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded-full">
+                            <span
+                                className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded-full">
                 LIVE DATABASE MONITORING
               </span>
                         )}
@@ -882,7 +883,7 @@ const SystemHealth: React.FC = () => {
                         disabled={loadingState.isLoading}
                         className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4"/>
                         Export
                     </button>
                 </div>
@@ -890,7 +891,8 @@ const SystemHealth: React.FC = () => {
 
             {/* Loading State */}
             {loadingState.isLoading && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div
+                    className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-center gap-3 text-blue-800 dark:text-blue-200">
                         <Loader2 className="h-5 w-5 animate-spin"/>
                         <span className="font-medium">Loading real system health metrics...</span>
@@ -902,7 +904,7 @@ const SystemHealth: React.FC = () => {
             {loadingState.error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                     <div className="flex items-center gap-3 text-red-800 dark:text-red-200">
-                        <AlertCircle className="h-5 w-5" />
+                        <AlertCircle className="h-5 w-5"/>
                         <div>
                             <span className="font-medium">{loadingState.error}</span>
                             {loadingState.retryCount > 0 && (
@@ -921,14 +923,14 @@ const SystemHealth: React.FC = () => {
                     <div className="flex items-center gap-2">
                         {isAdminRealtime && auth.isAuthenticated && realHealthData ? (
                             <>
-                                <Database className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <Database className="h-4 w-4 text-green-600 dark:text-green-400"/>
                                 <span className="text-gray-700 dark:text-gray-300">
                   Real database monitoring active (Supabase Cloud)
                 </span>
                             </>
                         ) : (
                             <>
-                                <Monitor className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <Monitor className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                                 <span className="text-gray-700 dark:text-gray-300">
                   Local system monitoring (no database connection)
                 </span>
@@ -948,8 +950,9 @@ const SystemHealth: React.FC = () => {
                 {/* Overall Health */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        <div
+                            className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">System Status</p>
@@ -962,7 +965,8 @@ const SystemHealth: React.FC = () => {
                     </div>
                     <div className="mt-3">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {realSystemMetrics.filter(m => m.status === 'healthy').length} of {realSystemMetrics.length} services healthy
+                            {realSystemMetrics.filter(m => m.status === 'healthy').length} of {realSystemMetrics.length} services
+                            healthy
                         </p>
                     </div>
                 </div>
@@ -970,8 +974,9 @@ const SystemHealth: React.FC = () => {
                 {/* Database Latency */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                            <Zap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        <div
+                            className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                            <Zap className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">DB Response Time</p>
@@ -983,12 +988,12 @@ const SystemHealth: React.FC = () => {
                     <div className="mt-3 flex items-center text-sm">
                         {realHealthData?.connectionLatency && realHealthData.connectionLatency < 200 ? (
                             <>
-                                <TrendingDown className="h-4 w-4 text-green-600 mr-1" />
+                                <TrendingDown className="h-4 w-4 text-green-600 mr-1"/>
                                 <span className="text-green-600">Optimal</span>
                             </>
                         ) : (
                             <>
-                                <TrendingUp className="h-4 w-4 text-yellow-600 mr-1" />
+                                <TrendingUp className="h-4 w-4 text-yellow-600 mr-1"/>
                                 <span className="text-yellow-600">Elevated</span>
                             </>
                         )}
@@ -998,8 +1003,9 @@ const SystemHealth: React.FC = () => {
                 {/* Active Connections */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                            <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                        <div
+                            className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                            <Users className="h-6 w-6 text-purple-600 dark:text-purple-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Connections</p>
@@ -1018,8 +1024,9 @@ const SystemHealth: React.FC = () => {
                 {/* Storage Usage */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                            <HardDrive className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                        <div
+                            className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                            <HardDrive className="h-6 w-6 text-orange-600 dark:text-orange-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Storage Used</p>
@@ -1040,7 +1047,7 @@ const SystemHealth: React.FC = () => {
             {systemAlerts.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                        <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400"/>
                         System Alerts ({systemAlerts.filter(a => !a.resolved).length} active)
                     </h3>
                     <div className="space-y-3">
@@ -1112,16 +1119,17 @@ const SystemHealth: React.FC = () => {
                                                 metric.status === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
                                                     metric.status === 'critical' ? 'text-red-600 dark:text-red-400' :
                                                         'text-gray-600 dark:text-gray-400'
-                                        }`} />
+                                        }`}/>
                                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {metric.name}
                     </span>
                                         {metric.realData && (
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full" title="Real database data"></div>
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full"
+                                                 title="Real database data"></div>
                                         )}
                                     </div>
                                     {metric.trend && (
-                                        <TrendIcon className={`h-4 w-4 ${getTrendColor(metric.trend)}`} />
+                                        <TrendIcon className={`h-4 w-4 ${getTrendColor(metric.trend)}`}/>
                                     )}
                                 </div>
 
@@ -1173,7 +1181,7 @@ const SystemHealth: React.FC = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                             Real Response Times
                         </h3>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -1193,7 +1201,7 @@ const SystemHealth: React.FC = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                            <Database className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            <Database className="h-5 w-5 text-purple-600 dark:text-purple-400"/>
                             Database Activity
                         </h3>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -1215,7 +1223,7 @@ const SystemHealth: React.FC = () => {
                 {/* Real Connection Status */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                        <Cloud className="h-5 w-5" />
+                        <Cloud className="h-5 w-5"/>
                         Real Connection Status
                     </h3>
                     <div className="space-y-4">
@@ -1268,7 +1276,7 @@ const SystemHealth: React.FC = () => {
                 {/* System Summary */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
+                        <Shield className="h-5 w-5"/>
                         System Summary
                     </h3>
                     <div className="space-y-4">
@@ -1318,9 +1326,12 @@ const SystemHealth: React.FC = () => {
                 if (!metric) return null;
 
                 return (
-                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md border border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div
+                            className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md border border-gray-200 dark:border-gray-700">
+                            <div
+                                className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     {metric.name}
                                 </h3>
@@ -1328,7 +1339,7 @@ const SystemHealth: React.FC = () => {
                                     onClick={() => setSelectedMetric(null)}
                                     className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                                 >
-                                    <Eye className="h-5 w-5 text-gray-400" />
+                                    <Eye className="h-5 w-5 text-gray-400"/>
                                 </button>
                             </div>
 
@@ -1350,12 +1361,12 @@ const SystemHealth: React.FC = () => {
                                     <div className="flex items-center gap-2">
                                         {metric.realData ? (
                                             <>
-                                                <Database className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                                <Database className="h-4 w-4 text-green-600 dark:text-green-400"/>
                                                 <span className="text-green-600 dark:text-green-400 font-medium">Real Database</span>
                                             </>
                                         ) : (
                                             <>
-                                                <Monitor className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                <Monitor className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                                                 <span className="text-blue-600 dark:text-blue-400 font-medium">Local System</span>
                                             </>
                                         )}
@@ -1364,7 +1375,8 @@ const SystemHealth: React.FC = () => {
 
                                 <div>
                                     <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Status</h4>
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(metric.status)}`}>
+                                    <span
+                                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(metric.status)}`}>
                     {metric.status.toUpperCase()}
                   </span>
                                 </div>
@@ -1375,11 +1387,13 @@ const SystemHealth: React.FC = () => {
                                         <div className="space-y-1 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600 dark:text-gray-400">Warning:</span>
-                                                <span className="text-yellow-600 dark:text-yellow-400">{metric.threshold.warning}</span>
+                                                <span
+                                                    className="text-yellow-600 dark:text-yellow-400">{metric.threshold.warning}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600 dark:text-gray-400">Critical:</span>
-                                                <span className="text-red-600 dark:text-red-400">{metric.threshold.critical}</span>
+                                                <span
+                                                    className="text-red-600 dark:text-red-400">{metric.threshold.critical}</span>
                                             </div>
                                         </div>
                                     </div>

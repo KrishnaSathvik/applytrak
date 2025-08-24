@@ -352,7 +352,7 @@ export const AnalyticsOverview: React.FC = () => {
 
                     {/* Global Refresh Info */}
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <Info className="h-4 w-4" />
+                        <Info className="h-4 w-4"/>
                         <span className="hidden sm:inline">Use global refresh in header</span>
                     </div>
 
@@ -370,7 +370,8 @@ export const AnalyticsOverview: React.FC = () => {
 
             {/* Global Refresh Status */}
             {globalRefreshStatus.isRefreshing && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <div
+                    className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                     <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
                         <div
                             className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"/>
@@ -592,7 +593,8 @@ export const AnalyticsOverview: React.FC = () => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top Features</h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Most used features by your users</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Most used features by your
+                                    users</p>
                             </div>
                             {globalRefreshStatus.refreshStatus === 'success' && (
                                 <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">

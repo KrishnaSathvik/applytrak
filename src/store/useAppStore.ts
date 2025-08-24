@@ -851,7 +851,7 @@ export const useAppStore = create<AppState>()(
                     },
 
                     getGlobalRefreshStatus: () => {
-                        const { globalRefresh } = get();
+                        const {globalRefresh} = get();
                         return {
                             isRefreshing: globalRefresh.isRefreshing,
                             lastRefreshTimestamp: globalRefresh.lastRefreshTimestamp,
@@ -1425,7 +1425,7 @@ export const useAppStore = create<AppState>()(
                     },
 
                     addApplication: async (applicationData) => {
-                        const { auth, applications } = get();
+                        const {auth, applications} = get();
 
                         // Limit non-authenticated users to 100 applications
                         if (!auth.isAuthenticated && applications.length >= 100) {

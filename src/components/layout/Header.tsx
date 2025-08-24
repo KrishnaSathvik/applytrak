@@ -13,7 +13,6 @@ import {
     Sun,
     TrendingUp,
     UserPlus,
-    X,
     Zap
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
@@ -116,13 +115,15 @@ const UserMenu: React.FC<UserMenuProps> = ({
                 title={`Signed in as ${displayName}`}
             >
                 {/* User Avatar */}
-                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                <div
+                    className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
                     {displayName.charAt(0).toUpperCase()}
                 </div>
 
                 {/* User Info - More responsive */}
                 <div className="hidden md:block text-left">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-24 lg:max-w-32">
+                    <div
+                        className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-24 lg:max-w-32">
                         {displayName}
                     </div>
                     <div className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
@@ -132,7 +133,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
                 </div>
 
                 {/* Dropdown Arrow - Hidden on mobile */}
-                <ChevronDown className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 hidden sm:block ${isOpen ? 'rotate-180' : ''}`}/>
+                <ChevronDown
+                    className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 hidden sm:block ${isOpen ? 'rotate-180' : ''}`}/>
             </button>
 
             {/* Portal-based Dropdown */}
@@ -146,9 +148,11 @@ const UserMenu: React.FC<UserMenuProps> = ({
                     }}
                 >
                     {/* User Info Header */}
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-2xl">
+                    <div
+                        className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-2xl">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                            <div
+                                className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                                 {displayName.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -268,7 +272,8 @@ const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => 
 
     // Only show green "Synced" indicator for authenticated users
     return (
-        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
+        <div
+            className="flex items-center gap-1.5 px-2 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
             <span className="text-xs text-green-600 dark:text-green-400 font-medium">Synced</span>
         </div>
@@ -346,33 +351,34 @@ const Header: React.FC = () => {
         : 0;
 
     return (
-        <header className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+        <header
+            className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
             <div className="h-full px-3 sm:px-4 lg:px-6">
                 <div className="flex items-center justify-between h-full">
 
                     {/* LEFT SECTION - Simplified */}
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        {/* Mobile Sidebar Toggle */}
+                        {/* Mobile Sidebar Toggle (hide while sidebar is open) */}
                         <button
                             onClick={toggleSidebar}
-                            className="lg:hidden p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm"
-                            aria-label="Toggle sidebar"
+                            className={`lg:hidden p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm
+              ${ui.sidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                            aria-label="Open sidebar"
+                            aria-expanded={ui.sidebarOpen}
                         >
-                            {ui.sidebarOpen ? (
-                                <X className="h-5 w-5 text-gray-700 dark:text-gray-300"/>
-                            ) : (
-                                <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300"/>
-                            )}
+                            <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300"/>
                         </button>
 
                         {/* Brand Section - Enhanced */}
                         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
                             <div className="relative">
-                                <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
+                                <div
+                                    className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
                                     <ApplyTrakLogo size="sm" className="transition-transform duration-300"/>
                                 </div>
                                 {auth.isAuthenticated && (
-                                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"/>
+                                    <div
+                                        className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"/>
                                 )}
                             </div>
 
@@ -390,7 +396,8 @@ const Header: React.FC = () => {
                     {/* CENTER SECTION - Key Stats (Desktop Only) */}
                     <div className="hidden lg:flex items-center space-x-4 px-6">
                         {/* Applications Count */}
-                        <div className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
+                        <div
+                            className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
                             <div className="flex items-center space-x-2">
                                 <Briefcase className="h-4 w-4 text-green-600 dark:text-green-400"/>
                                 {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
@@ -399,33 +406,38 @@ const Header: React.FC = () => {
                                 <div className="text-lg font-extrabold text-gradient-blue leading-none">
                                     {applications.length}
                                 </div>
-                                <div className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest leading-none">
+                                <div
+                                    className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest leading-none">
                                     Applications
                                 </div>
                             </div>
                         </div>
 
                         {/* Active Applications */}
-                        <div className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
+                        <div
+                            className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
                             <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                             <div className="text-left">
                                 <div className="text-lg font-extrabold text-gradient-purple leading-none">
                                     {activeApplications}
                                 </div>
-                                <div className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none">
+                                <div
+                                    className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none">
                                     Active
                                 </div>
                             </div>
                         </div>
 
                         {/* Success Rate */}
-                        <div className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50 shadow-sm">
+                        <div
+                            className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50 shadow-sm">
                             <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
                             <div className="text-left">
                                 <div className="text-lg font-extrabold text-gradient-static leading-none">
                                     {successRate}%
                                 </div>
-                                <div className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest leading-none">
+                                <div
+                                    className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest leading-none">
                                     Success
                                 </div>
                             </div>

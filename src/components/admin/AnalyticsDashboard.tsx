@@ -381,7 +381,7 @@ const AnalyticsDashboard: React.FC = () => {
 
         if (!isSaasMode) {
             // Fallback to local data
-            return Array.from({ length: 7 }, (_, i) => ({
+            return Array.from({length: 7}, (_, i) => ({
                 date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 totalUsers: 1,
                 activeUsers: 1,
@@ -691,7 +691,7 @@ const AnalyticsDashboard: React.FC = () => {
 
         return (
             <div className={`flex items-center gap-1 ${color}`}>
-                <TrendIcon className="h-4 w-4" />
+                <TrendIcon className="h-4 w-4"/>
                 <span className="text-sm font-medium">
           {isPositive ? '+' : ''}{Math.abs(change).toFixed(1)}%
         </span>
@@ -895,10 +895,11 @@ const AnalyticsDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                        <BarChart3 className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+                        <BarChart3 className="h-7 w-7 text-purple-600 dark:text-purple-400"/>
                         Cross-User Analytics
                         {isAdminRealtime && auth.isAuthenticated && (
-                            <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 px-2 py-1 rounded-full">
+                            <span
+                                className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 px-2 py-1 rounded-full">
                 REAL MULTI-USER DATA
               </span>
                         )}
@@ -932,7 +933,7 @@ const AnalyticsDashboard: React.FC = () => {
                                 : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                     >
-                        <Target className="h-4 w-4" />
+                        <Target className="h-4 w-4"/>
                         Targets
                     </button>
 
@@ -941,7 +942,7 @@ const AnalyticsDashboard: React.FC = () => {
                         disabled={isLoadingAnalytics}
                         className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4"/>
                         Export
                     </button>
                 </div>
@@ -949,7 +950,8 @@ const AnalyticsDashboard: React.FC = () => {
 
             {/* Loading State */}
             {isLoadingAnalytics && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div
+                    className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-center gap-3 text-blue-800 dark:text-blue-200">
                         <div
                             className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"/>
@@ -960,9 +962,10 @@ const AnalyticsDashboard: React.FC = () => {
 
             {/* Error State */}
             {analyticsError && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <div
+                    className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                     <div className="flex items-center gap-3 text-yellow-800 dark:text-yellow-200">
-                        <AlertCircle className="h-5 w-5" />
+                        <AlertCircle className="h-5 w-5"/>
                         <span className="font-medium">{analyticsError}</span>
                     </div>
                 </div>
@@ -974,14 +977,14 @@ const AnalyticsDashboard: React.FC = () => {
                     <div className="flex items-center gap-2">
                         {isAdminRealtime && auth.isAuthenticated && realUserData ? (
                             <>
-                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400"/>
                                 <span className="text-gray-700 dark:text-gray-300">
                   Real-time data from {formatNumber(realUserData.totalUsers)} users
                 </span>
                             </>
                         ) : (
                             <>
-                                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                                 <span className="text-gray-700 dark:text-gray-300">
                   Local user data (not connected to multi-user analytics)
                 </span>
@@ -1028,7 +1031,7 @@ const AnalyticsDashboard: React.FC = () => {
                 {/* Real User Segments */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-                        <PieChart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        <PieChart className="h-5 w-5 text-purple-600 dark:text-purple-400"/>
                         Real User Segments
                     </h3>
 
@@ -1053,8 +1056,10 @@ const AnalyticsDashboard: React.FC = () => {
                                         <div className={`flex items-center gap-1 ${
                                             segment.growth > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                         }`}>
-                                            {segment.growth > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                                            <span className="text-xs">{segment.growth > 0 ? '+' : ''}{segment.growth.toFixed(1)}%</span>
+                                            {segment.growth > 0 ? <TrendingUp className="h-3 w-3"/> :
+                                                <TrendingDown className="h-3 w-3"/>}
+                                            <span
+                                                className="text-xs">{segment.growth > 0 ? '+' : ''}{segment.growth.toFixed(1)}%</span>
                                         </div>
                                     )}
                                 </div>
@@ -1066,7 +1071,7 @@ const AnalyticsDashboard: React.FC = () => {
                 {/* Platform Insights */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-                        <Award className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                        <Award className="h-5 w-5 text-yellow-600 dark:text-yellow-400"/>
                         Platform Insights
                     </h3>
 
@@ -1129,9 +1134,12 @@ const AnalyticsDashboard: React.FC = () => {
                 if (!metric) return null;
 
                 return (
-                    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md border border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div
+                            className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md border border-gray-200 dark:border-gray-700">
+                            <div
+                                className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                     {metric.name}
                                 </h3>
@@ -1162,7 +1170,8 @@ const AnalyticsDashboard: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Contributing Users</h4>
+                                    <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Contributing
+                                        Users</h4>
                                     <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                                         {formatNumber(metric.userCount)} user{metric.userCount !== 1 ? 's' : ''}
                                     </p>

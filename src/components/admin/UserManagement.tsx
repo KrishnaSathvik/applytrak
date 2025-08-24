@@ -209,7 +209,7 @@ const UserList: React.FC<UserListProps> = ({
             {/* Search and Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"/>
                     <input
                         type="text"
                         placeholder="Search users by email, name, or ID..."
@@ -329,7 +329,7 @@ const UserList: React.FC<UserListProps> = ({
 // USER DETAIL COMPONENT
 // ============================================================================
 
-const UserDetail: React.FC<{ user: RealUserData }> = ({ user }) => {
+const UserDetail: React.FC<{ user: RealUserData }> = ({user}) => {
     const daysSinceJoin = calculateDaysSince(user.joinDate);
     const appsPerDay = daysSinceJoin > 0 ? (user.totalApplications / daysSinceJoin).toFixed(1) : '0';
     const avgSessionFormatted = formatDuration(user.avgSessionDuration);
@@ -339,8 +339,9 @@ const UserDetail: React.FC<{ user: RealUserData }> = ({ user }) => {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <User className="h-8 w-8 text-white" />
+                    <div
+                        className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <User className="h-8 w-8 text-white"/>
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -355,11 +356,13 @@ const UserDetail: React.FC<{ user: RealUserData }> = ({ user }) => {
               }`}>
                 {user.authMode.toUpperCase()}
               </span>
-                            <span className="px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-50 dark:bg-gray-900/20 capitalize">
+                            <span
+                                className="px-2 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-50 dark:bg-gray-900/20 capitalize">
                 {user.deviceType}
               </span>
                             {user.isAdmin && (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium text-red-600 bg-red-100 dark:bg-red-900/20">
+                                <span
+                                    className="px-2 py-1 rounded-full text-xs font-medium text-red-600 bg-red-100 dark:bg-red-900/20">
                   ADMIN
                 </span>
                             )}
@@ -439,7 +442,7 @@ const UserDetail: React.FC<{ user: RealUserData }> = ({ user }) => {
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600 dark:text-gray-400">Device Type:</span>
                             <div className="flex items-center gap-2">
-                                <DeviceIcon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                                <DeviceIcon className="h-4 w-4 text-gray-600 dark:text-gray-400"/>
                                 <span className="font-medium text-gray-900 dark:text-gray-100 capitalize">
                   {user.deviceType}
                 </span>
@@ -801,7 +804,7 @@ const UserManagement: React.FC = () => {
                 },
             };
 
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -834,7 +837,7 @@ const UserManagement: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <Users className="h-7 w-7 text-green-600 dark:text-green-400" />
+                        <Users className="h-7 w-7 text-green-600 dark:text-green-400"/>
                         User Management
                     </h2>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -867,7 +870,7 @@ const UserManagement: React.FC = () => {
                         disabled={loadingState.isLoading || allUsers.length === 0}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4"/>
                         Export Data
                     </button>
                 </div>
@@ -899,8 +902,9 @@ const UserManagement: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                            <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        <div
+                            className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                            <Users className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Users</p>
@@ -913,8 +917,9 @@ const UserManagement: React.FC = () => {
 
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                            <Activity className="h-6 w-6 text-green-600 dark:text-green-400" />
+                        <div
+                            className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                            <Activity className="h-6 w-6 text-green-600 dark:text-green-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Users</p>
@@ -927,8 +932,9 @@ const UserManagement: React.FC = () => {
 
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-                            <UserPlus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                        <div
+                            className="w-10 h-10 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                            <UserPlus className="h-6 w-6 text-purple-600 dark:text-purple-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">New This Week</p>
@@ -941,8 +947,9 @@ const UserManagement: React.FC = () => {
 
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                        <div
+                            className="w-10 h-10 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                            <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400"/>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Apps/User</p>
@@ -982,11 +989,12 @@ const UserManagement: React.FC = () => {
                 {/* User Detail */}
                 <div>
                     {selectedUser ? (
-                        <UserDetail user={selectedUser} />
+                        <UserDetail user={selectedUser}/>
                     ) : (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-96 flex items-center justify-center">
+                        <div
+                            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 h-96 flex items-center justify-center">
                             <div className="text-center text-gray-500 dark:text-gray-400">
-                                <Eye className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <Eye className="h-12 w-12 mx-auto mb-3 opacity-50"/>
                                 <p>Select a user to view details</p>
                             </div>
                         </div>
@@ -1002,7 +1010,7 @@ const UserManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="flex items-center gap-3 mb-2">
-                            <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                             <span className="font-medium text-blue-800 dark:text-blue-200">
                 Data Mode
               </span>
@@ -1014,7 +1022,7 @@ const UserManagement: React.FC = () => {
 
                     <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <div className="flex items-center gap-3 mb-2">
-                            <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400"/>
                             <span className="font-medium text-green-800 dark:text-green-200">
                 Most Active User
               </span>
@@ -1026,7 +1034,7 @@ const UserManagement: React.FC = () => {
 
                     <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                         <div className="flex items-center gap-3 mb-2">
-                            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400"/>
                             <span className="font-medium text-purple-800 dark:text-purple-200">
                 Total Applications
               </span>

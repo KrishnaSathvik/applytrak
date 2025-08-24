@@ -1,5 +1,3 @@
-// src/components/tables/MobileResponsiveApplicationTable.tsx
-// Production-ready responsive table with enhanced UX and performance optimizations
 import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
     Calendar,
@@ -96,9 +94,16 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
     }, []);
 
     const handleDownload = useCallback(async (attachment: Attachment) => {
-        if (!attachment.data) {
-            console.warn('No data available for attachment:', attachment.name);
-            return;
+        if (attachment.data) {
+            (async () => {
+                const res = await fetch(attachment.data);
+                const blob = await res.blob();
+                const objUrl = URL.createObjectURL(blob);
+                window.open(objUrl, '_blank', 'noopener,noreferrer');
+                setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+            })();
+        } else if ((attachment as any).storagePath) {
+            // getAttachmentSignedUrl(...).then(u => window.open(u, '_blank', 'noopener,noreferrer'));
         }
 
         try {
@@ -1389,4 +1394,5 @@ NotesIcon.displayName = 'NotesIcon';
 MobileCardView.displayName = 'MobileCardView';
 DesktopTableView.displayName = 'DesktopTableView';
 
+// @ts-ignore
 export default MobileResponsiveApplicationTable;

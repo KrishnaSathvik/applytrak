@@ -321,7 +321,7 @@ const TrackerTab: React.FC = () => {
 // ANALYTICS TAB COMPONENT
 // ============================================================================
 const AnalyticsTab: React.FC = () => {
-    const { privacySettings, auth } = useAppStore();
+    const {privacySettings, auth} = useAppStore();
 
     return (
         <div className="space-y-8 sm:space-y-10">
@@ -406,7 +406,8 @@ const AnalyticsTab: React.FC = () => {
                                 Analytics Requires Cloud Account
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
-                                Sign up or login to your ApplyTrak cloud account to unlock powerful analytics about your job search progress, success rates, and trends over time.
+                                Sign up or login to your ApplyTrak cloud account to unlock powerful analytics about your
+                                job search progress, success rates, and trends over time.
                             </p>
                             <div className="text-sm text-gray-500 dark:text-gray-500 mt-4">
                                 Your local data stays private - only you can see it
@@ -424,7 +425,8 @@ const AnalyticsTab: React.FC = () => {
                                 Analytics Disabled
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                                Enable analytics in your privacy settings to see insights about your job search progress and success patterns.
+                                Enable analytics in your privacy settings to see insights about your job search progress
+                                and success patterns.
                             </p>
                             <button
                                 onClick={() => useAppStore.getState().openPrivacySettings()}

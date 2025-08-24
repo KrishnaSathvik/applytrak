@@ -1105,31 +1105,34 @@ select.form-input-enhanced::-ms-expand {
 }
 
 /* base (already good) */
-select.form-input-enhanced{
+select.form-input-enhanced {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
     background-image: url("data:image/svg+xml,%3csvg ...%3e");
     background-position: right 1rem center;
-    background-repeat: no-repeat;           /* ensure single arrow */
+    background-repeat: no-repeat; /* ensure single arrow */
     background-size: 1.25em 1.25em;
     padding-right: 3rem;
 }
 
 /* dark mode — restate ALL sub-properties to avoid tiling */
-:root.dark select.form-input-enhanced{
+:root.dark select.form-input-enhanced {
     background-image: url("data:image/svg+xml,%3csvg ...%3e"); /* light arrow color -> dark */
     background-position: right 1rem center;
-    background-repeat: no-repeat;           /* critical */
+    background-repeat: no-repeat; /* critical */
     background-size: 1.25em 1.25em;
-    padding-right: 3rem;                     /* keep text clear of arrow */
+    padding-right: 3rem; /* keep text clear of arrow */
 }
 
 /* optional: hide old IE arrow and harden Safari */
-select.form-input-enhanced::-ms-expand{ display:none; }
+select.form-input-enhanced::-ms-expand {
+    display: none;
+}
+
 /* Show a normal color until we’re sure text clipping is supported */
 .heading-gradient {
-    color: var(--color-text-primary);        /* fallback visible color */
+    color: var(--color-text-primary); /* fallback visible color */
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
@@ -1137,7 +1140,9 @@ select.form-input-enhanced::-ms-expand{ display:none; }
 
 /* Only then hide the fill (prevents “invisible” text flashes) */
 @supports (-webkit-background-clip: text) {
-    .heading-gradient { color: transparent; }
+    .heading-gradient {
+        color: transparent;
+    }
 }
 
 

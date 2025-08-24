@@ -1,6 +1,6 @@
 // src/components/layout/Footer.tsx
 import React, {useMemo} from 'react';
-import {Heart, Mail, MessageSquare, Github} from 'lucide-react';
+import {Github, Heart, Mail, MessageSquare} from 'lucide-react';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 import {useAppStore} from '../../store/useAppStore';
 

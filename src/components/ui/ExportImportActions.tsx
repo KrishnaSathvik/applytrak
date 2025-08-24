@@ -23,7 +23,7 @@ import {
 import {Application} from '../../types';
 import {formatDate} from '../../utils/formatters';
 import {useAppStore} from '../../store/useAppStore';
-import {exportToCSV, exportToJSON, exportToPDF, importApplications} from '../../utils/exportImport';
+import {exportToCSV, exportToJSON, exportToPDF, importApplications as parseImport} from '../../utils/exportImport';
 import {Modal} from './Modal';
 import {cn} from '../../utils/helpers';
 
@@ -306,13 +306,25 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
         try {
             await new Promise(resolve => setTimeout(resolve, LOADING_DELAYS.IMPORT));
-            const importedApplications = await importApplications(file);
 
-            if (!Array.isArray(importedApplications) || importedApplications.length === 0) {
+            // ✅ use the aliased name
+            const result = await parseImport(file);
+
+            // Diagnostics
+            console.log('[UI] import result:', {
+                totalProcessed: result?.totalProcessed,
+                appsLen: result?.applications?.length,
+                warnings: result?.warnings?.length
+            });
+            if (Array.isArray(result?.warnings) && result.warnings.length) {
+                console.warn('[UI] import warnings (first 5):', result.warnings.slice(0, 5));
+            }
+
+            if (!result || !Array.isArray(result.applications) || result.applications.length === 0) {
                 throw new Error('No valid applications found in the file');
             }
 
-            setImportPreview(importedApplications);
+            setImportPreview(result.applications);
             setImportStatus('success');
         } catch (error) {
             console.error('Import error:', error);

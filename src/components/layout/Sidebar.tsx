@@ -4,8 +4,10 @@ import {BarChart3, ChevronRight, Target, TrendingUp, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 
+type NavID = 'tracker' | 'analytics';
+
 interface NavigationItem {
-    id: 'tracker' | 'analytics';
+    id: NavID;
     label: string;
     icon: 'logo' | typeof BarChart3;
     description: string;
@@ -16,12 +18,8 @@ const Sidebar: React.FC = () => {
     const {ui, setSelectedTab, goalProgress, toggleSidebar, applications, goals} = useAppStore();
     const [isDesktop, setIsDesktop] = useState(false);
 
-    // Handle responsive behavior
     useEffect(() => {
-        const checkDesktop = () => {
-            setIsDesktop(window.innerWidth >= 1024);
-        };
-
+        const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
         checkDesktop();
         window.addEventListener('resize', checkDesktop);
         return () => window.removeEventListener('resize', checkDesktop);
@@ -33,32 +31,25 @@ const Sidebar: React.FC = () => {
             label: 'Tracker',
             icon: 'logo',
             description: 'Manage applications',
-            count: applications.length
+            count: applications.length,
         },
         {
             id: 'analytics',
             label: 'Analytics',
             icon: BarChart3,
             description: 'View insights',
-            count: null
-        }
+            count: null,
+        },
     ];
 
-    const handleNavClick = (itemId: 'tracker' | 'analytics') => {
+    const handleNavClick = (itemId: NavID) => {
         setSelectedTab(itemId);
-        // Close sidebar on mobile after selection
-        if (!isDesktop) {
-            toggleSidebar();
-        }
+        if (!isDesktop) toggleSidebar();
     };
 
-    // Determine if we should show full content (text, descriptions, etc.)
     const showFullContent = !isDesktop || ui.sidebarOpen;
 
-    // Calculate sidebar width
-    const sidebarWidth = isDesktop
-        ? (ui.sidebarOpen ? '256px' : '64px')
-        : '320px';
+    const sidebarWidth = isDesktop ? (ui.sidebarOpen ? '256px' : '64px') : '320px';
 
     const renderIcon = (item: NavigationItem, isActive: boolean) => {
         if (item.icon === 'logo') {
@@ -69,14 +60,12 @@ const Sidebar: React.FC = () => {
                 />
             );
         }
-
         const IconComponent = item.icon;
         return (
             <IconComponent
-                className={`
-          ${showFullContent ? 'h-5 w-5' : 'h-6 w-6'} 
-          ${isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'}
-        `}
+                className={`${showFullContent ? 'h-5 w-5' : 'h-6 w-6'} ${
+                    isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                }`}
                 strokeWidth={2}
             />
         );
@@ -86,10 +75,7 @@ const Sidebar: React.FC = () => {
         <>
             {/* Mobile Overlay */}
             {ui.sidebarOpen && !isDesktop && (
-                <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-                    onClick={toggleSidebar}
-                />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={toggleSidebar}/>
             )}
 
             {/* Sidebar */}
@@ -99,10 +85,7 @@ const Sidebar: React.FC = () => {
           bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg
           border-r border-gray-200/50 dark:border-gray-700/50
           transition-all duration-300 ease-in-out overflow-hidden
-          ${!isDesktop
-                    ? (ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full')
-                    : 'translate-x-0'
-                }
+          ${!isDesktop ? (ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
         `}
                 style={{width: sidebarWidth}}
             >
@@ -113,12 +96,6 @@ const Sidebar: React.FC = () => {
                         {!isDesktop && (
                             <div
                                 className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
-                                <div className="flex items-center gap-3">
-                                    <ApplyTrakLogo size="sm"/>
-                                    <h2 className="font-display text-xl font-bold text-gradient-static tracking-wide">
-                                        ApplyTrak
-                                    </h2>
-                                </div>
                                 <button
                                     onClick={toggleSidebar}
                                     className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -132,15 +109,10 @@ const Sidebar: React.FC = () => {
                         {/* Desktop Header */}
                         {isDesktop && (
                             <div
-                                className={`flex p-3 border-b border-gray-200/50 dark:border-gray-700/50 ${ui.sidebarOpen ? 'justify-between items-center' : 'justify-center'}`}>
-                                {ui.sidebarOpen && (
-                                    <div className="flex items-center gap-2">
-                                        <ApplyTrakLogo size="xs"/>
-                                        <h2 className="font-display text-base font-bold text-gradient-static tracking-wide">
-                                            ApplyTrak
-                                        </h2>
-                                    </div>
-                                )}
+                                className={`flex p-3 border-b border-gray-200/50 dark:border-gray-700/50 ${
+                                    ui.sidebarOpen ? 'justify-between items-center' : 'justify-center'
+                                }`}
+                            >
                                 <button
                                     onClick={toggleSidebar}
                                     className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -166,56 +138,88 @@ const Sidebar: React.FC = () => {
                                     key={item.id}
                                     onClick={() => handleNavClick(item.id)}
                                     className={`
-                    w-full flex items-center rounded-lg transition-all duration-200
-                    ${showFullContent
-                                        ? 'px-3 py-3 space-x-3 text-left'
-                                        : 'p-3 justify-center'
-                                    }
-                    ${isActive
-                                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
-                                        : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    group relative w-full flex items-center rounded-lg transition-all duration-200
+                    ${showFullContent ? 'px-3 py-3 space-x-3 text-left' : 'p-3 justify-center'}
+                    ${
+                                        isActive
+                                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25'
+                                            : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                                     }
                   `}
-                                    title={!showFullContent ? item.label : undefined}
+                                    title={!showFullContent ? (item.id === 'analytics' ? 'Analytics (Insights & Charts)' : item.label) : undefined}
                                 >
                                     {/* Icon */}
                                     <div
-                                        className={`flex items-center justify-center ${showFullContent ? 'w-5 h-5' : 'w-6 h-6'}`}>
+                                        className={`relative flex items-center justify-center ${
+                                            showFullContent ? 'w-5 h-5' : 'w-6 h-6'
+                                        }`}
+                                    >
                                         {renderIcon(item, isActive)}
+
+                                        {/* Attention ping for Analytics when collapsed */}
+                                        {!showFullContent && item.id === 'analytics' && (
+                                            <>
+                                                <span
+                                                    className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500"/>
+                                                <span
+                                                    className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-blue-500 animate-ping"/>
+                                            </>
+                                        )}
                                     </div>
 
+                                    {/* Text / Description when expanded */}
                                     {showFullContent && (
                                         <>
                                             <div className="flex-1 min-w-0">
                                                 <div
-                                                    className={`font-display font-bold text-base ${isActive ? 'text-white' : 'text-gray-900 dark:text-gray-100'} truncate tracking-tight`}>
+                                                    className={`font-display font-bold text-base ${
+                                                        isActive ? 'text-white' : 'text-gray-900 dark:text-gray-100'
+                                                    } truncate tracking-tight`}
+                                                >
                                                     {item.label}
                                                 </div>
                                                 <div
-                                                    className={`text-xs font-medium ${isActive ? 'text-white/90' : 'text-gray-600 dark:text-gray-400'} truncate tracking-wider`}>
+                                                    className={`text-xs font-medium ${
+                                                        isActive ? 'text-white/90' : 'text-gray-600 dark:text-gray-400'
+                                                    } truncate tracking-wider`}
+                                                >
                                                     {item.description}
                                                 </div>
                                             </div>
 
                                             {item.count !== null && (
-                                                <span className={`
-                          px-2 py-1 text-xs rounded-full font-bold shrink-0 tracking-wide
-                          ${isActive
-                                                    ? 'bg-white/20 text-white'
-                                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                                                }
-                        `}>
+                                                <span
+                                                    className={`
+                            px-2 py-1 text-xs rounded-full font-bold shrink-0 tracking-wide
+                            ${isActive ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}
+                          `}
+                                                >
                           {item.count}
                         </span>
                                             )}
                                         </>
+                                    )}
+
+                                    {/* Hover fly-out label for Analytics when collapsed */}
+                                    {!showFullContent && item.id === 'analytics' && (
+                                        <span
+                                            className="
+                        pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2
+                        whitespace-nowrap rounded-md bg-gray-900 text-white px-2 py-1 text-xs
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-lg
+                        dark:bg-gray-100 dark:text-gray-900
+                      "
+                                            role="tooltip"
+                                        >
+                      Analytics
+                    </span>
                                     )}
                                 </button>
                             );
                         })}
                     </nav>
 
-                    {/* Goal Progress Section - Only show when expanded */}
+                    {/* Goal Progress Section - expanded only */}
                     {showFullContent && (
                         <div className="shrink-0 p-3 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div
@@ -234,9 +238,8 @@ const Sidebar: React.FC = () => {
                                     {/* Total Progress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                      <span className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
-                        Total Goal
-                      </span>
+                                            <span
+                                                className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">Total Goal</span>
                                             <span className="font-display font-extrabold text-lg text-gradient-blue">
                         {goalProgress.totalProgress}%
                       </span>
@@ -250,20 +253,19 @@ const Sidebar: React.FC = () => {
                                         <div
                                             className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-1 tracking-normal">
                                             <span
-                                                className="font-bold text-gradient-purple">{goalProgress.totalApplications}</span> / <span
-                                            className="font-bold text-gradient-blue">{goals.totalGoal}</span> applications
+                                                className="font-bold text-gradient-purple">{goalProgress.totalApplications}</span> /{' '}
+                                            <span
+                                                className="font-bold text-gradient-blue">{goals.totalGoal}</span> applications
                                         </div>
                                     </div>
 
                                     {/* Weekly Progress */}
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                      <span className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">
-                        Weekly Goal
-                      </span>
-                                            <span className="font-extrabold text-gradient-purple">
-                        {goalProgress.weeklyProgress}%
-                      </span>
+                                            <span
+                                                className="font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">Weekly Goal</span>
+                                            <span
+                                                className="font-extrabold text-gradient-purple">{goalProgress.weeklyProgress}%</span>
                                         </div>
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                             <div
@@ -273,8 +275,9 @@ const Sidebar: React.FC = () => {
                                         </div>
                                         <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1">
                                             <span
-                                                className="font-bold text-gradient-blue">{goalProgress.weeklyApplications}</span> / <span
-                                            className="font-bold text-gradient-purple">{goals.weeklyGoal}</span> this
+                                                className="font-bold text-gradient-blue">{goalProgress.weeklyApplications}</span> /{' '}
+                                            <span
+                                                className="font-bold text-gradient-purple">{goals.weeklyGoal}</span> this
                                             week
                                         </div>
                                     </div>
@@ -296,15 +299,14 @@ const Sidebar: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Collapsed State Progress Indicator - Only on desktop when collapsed */}
+                    {/* Collapsed desktop progress indicator */}
                     {isDesktop && !ui.sidebarOpen && (
                         <div className="shrink-0 p-2 border-t border-gray-200/50 dark:border-gray-700/50">
                             <div className="flex flex-col items-center space-y-2">
                                 <div
                                     className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                  <span className="font-display text-sm font-extrabold text-white">
-                    {goalProgress.totalApplications}
-                  </span>
+                                    <span
+                                        className="font-display text-sm font-extrabold text-white">{goalProgress.totalApplications}</span>
                                 </div>
                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                                     <div

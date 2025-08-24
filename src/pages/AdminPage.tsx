@@ -376,14 +376,17 @@ const AdminPage: React.FC = () => {
     };
 
     const renderLoginInterface = () => (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 p-4">
+        <div
+            className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 p-4">
             <div className="w-full max-w-md">
                 {/* Admin Login Card */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+                <div
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6 text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                            <Shield className="h-8 w-8 text-white" />
+                        <div
+                            className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <Shield className="h-8 w-8 text-white"/>
                         </div>
                         <h1 className="text-2xl font-bold text-white mb-2">
                             ApplyTrak Admin
@@ -398,8 +401,9 @@ const AdminPage: React.FC = () => {
                         {/* Status Message */}
                         {!isAuthenticated ? (
                             <div className="text-center space-y-4">
-                                <div className="w-12 h-12 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                                    <LogIn className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                <div
+                                    className="w-12 h-12 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                    <LogIn className="h-6 w-6 text-blue-600 dark:text-blue-400"/>
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -412,8 +416,9 @@ const AdminPage: React.FC = () => {
                             </div>
                         ) : (
                             <div className="text-center space-y-4">
-                                <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                                    <Users className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                                <div
+                                    className="w-12 h-12 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                                    <Users className="h-6 w-6 text-amber-600 dark:text-amber-400"/>
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">

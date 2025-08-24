@@ -162,12 +162,20 @@ const EditApplicationModal: React.FC = () => {
         return {isValid: true};
     }, [allowedFileTypes, fileTypeLabels, attachments]);
 
-    // Enhanced form submission
+    // Enhanced form submission — normalize first, then validate, then save
     const onSubmit: SubmitHandler<EditFormData> = useCallback(async (data) => {
         if (!application) return;
 
         try {
-            // Validate required fields
+            // 1) Normalize first
+            const normalizedCompany = (data.company ?? '').trim();
+            const normalizedPosition = (data.position ?? '').trim();
+
+            // Push normalized values into RHF so validation checks the real values
+            setValue('company', normalizedCompany, {shouldValidate: true, shouldDirty: true});
+            setValue('position', normalizedPosition, {shouldValidate: true, shouldDirty: true});
+
+            // 2) Validate AFTER normalization
             const isValid = await trigger();
             if (!isValid) {
                 showToast({
@@ -178,10 +186,10 @@ const EditApplicationModal: React.FC = () => {
                 return;
             }
 
-            // Clean up data
+            // 3) Build cleaned payload from normalized values
             const cleanedData = {
-                company: data.company.trim(),
-                position: data.position.trim(),
+                company: normalizedCompany,
+                position: normalizedPosition,
                 dateApplied: data.dateApplied,
                 type: data.type,
                 status: data.status,
@@ -209,7 +217,7 @@ const EditApplicationModal: React.FC = () => {
                 duration: 5000
             });
         }
-    }, [application, attachments, updateApplication, closeEditModal, showToast, trigger]);
+    }, [application, attachments, updateApplication, closeEditModal, showToast, trigger, setValue]);
 
     // Enhanced file handling
     const handleFileSelect = useCallback((files: FileList | null) => {
@@ -460,7 +468,7 @@ const EditApplicationModal: React.FC = () => {
                                     <input
                                         type="text"
                                         {...register('company')}
-                                        ref={firstInputRef}
+                                        autoFocus
                                         className={`form-input-enhanced h-12 text-base transition-all duration-200 ${errors.company ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                                         placeholder="e.g. Google, Apple, Microsoft"
                                         aria-describedby={errors.company ? 'company-error' : undefined}
@@ -744,13 +752,19 @@ Write as much as you need - no character limits!"
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        const link = document.createElement('a');
-                                                        link.href = attachment.data;
-                                                        link.download = attachment.name;
-                                                        link.click();
+                                                        if (attachment.data) {
+                                                            (async () => {
+                                                                const res = await fetch(attachment.data);
+                                                                const blob = await res.blob();
+                                                                const objUrl = URL.createObjectURL(blob);
+                                                                window.open(objUrl, '_blank', 'noopener,noreferrer');
+                                                                setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+                                                            })();
+                                                        } else if ((attachment as any).storagePath) {
+                                                            // getAttachmentSignedUrl(...).then(u => window.open(u, '_blank', 'noopener,noreferrer'));
+                                                        }
                                                     }}
-                                                    className="p-2 text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                                                    title="Download file"
+                                                    title="View file"
                                                 >
                                                     <ExternalLink className="h-4 w-4"/>
                                                 </button>
