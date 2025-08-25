@@ -1,6 +1,6 @@
 // src/components/modals/LegalModal.tsx
-import React, { useEffect, useMemo, useState } from "react";
-import { Modal } from "../ui/Modal";
+import React, {useEffect, useMemo, useState} from "react";
+import {Modal} from "../ui/Modal";
 
 type Kind = "terms" | "privacy";
 
@@ -10,7 +10,11 @@ interface Props {
     onClose: () => void;
 }
 
-const TabBtn: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
+const TabBtn: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({
+                                                                                                   active,
+                                                                                                   onClick,
+                                                                                                   children
+                                                                                               }) => (
     <button
         type="button"
         onClick={onClick}
@@ -25,9 +29,11 @@ const TabBtn: React.FC<{ active: boolean; onClick: () => void; children: React.R
     </button>
 );
 
-const LegalModal: React.FC<Props> = ({ isOpen, kind = "terms", onClose }) => {
+const LegalModal: React.FC<Props> = ({isOpen, kind = "terms", onClose}) => {
     const [tab, setTab] = useState<Kind>(kind);
-    useEffect(() => { if (isOpen) setTab(kind); }, [isOpen, kind]);
+    useEffect(() => {
+        if (isOpen) setTab(kind);
+    }, [isOpen, kind]);
 
     const title = useMemo(() => (tab === "terms" ? "Terms of Service" : "Privacy Policy"), [tab]);
 
@@ -43,18 +49,31 @@ const LegalModal: React.FC<Props> = ({ isOpen, kind = "terms", onClose }) => {
                 <div className="max-h-[70vh] overflow-y-auto space-y-5 text-sm leading-6">
                     {tab === "terms" ? (
                         <>
-                            <section><h3 className="font-semibold mb-1">Acceptance of Terms</h3><p>By creating an account or using ApplyTrak, you agree to these Terms.</p></section>
-                            <section><h3 className="font-semibold mb-1">Use of Service</h3><p>Don’t misuse or disrupt the service.</p></section>
-                            <section><h3 className="font-semibold mb-1">Your Content</h3><p>You retain rights to your content; we process it to provide features.</p></section>
-                            <section><h3 className="font-semibold mb-1">Disclaimers</h3><p>Service is provided “as-is” without warranties as allowed by law.</p></section>
+                            <section><h3 className="font-semibold mb-1">Acceptance of Terms</h3><p>By creating an
+                                account or using ApplyTrak, you agree to these Terms.</p></section>
+                            <section><h3 className="font-semibold mb-1">Use of Service</h3><p>Don’t misuse or disrupt
+                                the service.</p></section>
+                            <section><h3 className="font-semibold mb-1">Your Content</h3><p>You retain rights to your
+                                content; we process it to provide features.</p></section>
+                            <section><h3 className="font-semibold mb-1">Disclaimers</h3><p>Service is provided “as-is”
+                                without warranties as allowed by law.</p></section>
                             <p className="text-xs text-gray-500">Last updated: Aug 24, 2025</p>
                         </>
                     ) : (
                         <>
-                            <section><h3 className="font-semibold mb-1">What We Collect</h3><ul className="list-disc pl-5 space-y-1"><li>Account info (name, email)</li><li>Applications, notes, attachments</li><li>Optional analytics & product update prefs</li></ul></section>
-                            <section><h3 className="font-semibold mb-1">How We Use Data</h3><p>Provide core features, improve product, secure the service. We never sell data.</p></section>
-                            <section><h3 className="font-semibold mb-1">Your Choices</h3><p>Control analytics/updates anytime; unsubscribe from emails.</p></section>
-                            <section><h3 className="font-semibold mb-1">Retention</h3><p>We keep data while your account is active; then delete/anonymize.</p></section>
+                            <section><h3 className="font-semibold mb-1">What We Collect</h3>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>Account info (name, email)</li>
+                                    <li>Applications, notes, attachments</li>
+                                    <li>Optional analytics & product update prefs</li>
+                                </ul>
+                            </section>
+                            <section><h3 className="font-semibold mb-1">How We Use Data</h3><p>Provide core features,
+                                improve product, secure the service. We never sell data.</p></section>
+                            <section><h3 className="font-semibold mb-1">Your Choices</h3><p>Control analytics/updates
+                                anytime; unsubscribe from emails.</p></section>
+                            <section><h3 className="font-semibold mb-1">Retention</h3><p>We keep data while your account
+                                is active; then delete/anonymize.</p></section>
                             <p className="text-xs text-gray-500">Last updated: Aug 24, 2025</p>
                         </>
                     )}

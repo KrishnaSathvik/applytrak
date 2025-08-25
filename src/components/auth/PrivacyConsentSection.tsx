@@ -1,7 +1,7 @@
 // src/components/auth/PrivacyConsentSection.tsx
 import React from 'react';
-import { Shield } from 'lucide-react';
-import type { PrivacyConsents } from '../../store/useAppStore';
+import {Shield} from 'lucide-react';
+import type {PrivacyConsents} from '../../store/useAppStore';
 
 interface PrivacyConsentSectionProps {
     value: PrivacyConsents;
@@ -19,19 +19,20 @@ const PrivacyConsentSection: React.FC<PrivacyConsentSectionProps> = ({
                                                                          onViewPrivacy,
                                                                      }) => {
     const set = (k: keyof PrivacyConsents) => (checked: boolean) =>
-        onChange({ ...value, [k]: checked });
+        onChange({...value, [k]: checked});
 
     return (
         <div className="space-y-4 border-t border-gray-200/50 dark:border-gray-700/50 pt-4">
             <div className="flex items-center gap-2 mb-3">
-                <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                     Privacy &amp; Data Settings
                 </h3>
             </div>
 
             {/* Terms + Privacy */}
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <label
+                className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                 <input
                     type="checkbox"
                     checked={value.required}
@@ -45,7 +46,8 @@ const PrivacyConsentSection: React.FC<PrivacyConsentSectionProps> = ({
                         Accept{' '}
                         <button type="button" className="underline" onClick={onViewTerms}>
                             Terms of Service
-                        </button>{' '}
+                        </button>
+                        {' '}
                         and{' '}
                         <button type="button" className="underline" onClick={onViewPrivacy}>
                             Privacy Policy
@@ -59,7 +61,8 @@ const PrivacyConsentSection: React.FC<PrivacyConsentSectionProps> = ({
             </label>
 
             {/* Cloud sync */}
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <label
+                className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                 <input
                     type="checkbox"
                     checked={value.cloudSync}
@@ -80,9 +83,10 @@ const PrivacyConsentSection: React.FC<PrivacyConsentSectionProps> = ({
             </label>
 
             {/* Privacy commitment */}
-            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+            <div
+                className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
                 <div className="flex items-start gap-2">
-                    <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0"/>
                     <div className="text-sm">
                         <p className="text-blue-900 dark:text-blue-100 font-medium">Your privacy, your choice</p>
                         <p className="text-blue-700 dark:text-blue-300 mt-1">

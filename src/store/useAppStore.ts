@@ -943,7 +943,7 @@ export const useAppStore = create<AppState>()(
                     },
 
                     signUp: async (email, password, displayName, privacyConsents) => {
-                        set((s) => ({ ...s, auth: { ...s.auth, isLoading: true, error: null } }));
+                        set((s) => ({...s, auth: {...s.auth, isLoading: true, error: null}}));
 
                         try {
                             // Normalize email to avoid case issues
@@ -954,14 +954,14 @@ export const useAppStore = create<AppState>()(
                             const authUser = result?.user;
                             if (!authUser) {
                                 const msg = 'Failed to create account';
-                                set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: msg } }));
-                                return { user: null, error: msg };
+                                set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
+                                return {user: null, error: msg};
                             }
 
                             const authExternalId: string | undefined = (authUser as any)?.id; // Supabase Auth UID
 
                             // 2) Ensure a row in public.users (prefer find-by-email, then insert)
-                            let { data: dbUser, error: selErr } = await supabase
+                            let {data: dbUser, error: selErr} = await supabase
                                 .from('users')
                                 .select('id, external_id, email, display_name')
                                 .eq('email', normalizedEmail)
@@ -974,7 +974,7 @@ export const useAppStore = create<AppState>()(
                                     (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
                                 const lang = (typeof navigator !== 'undefined' && navigator.language?.slice(0, 2)) || 'en';
 
-                                const { data: inserted, error: insErr } = await supabase
+                                const {data: inserted, error: insErr} = await supabase
                                     .from('users')
                                     .insert({
                                         email: normalizedEmail,
@@ -989,15 +989,15 @@ export const useAppStore = create<AppState>()(
 
                                 if (insErr || !inserted) {
                                     const msg = insErr?.message || 'Failed to create user profile';
-                                    set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: msg } }));
-                                    return { user: null, error: msg };
+                                    set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
+                                    return {user: null, error: msg};
                                 }
                                 dbUser = inserted;
                             } else if (authExternalId && dbUser.external_id !== authExternalId) {
                                 // backfill or correct external_id if missing/mismatched
-                                const { error: updErr } = await supabase
+                                const {error: updErr} = await supabase
                                     .from('users')
-                                    .update({ external_id: authExternalId })
+                                    .update({external_id: authExternalId})
                                     .eq('id', dbUser.id);
                                 if (!updErr) dbUser.external_id = authExternalId;
                             }
@@ -1020,7 +1020,7 @@ export const useAppStore = create<AppState>()(
                                         consent_date: new Date().toISOString(),
                                         updated_at: new Date().toISOString(),
                                     },
-                                    { onConflict: 'user_id' }
+                                    {onConflict: 'user_id'}
                                 );
 
                                 // email preferences — keep or adjust to your defaults
@@ -1031,14 +1031,14 @@ export const useAppStore = create<AppState>()(
                                         weekly_tips: true,
                                         updated_at: new Date().toISOString(),
                                     },
-                                    { onConflict: 'user_id' }
+                                    {onConflict: 'user_id'}
                                 );
                             } catch (e) {
                                 console.warn('Non-fatal: seeding preferences failed', e);
                             }
 
                             // 4) Done
-                            set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: null } }));
+                            set((s) => ({...s, auth: {...s.auth, isLoading: false, error: null}}));
 
                             const appUser: AppUser = {
                                 id: dbUser.id,
@@ -1047,11 +1047,11 @@ export const useAppStore = create<AppState>()(
                                 display_name: dbUser.display_name ?? null,
                             };
 
-                            return { user: appUser };
+                            return {user: appUser};
                         } catch (e: any) {
                             const msg = e?.message || 'Failed to sign up';
-                            set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: msg } }));
-                            return { user: null, error: msg };
+                            set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
+                            return {user: null, error: msg};
                         }
                     },
 
@@ -2325,7 +2325,7 @@ export const useAppStore = create<AppState>()(
                     // ============================================================================
 
                     authenticateAdmin: async (password: string) => {
-                        const { auth } = get();
+                        const {auth} = get();
 
                         if (!auth.isAuthenticated || !auth.user?.email) {
                             get().showToast({

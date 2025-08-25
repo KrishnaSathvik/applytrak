@@ -1,9 +1,9 @@
 // src/components/modals/SignupModal.tsx
-import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, Mail, User, UserPlus } from 'lucide-react';
-import { Modal } from '../ui/Modal';
-import { useAppStore } from '../../store/useAppStore';
-import type { PrivacyConsents } from '../../store/useAppStore';
+import React, {useState} from 'react';
+import {Eye, EyeOff, Lock, Mail, User, UserPlus} from 'lucide-react';
+import {Modal} from '../ui/Modal';
+import type {PrivacyConsents} from '../../store/useAppStore';
+import {useAppStore} from '../../store/useAppStore';
 import PrivacyConsentSection from '../auth/PrivacyConsentSection';
 import LegalModal from '../modals/LegalModal';
 import {privacyService} from "../../services/privacyService";
@@ -15,12 +15,14 @@ interface FormData {
     password: string;
     confirmPassword: string;
 }
+
 interface FormErrors {
     displayName?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
 }
+
 interface PasswordStrength {
     score: number;
     label: string;
@@ -51,8 +53,8 @@ async function sendWelcomeEmail(email: string, name?: string) {
         const timer = setTimeout(() => controller.abort(), 4000);
         await fetch(`${FUNCTIONS_BASE}/welcome-email`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name }),
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, name}),
             signal: controller.signal,
         });
         clearTimeout(timer);
@@ -63,7 +65,7 @@ async function sendWelcomeEmail(email: string, name?: string) {
 
 // ===================== Component =====================
 const SignupModal: React.FC = () => {
-    const { modals, closeAuthModal, openAuthModal, signUp, auth } = useAppStore();
+    const {modals, closeAuthModal, openAuthModal, signUp, auth} = useAppStore();
 
     const [formData, setFormData] = useState<FormData>({
         displayName: '',
@@ -89,16 +91,16 @@ const SignupModal: React.FC = () => {
         open: false,
         kind: 'terms',
     });
-    const openTerms = () => setLegal({ open: true, kind: 'terms' });
-    const openPrivacy = () => setLegal({ open: true, kind: 'privacy' });
-    const closeLegal = () => setLegal(s => ({ ...s, open: false }));
+    const openTerms = () => setLegal({open: true, kind: 'terms'});
+    const openPrivacy = () => setLegal({open: true, kind: 'privacy'});
+    const closeLegal = () => setLegal(s => ({...s, open: false}));
 
     const resetForm = () => {
-        setFormData({ displayName: '', email: '', password: '', confirmPassword: '' });
+        setFormData({displayName: '', email: '', password: '', confirmPassword: ''});
         setShowPassword(false);
         setShowConfirmPassword(false);
         setErrors({});
-        setPrivacyConsents({ required: false, cloudSync: false, analytics: false, marketing: false });
+        setPrivacyConsents({required: false, cloudSync: false, analytics: false, marketing: false});
     };
 
     const handleClose = () => {
@@ -109,23 +111,23 @@ const SignupModal: React.FC = () => {
     // ---------- Field handlers ----------
     const handleDisplayNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({ ...prev, displayName: value }));
-        if (errors.displayName) setErrors(prev => ({ ...prev, displayName: undefined }));
+        setFormData(prev => ({...prev, displayName: value}));
+        if (errors.displayName) setErrors(prev => ({...prev, displayName: undefined}));
     };
     const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({ ...prev, email: value }));
-        if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+        setFormData(prev => ({...prev, email: value}));
+        if (errors.email) setErrors(prev => ({...prev, email: undefined}));
     };
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({ ...prev, password: value }));
-        if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+        setFormData(prev => ({...prev, password: value}));
+        if (errors.password) setErrors(prev => ({...prev, password: undefined}));
     };
     const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({ ...prev, confirmPassword: value }));
-        if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+        setFormData(prev => ({...prev, confirmPassword: value}));
+        if (errors.confirmPassword) setErrors(prev => ({...prev, confirmPassword: undefined}));
     };
 
     // ---------- Validation ----------
@@ -167,9 +169,9 @@ const SignupModal: React.FC = () => {
         if (PASSWORD_REQUIREMENTS.PATTERNS.DIGIT.test(password)) score++;
         if (password.length >= 12) score++;
         if (/[^A-Za-z0-9]/.test(password)) score++;
-        if (score <= 2) return { score, label: 'Weak', color: 'text-red-600' };
-        if (score <= 4) return { score, label: 'Good', color: 'text-yellow-600' };
-        return { score, label: 'Strong', color: 'text-green-600' };
+        if (score <= 2) return {score, label: 'Weak', color: 'text-red-600'};
+        if (score <= 4) return {score, label: 'Good', color: 'text-yellow-600'};
+        return {score, label: 'Strong', color: 'text-green-600'};
     };
 
     const validateForm = (): boolean => {
@@ -201,7 +203,7 @@ const SignupModal: React.FC = () => {
         if (!privacyConsents.required || !privacyConsents.cloudSync) return;
 
         try {
-            const { user } = await signUp(
+            const {user} = await signUp(
                 formData.email,
                 formData.password,
                 formData.displayName,
@@ -259,8 +261,9 @@ const SignupModal: React.FC = () => {
             <div className="space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-2">
-                        <UserPlus className="h-6 w-6 text-white" />
+                    <div
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-2">
+                        <UserPlus className="h-6 w-6 text-white"/>
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         Join ApplyTrak
@@ -274,7 +277,7 @@ const SignupModal: React.FC = () => {
                     {/* Display Name */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <User className="inline h-4 w-4 mr-2" />
+                            <User className="inline h-4 w-4 mr-2"/>
                             Display Name
                         </label>
                         <input
@@ -293,7 +296,7 @@ const SignupModal: React.FC = () => {
                     {/* Email */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <Mail className="inline h-4 w-4 mr-2" />
+                            <Mail className="inline h-4 w-4 mr-2"/>
                             Email Address
                         </label>
                         <input
@@ -311,7 +314,7 @@ const SignupModal: React.FC = () => {
                     {/* Password */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <Lock className="inline h-4 w-4 mr-2" />
+                            <Lock className="inline h-4 w-4 mr-2"/>
                             Password
                         </label>
                         <div className="relative">
@@ -330,7 +333,7 @@ const SignupModal: React.FC = () => {
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                 disabled={auth.isLoading}
                             >
-                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                {showPassword ? <EyeOff className="h-5 w-5"/> : <Eye className="h-5 w-5"/>}
                             </button>
                         </div>
 
@@ -346,7 +349,7 @@ const SignupModal: React.FC = () => {
                                                     ? 'bg-yellow-500'
                                                     : 'bg-green-500'
                                         }`}
-                                        style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                                        style={{width: `${(passwordStrength.score / 6) * 100}%`}}
                                     />
                                 </div>
                                 <span className={`font-medium ${passwordStrength.color}`}>
@@ -360,7 +363,7 @@ const SignupModal: React.FC = () => {
                     {/* Confirm Password */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <Lock className="inline h-4 w-4 mr-2" />
+                            <Lock className="inline h-4 w-4 mr-2"/>
                             Confirm Password
                         </label>
                         <div className="relative">
@@ -379,7 +382,7 @@ const SignupModal: React.FC = () => {
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                 disabled={auth.isLoading}
                             >
-                                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                {showConfirmPassword ? <EyeOff className="h-5 w-5"/> : <Eye className="h-5 w-5"/>}
                             </button>
                         </div>
                         {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
@@ -396,7 +399,8 @@ const SignupModal: React.FC = () => {
 
                     {/* Auth Error */}
                     {auth.error && (
-                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200/50 dark:border-red-700/50">
+                        <div
+                            className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200/50 dark:border-red-700/50">
                             <p className="text-sm text-red-700 dark:text-red-300 font-medium">{auth.error}</p>
                         </div>
                     )}
@@ -409,12 +413,13 @@ const SignupModal: React.FC = () => {
                     >
                         {auth.isLoading ? (
                             <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"/>
                                 Creating account...
                             </>
                         ) : (
                             <>
-                                <UserPlus className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                                <UserPlus
+                                    className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200"/>
                                 Create Account
                             </>
                         )}
@@ -458,7 +463,7 @@ const SignupModal: React.FC = () => {
                 </div>
 
                 {/* Legal modal (single close from base Modal) */}
-                <LegalModal isOpen={legal.open} kind={legal.kind} onClose={closeLegal} />
+                <LegalModal isOpen={legal.open} kind={legal.kind} onClose={closeLegal}/>
             </div>
         </Modal>
     );

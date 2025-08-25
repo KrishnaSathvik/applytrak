@@ -750,7 +750,7 @@ function initializeAuth() {
                 break;
         }
 
-        previousAuthState = { ...authState };
+        previousAuthState = {...authState};
     });
 
     console.log('✅ Authentication system initialized');
