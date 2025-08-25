@@ -1,30 +1,28 @@
-// Fixed SignupModal.tsx
-import React, {useState} from 'react';
-import {Eye, EyeOff, Lock, Mail, User, UserPlus} from 'lucide-react';
-import {Modal} from '../ui/Modal';
-import {useAppStore} from '../../store/useAppStore';
+// src/components/modals/SignupModal.tsx
+import React, { useState } from 'react';
+import { Eye, EyeOff, Lock, Mail, User, UserPlus } from 'lucide-react';
+import { Modal } from '../ui/Modal';
+import { useAppStore } from '../../store/useAppStore';
 import PrivacyConsentSection from '../auth/PrivacyConsentSection';
 
+// ===================== Types =====================
 interface FormData {
     displayName: string;
     email: string;
     password: string;
     confirmPassword: string;
 }
-
 interface FormErrors {
     displayName?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
 }
-
 interface PasswordStrength {
     score: number;
     label: string;
     color: string;
 }
-
 interface PrivacyConsents {
     required: boolean;
     cloudSync: boolean;
@@ -32,6 +30,7 @@ interface PrivacyConsents {
     marketing: boolean;
 }
 
+// ===================== Constants =====================
 const PASSWORD_REQUIREMENTS = {
     MIN_LENGTH: 8,
     PATTERNS: {
@@ -40,18 +39,34 @@ const PASSWORD_REQUIREMENTS = {
         DIGIT: /\d/
     }
 };
-
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 const MIN_NAME_LENGTH = 2;
 
+// Edge Functions base URL (set in .env/.env.local and Vercel)
+const FUNCTIONS_BASE = process.env.REACT_APP_FUNCTIONS_BASE || "";
+
+// ===================== Helpers =====================
+// Non-blocking welcome email trigger with a 4s safety timeout
+async function sendWelcomeEmail(email: string, name?: string) {
+    try {
+        if (!FUNCTIONS_BASE) return; // skip silently if not configured (local)
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        await fetch(`${FUNCTIONS_BASE}/welcome-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name }),
+            signal: controller.signal
+        });
+        clearTimeout(timer);
+    } catch {
+        // don't surface errors to the user; signup UX first
+    }
+}
+
+// ===================== Component =====================
 const SignupModal: React.FC = () => {
-    const {
-        modals,
-        closeAuthModal,
-        openAuthModal,
-        signUp,
-        auth
-    } = useAppStore();
+    const { modals, closeAuthModal, openAuthModal, signUp, auth } = useAppStore();
 
     const [formData, setFormData] = useState<FormData>({
         displayName: '',
@@ -66,12 +81,7 @@ const SignupModal: React.FC = () => {
     const [privacyConsents, setPrivacyConsents] = useState<PrivacyConsents | null>(null);
 
     const resetForm = () => {
-        setFormData({
-            displayName: '',
-            email: '',
-            password: '',
-            confirmPassword: ''
-        });
+        setFormData({ displayName: '', email: '', password: '', confirmPassword: '' });
         setShowPassword(false);
         setShowConfirmPassword(false);
         setErrors({});
@@ -83,66 +93,54 @@ const SignupModal: React.FC = () => {
         closeAuthModal();
     };
 
-    // Simplified input handlers - no useCallback, no complex logic
+    // ---------- Field handlers ----------
     const handleDisplayNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({...prev, displayName: value}));
-        if (errors.displayName) {
-            setErrors(prev => ({...prev, displayName: undefined}));
-        }
+        setFormData(prev => ({ ...prev, displayName: value }));
+        if (errors.displayName) setErrors(prev => ({ ...prev, displayName: undefined }));
     };
-
     const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({...prev, email: value}));
-        if (errors.email) {
-            setErrors(prev => ({...prev, email: undefined}));
-        }
+        setFormData(prev => ({ ...prev, email: value }));
+        if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
     };
-
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({...prev, password: value}));
-        if (errors.password) {
-            setErrors(prev => ({...prev, password: undefined}));
-        }
+        setFormData(prev => ({ ...prev, password: value }));
+        if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
     };
-
     const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        setFormData(prev => ({...prev, confirmPassword: value}));
-        if (errors.confirmPassword) {
-            setErrors(prev => ({...prev, confirmPassword: undefined}));
-        }
+        setFormData(prev => ({ ...prev, confirmPassword: value }));
+        if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
     };
 
+    // ---------- Validation ----------
     const validateField = (field: keyof FormData, value: string): string => {
         switch (field) {
             case 'displayName':
                 if (!value.trim()) return 'Display name is required';
                 if (value.trim().length < MIN_NAME_LENGTH) return 'Display name must be at least 2 characters';
                 return '';
-
             case 'email':
                 if (!value.trim()) return 'Email is required';
                 if (!EMAIL_PATTERN.test(value)) return 'Please enter a valid email address';
                 return '';
-
             case 'password':
                 if (!value) return 'Password is required';
                 if (value.length < PASSWORD_REQUIREMENTS.MIN_LENGTH) return 'Password must be at least 8 characters';
-                if (!PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(value) ||
+                if (
+                    !PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(value) ||
                     !PASSWORD_REQUIREMENTS.PATTERNS.UPPERCASE.test(value) ||
-                    !PASSWORD_REQUIREMENTS.PATTERNS.DIGIT.test(value)) {
+                    !PASSWORD_REQUIREMENTS.PATTERNS.DIGIT.test(value)
+                ) {
                     return 'Password must contain uppercase, lowercase, and a number';
                 }
                 return '';
-
             case 'confirmPassword':
                 if (!value) return 'Please confirm your password';
                 if (value !== formData.password) return 'Passwords do not match';
                 return '';
-
             default:
                 return '';
         }
@@ -150,54 +148,64 @@ const SignupModal: React.FC = () => {
 
     const getPasswordStrength = (password: string): PasswordStrength => {
         let score = 0;
-
         if (password.length >= PASSWORD_REQUIREMENTS.MIN_LENGTH) score++;
         if (PASSWORD_REQUIREMENTS.PATTERNS.LOWERCASE.test(password)) score++;
         if (PASSWORD_REQUIREMENTS.PATTERNS.UPPERCASE.test(password)) score++;
         if (PASSWORD_REQUIREMENTS.PATTERNS.DIGIT.test(password)) score++;
         if (password.length >= 12) score++;
         if (/[^A-Za-z0-9]/.test(password)) score++;
-
-        if (score <= 2) return {score, label: 'Weak', color: 'text-red-600'};
-        if (score <= 4) return {score, label: 'Good', color: 'text-yellow-600'};
-        return {score, label: 'Strong', color: 'text-green-600'};
+        if (score <= 2) return { score, label: 'Weak', color: 'text-red-600' };
+        if (score <= 4) return { score, label: 'Good', color: 'text-yellow-600' };
+        return { score, label: 'Strong', color: 'text-green-600' };
     };
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
-
-        Object.keys(formData).forEach(key => {
-            const field = key as keyof FormData;
-            const error = validateField(field, formData[field]);
-            if (error) newErrors[field] = error;
+        (Object.keys(formData) as (keyof FormData)[]).forEach((field) => {
+            const err = validateField(field, formData[field]);
+            if (err) newErrors[field] = err;
         });
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const isFormValid = (): boolean => {
-        return formData.displayName.trim() &&
+        return !!(
+            formData.displayName.trim() &&
             formData.email &&
             formData.password &&
             formData.confirmPassword &&
             privacyConsents?.required &&
-            privacyConsents?.cloudSync;
+            privacyConsents?.cloudSync
+        );
     };
 
+    // ---------- Submit ----------
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm() || !privacyConsents) return;
 
         try {
-            await signUp(formData.email, formData.password, formData.displayName, privacyConsents);
-        } catch (error) {
-            // Error handling done in signUp function
+            const { user } = await signUp(
+                formData.email,
+                formData.password,
+                formData.displayName,
+                privacyConsents
+            );
+
+            if (user) {
+                // fire-and-forget (don’t block UX)
+                await sendWelcomeEmail(user.email, user.display_name ?? formData.displayName);
+                handleClose(); // optional if your store doesn’t already close
+            }
+        } catch {
+            // errors are set in the store; UI shows auth.error
         }
     };
 
     const passwordStrength = getPasswordStrength(formData.password);
 
+    // ===================== UI =====================
     return (
         <Modal
             isOpen={modals.auth?.signupOpen || false}
@@ -208,9 +216,8 @@ const SignupModal: React.FC = () => {
             <div className="space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-2">
-                    <div
-                        className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-2">
-                        <UserPlus className="h-6 w-6 text-white"/>
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-2">
+                        <UserPlus className="h-6 w-6 text-white" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         Join ApplyTrak
@@ -221,10 +228,10 @@ const SignupModal: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Display Name Field */}
+                    {/* Display Name */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <User className="inline h-4 w-4 mr-2"/>
+                            <User className="inline h-4 w-4 mr-2" />
                             Display Name
                         </label>
                         <input
@@ -232,21 +239,18 @@ const SignupModal: React.FC = () => {
                             value={formData.displayName}
                             onChange={handleDisplayNameChange}
                             placeholder="Your preferred name"
-                            className={`form-input-enhanced ${errors.displayName ?
-                                'border-red-500 focus:border-red-500' : ''}`}
+                            className={`form-input-enhanced ${errors.displayName ? 'border-red-500 focus:border-red-500' : ''}`}
                             disabled={auth.isLoading}
                             autoComplete="name"
                             autoFocus
                         />
-                        {errors.displayName && (
-                            <p className="form-error">{errors.displayName}</p>
-                        )}
+                        {errors.displayName && <p className="form-error">{errors.displayName}</p>}
                     </div>
 
-                    {/* Email Field */}
+                    {/* Email */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <Mail className="inline h-4 w-4 mr-2"/>
+                            <Mail className="inline h-4 w-4 mr-2" />
                             Email Address
                         </label>
                         <input
@@ -258,15 +262,13 @@ const SignupModal: React.FC = () => {
                             disabled={auth.isLoading}
                             autoComplete="email"
                         />
-                        {errors.email && (
-                            <p className="form-error">{errors.email}</p>
-                        )}
+                        {errors.email && <p className="form-error">{errors.email}</p>}
                     </div>
 
-                    {/* Password Field */}
+                    {/* Password */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <Lock className="inline h-4 w-4 mr-2"/>
+                            <Lock className="inline h-4 w-4 mr-2" />
                             Password
                         </label>
                         <div className="relative">
@@ -285,41 +287,37 @@ const SignupModal: React.FC = () => {
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                 disabled={auth.isLoading}
                             >
-                                {showPassword ? (
-                                    <EyeOff className="h-5 w-5"/>
-                                ) : (
-                                    <Eye className="h-5 w-5"/>
-                                )}
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                             </button>
                         </div>
 
-                        {/* Password Strength Indicator */}
+                        {/* Strength */}
                         {formData.password && (
                             <div className="flex items-center gap-2 text-sm">
                                 <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                                     <div
                                         className={`h-1.5 rounded-full transition-all duration-300 ${
-                                            passwordStrength.score <= 2 ? 'bg-red-500' :
-                                                passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                                            passwordStrength.score <= 2
+                                                ? 'bg-red-500'
+                                                : passwordStrength.score <= 4
+                                                    ? 'bg-yellow-500'
+                                                    : 'bg-green-500'
                                         }`}
-                                        style={{width: `${(passwordStrength.score / 6) * 100}%`}}
+                                        style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
                                     />
                                 </div>
                                 <span className={`font-medium ${passwordStrength.color}`}>
-                                    {passwordStrength.label}
-                                </span>
+                  {passwordStrength.label}
+                </span>
                             </div>
                         )}
-
-                        {errors.password && (
-                            <p className="form-error">{errors.password}</p>
-                        )}
+                        {errors.password && <p className="form-error">{errors.password}</p>}
                     </div>
 
-                    {/* Confirm Password Field */}
+                    {/* Confirm Password */}
                     <div className="space-y-2">
                         <label className="form-label-enhanced">
-                            <Lock className="inline h-4 w-4 mr-2"/>
+                            <Lock className="inline h-4 w-4 mr-2" />
                             Confirm Password
                         </label>
                         <div className="relative">
@@ -338,36 +336,27 @@ const SignupModal: React.FC = () => {
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                 disabled={auth.isLoading}
                             >
-                                {showConfirmPassword ? (
-                                    <EyeOff className="h-5 w-5"/>
-                                ) : (
-                                    <Eye className="h-5 w-5"/>
-                                )}
+                                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                             </button>
                         </div>
-                        {errors.confirmPassword && (
-                            <p className="form-error">{errors.confirmPassword}</p>
-                        )}
+                        {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
                     </div>
 
-                    {/* Privacy Consent Section */}
+                    {/* Privacy Consents */}
                     <PrivacyConsentSection
                         onConsentChange={setPrivacyConsents}
                         disabled={auth.isLoading}
                         showOptInBenefits={true}
                     />
 
-                    {/* Error Display */}
+                    {/* Auth Error */}
                     {auth.error && (
-                        <div
-                            className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200/50 dark:border-red-700/50">
-                            <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-                                {auth.error}
-                            </p>
+                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200/50 dark:border-red-700/50">
+                            <p className="text-sm text-red-700 dark:text-red-300 font-medium">{auth.error}</p>
                         </div>
                     )}
 
-                    {/* Submit Button */}
+                    {/* Submit */}
                     <button
                         type="submit"
                         disabled={auth.isLoading || !isFormValid()}
@@ -375,20 +364,19 @@ const SignupModal: React.FC = () => {
                     >
                         {auth.isLoading ? (
                             <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"/>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                                 Creating account...
                             </>
                         ) : (
                             <>
-                                <UserPlus
-                                    className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200"/>
+                                <UserPlus className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
                                 Create Account
                             </>
                         )}
                     </button>
                 </form>
 
-                {/* Action Links */}
+                {/* Switch to Login */}
                 <div className="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
                     <div className="text-center text-sm text-gray-600 dark:text-gray-400">
                         Already have an account?{' '}
@@ -402,16 +390,13 @@ const SignupModal: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Terms Note */}
+                {/* Terms */}
                 <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                         By creating an account, you confirm that you have read and agree to our
-                        <a href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
-                            Terms of Service
-                        </a> and
-                        <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">
-                            Privacy Policy
-                        </a>
+                        <a href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">Terms of Service</a>
+                        {' '}and
+                        <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">Privacy Policy</a>
                     </p>
                 </div>
             </div>

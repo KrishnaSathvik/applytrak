@@ -49,6 +49,13 @@ export interface Attachment {
     uploadedAt?: string;
 }
 
+export interface AppUser {
+    id: number | string;            // bigint in DB, but TS can be string if you cast
+    external_id?: string;
+    email: string;
+    display_name?: string | null;
+}
+
 // ============================================================================
 // FORM DATA TYPES (MISSING - ADDED)
 // ============================================================================

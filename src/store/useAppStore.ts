@@ -10,16 +10,18 @@ import {
     AnalyticsSettings,
     Application,
     ApplicationStatus,
+    AppUser,
     FeedbackSubmission,
     GoalProgress,
     Goals,
     SourceSuccessRate,
     UserMetrics
 } from '../types';
-import {authService, databaseService} from '../services/databaseService';
+import {authService, databaseService, supabase} from '../services/databaseService';
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
+
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -264,7 +266,12 @@ export interface AppState {
 
     // Auth Actions
     initializeAuth: () => Promise<void>;
-    signUp: (email: string, password: string, displayName?: string, privacyConsents?: PrivacyConsents) => Promise<void>;
+    signUp: (
+        email: string,
+        password: string,
+        displayName?: string,
+        privacyConsents?: PrivacyConsents
+    ) => Promise<{ user: AppUser | null; error?: string }>;
     signIn: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
@@ -934,66 +941,102 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    signUp: async (email: string, password: string, displayName?: string, privacyConsents?: PrivacyConsents) => {
-                        console.log('Signing up user:', email);
-
-                        set(state => ({
-                            ...state,
-                            auth: {...state.auth, isLoading: true, error: null}
-                        }));
+                    signUp: async (email, password, displayName, privacyConsents) => {
+                        set((s) => ({...s, auth: {...s.auth, isLoading: true, error: null}}));
 
                         try {
+                            // 1) Create account via your existing auth service (keep your abstraction)
                             const result = await authService.signUp(email, password, displayName);
+                            const authUser = result?.user; // whatever your service returns
+                            if (!authUser) {
+                                const msg = 'Failed to create account';
+                                set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
+                                return {user: null, error: msg};
+                            }
 
-                            if (result.user && privacyConsents) {
-                                // Save privacy settings using the consents
-                                const {privacyService} = await import('../services/privacyService');
-                                await privacyService.savePrivacySettings(result.user.id, privacyConsents);
+                            // 2) Ensure a row exists in public.users and fetch enriched fields
+                            //    Try to find by email first
+                            let {data: dbUser, error: selErr} = await supabase
+                                .from('users')
+                                .select('id, external_id, email, display_name')
+                                .eq('email', email)
+                                .maybeSingle();
 
-                                // Configure app services based on consent
-                                if (privacyConsents.analytics) {
-                                    const {analyticsService} = await import('../services/analyticsService');
-                                    await analyticsService.enableAnalytics({trackingLevel: 'standard'});
+                            // If missing, insert it
+                            if (!dbUser) {
+                                const tz =
+                                    (typeof Intl !== 'undefined' &&
+                                        Intl.DateTimeFormat().resolvedOptions().timeZone) ||
+                                    'UTC';
+                                const lang =
+                                    (typeof navigator !== 'undefined' && navigator.language?.slice(0, 2)) ||
+                                    'en';
+
+                                const {data: inserted, error: insErr} = await supabase
+                                    .from('users')
+                                    .insert({
+                                        email,
+                                        display_name: displayName ?? null,
+                                        timezone: tz,
+                                        language: lang,
+                                    })
+                                    .select('id, external_id, email, display_name')
+                                    .single();
+
+                                if (insErr || !inserted) {
+                                    const msg = insErr?.message || 'Failed to create user profile';
+                                    set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
+                                    return {user: null, error: msg};
                                 }
-
-                                // Store consent state in app
-                                set(state => ({
-                                    ...state,
-                                    privacyConsents
-                                }));
-
-                                // Load the saved privacy settings
-                                get().loadUserPrivacySettings();
+                                dbUser = inserted;
                             }
 
-                            get().showToast({
-                                type: 'success',
-                                message: 'Account created successfully! Welcome to ApplyTrak.',
-                                duration: 5000
-                            });
+                            // 3) Seed privacy + email preferences (best-effort; don’t fail signup if these error)
+                            if (privacyConsents) {
+                                try {
+                                    // privacy settings
+                                    await supabase.from('privacy_settings').upsert(
+                                        {
+                                            user_id: dbUser.id,
+                                            analytics: !!privacyConsents.analytics,
+                                            marketing: !!privacyConsents.marketing,
+                                            cloud_sync_consent: !!privacyConsents.cloudSync,
+                                            consent_date: new Date().toISOString(),
+                                            updated_at: new Date().toISOString(),
+                                        },
+                                        {onConflict: 'user_id'}
+                                    );
 
-                            get().closeAuthModal();
-
-                            // Track signup with consent
-                            if (privacyConsents?.analytics) {
-                                get().trackEvent('user_signed_up', {method: 'email'});
+                                    // email preferences (defaults ON; change if you want)
+                                    await supabase.from('email_preferences').upsert(
+                                        {
+                                            user_id: dbUser.id,
+                                            weekly_goals: true,
+                                            weekly_tips: true,
+                                            updated_at: new Date().toISOString(),
+                                        },
+                                        {onConflict: 'user_id'}
+                                    );
+                                } catch (e) {
+                                    console.warn('Non-fatal: seeding preferences failed', e);
+                                }
                             }
 
-                            console.log('User signed up successfully');
-                        } catch (error) {
-                            console.error('Sign up failed:', error);
-                            const errorMessage = (error as any)?.message || 'Failed to create account';
+                            // 4) Done — clear loading and return the enriched AppUser
+                            set((s) => ({...s, auth: {...s.auth, isLoading: false, error: null}}));
 
-                            set(state => ({
-                                ...state,
-                                auth: {...state.auth, isLoading: false, error: errorMessage}
-                            }));
+                            const appUser: AppUser = {
+                                id: dbUser.id,
+                                external_id: dbUser.external_id,
+                                email: dbUser.email,
+                                display_name: dbUser.display_name ?? null,
+                            };
 
-                            get().showToast({
-                                type: 'error',
-                                message: `${errorMessage}`,
-                                duration: 5000
-                            });
+                            return {user: appUser};
+                        } catch (e: any) {
+                            const msg = e?.message || 'Failed to sign up';
+                            set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
+                            return {user: null, error: msg};
                         }
                     },
 
