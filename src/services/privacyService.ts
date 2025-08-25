@@ -363,6 +363,11 @@ class PrivacyService {
         }
     }
 
+    async saveInitialPrivacySettings(authUserId: string, cloudSync: boolean): Promise<void> {
+        const consents: PrivacyConsents = { required: true, cloudSync, analytics: false, marketing: false };
+        return this.savePrivacySettings(authUserId, consents);
+    }
+
     /**
      * Migrate old analytics consent to new privacy system
      */

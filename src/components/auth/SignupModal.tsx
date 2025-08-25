@@ -3,7 +3,10 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, User, UserPlus } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useAppStore } from '../../store/useAppStore';
+import type { PrivacyConsents } from '../../store/useAppStore';
 import PrivacyConsentSection from '../auth/PrivacyConsentSection';
+import LegalModal from '../modals/LegalModal';
+import {privacyService} from "../../services/privacyService";
 
 // ===================== Types =====================
 interface FormData {
@@ -23,12 +26,6 @@ interface PasswordStrength {
     label: string;
     color: string;
 }
-interface PrivacyConsents {
-    required: boolean;
-    cloudSync: boolean;
-    analytics: boolean;
-    marketing: boolean;
-}
 
 // ===================== Constants =====================
 const PASSWORD_REQUIREMENTS = {
@@ -36,8 +33,8 @@ const PASSWORD_REQUIREMENTS = {
     PATTERNS: {
         LOWERCASE: /[a-z]/,
         UPPERCASE: /[A-Z]/,
-        DIGIT: /\d/
-    }
+        DIGIT: /\d/,
+    },
 };
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 const MIN_NAME_LENGTH = 2;
@@ -56,7 +53,7 @@ async function sendWelcomeEmail(email: string, name?: string) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, name }),
-            signal: controller.signal
+            signal: controller.signal,
         });
         clearTimeout(timer);
     } catch {
@@ -72,20 +69,36 @@ const SignupModal: React.FC = () => {
         displayName: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
     });
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
-    const [privacyConsents, setPrivacyConsents] = useState<PrivacyConsents | null>(null);
+
+    // Controlled consents (keep analytics/marketing for type-safety, default to false)
+    const [privacyConsents, setPrivacyConsents] = useState<PrivacyConsents>({
+        required: false,
+        cloudSync: false,
+        analytics: false,
+        marketing: false,
+    });
+
+    // Legal modal
+    const [legal, setLegal] = useState<{ open: boolean; kind: 'terms' | 'privacy' }>({
+        open: false,
+        kind: 'terms',
+    });
+    const openTerms = () => setLegal({ open: true, kind: 'terms' });
+    const openPrivacy = () => setLegal({ open: true, kind: 'privacy' });
+    const closeLegal = () => setLegal(s => ({ ...s, open: false }));
 
     const resetForm = () => {
         setFormData({ displayName: '', email: '', password: '', confirmPassword: '' });
         setShowPassword(false);
         setShowConfirmPassword(false);
         setErrors({});
-        setPrivacyConsents(null);
+        setPrivacyConsents({ required: false, cloudSync: false, analytics: false, marketing: false });
     };
 
     const handleClose = () => {
@@ -175,33 +188,63 @@ const SignupModal: React.FC = () => {
             formData.email &&
             formData.password &&
             formData.confirmPassword &&
-            privacyConsents?.required &&
-            privacyConsents?.cloudSync
+            privacyConsents.required &&
+            privacyConsents.cloudSync
         );
     };
 
     // ---------- Submit ----------
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!validateForm() || !privacyConsents) return;
+        if (!validateForm()) return;
+        // belt & suspenders: ensure required consents are checked
+        if (!privacyConsents.required || !privacyConsents.cloudSync) return;
 
         try {
             const { user } = await signUp(
                 formData.email,
                 formData.password,
                 formData.displayName,
-                privacyConsents
+                // keep all 4 keys to satisfy your PrivacyConsents type
+                {
+                    required: privacyConsents.required,
+                    cloudSync: privacyConsents.cloudSync,
+                    analytics: false,
+                    marketing: false,
+                }
             );
 
             if (user) {
-                // fire-and-forget (don’t block UX)
-                await sendWelcomeEmail(user.email, user.display_name ?? formData.displayName);
-                handleClose(); // optional if your store doesn’t already close
+                // Supabase Auth UID (string). Your privacyService maps this to public.users.id via external_id.
+                const authUid: string | undefined =
+                    (user as any)?.id ?? (user as any)?.external_id ?? undefined;
+
+                // Run side-effects in parallel; don't block the UX on either
+                const tasks: Promise<any>[] = [
+                    sendWelcomeEmail(
+                        (user as any)?.email ?? formData.email,
+                        (user as any)?.display_name ?? formData.displayName
+                    ),
+                ];
+
+                if (authUid) {
+                    // writes privacy_settings with analytics/marketing OFF
+                    tasks.push(
+                        privacyService.saveInitialPrivacySettings(
+                            authUid,
+                            privacyConsents.cloudSync
+                        )
+                    );
+                }
+
+                await Promise.allSettled(tasks);
+                handleClose(); // optional if your store already closes the modal on success
             }
         } catch {
-            // errors are set in the store; UI shows auth.error
+            // errors surface via auth.error already
         }
     };
+
 
     const passwordStrength = getPasswordStrength(formData.password);
 
@@ -342,11 +385,13 @@ const SignupModal: React.FC = () => {
                         {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
                     </div>
 
-                    {/* Privacy Consents */}
+                    {/* Privacy Consents — controlled + minimal (Terms + Cloud Sync only) */}
                     <PrivacyConsentSection
-                        onConsentChange={setPrivacyConsents}
+                        value={privacyConsents}
+                        onChange={setPrivacyConsents}
                         disabled={auth.isLoading}
-                        showOptInBenefits={true}
+                        onViewTerms={openTerms}
+                        onViewPrivacy={openPrivacy}
                     />
 
                     {/* Auth Error */}
@@ -390,15 +435,30 @@ const SignupModal: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Terms */}
+                {/* Terms (same visual, but opens modal instead of navigating) */}
                 <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                         By creating an account, you confirm that you have read and agree to our
-                        <a href="/terms" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">Terms of Service</a>
+                        <button
+                            type="button"
+                            onClick={openTerms}
+                            className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
+                        >
+                            Terms of Service
+                        </button>
                         {' '}and
-                        <a href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">Privacy Policy</a>
+                        <button
+                            type="button"
+                            onClick={openPrivacy}
+                            className="text-blue-600 dark:text-blue-400 hover:underline ml-1"
+                        >
+                            Privacy Policy
+                        </button>
                     </p>
                 </div>
+
+                {/* Legal modal (single close from base Modal) */}
+                <LegalModal isOpen={legal.open} kind={legal.kind} onClose={closeLegal} />
             </div>
         </Modal>
     );

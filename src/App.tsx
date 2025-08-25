@@ -11,6 +11,7 @@ import {verifyDatabaseAdmin} from './utils/adminAuth';
 import PrivacySettingsModal from './components/modals/PrivacySettingsModal';
 import './styles/globals.css';
 
+
 // ============================================================================
 // LAZY LOADED COMPONENTS - Performance Optimization
 // ============================================================================
@@ -39,6 +40,9 @@ const BackupStatus = React.lazy(() => import('./components/ui/BackupStatus'));
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 const AuthModal = React.lazy(() => import('./components/auth/AuthModal'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+
+const LegalModal = React.lazy(() => import('./components/modals/LegalModal'));
+
 
 // ============================================================================
 // LOADING FALLBACK COMPONENTS
@@ -919,6 +923,7 @@ const App: React.FC = () => {
                 )}
             </ErrorBoundary>
         </React.Suspense>
+
     );
 };
 

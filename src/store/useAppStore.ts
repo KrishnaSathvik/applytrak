@@ -21,13 +21,14 @@ import {authService, databaseService, supabase} from '../services/databaseServic
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
+import {verifyDatabaseAdmin} from "../utils/adminAuth";
 
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
 
-interface PrivacyConsents {
+export interface PrivacyConsents {
     required: boolean;
     cloudSync: boolean;
     analytics: boolean;
@@ -243,7 +244,7 @@ export interface AppState {
     loadFeedbackList: () => void;
 
     // Admin Actions
-    authenticateAdmin: (password: string) => boolean;
+    authenticateAdmin: (password: string) => Promise<boolean>;
     logoutAdmin: () => void;
     loadAdminAnalytics: () => Promise<void>;
     loadAdminFeedback: () => Promise<void>;
@@ -506,7 +507,7 @@ const createDebouncedSearch = (setState: (fn: (state: AppState) => Partial<AppSt
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
 // Configuration
-const ADMIN_PASSWORD = 'applytrak-admin-2024';
+//const ADMIN_PASSWORD = 'applytrak-admin-2024';//
 const DUPLICATE_TOAST_THRESHOLD = 2000;
 const AUTO_REFRESH_DEFAULT_INTERVAL = 30;
 const MAX_TOAST_COUNT = 3;
@@ -942,88 +943,102 @@ export const useAppStore = create<AppState>()(
                     },
 
                     signUp: async (email, password, displayName, privacyConsents) => {
-                        set((s) => ({...s, auth: {...s.auth, isLoading: true, error: null}}));
+                        set((s) => ({ ...s, auth: { ...s.auth, isLoading: true, error: null } }));
 
                         try {
-                            // 1) Create account via your existing auth service (keep your abstraction)
-                            const result = await authService.signUp(email, password, displayName);
-                            const authUser = result?.user; // whatever your service returns
+                            // Normalize email to avoid case issues
+                            const normalizedEmail = (email || '').trim().toLowerCase();
+
+                            // 1) Create auth user
+                            const result = await authService.signUp(normalizedEmail, password, displayName);
+                            const authUser = result?.user;
                             if (!authUser) {
                                 const msg = 'Failed to create account';
-                                set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
-                                return {user: null, error: msg};
+                                set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: msg } }));
+                                return { user: null, error: msg };
                             }
 
-                            // 2) Ensure a row exists in public.users and fetch enriched fields
-                            //    Try to find by email first
-                            let {data: dbUser, error: selErr} = await supabase
+                            const authExternalId: string | undefined = (authUser as any)?.id; // Supabase Auth UID
+
+                            // 2) Ensure a row in public.users (prefer find-by-email, then insert)
+                            let { data: dbUser, error: selErr } = await supabase
                                 .from('users')
                                 .select('id, external_id, email, display_name')
-                                .eq('email', email)
+                                .eq('email', normalizedEmail)
                                 .maybeSingle();
 
-                            // If missing, insert it
+                            if (selErr) console.warn('users select warning:', selErr);
+
                             if (!dbUser) {
                                 const tz =
-                                    (typeof Intl !== 'undefined' &&
-                                        Intl.DateTimeFormat().resolvedOptions().timeZone) ||
-                                    'UTC';
-                                const lang =
-                                    (typeof navigator !== 'undefined' && navigator.language?.slice(0, 2)) ||
-                                    'en';
+                                    (typeof Intl !== 'undefined' && Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC';
+                                const lang = (typeof navigator !== 'undefined' && navigator.language?.slice(0, 2)) || 'en';
 
-                                const {data: inserted, error: insErr} = await supabase
+                                const { data: inserted, error: insErr } = await supabase
                                     .from('users')
                                     .insert({
-                                        email,
+                                        email: normalizedEmail,
                                         display_name: displayName ?? null,
                                         timezone: tz,
                                         language: lang,
+                                        // IMPORTANT: tie app user to auth user
+                                        external_id: authExternalId ?? undefined,
                                     })
                                     .select('id, external_id, email, display_name')
                                     .single();
 
                                 if (insErr || !inserted) {
                                     const msg = insErr?.message || 'Failed to create user profile';
-                                    set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
-                                    return {user: null, error: msg};
+                                    set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: msg } }));
+                                    return { user: null, error: msg };
                                 }
                                 dbUser = inserted;
+                            } else if (authExternalId && dbUser.external_id !== authExternalId) {
+                                // backfill or correct external_id if missing/mismatched
+                                const { error: updErr } = await supabase
+                                    .from('users')
+                                    .update({ external_id: authExternalId })
+                                    .eq('id', dbUser.id);
+                                if (!updErr) dbUser.external_id = authExternalId;
                             }
 
                             // 3) Seed privacy + email preferences (best-effort; don’t fail signup if these error)
-                            if (privacyConsents) {
-                                try {
-                                    // privacy settings
-                                    await supabase.from('privacy_settings').upsert(
-                                        {
-                                            user_id: dbUser.id,
-                                            analytics: !!privacyConsents.analytics,
-                                            marketing: !!privacyConsents.marketing,
-                                            cloud_sync_consent: !!privacyConsents.cloudSync,
-                                            consent_date: new Date().toISOString(),
-                                            updated_at: new Date().toISOString(),
-                                        },
-                                        {onConflict: 'user_id'}
-                                    );
+                            try {
+                                // FORCE optional consents OFF at signup (not collecting now)
+                                const analytics = false;
+                                const marketing = false;
 
-                                    // email preferences (defaults ON; change if you want)
-                                    await supabase.from('email_preferences').upsert(
-                                        {
-                                            user_id: dbUser.id,
-                                            weekly_goals: true,
-                                            weekly_tips: true,
-                                            updated_at: new Date().toISOString(),
-                                        },
-                                        {onConflict: 'user_id'}
-                                    );
-                                } catch (e) {
-                                    console.warn('Non-fatal: seeding preferences failed', e);
-                                }
+                                await supabase.from('privacy_settings').upsert(
+                                    {
+                                        user_id: dbUser.id,
+                                        analytics,
+                                        marketing_consent: marketing,
+                                        cloud_sync_consent: !!privacyConsents?.cloudSync,
+                                        functional_cookies: true,
+                                        tracking_level: 'minimal',
+                                        consent_version: '1.0',
+                                        consent_date: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
+                                    },
+                                    { onConflict: 'user_id' }
+                                );
+
+                                // email preferences — keep or adjust to your defaults
+                                await supabase.from('email_preferences').upsert(
+                                    {
+                                        user_id: dbUser.id,
+                                        weekly_goals: true,
+                                        weekly_tips: true,
+                                        updated_at: new Date().toISOString(),
+                                    },
+                                    { onConflict: 'user_id' }
+                                );
+                            } catch (e) {
+                                console.warn('Non-fatal: seeding preferences failed', e);
                             }
 
-                            // 4) Done — clear loading and return the enriched AppUser
-                            set((s) => ({...s, auth: {...s.auth, isLoading: false, error: null}}));
+                            // 4) Done
+                            set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: null } }));
 
                             const appUser: AppUser = {
                                 id: dbUser.id,
@@ -1032,11 +1047,11 @@ export const useAppStore = create<AppState>()(
                                 display_name: dbUser.display_name ?? null,
                             };
 
-                            return {user: appUser};
+                            return { user: appUser };
                         } catch (e: any) {
                             const msg = e?.message || 'Failed to sign up';
-                            set((s) => ({...s, auth: {...s.auth, isLoading: false, error: msg}}));
-                            return {user: null, error: msg};
+                            set((s) => ({ ...s, auth: { ...s.auth, isLoading: false, error: msg } }));
+                            return { user: null, error: msg };
                         }
                     },
 
@@ -2309,30 +2324,50 @@ export const useAppStore = create<AppState>()(
                     // ADMIN ACTIONS
                     // ============================================================================
 
-                    authenticateAdmin: (password) => {
-                        if (password === ADMIN_PASSWORD) {
-                            set(state => ({
-                                ...state,
-                                ui: {
-                                    ...state.ui,
-                                    admin: {
-                                        ...state.ui.admin,
-                                        authenticated: true
-                                    }
-                                }
-                            }));
+                    authenticateAdmin: async (password: string) => {
+                        const { auth } = get();
 
-                            get().showToast({
-                                type: 'success',
-                                message: 'Admin access granted.',
-                                duration: 3000
-                            });
-
-                            return true;
-                        } else {
+                        if (!auth.isAuthenticated || !auth.user?.email) {
                             get().showToast({
                                 type: 'error',
-                                message: 'Invalid admin password.'
+                                message: 'Please sign in first to access admin features.'
+                            });
+                            return false;
+                        }
+
+                        try {
+                            const isAdmin = await verifyDatabaseAdmin(auth.user.id, auth.user.email);
+
+                            if (isAdmin) {
+                                set(state => ({
+                                    ...state,
+                                    ui: {
+                                        ...state.ui,
+                                        admin: {
+                                            ...state.ui.admin,
+                                            authenticated: true
+                                        }
+                                    }
+                                }));
+
+                                get().showToast({
+                                    type: 'success',
+                                    message: 'Admin access granted.',
+                                    duration: 3000
+                                });
+
+                                return true;
+                            } else {
+                                get().showToast({
+                                    type: 'error',
+                                    message: 'Access denied. Admin privileges required.'
+                                });
+                                return false;
+                            }
+                        } catch (error) {
+                            get().showToast({
+                                type: 'error',
+                                message: 'Authentication failed. Please try again.'
                             });
                             return false;
                         }
