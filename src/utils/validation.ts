@@ -121,6 +121,47 @@ export const goalsFormSchema = yup.object({
         })
 });
 
+export const loginSchema = yup.object({
+    email: yup
+        .string()
+        .required('Email is required')
+        .email('Please enter a valid email address')
+        .trim(),
+
+    password: yup
+        .string()
+        .required('Password is required')
+        .min(6, 'Password must be at least 6 characters')
+});
+
+export const signupSchema = yup.object({
+    email: yup
+        .string()
+        .required('Email is required')
+        .email('Please enter a valid email address')
+        .trim(),
+
+    password: yup
+        .string()
+        .required('Password is required')
+        .min(6, 'Password must be at least 6 characters')
+        .matches(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+            'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+        ),
+
+    confirmPassword: yup
+        .string()
+        .required('Please confirm your password')
+        .oneOf([yup.ref('password')], 'Passwords must match'),
+
+    displayName: yup
+        .string()
+        .notRequired()
+        .max(100, 'Display name must be less than 100 characters')
+        .trim()
+});
+
 // ============================================================================
 // DEFAULT FORM VALUES
 // ============================================================================

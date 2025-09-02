@@ -83,7 +83,7 @@ export interface UIState {
     searchQuery: string;
     isLoading: boolean;
     error: string | null;
-    selectedTab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features';
+    selectedTab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features';
     showMarketingPage: boolean;
     analytics: {
         consentModalOpen: boolean;
@@ -102,10 +102,6 @@ export interface UIState {
 }
 
 export interface ModalState {
-    editApplication: {
-        isOpen: boolean;
-        application?: Application;
-    };
     goalSetting: {
         isOpen: boolean;
     };
@@ -209,13 +205,11 @@ export interface AppState {
     setSearchQuery: (query: string) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
-    setSelectedTab: (tab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => void;
+    setSelectedTab: (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => void;
     setShowMarketingPage: (show: boolean) => void;
     resetMarketingPage: () => void;
 
     // Modal Actions
-    openEditModal: (application: Application) => void;
-    closeEditModal: () => void;
     openGoalModal: () => void;
     closeGoalModal: () => void;
     openMilestone: (message: string) => void;
@@ -479,7 +473,18 @@ export const useAppStore = create<AppState>()(
                         searchQuery: '',
                         isLoading: false,
                         error: null,
-                        selectedTab: 'applications',
+                        selectedTab: (() => {
+                            // Check if user has visited before
+                            const hasVisitedBefore = localStorage.getItem('applytrak_has_visited');
+                            if (!hasVisitedBefore) {
+                                // First time visitor - show home tab
+                                localStorage.setItem('applytrak_has_visited', 'true');
+                                return 'home';
+                            } else {
+                                // Returning user - show applications tab
+                                return 'applications';
+                            }
+                        })(),
                         showMarketingPage: true,
                         analytics: {
                             consentModalOpen: false,
@@ -496,7 +501,6 @@ export const useAppStore = create<AppState>()(
                         },
                     },
                     modals: {
-                        editApplication: {isOpen: false},
                         goalSetting: {isOpen: false},
                         milestone: {isOpen: false},
                         recovery: {isOpen: false},
@@ -2052,7 +2056,7 @@ export const useAppStore = create<AppState>()(
                         set(state => ({...state, ui: {...state.ui, error}}));
                     },
 
-                            setSelectedTab: (tab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
+                            setSelectedTab: (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
             set(state => ({...state, ui: {...state.ui, selectedTab: tab}}));
         },
 
@@ -2060,8 +2064,9 @@ export const useAppStore = create<AppState>()(
                         set(state => ({...state, ui: {...state.ui, showMarketingPage: show}}));
                     },
 
+                    // Utility function to reset marketing page for testing
                     resetMarketingPage: () => {
-                        localStorage.removeItem('applytrak_marketing_dismissed');
+                        localStorage.removeItem('applytrak_has_visited');
                         set(state => ({...state, ui: {...state.ui, showMarketingPage: true}}));
                     },
 
@@ -2071,26 +2076,7 @@ export const useAppStore = create<AppState>()(
 
 
 
-                    openEditModal: (application) => {
-                        set(state => ({
-                            ...state,
-                            modals: {
-                                ...state.modals,
-                                editApplication: {isOpen: true, application}
-                            }
-                        }));
-                        get().trackFeatureUsage('edit_modal_opened');
-                    },
 
-                    closeEditModal: () => {
-                        set(state => ({
-                            ...state,
-                            modals: {
-                                ...state.modals,
-                                editApplication: {isOpen: false}
-                            }
-                        }));
-                    },
 
                     openGoalModal: () => {
                         set(state => ({
@@ -2722,7 +2708,7 @@ export const useAppStore = create<AppState>()(
                 partialize: (state: AppState) => ({
                     ui: {
                         theme: state.ui?.theme || 'light',
-                        selectedTab: state.ui?.selectedTab || 'applications',
+                        selectedTab: state.ui?.selectedTab || 'home',
                         feedback: {
                             buttonVisible: state.ui?.feedback?.buttonVisible ?? true
                         },

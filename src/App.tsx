@@ -2,7 +2,7 @@
 import React, {useEffect} from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import {useAppStore} from './store/useAppStore';
-import Layout from './components/layout/Layout';
+import ResponsiveLayout from './components/layout/ResponsiveLayout';
 import {initializeDatabase} from './services/databaseService';
 import LoadingScreen from './components/ui/LoadingScreen';
 import {setupAutoBackup} from './utils/backup';
@@ -10,7 +10,7 @@ import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
 import {verifyDatabaseAdmin} from './utils/adminAuth';
 import PrivacySettingsModal from './components/modals/PrivacySettingsModal';
-import {useWelcomeTour} from './hooks/useWelcomeTour';
+
 import './styles/globals.css';
 
 
@@ -25,7 +25,6 @@ const ProfileTab = React.lazy(() => import('./components/tabs/ProfileTab'));
 const FeaturesPricingTab = React.lazy(() => import('./components/tabs/FeaturesPricingTab'));
 
 // Modal Components
-const EditApplicationModal = React.lazy(() => import('./components/modals/EditApplicationModal'));
 const GoalModal = React.lazy(() => import('./components/modals/GoalModal'));
 const MilestoneModal = React.lazy(() => import('./components/modals/MilestoneModal'));
 const RecoveryModal = React.lazy(() => import('./components/modals/RecoveryModal'));
@@ -46,8 +45,11 @@ const DiagnosticsPage = React.lazy(() => import('./pages/DiagnosticsPage'));
 // Marketing Page
 const MarketingPage = React.lazy(() => import('./components/marketing/MarketingPage'));
 
+// Home Tab
+const HomeTab = React.lazy(() => import('./components/tabs/HomeTab'));
 
-const WelcomeTourModal = React.lazy(() => import('./components/onboarding/WelcomeTourModal'));
+
+
 const UpgradeModal = React.lazy(() => import('./components/modals/UpgradeModal'));
 
 
@@ -108,8 +110,7 @@ const App: React.FC = () => {
         closeUpgradeModal
     } = useAppStore();
 
-    // Initialize welcome tour for new users
-    useWelcomeTour();
+
 
     const location = useLocation();
     const currentRoute = location.pathname;
@@ -177,8 +178,7 @@ const App: React.FC = () => {
         // For ALL users (authenticated and unauthenticated), show marketing page only on first visit
         if (!hasVisitedBefore) {
             useAppStore.getState().setShowMarketingPage(true);
-            // Mark that user has visited
-            localStorage.setItem('applytrak_has_visited', 'true');
+            // Don't mark as visited here - let the marketing page handle it when user clicks "Get Started"
         } else {
             // User has visited before, show applications page
             useAppStore.getState().setShowMarketingPage(false);
@@ -210,8 +210,16 @@ const App: React.FC = () => {
 
         (window as any).__admin_logout = handleAdminLogout;
 
+        // Add utility function for testing marketing page
+        (window as any).__reset_marketing_page = () => {
+            localStorage.removeItem('applytrak_has_visited');
+            useAppStore.getState().setShowMarketingPage(true);
+            console.log('Marketing page reset - refresh the page to see it');
+        };
+
         return () => {
             delete (window as any).__admin_logout;
+            delete (window as any).__reset_marketing_page;
         };
     }, []);
 
@@ -606,8 +614,8 @@ const App: React.FC = () => {
                                 <MarketingPage/>
                             </React.Suspense>
                         ) : (
-                            <div className="min-h-screen bg-grid dark:bg-grid-dark">
-                                <Layout>
+                            <ResponsiveLayout>
+                                    {ui?.selectedTab === 'home' && <HomeTab/>}
                                     {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
                                     {ui?.selectedTab === 'goals' && <GoalsTab/>}
                                     {ui?.selectedTab === 'analytics' && <AnalyticsDashboard/>}
@@ -615,14 +623,13 @@ const App: React.FC = () => {
                                     {ui?.selectedTab === 'features' && <FeaturesPricingTab/>}
 
                                     <React.Suspense fallback={null}>
-                                        <EditApplicationModal/>
                                         <GoalModal/>
                                         <MilestoneModal/>
                                         <RecoveryModal/>
                                         <FeedbackModal/>
                                         <AuthModal/>
 
-                                        <WelcomeTourModal/>
+
                                         <UpgradeModal 
                                             isOpen={modals.upgrade?.isOpen || false}
                                             onClose={closeUpgradeModal}
@@ -633,8 +640,7 @@ const App: React.FC = () => {
                                             <PrivacySettingsModal/>
                                         )}
                                     </React.Suspense>
-                                </Layout>
-                            </div>
+                            </ResponsiveLayout>
                         )
                     } />
                     
@@ -644,9 +650,13 @@ const App: React.FC = () => {
                             <React.Suspense fallback={<LoadingScreen/>}>
                                 <AdminDashboard/>
                             </React.Suspense>
+                        ) : ui?.showMarketingPage ? (
+                            <React.Suspense fallback={<LoadingScreen/>}>
+                                <MarketingPage/>
+                            </React.Suspense>
                         ) : (
-                            <div className="min-h-screen bg-grid dark:bg-grid-dark">
-                                <Layout>
+                            <ResponsiveLayout>
+                                    {ui?.selectedTab === 'home' && <HomeTab/>}
                                     {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
                                     {ui?.selectedTab === 'goals' && <GoalsTab/>}
                                     {ui?.selectedTab === 'analytics' && <AnalyticsDashboard/>}
@@ -654,14 +664,13 @@ const App: React.FC = () => {
                                     {ui?.selectedTab === 'features' && <FeaturesPricingTab/>}
 
                                     <React.Suspense fallback={null}>
-                                        <EditApplicationModal/>
                                         <GoalModal/>
                                         <MilestoneModal/>
                                         <RecoveryModal/>
                                         <FeedbackModal/>
                                         <AuthModal/>
 
-                                        <WelcomeTourModal/>
+
                                         <UpgradeModal 
                                             isOpen={modals.upgrade?.isOpen || false}
                                             onClose={closeUpgradeModal}
@@ -672,8 +681,7 @@ const App: React.FC = () => {
                                             <PrivacySettingsModal/>
                                         )}
                                     </React.Suspense>
-                                </Layout>
-                            </div>
+                            </ResponsiveLayout>
                         )
                     } />
                 </Routes>

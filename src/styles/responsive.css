@@ -10,16 +10,18 @@
    ============================================================================= */
 @media (max-width: 767px) {
     /* =================================================================
-       MOBILE HEADER IMPROVEMENTS - Font size adjustments only
+       MOBILE HEADER IMPROVEMENTS - Fixed positioning and sizing
        ================================================================= */
     .header-fixed {
-        height: 60px;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 40 !important;
+        width: 100% !important;
+        height: auto;
         min-height: 60px;
         padding: 0;
-    }
-
-    .header-fixed .h-full {
-        min-height: 60px;
     }
 
     .header-fixed h1 {
@@ -39,16 +41,6 @@
         min-width: 44px;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
-    }
-
-    .header-fixed button::before {
-        content: '';
-        position: absolute;
-        top: -8px;
-        left: -8px;
-        right: -8px;
-        bottom: -8px;
-        z-index: -1;
     }
 
     /* Mobile auth buttons spacing */
@@ -94,14 +86,214 @@
     }
 
     /* =================================================================
-       MOBILE LAYOUT SYSTEM
+       MOBILE LAYOUT SYSTEM - Full-screen mobile experience
        ================================================================= */
-    .main-content {
-        padding-top: 60px;
+    /* Fix main content to account for fixed header */
+    main {
+        padding-top: 80px !important; /* Increased to account for header height */
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
+    /* Mobile content container - full width */
     .content-container {
-        padding: 0 var(--space-3);
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Mobile glass card - full width with minimal padding */
+    .glass-card {
+        margin: 0;
+        padding: 0.5rem;
+        border-radius: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        min-height: auto;
+    }
+
+    /* Full-screen mobile content wrapper */
+    .mobile-fullscreen {
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    /* Mobile viewport fixes */
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    /* Mobile-specific button improvements */
+    button {
+        min-height: 44px;
+        min-width: 44px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Mobile form improvements */
+    input, select, textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        min-height: 44px;
+    }
+
+    /* Mobile table improvements */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Mobile modal improvements - Full screen */
+    .modal-overlay {
+        padding: 0;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+
+    .modal-content {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Full-screen mobile forms */
+    .modal-content form {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+
+    /* Full-screen mobile table containers */
+    .table-container {
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        padding: 0 1rem;
+        box-sizing: border-box;
+    }
+
+    /* Mobile table full width */
+    .table {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    /* Mobile card spacing optimization */
+    .mobile-card {
+        margin-bottom: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    /* Mobile spacing improvements */
+    .space-y-4 > * + * {
+        margin-top: 0.5rem;
+    }
+
+    .space-y-6 > * + * {
+        margin-top: 0.75rem;
+    }
+
+    .space-y-8 > * + * {
+        margin-top: 1rem;
+    }
+
+    /* Full-screen mobile auth modals */
+    .auth-modal .modal-content {
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    .auth-modal .modal-header {
+        padding: 1rem;
+        border-radius: 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--color-background);
+    }
+
+    .auth-modal .modal-body {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+    }
+
+    /* Full-screen mobile application forms */
+    .application-form {
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        padding: 1rem;
+        box-sizing: border-box;
+        min-height: calc(100vh - 80px);
+    }
+
+    /* Mobile form sections full width */
+    .form-section {
+        width: 100%;
+        margin: 0;
+        padding: 1rem 0;
+    }
+
+    /* Mobile form inputs full width */
+    .form-input,
+    .form-select,
+    .form-textarea {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Mobile form groups full width */
+    .form-group {
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Mobile navigation menu fixes */
+    .mobile-menu-dropdown {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 50 !important;
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Ensure mobile menu button works */
+    .mobile-menu-container button {
+        position: relative;
+        z-index: 60;
+    }
+
+    /* Mobile menu animation */
+    .mobile-menu-dropdown {
+        animation: slideDownMobile 0.2s ease-out;
+    }
+
+    @keyframes slideDownMobile {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     /* Mobile container utilities */
@@ -822,7 +1014,6 @@
     }
 
     .header-fixed {
-        height: 52px;
         min-height: 52px;
         padding: 0 0.5rem; /* 8px padding */
     }
@@ -843,6 +1034,28 @@
         right: 0.5rem;
         width: auto;
         transform-origin: top center;
+    }
+
+    /* Adjust main content for smaller header */
+    main {
+        padding-top: 70px !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Extra small mobile full-screen adjustments */
+    .glass-card {
+        padding: 0.75rem;
+        min-height: calc(100vh - 70px);
+    }
+
+    .modal-content {
+        padding: 0.75rem;
+    }
+
+    .application-form {
+        padding: 0.75rem;
+        min-height: calc(100vh - 70px);
     }
 
     /* Simplified pagination for very small screens */

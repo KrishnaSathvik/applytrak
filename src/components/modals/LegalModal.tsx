@@ -39,7 +39,7 @@ const LegalModal: React.FC<Props> = ({isOpen, kind = "terms", onClose}) => {
     const title = useMemo(() => (tab === "terms" ? "Terms of Service" : "Privacy Policy"), [tab]);
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="" size="xl">
+        <Modal isOpen={isOpen} onClose={onClose} title="" size="lg">
             <div className="relative">
                 {/* Progress Bar */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 rounded-t-lg">
@@ -139,7 +139,7 @@ const LegalModal: React.FC<Props> = ({isOpen, kind = "terms", onClose}) => {
 
                                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Last updated: December 2024
+                                            Last updated: August 2025
                                         </p>
                                     </div>
                                 </>
@@ -209,7 +209,7 @@ const LegalModal: React.FC<Props> = ({isOpen, kind = "terms", onClose}) => {
 
                                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Last updated: December 2024
+                                            Last updated: August 2025
                                         </p>
                                     </div>
                                 </>

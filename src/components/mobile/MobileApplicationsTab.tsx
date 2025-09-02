@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import MobileResponsiveApplicationTable from '../tables/MobileResponsiveApplicationTable';
-import ApplicationForm from '../forms/ApplicationForm';
+import MobileApplicationsTable from './MobileApplicationsTable';
+import MobileApplicationForm from './MobileApplicationForm';
 import ImportModal from '../modals/ImportModal';
 
-const ApplicationsTab: React.FC = () => {
+const MobileApplicationsTab: React.FC = () => {
   const { 
     applications, 
     filteredApplications,
@@ -19,26 +19,24 @@ const ApplicationsTab: React.FC = () => {
     setShowImportModal(true);
   };
 
-  const handleFormSuccess = () => {
-    // Form stays visible after successful submission
-    // User can add more applications if needed
-  };
+
 
 
 
   return (
-    <div className="space-y-2 md:space-y-4">
+    <div className="mobile-content">
+      <div className="mobile-space-y-4">
       {/* Header Section */}
       <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 sm:gap-3">
-          <div className="space-y-0.5 sm:space-y-1">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mobile-gap-4">
+          <div className="space-y-1">
+            <h1 className="mobile-text-xl font-bold text-gray-900">
               Applications
             </h1>
-            <p className="text-gray-600 text-xs sm:text-sm md:text-base">
+            <p className="mobile-text-sm text-gray-600">
               Track and manage your job applications
             </p>
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-500">
+            <div className="flex flex-wrap items-center mobile-gap-2 mobile-text-sm text-gray-500">
               <span>Total: {applications.length}</span>
               <span>Active: {applications.filter(app => app.status !== 'Rejected').length}</span>
               <span>Interviews: {applications.filter(app => app.status === 'Interview').length}</span>
@@ -49,7 +47,7 @@ const ApplicationsTab: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
+          <div className="flex flex-col sm:flex-row mobile-gap-2">
             <button
               onClick={handleQuickImport}
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg font-semibold transition-colors flex items-center justify-center min-h-[36px] sm:min-h-[40px]"
@@ -59,43 +57,6 @@ const ApplicationsTab: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Add Application Form - Always Visible */}
-      <div className="glass-card">
-        <div className="mb-2 sm:mb-3">
-          <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">Add New Application</h2>
-          <p className="text-xs text-gray-600">Fill out the details below to track your job application</p>
-        </div>
-        <ApplicationForm onSuccess={handleFormSuccess} />
-      </div>
-
-
-
-      {/* Applications Table */}
-      <div className="glass-card">
-        <div className="mb-2 sm:mb-3">
-          <h2 className="text-sm sm:text-base font-semibold text-gray-900">Your Applications</h2>
-          <p className="text-xs text-gray-600">
-            Showing {filteredApplications.length} of {applications.length} applications
-          </p>
-        </div>
-        
-        {applications.length === 0 ? (
-          <div className="text-center py-6 sm:py-8 md:py-12">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-              <Upload className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400" />
-            </div>
-            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
-              No active applications
-            </h3>
-            <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-4 sm:mb-6 px-4">
-              Add your first application using the form above to get started!
-            </p>
-          </div>
-        ) : (
-          <MobileResponsiveApplicationTable />
-        )}
       </div>
 
       {/* Quick Stats */}
@@ -127,18 +88,52 @@ const ApplicationsTab: React.FC = () => {
           </div>
         </div>
       )}
-      
-      {/* Import Modal */}
-      <ImportModal 
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-      />
+
+      {/* Add Application Form - Always Visible */}
+      <div className="glass-card">
+        <div className="mb-4">
+          <h2 className="mobile-text-lg font-semibold text-gray-900">Add New Application</h2>
+          <p className="mobile-text-sm text-gray-600">Fill out the details below to track your job application</p>
+        </div>
+        <MobileApplicationForm onSuccess={() => {}} />
+      </div>
+
+      {/* Applications Table */}
+      <div className="glass-card">
+        <div className="mb-4">
+          <h2 className="mobile-text-lg font-semibold text-gray-900">Your Applications</h2>
+          <p className="mobile-text-sm text-gray-600">
+            Showing {filteredApplications.length} of {applications.length} applications
+          </p>
+        </div>
+        
+        {applications.length === 0 ? (
+          <div className="text-center py-6 sm:py-8 md:py-12">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <Upload className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400" />
+            </div>
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
+              No active applications
+            </h3>
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-4 sm:mb-6 px-4">
+              Add your first application using the form above to get started!
+            </p>
+          </div>
+        ) : (
+          <MobileApplicationsTable />
+        )}
+      </div>
 
 
 
-
+             {/* Import Modal */}
+       <ImportModal
+         isOpen={showImportModal}
+         onClose={() => setShowImportModal(false)}
+       />
+      </div>
     </div>
   );
 };
 
-export default ApplicationsTab;
+export default MobileApplicationsTab;

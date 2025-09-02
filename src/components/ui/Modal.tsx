@@ -8,12 +8,13 @@ interface ModalProps {
     onClose: () => void;
     title?: string;
     children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen';
     className?: string;
     footer?: React.ReactNode;
     variant?: 'default' | 'primary' | 'success' | 'warning' | 'error';
     closeOnBackdropClick?: boolean;
     closeOnEscape?: boolean;
+    fullscreenOnMobile?: boolean;
 }
 
 const SIZE_CLASSES = {
@@ -21,6 +22,7 @@ const SIZE_CLASSES = {
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
+    fullscreen: 'w-full h-full max-w-none max-h-none',
 } as const;
 
 const VARIANT_CLASSES = {
@@ -50,6 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
                                                 variant = 'default',
                                                 closeOnBackdropClick = true,
                                                 closeOnEscape = true,
+                                                fullscreenOnMobile = false,
                                             }) => {
 
     // Use ref to track if this is the initial open
@@ -130,13 +133,18 @@ export const Modal: React.FC<ModalProps> = ({
 
             {/* Modal container */}
             <div
-                className="flex min-h-full items-center justify-center p-4"
+                className={cn(
+                    "flex min-h-full items-center justify-center",
+                    fullscreenOnMobile ? "md:p-4" : "p-4"
+                )}
                 onClick={handleBackdropClick}
             >
                 <div
                     className={cn(
                         'relative w-full glass-card shadow-2xl transform transition-all duration-300 scale-100',
-                        'bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-xl',
+                        'bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl',
+                        fullscreenOnMobile ? 'md:rounded-xl' : 'rounded-xl',
+                        fullscreenOnMobile && 'w-full h-full md:w-auto md:h-auto',
                         sizeClass,
                         variantClasses,
                         className
@@ -151,7 +159,8 @@ export const Modal: React.FC<ModalProps> = ({
                     {title && (
                         <div
                             className={cn(
-                                'flex items-center justify-between p-6 border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl',
+                                'flex items-center justify-between border-b border-gray-200/50 dark:border-gray-700/50',
+                                fullscreenOnMobile ? 'p-4 md:p-6 md:rounded-t-xl' : 'p-6 rounded-t-xl',
                                 headerBackground
                             )}
                         >
@@ -173,14 +182,20 @@ export const Modal: React.FC<ModalProps> = ({
                     )}
 
                     {/* Content */}
-                    <div className="p-6 text-gray-900 dark:text-gray-100">
+                    <div className={cn(
+                        "text-gray-900 dark:text-gray-100",
+                        fullscreenOnMobile ? "p-4 md:p-6 flex-1 overflow-y-auto" : "p-6"
+                    )}>
                         {children}
                     </div>
 
                     {/* Footer */}
                     {footer && (
                         <div
-                            className="flex items-center justify-end gap-3 p-6 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50 dark:from-gray-800/50 dark:to-blue-900/20 rounded-b-xl">
+                            className={cn(
+                                "flex items-center justify-end gap-3 border-t border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-gray-50/50 to-blue-50/50 dark:from-gray-800/50 dark:to-blue-900/20",
+                                fullscreenOnMobile ? "p-4 md:p-6 md:rounded-b-xl" : "p-6 rounded-b-xl"
+                            )}>
                             {footer}
                         </div>
                     )}

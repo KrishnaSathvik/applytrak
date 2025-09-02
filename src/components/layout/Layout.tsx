@@ -57,9 +57,10 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
             <Header/>
 
             {/* Main Content Area */}
-            <main className="relative z-10 pt-16 flex-1">
+            <main className="relative z-10 pt-16 md:pt-20 flex-1">
                 <div className="min-h-[calc(100vh-4rem-200px)]">
-                    <div className="p-4 sm:p-6 lg:p-8">
+                    {/* Desktop: Glass effect background */}
+                    <div className="hidden md:block p-3 sm:p-6 lg:p-8">
                         <div className="relative">
                             {/* Content background with glass effect */}
                             <div
@@ -70,6 +71,11 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
                                 {children}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Mobile: Full-screen content */}
+                    <div className="md:hidden w-full">
+                        {children}
                     </div>
                 </div>
             </main>

@@ -140,14 +140,14 @@ const Header: React.FC = () => {
     };
 
     // Tab navigation handlers
-    const handleTabClick = (tab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
+    const handleTabClick = (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
         setSelectedTab(tab);
     };
 
     return (
         <>
         <header
-            className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm mobile-menu-container">
+            className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm mobile-menu-container z-40">
             <div className="h-full px-3 sm:px-4 lg:px-6">
                 <div className="flex items-center justify-between h-full">
 
@@ -167,14 +167,21 @@ const Header: React.FC = () => {
                                 <h1 className="font-display text-base sm:text-lg lg:text-xl font-bold text-gradient-static tracking-tight truncate">
                                     ApplyTrak
                                 </h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
-                                    Job Application Tracker
-                                </p>
                             </div>
                         </div>
 
                         {/* Navigation Tabs */}
                         <div className="hidden md:flex items-center space-x-1">
+                            <button
+                                onClick={() => handleTabClick('home')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'home'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Home
+                            </button>
                             <button
                                 onClick={() => handleTabClick('applications')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -233,7 +240,7 @@ const Header: React.FC = () => {
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            className="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                             aria-label="Toggle mobile menu"
                         >
                             <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300" />
@@ -271,14 +278,27 @@ const Header: React.FC = () => {
 
             {/* Mobile Menu Dropdown */}
             {mobileMenuOpen && (
-                <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50">
-                    <div className="px-4 py-2 space-y-1">
+                <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 shadow-lg z-50 mobile-menu-dropdown">
+                    <div className="px-4 py-3 space-y-2">
+                        <button
+                            onClick={() => {
+                                handleTabClick('home');
+                                setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
+                                ui.selectedTab === 'home'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                            Home
+                        </button>
                         <button
                             onClick={() => {
                                 handleTabClick('applications');
                                 setMobileMenuOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
                                 ui.selectedTab === 'applications'
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -291,7 +311,7 @@ const Header: React.FC = () => {
                                 handleTabClick('goals');
                                 setMobileMenuOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
                                 ui.selectedTab === 'goals'
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -304,7 +324,7 @@ const Header: React.FC = () => {
                                 handleTabClick('analytics');
                                 setMobileMenuOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
                                 ui.selectedTab === 'analytics'
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -318,7 +338,7 @@ const Header: React.FC = () => {
                                     handleTabClick('profile');
                                     setMobileMenuOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
                                     ui.selectedTab === 'profile'
                                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -332,7 +352,7 @@ const Header: React.FC = () => {
                                 handleTabClick('features');
                                 setMobileMenuOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
                                 ui.selectedTab === 'features'
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'

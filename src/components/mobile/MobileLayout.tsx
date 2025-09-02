@@ -1,0 +1,131 @@
+import React, { useEffect, useState } from 'react';
+import { ChevronUp } from 'lucide-react';
+import { useAppStore } from '../../store/useAppStore';
+
+import MobileHeader from './MobileHeader';
+import MobileNavigation from './MobileNavigation';
+import MobileApplicationsTab from './MobileApplicationsTab';
+import MobileGoalsTab from './MobileGoalsTab';
+import ToastContainer from '../ui/ToastContainer';
+
+// Import mobile tab components
+import MobileHomeTab from './MobileHomeTab';
+import MobileAnalyticsTab from './MobileAnalyticsTab';
+import MobileProfileTab from './MobileProfileTab';
+
+import MobileAuthModal from './MobileAuthModal';
+
+interface MobileLayoutProps {
+  children?: React.ReactNode;
+}
+
+const MobileLayout: React.FC<MobileLayoutProps> = () => {
+  const { ui, modals } = useAppStore();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  
+
+
+  // Handle scroll visibility for scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderTabContent = () => {
+    switch (ui?.selectedTab) {
+      case 'home':
+        return <MobileHomeTab />;
+      case 'applications':
+        return <MobileApplicationsTab />;
+      case 'goals':
+        return <MobileGoalsTab />;
+      case 'analytics':
+        return <MobileAnalyticsTab />;
+      case 'profile':
+        return <MobileProfileTab />;
+
+      default:
+        return <MobileHomeTab />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen relative overflow-x-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Background Layers */}
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" />
+      
+      {/* Background Grid Pattern */}
+      <div className="fixed inset-0 opacity-30">
+        <div className="absolute inset-0 bg-grid dark:bg-grid-dark" />
+      </div>
+
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-float" />
+        <div 
+          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-bl from-indigo-400/8 to-cyan-400/8 rounded-full blur-2xl animate-float"
+          style={{ animationDelay: '2s' }}
+        />
+        <div 
+          className="absolute -bottom-32 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-gradient-to-t from-violet-400/5 to-blue-400/5 rounded-full blur-3xl animate-float"
+          style={{ animationDelay: '4s' }}
+        />
+      </div>
+
+      {/* Mobile Header */}
+      <MobileHeader />
+
+      {/* Main Content Area */}
+      <main className="relative z-10 flex-1">
+        <div className="min-h-[calc(100vh-120px)]">
+          {/* Render tab content */}
+          {renderTabContent()}
+        </div>
+      </main>
+
+      {/* Mobile Navigation */}
+      <MobileNavigation />
+
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-20 right-4 z-40 w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group hover:scale-110 animate-fade-in"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+        </button>
+      )}
+
+      {/* Loading overlay */}
+      {ui.isLoading && (
+        <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+            <span className="font-medium text-gray-900 dark:text-gray-100">Loading...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Modals */}
+      <MobileAuthModal 
+        isOpen={modals.auth?.loginOpen || modals.auth?.signupOpen || false}
+        onClose={() => useAppStore.getState().closeAuthModal()}
+        initialMode={modals.auth?.signupOpen ? 'signup' : 'login'}
+      />
+
+      {/* Toast notifications */}
+      <ToastContainer />
+    </div>
+  );
+};
+
+export default MobileLayout;

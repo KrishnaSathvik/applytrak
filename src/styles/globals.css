@@ -10,7 +10,7 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
-@import './responsive.css';
+@import './mobile-first.css';
 
 /* =============================================================================
    GEIST FONT SYSTEM

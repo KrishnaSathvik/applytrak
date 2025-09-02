@@ -745,12 +745,7 @@ export interface TableState {
 // MODAL & COMPONENT STATES
 // ============================================================================
 
-export interface EditApplicationModalProps {
-    isOpen: boolean;
-    application?: Application;
-    onClose: () => void;
-    onSave: (application: Application) => void;
-}
+
 
 export interface GoalModalProps {
     isOpen: boolean;

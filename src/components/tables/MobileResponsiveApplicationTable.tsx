@@ -24,7 +24,7 @@ import {
     Eye as EyeIcon
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Application, Attachment, ApplicationStatus} from '../../types';
+import {Application, Attachment, ApplicationStatus, JobType} from '../../types';
 import BulkOperations from './BulkOperations';
 import {Modal} from '../ui/Modal';
 import {cn} from '../../utils/helpers';
@@ -897,7 +897,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
     const [showRejected, setShowRejected] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     
     // Row editing state
     const [editingState, setEditingState] = useState<EditingState>({
@@ -950,7 +950,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 clearTimeout(resizeTimeoutRef.current);
             }
             resizeTimeoutRef.current = setTimeout(() => {
-                setIsMobile(window.innerWidth < 1024);
+                setIsMobile(window.innerWidth < 768);
             }, 100);
         };
 
@@ -1169,21 +1169,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         }
     }, []);
 
-    const getStatusBadge = useCallback((status: string): string => {
-        const baseClasses = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wider uppercase';
-        switch (status) {
-            case 'Applied':
-                return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100`;
-            case 'Interview':
-                return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100`;
-            case 'Offer':
-                return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100`;
-            case 'Rejected':
-                return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100`;
-            default:
-                return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100`;
-        }
-    }, []);
+
 
     // Search handlers with performance optimization
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1327,7 +1313,6 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     onNotesClick={openNotesModal}
                     onResumeClick={openResumeModal}
                     formatDate={formatDate}
-                    getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
                     showRejected={showRejected}
                     getCompanyColor={getCompanyColorOptimized}
@@ -1348,7 +1333,6 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         onNotesClick={openNotesModal}
                         onResumeClick={openResumeModal}
                         formatDate={formatDate}
-                        getStatusBadge={getStatusBadge}
                         searchQuery={ui.searchQuery}
                         showRejected={showRejected}
                         startIndex={paginationData.startIndex}
@@ -1360,6 +1344,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         setEditingState={setEditingState}
                         handleDocumentAction={handleDocumentAction}
                         editingState={editingState}
+                        updateApplication={updateApplication}
                     />
                 )
             ) : (
@@ -1487,7 +1472,6 @@ interface ViewProps {
     onResumeClick?: (app: Application) => void;
 
     formatDate: (date: string) => string;
-    getStatusBadge?: (status: string) => string;
     searchQuery?: string;
     showRejected: boolean;
     getCompanyColor: (companyName: string) => string;
@@ -1498,6 +1482,8 @@ interface ViewProps {
     setEditingState: React.Dispatch<React.SetStateAction<EditingState>>;
     handleDocumentAction: (action: 'view' | 'download' | 'copy', attachment: Attachment) => void;
     editingState: EditingState;
+    // Application update function
+    updateApplication?: (id: string, updates: Partial<Application>) => Promise<void>;
 }
 
 // Mobile Card View Component
@@ -1510,7 +1496,6 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                                                       onResumeClick,
 
                                                       formatDate,
-                                                      getStatusBadge,
                                                       searchQuery,
                                                       showRejected,
                                                       getCompanyColor
@@ -1549,7 +1534,7 @@ const MobileCardView: React.FC<ViewProps> = memo(({
     }
 
     return (
-        <div className="space-y-4 px-2 sm:px-0">
+        <div className="space-y-1">
             {applications.map((app) => (
                 <ApplicationCard
                     key={app.id}
@@ -1560,7 +1545,6 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                     onNotesClick={() => onNotesClick?.(app)}
                     onResumeClick={() => onResumeClick?.(app)}
                     formatDate={formatDate}
-                    getStatusBadge={getStatusBadge || (() => '')}
                     highlightText={searchQuery ? highlightText : defaultHighlightText}
                     getCompanyColor={getCompanyColor}
                 />
@@ -1578,7 +1562,6 @@ interface CardProps {
     onNotesClick: () => void;
     onResumeClick: () => void;
     formatDate: (date: string) => string;
-    getStatusBadge: (status: string) => string;
     highlightText: (text: string) => string;
     getCompanyColor: (companyName: string) => string;
 }
@@ -1591,7 +1574,6 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                                                        onNotesClick,
                                                        onResumeClick,
                                                        formatDate,
-                                                       getStatusBadge,
                                                        highlightText,
                                                        getCompanyColor
                                                    }) => {
@@ -1600,87 +1582,105 @@ const ApplicationCard: React.FC<CardProps> = memo(({
     // Removed unused hasNotes
 
     return (
-        <div className={`bg-white dark:bg-gray-800 rounded-xl border-2 transition-all duration-200 shadow-sm ${
-            isSelected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+        <div className={`bg-white dark:bg-gray-800 rounded-lg border transition-all duration-200 shadow-sm ${
+            isSelected ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
         }`}>
-            <div className="p-5 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                    <div className="flex items-start space-x-4 flex-1 min-w-0">
+            <div className="p-2 sm:p-3">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
                         <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={onToggleSelection}
-                            className="mt-1.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 flex-shrink-0"
+                            className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 w-3 h-3 flex-shrink-0 dark:bg-gray-700"
+                            style={{ 
+                                width: '14px', 
+                                height: '14px', 
+                                minWidth: '14px', 
+                                minHeight: '14px',
+                                maxWidth: '14px',
+                                maxHeight: '14px'
+                            }}
                             aria-label={`Select application for ${application.company}`}
                         />
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-1 mb-0.5">
                                 <div
-                                    className={`w-4 h-4 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
+                                    className={`w-2 h-2 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
                                 <h3
-                                    className="font-extrabold text-xl text-gray-900 dark:text-gray-100 whitespace-normal break-words leading-tight"
+                                    className="font-bold text-sm text-gray-900 dark:text-gray-100 whitespace-normal break-words leading-tight"
                                     dangerouslySetInnerHTML={{__html: highlightText(application.company)}}
                                 />
                             </div>
                             <p
-                                className="text-base font-medium text-gray-600 dark:text-gray-400 whitespace-normal break-words leading-relaxed"
+                                className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-normal break-words leading-relaxed"
                                 dangerouslySetInnerHTML={{__html: highlightText(application.position)}}
                             />
                         </div>
                     </div>
                     <div className="flex-shrink-0">
-                        <span className={getStatusBadge(application.status)}>
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
+                            application.status === 'Applied' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' :
+                            application.status === 'Interview' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100' :
+                            application.status === 'Offer' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' :
+                            'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                        }`}>
                             {application.status}
                         </span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 text-sm mb-4">
-                    <div className="flex items-center space-x-3">
-                        <Clock className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
-                        <span className="text-gray-700 dark:text-gray-200 whitespace-nowrap font-semibold text-base">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs mb-2">
+                    <div className="flex items-center space-x-1">
+                        <Clock className="h-3 w-3 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
+                        <span className="text-gray-700 dark:text-gray-200 whitespace-nowrap font-medium">
               {formatDate(application.dateApplied)}
             </span>
                     </div>
-                    <div className="flex items-center space-x-3">
-            <span
-                className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold tracking-wide uppercase ${
-                    application.type === 'Remote'
-                        ? 'bg-green-100 text-green-800 dark:bg-gray-800 dark:text-green-100'
-                        : application.type === 'Hybrid'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                }`}>
+                    <span className="text-gray-400">•</span>
+                    <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
+                            application.type === 'Remote'
+                                ? 'bg-green-100 text-green-800 dark:bg-gray-800 dark:text-green-100'
+                                : application.type === 'Hybrid'
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+                        }`}>
               {application.type}
             </span>
-                    </div>
                     {application.location && (
-                        <div className="flex items-center space-x-3">
-                            <MapPin className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
-                            <span
-                                className="text-gray-700 dark:text-gray-200 whitespace-normal break-words font-medium text-base"
-                                dangerouslySetInnerHTML={{__html: highlightText(application.location)}}
-                            />
-                        </div>
+                        <>
+                            <span className="text-gray-400">•</span>
+                            <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
+                                <span
+                                    className="text-gray-700 dark:text-gray-200 whitespace-normal break-words font-medium"
+                                    dangerouslySetInnerHTML={{__html: highlightText(application.location)}}
+                                />
+                            </div>
+                        </>
                     )}
                     {application.salary && application.salary !== '-' && (
-                        <div className="flex items-center space-x-3">
-                            <DollarSign className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
-                            <span className="text-gray-700 dark:text-gray-200 whitespace-normal break-words font-semibold text-base">
+                        <>
+                            <span className="text-gray-400">•</span>
+                            <div className="flex items-center space-x-1">
+                                <DollarSign className="h-3 w-3 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
+                                <span className="text-gray-700 dark:text-gray-200 whitespace-normal break-words font-medium">
                 {application.salary}
               </span>
-                        </div>
+                            </div>
+                        </>
                     )}
                 </div>
 
                 {/* Expanded Notes Section */}
                 {isExpanded && application.notes && application.notes.trim() && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-3 mb-3">
-                            <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                            <span className="text-base font-semibold text-gray-700 dark:text-gray-200">Notes</span>
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-2">
+                            <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Notes</span>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                             <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
                                 {application.notes}
                             </p>
@@ -1689,14 +1689,14 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                 )}
 
                 <div
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-3 flex-wrap">
+                    className="flex items-center justify-between gap-1 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-1 flex-wrap">
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                            className="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                             aria-label={isExpanded ? "Collapse details" : "Expand details"}
                         >
-                            {isExpanded ? <ChevronUp className="h-5 w-5"/> : <ChevronDown className="h-5 w-5"/>}
+                            {isExpanded ? <ChevronUp className="h-3 w-3"/> : <ChevronDown className="h-3 w-3"/>}
                         </button>
 
                         <NotesIcon
@@ -1744,7 +1744,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                           cancelRowEdit,
                                                                                                           saveRowEdit,
                                                                                                           setEditingState,
-                                                                                                          editingState
+                                                                                                          editingState,
+                                                                                                          updateApplication
                                                                                                       }) => {
     if (applications.length === 0) {
         return (
@@ -1778,32 +1779,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
     return (
         <div
             className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-            {/* Global Save Button */}
-            {editingState.id && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                            Editing application row
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={saveRowEdit}
-                            className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
-                        >
-                            <Check className="h-4 w-4 mr-1 inline" />
-                            Save Changes
-                        </button>
-                        <button
-                            onClick={cancelRowEdit}
-                            className="px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors"
-                        >
-                            <X className="h-4 w-4 mr-1 inline" />
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            )}
+
             
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style={{ tableLayout: 'auto' }}>
@@ -1814,7 +1790,15 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 type="checkbox"
                                 checked={allCurrentPageSelected}
                                 onChange={onSelectAll}
-                                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                className="w-3 h-3 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                style={{ 
+                                    width: '14px', 
+                                    height: '14px', 
+                                    minWidth: '14px', 
+                                    minHeight: '14px',
+                                    maxWidth: '14px',
+                                    maxHeight: '14px'
+                                }}
                                 aria-label="Select all applications on this page"
                             />
                         </th>
@@ -1853,7 +1837,15 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         type="checkbox"
                                         checked={selectedIds.includes(app.id)}
                                         onChange={() => onToggleSelection(app.id)}
-                                        className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                        className="w-3 h-3 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                                style={{ 
+                                    width: '14px', 
+                                    height: '14px', 
+                                    minWidth: '14px', 
+                                    minHeight: '14px',
+                                    maxWidth: '14px',
+                                    maxHeight: '14px'
+                                }}
                                         aria-label={`Select application for ${app.company}`}
                                     />
                                 </td>
@@ -1909,14 +1901,29 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     )}
                                 </td>
                                 <td className="w-16 px-2 py-2 text-center">
-                    <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
-                            app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
-                                app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
-                                    'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                        }`}>
-                      {app.type}
-                    </span>
+                                    {editingState.id === app.id ? (
+                                        <select
+                                            value={editingState.editedData?.type || app.type}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, type: e.target.value as JobType }
+                                            }))}
+                                            className="px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium min-w-[80px] transition-all duration-200"
+                                        >
+                                            {['Onsite', 'Remote', 'Hybrid'].map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span
+                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
+                                                app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
+                                                    app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
+                                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                            }`}>
+                                          {app.type}
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="w-24 px-2 py-2 text-left">
                                     {editingState.id === app.id ? (
@@ -1976,46 +1983,26 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     )}
                                 </td>
                                 <td className="w-20 px-2 py-2 text-center">
-                                    {editingState.id === app.id ? (
-                                        <select
-                                            value={editingState.editedData?.status || app.status}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, status: e.target.value as ApplicationStatus }
-                                            }))}
-                                            className="px-3 py-2 text-sm border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium min-w-[140px] transition-all duration-200"
-                                            autoFocus
-                                        >
-                                            {['Applied', 'Interview', 'Offer', 'Rejected'].map(status => (
-                                                <option key={status} value={status}>{status}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <div className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded px-1 py-1 transition-colors">
-                                            <span className={getStatusBadge(app.status)}>
-                                                {app.status}
-                                            </span>
-                                        </div>
-                                    )}
+                                    <select
+                                        value={app.status}
+                                        onChange={(e) => {
+                                            // Update status directly without entering edit mode
+                                            const newStatus = e.target.value as ApplicationStatus;
+                                            // Call updateApplication directly
+                                            updateApplication?.(app.id, { status: newStatus });
+                                        }}
+                                        className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium min-w-[100px] transition-all duration-200"
+                                    >
+                                        {['Applied', 'Interview', 'Offer', 'Rejected'].map(status => (
+                                            <option key={status} value={status}>{status}</option>
+                                        ))}
+                                    </select>
                                 </td>
                                 <td className="w-24 px-2 py-2 text-center">
-                                    {editingState.id === app.id ? (
-                                        <textarea
-                                            value={editingState.editedData?.notes || app.notes || ''}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, notes: e.target.value }
-                                            }))}
-                                            placeholder="Enter notes"
-                                            className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[200px] max-w-[300px] h-20 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200 resize-none"
-                                            maxLength={2000}
-                                        />
-                                    ) : (
-                                        <NotesIcon
-                                            application={app}
-                                            onClick={() => onNotesClick?.(app)}
-                                        />
-                                    )}
+                                    <NotesIcon
+                                        application={app}
+                                        onClick={() => onNotesClick?.(app)}
+                                    />
                                 </td>
                                 <td className="w-16 px-2 py-2 text-center">
                                     <ResumeIcon
@@ -2039,22 +2026,45 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 </td>
                                 <td className="w-20 px-2 py-2 text-center">
                                     <div className="flex items-center justify-center space-x-1">
-                                        <button
-                                            onClick={() => startRowEdit(app)}
-                                            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
-                                            title="Edit application"
-                                            aria-label="Edit application"
-                                        >
-                                            <Edit className="h-3.5 w-3.5"/>
-                                        </button>
-                                        <button
-                                            onClick={() => onDelete(app.id, app.company)}
-                                            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
-                                            title="Delete application"
-                                            aria-label="Delete application"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5"/>
-                                        </button>
+                                        {editingState.id === app.id ? (
+                                            <>
+                                                <button
+                                                    onClick={saveRowEdit}
+                                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors duration-150"
+                                                    title="Save changes"
+                                                    aria-label="Save changes"
+                                                >
+                                                    <Check className="h-3.5 w-3.5"/>
+                                                </button>
+                                                <button
+                                                    onClick={cancelRowEdit}
+                                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors duration-150"
+                                                    title="Cancel editing"
+                                                    aria-label="Cancel editing"
+                                                >
+                                                    <X className="h-3.5 w-3.5"/>
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => startRowEdit(app)}
+                                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
+                                                    title="Edit application"
+                                                    aria-label="Edit application"
+                                                >
+                                                    <Edit className="h-3.5 w-3.5"/>
+                                                </button>
+                                                <button
+                                                    onClick={() => onDelete(app.id, app.company)}
+                                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
+                                                    title="Delete application"
+                                                    aria-label="Delete application"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5"/>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

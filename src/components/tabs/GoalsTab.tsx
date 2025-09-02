@@ -392,8 +392,14 @@ const GoalsTab: React.FC = () => {
                     type="number"
                     min="1"
                     max="50"
-                    value={formData.weeklyGoal}
-                    onChange={(e) => setFormData(prev => ({ ...prev, weeklyGoal: parseInt(e.target.value) || 0 }))}
+                    value={formData.weeklyGoal || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        weeklyGoal: value === '' ? 0 : parseInt(value) || 0 
+                      }));
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                   />
@@ -412,8 +418,14 @@ const GoalsTab: React.FC = () => {
                     type="number"
                     min="5"
                     max="200"
-                    value={formData.monthlyGoal}
-                    onChange={(e) => setFormData(prev => ({ ...prev, monthlyGoal: parseInt(e.target.value) || 0 }))}
+                    value={formData.monthlyGoal || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        monthlyGoal: value === '' ? 0 : parseInt(value) || 0 
+                      }));
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 20"
                   />
@@ -432,8 +444,14 @@ const GoalsTab: React.FC = () => {
                     type="number"
                     min="10"
                     max="1000"
-                    value={formData.totalGoal}
-                    onChange={(e) => setFormData(prev => ({ ...prev, totalGoal: parseInt(e.target.value) || 0 }))}
+                    value={formData.totalGoal || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        totalGoal: value === '' ? 0 : parseInt(value) || 0 
+                      }));
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 100"
                   />
