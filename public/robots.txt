@@ -2,12 +2,39 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://www.applytrak.com/sitemap.xml
+Sitemap: https://applytrak.com/sitemap.xml
 
-# Optional: Block access to sensitive areas (if any)
-# Disallow: /admin/
-# Disallow: /_next/
-# Disallow: /api/
+# Block access to sensitive areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /.env
+Disallow: /build/
+Disallow: /node_modules/
 
 # Allow search engines to crawl all public content
 Crawl-delay: 1
+
+# Additional directives for better SEO
+# Host: https://applytrak.com
+# Clean-param: utm_source&utm_medium&utm_campaign
+
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Block unwanted bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /

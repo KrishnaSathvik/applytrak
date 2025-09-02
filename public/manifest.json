@@ -1,12 +1,22 @@
 {
   "short_name": "ApplyTrak",
-  "name": "ApplyTrak - Job Application Tracker",
-  "description": "Track your job search journey with style, analytics, and smart organization",
+  "name": "ApplyTrak - Production-Ready Job Application Tracker",
+  "description": "Track your job search journey with advanced analytics, real-time sync, cross-device support, and enterprise-grade security. Features unlimited applications, goal tracking, and mobile optimization.",
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
+    },
+    {
+      "src": "favicon-16x16.png",
+      "type": "image/png",
+      "sizes": "16x16"
+    },
+    {
+      "src": "favicon-32x32.png",
+      "type": "image/png",
+      "sizes": "32x32"
     },
     {
       "src": "logo192.png",
@@ -28,7 +38,7 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#3b82f6",
+  "theme_color": "#4A5E54",
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
@@ -37,27 +47,40 @@
   "categories": [
     "business",
     "productivity",
-    "utilities"
+    "utilities",
+    "career",
+    "job-search"
   ],
-
   "shortcuts": [
     {
       "name": "Add Application",
       "short_name": "Add Job",
-      "description": "Quickly add a new job application",
+      "description": "Quickly add a new job application with file attachments",
       "url": "/?action=add"
     },
     {
       "name": "View Analytics",
       "short_name": "Analytics",
-      "description": "View your job search analytics",
+      "description": "View real-time job search analytics and insights",
       "url": "/?tab=analytics"
     },
     {
       "name": "Set Goals",
       "short_name": "Goals",
-      "description": "Set and track your application goals",
+      "description": "Set and track your application goals with progress visualization",
       "url": "/?action=goals"
+    },
+    {
+      "name": "Applications",
+      "short_name": "Apps",
+      "description": "View all your job applications with smart search",
+      "url": "/?tab=applications"
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "description": "Manage your profile and privacy settings",
+      "url": "/?tab=profile"
     }
   ],
   "related_applications": [],
@@ -67,5 +90,31 @@
   },
   "launch_handler": {
     "client_mode": "navigate-existing"
-  }
+  },
+  "screenshots": [
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "ApplyTrak Desktop Dashboard"
+    },
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ApplyTrak Mobile Interface"
+    }
+  ],
+  "features": [
+    "Cross-device synchronization",
+    "Real-time analytics",
+    "Goal tracking",
+    "File attachments (50MB)",
+    "Offline support",
+    "Dark/Light themes",
+    "Mobile optimization",
+    "Enterprise security"
+  ]
 }
