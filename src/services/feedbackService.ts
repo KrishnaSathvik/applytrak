@@ -33,17 +33,18 @@ class FeedbackService {
         // Input validation
         this.validateFeedbackInput(type, rating, message);
 
+        const metadata = await this.gatherMetadata();
         const feedback: FeedbackSubmission = {
             id: this.generateFeedbackId(),
             type,
             rating: this.normalizeRating(rating),
             message: this.sanitizeMessage(message),
-            email: email ? this.sanitizeEmail(email) : undefined,
+            ...(email && { email: this.sanitizeEmail(email) }),
             timestamp: new Date().toISOString(),
             sessionId: this.getSessionId(),
             userAgent: this.getSafeUserAgent(),
             url: this.getCurrentUrl(),
-            metadata: await this.gatherMetadata()
+            ...(metadata && { metadata })
         };
 
         try {

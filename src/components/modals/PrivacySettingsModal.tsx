@@ -35,7 +35,7 @@ const PrivacySettingsModal: React.FC = () => {
 
             try {
                 setLoading(true);
-                const currentSettings = await privacyService.getPrivacySettings(auth.user.id);
+                const currentSettings = await privacyService.getPrivacySettings(String(auth.user.id));
 
                 if (currentSettings) {
                     setSettings({
@@ -72,7 +72,7 @@ const PrivacySettingsModal: React.FC = () => {
         setSettings(newSettings);
 
         try {
-            await privacyService.updateConsent(auth.user.id, key, value);
+            await privacyService.updateConsent(String(auth.user.id), key, value);
 
             showToast({
                 type: 'success',
@@ -114,7 +114,7 @@ const PrivacySettingsModal: React.FC = () => {
 
         try {
             setSaving(true);
-            await privacyService.updatePrivacySettings(auth.user.id, settings);
+            await privacyService.updatePrivacySettings(String(auth.user.id), settings);
 
             // Update global app state
             setPrivacySettings(settings);
@@ -143,7 +143,7 @@ const PrivacySettingsModal: React.FC = () => {
         if (!auth.user?.id) return;
 
         try {
-            const exportData = await privacyService.exportUserData(auth.user.id);
+            const exportData = await privacyService.exportUserData(String(auth.user.id));
 
             // Create downloadable file
             const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -182,7 +182,7 @@ const PrivacySettingsModal: React.FC = () => {
         }
 
         try {
-            await privacyService.deleteAllUserData(auth.user.id);
+            await privacyService.deleteAllUserData(String(auth.user.id));
 
             showToast({
                 type: 'success',
@@ -193,7 +193,7 @@ const PrivacySettingsModal: React.FC = () => {
             // Sign out user after data deletion
             setTimeout(() => {
                 // Call your existing signOut method
-                // signOut();
+                window.location.reload(); // Force reload to clear all data
                 closePrivacySettings();
             }, 2000);
         } catch (error) {
@@ -236,7 +236,7 @@ const PrivacySettingsModal: React.FC = () => {
             isOpen={modals.privacySettings.isOpen}
             onClose={closePrivacySettings}
             title="Privacy Settings"
-            maxWidth="max-w-3xl"
+            size="xl"
         >
             <div className="space-y-6">
                 {/* Privacy Level Indicator */}

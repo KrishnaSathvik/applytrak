@@ -7,7 +7,6 @@ import {
     BarChart3,
     Bug,
     Building2,
-    Calendar,
     CheckCircle,
     Clock,
     Database,
@@ -19,8 +18,6 @@ import {
     Heart,
     Lightbulb,
     MessageSquare,
-    Pause,
-    Play,
     RefreshCw,
     Search,
     Shield,
@@ -45,7 +42,6 @@ type StatusFilter = 'all' | 'unread' | 'read' | 'flagged';
 // Constants
 const FEEDBACK_PER_PAGE = 20;
 const MAX_RETRIES = 3;
-const PING_INTERVAL = 30000;
 const POLLING_INTERVAL = 20000;
 const DEBOUNCE_DELAY = 1000;
 const AUTO_REFRESH_INTERVAL = 30;
@@ -57,331 +53,6 @@ const sections = [
     {id: 'feedback' as const, label: 'Feedback', icon: MessageSquare},
     {id: 'users' as const, label: 'Users', icon: Users},
 ];
-
-// Real-time status indicator component
-const RealtimeStatusIndicator: React.FC = () => {
-    const {getAdminConnectionStatus, getGlobalRefreshStatus, isAdminRealtime} = useAppStore();
-    const [status, setStatus] = useState(getAdminConnectionStatus());
-    const [refreshStatus, setRefreshStatus] = useState(getGlobalRefreshStatus());
-    const [userCount, setUserCount] = useState(1);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setStatus(getAdminConnectionStatus());
-            setRefreshStatus(getGlobalRefreshStatus());
-
-            const store = useAppStore.getState();
-            const realUserCount = store.auth?.isAuthenticated
-                ? (store.adminAnalytics?.userMetrics?.totalUsers || 1)
-                : 1;
-            setUserCount(realUserCount);
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [getAdminConnectionStatus, getGlobalRefreshStatus]);
-
-    const getStatusConfig = useCallback(() => {
-        if (!status.isConnected) {
-            return {
-                color: 'text-gray-400',
-                icon: '⚪',
-                text: 'Offline'
-            };
-        }
-        if (status.isRealtime) {
-            return {
-                color: 'text-green-500',
-                icon: '🟢',
-                text: 'Live SaaS Mode'
-            };
-        }
-        return {
-            color: 'text-yellow-500',
-            icon: '🟡',
-            text: 'Local Mode'
-        };
-    }, [status]);
-
-    const formatLastUpdate = useCallback(() => {
-        const timestamp = refreshStatus.lastRefreshTimestamp || status.lastUpdate;
-        if (!timestamp) return 'Never';
-
-        const diff = Date.now() - new Date(timestamp).getTime();
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
-
-        if (seconds < 60) return `${seconds}s ago`;
-        if (minutes < 60) return `${minutes}m ago`;
-        return new Date(timestamp).toLocaleTimeString();
-    }, [refreshStatus.lastRefreshTimestamp, status.lastUpdate]);
-
-    const getRefreshStatusIcon = useCallback(() => {
-        if (refreshStatus.isRefreshing) {
-            return <RefreshCw className="h-3 w-3 animate-spin text-blue-500"/>;
-        }
-        if (refreshStatus.refreshStatus === 'error') {
-            return <AlertCircle className="h-3 w-3 text-red-500"/>;
-        }
-        if (refreshStatus.refreshStatus === 'success') {
-            return <CheckCircle className="h-3 w-3 text-green-500"/>;
-        }
-        return null;
-    }, [refreshStatus]);
-
-    const statusConfig = getStatusConfig();
-
-    return (
-        <div
-            className="flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2">
-                <span className="text-lg">{statusConfig.icon}</span>
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${statusConfig.color}`}>
-                            {statusConfig.text}
-                        </span>
-                        {getRefreshStatusIcon()}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <span>
-                            {isAdminRealtime ? `${userCount} users • ` : ''}
-                            Updated: {formatLastUpdate()}
-                        </span>
-                        {refreshStatus.autoRefreshEnabled && (
-                            <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                Auto: {refreshStatus.autoRefreshInterval}s
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {status.isRealtime && (
-                <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
-                    <span className="text-xs text-green-600 font-medium">MULTI-USER</span>
-                </div>
-            )}
-
-            {refreshStatus.refreshErrors.length > 0 && (
-                <div className="flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3 text-red-500"/>
-                    <span className="text-xs text-red-600 font-medium">
-                        {refreshStatus.refreshErrors.length} errors
-                    </span>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// Connection health monitor component
-const ConnectionHealthMonitor: React.FC = () => {
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
-    const [lastPing, setLastPing] = useState<Date | null>(null);
-    const [pingStatus, setPingStatus] = useState<'good' | 'slow' | 'error'>('good');
-
-    useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        // Network ping test
-        const pingInterval = setInterval(async () => {
-            if (!isOnline) return;
-
-            const startTime = Date.now();
-            try {
-                await fetch('/favicon.ico', {mode: 'no-cors'});
-                const pingTime = Date.now() - startTime;
-                setLastPing(new Date());
-                setPingStatus(pingTime < 1000 ? 'good' : 'slow');
-            } catch {
-                setPingStatus('error');
-            }
-        }, PING_INTERVAL);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-            clearInterval(pingInterval);
-        };
-    }, [isOnline]);
-
-    if (!isOnline) {
-        return (
-            <div
-                className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="w-2 h-2 bg-red-500 rounded-full"/>
-                <span className="text-sm text-red-700 dark:text-red-300 font-medium">Offline</span>
-            </div>
-        );
-    }
-
-    const statusConfig = {
-        good: {
-            bg: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
-            dot: 'bg-green-500',
-            text: 'text-green-700 dark:text-green-300',
-            label: 'Connected'
-        },
-        slow: {
-            bg: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800',
-            dot: 'bg-yellow-500',
-            text: 'text-yellow-700 dark:text-yellow-300',
-            label: 'Slow Connection'
-        },
-        error: {
-            bg: 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800',
-            dot: 'bg-red-500',
-            text: 'text-red-700 dark:text-red-300',
-            label: 'Connection Issues'
-        }
-    };
-
-    const config = statusConfig[pingStatus];
-
-    return (
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${config.bg}`}>
-            <div className={`w-2 h-2 rounded-full ${config.dot}`}/>
-            <span className={`text-sm font-medium ${config.text}`}>
-                {config.label}
-            </span>
-        </div>
-    );
-};
-
-// Real-time toggle component
-const RealtimeToggle: React.FC = () => {
-    const {
-        isAdminRealtime,
-        enableRealtimeAdmin,
-        disableRealtimeAdmin,
-        showToast,
-        auth
-    } = useAppStore();
-
-    const handleToggle = useCallback(() => {
-        if (isAdminRealtime) {
-            disableRealtimeAdmin();
-            showToast({
-                type: 'info',
-                message: 'Switched to local-only analytics mode'
-            });
-        } else {
-            enableRealtimeAdmin();
-            showToast({
-                type: 'success',
-                message: auth.isAuthenticated
-                    ? 'Multi-user analytics enabled'
-                    : 'Real-time mode enabled'
-            });
-        }
-    }, [isAdminRealtime, auth.isAuthenticated, enableRealtimeAdmin, disableRealtimeAdmin, showToast]);
-
-    const buttonConfig = isAdminRealtime
-        ? {
-            className: 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400',
-            icon: Activity,
-            label: auth.isAuthenticated ? 'SaaS Mode ON' : 'Real-time ON'
-        }
-        : {
-            className: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300',
-            icon: RefreshCw,
-            label: 'Enable SaaS Mode'
-        };
-
-    const IconComponent = buttonConfig.icon;
-
-    return (
-        <button
-            onClick={handleToggle}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${buttonConfig.className}`}
-        >
-            <IconComponent className="h-4 w-4"/>
-            <span className="text-sm font-medium">{buttonConfig.label}</span>
-        </button>
-    );
-};
-
-// Auto-refresh control component
-const AutoRefreshControl: React.FC = () => {
-    const {
-        getGlobalRefreshStatus,
-        enableAutoRefresh,
-        disableAutoRefresh,
-        showToast
-    } = useAppStore();
-
-    const [refreshStatus, setRefreshStatus] = useState(getGlobalRefreshStatus());
-    const [intervalInput, setIntervalInput] = useState('30');
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setRefreshStatus(getGlobalRefreshStatus());
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [getGlobalRefreshStatus]);
-
-    const handleToggleAutoRefresh = useCallback(() => {
-        if (refreshStatus.autoRefreshEnabled) {
-            disableAutoRefresh();
-        } else {
-            const intervalSeconds = parseInt(intervalInput) || AUTO_REFRESH_INTERVAL;
-            if (intervalSeconds < 5) {
-                showToast({
-                    type: 'warning',
-                    message: 'Minimum auto-refresh interval is 5 seconds'
-                });
-                return;
-            }
-            enableAutoRefresh(intervalSeconds);
-        }
-    }, [refreshStatus.autoRefreshEnabled, intervalInput, enableAutoRefresh, disableAutoRefresh, showToast]);
-
-    const buttonConfig = refreshStatus.autoRefreshEnabled
-        ? {
-            className: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400',
-            icon: Pause,
-            label: 'Stop Auto'
-        }
-        : {
-            className: 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300',
-            icon: Play,
-            label: 'Auto Refresh'
-        };
-
-    const IconComponent = buttonConfig.icon;
-
-    return (
-        <div className="flex items-center gap-2">
-            <button
-                onClick={handleToggleAutoRefresh}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${buttonConfig.className}`}
-            >
-                <IconComponent className="h-4 w-4"/>
-                <span className="text-sm font-medium">{buttonConfig.label}</span>
-            </button>
-
-            {!refreshStatus.autoRefreshEnabled && (
-                <div className="flex items-center gap-1">
-                    <input
-                        type="number"
-                        value={intervalInput}
-                        onChange={(e) => setIntervalInput(e.target.value)}
-                        min="5"
-                        max="300"
-                        className="w-16 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-center"
-                    />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">sec</span>
-                </div>
-            )}
-        </div>
-    );
-};
 
 // User metrics card component
 const UserMetricsCard: React.FC<{
@@ -590,6 +261,8 @@ const SystemHealthPanel: React.FC<{
     );
 };
 
+
+
 // Main AdminDashboard component
 const AdminDashboard: React.FC = () => {
     const {
@@ -624,7 +297,6 @@ const AdminDashboard: React.FC = () => {
     const [sortBy, setSortBy] = useState<SortBy>('newest');
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
-    const [selectedFeedback, setSelectedFeedback] = useState<string[]>([]);
     const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
     const [feedbackPage, setFeedbackPage] = useState(1);
 
@@ -1213,12 +885,14 @@ const AdminDashboard: React.FC = () => {
                                     {currentSection === 'analytics' && 'Analytics'}
                                     {currentSection === 'feedback' && 'Feedback'}
                                     {currentSection === 'users' && 'Users'}
+
                                 </h1>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                     {currentSection === 'overview' && 'System overview and key job application metrics'}
                                     {currentSection === 'analytics' && 'Deep dive into job application patterns and trends'}
                                     {currentSection === 'feedback' && 'User feedback and system improvement suggestions'}
                                     {currentSection === 'users' && 'User behavior and engagement analytics'}
+
                                 </p>
                             </div>
 
@@ -1630,7 +1304,7 @@ const AdminDashboard: React.FC = () => {
                                         title="Monthly Applications"
                                         value={jobMetrics.monthlyApps}
                                         trend={{value: Math.max(0, jobMetrics.monthlyApps - 10), isPositive: true}}
-                                        icon={Calendar}
+                                        icon={Clock}
                                         color="text-green-600 dark:text-green-400"
                                         bgColor="bg-green-100 dark:bg-green-900/20"
                                     />
@@ -2146,6 +1820,8 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             </div>
                         )}
+
+
                     </div>
                 </div>
             </div>

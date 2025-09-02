@@ -133,23 +133,23 @@ export class JobTrackerDatabase extends Dexie {
             privacySettings: 'id, analytics, feedback, functionalCookies, consentDate, consentVersion'
         });
 
-        this.applications.hook('creating', (primKey, obj, trans) => {
+        this.applications.hook('creating', (_primKey, obj, _trans) => {
             const now = new Date().toISOString();
             obj.createdAt = now;
             obj.updatedAt = now;
         });
 
-        this.applications.hook('updating', (modifications, primKey, obj, trans) => {
+        this.applications.hook('updating', (modifications, _primKey, _obj, _trans) => {
             (modifications as any).updatedAt = new Date().toISOString();
         });
 
-        this.analyticsEvents.hook('creating', (primKey, obj, trans) => {
+        this.analyticsEvents.hook('creating', (_primKey, obj, _trans) => {
             if (!obj.timestamp) {
                 obj.timestamp = new Date().toISOString();
             }
         });
 
-        this.userSessions.hook('creating', (primKey, obj, trans) => {
+        this.userSessions.hook('creating', (_primKey, obj, _trans) => {
             if (!obj.startTime) {
                 obj.startTime = new Date().toISOString();
             }
@@ -238,43 +238,55 @@ function randomToken(): string {
 
 /** Maps auth.uid() -> users.id (bigint). Requires SQL function `public.current_user_id()` */
 export async function getCurrentUserId(): Promise<number> {
+    if (!supabase) throw new Error('Supabase client not initialized');
     const {data, error} = await supabase.rpc("current_user_id");
     if (error || data == null) throw error ?? new Error("current_user_id() returned null");
     return data as number;
 }
 
 /**
- * Upload a file to the private 'attachments' bucket with history.
- * Path: <internalUserId>/<timestamp>-<rand>-<index>/<safeName>
- * (RLS requires first segment to be the numeric users.id.)
+ * Upload a file to the private 'attachments' bucket with improved naming strategy.
+ * Path: <internalUserId>/<applicationId>/<timestamp>-<uniqueId>/<originalFileName>
+ * This allows same filenames across different applications while maintaining organization.
  */
 export async function uploadAttachment(
     internalUserId: number,
     file: File,
+    applicationId?: string, // Optional: group files by application
     fileIndex = 0
 ): Promise<Attachment> {
-    const safeName = sanitizeFileName(file.name);
-    const uniqueFolder = `${isoStamp()}-${randomToken()}-${fileIndex}`;
-    const storagePath = `${internalUserId}/${uniqueFolder}/${safeName}`;
+    const originalName = file.name;
+    const safeName = sanitizeFileName(originalName);
+    
+    // Create a more organized folder structure
+    const timestamp = isoStamp();
+    const uniqueId = randomToken();
+    
+    // If applicationId is provided, organize by application
+    // Otherwise, use a general uploads folder
+    const baseFolder = applicationId ? `applications/${applicationId}` : 'uploads';
+    const uniqueFolder = `${timestamp}-${uniqueId}-${fileIndex}`;
+    const storagePath = `${internalUserId}/${baseFolder}/${uniqueFolder}/${safeName}`;
 
+    if (!supabase) throw new Error('Supabase client not initialized');
     const {error} = await supabase.storage
         .from("attachments")
         .upload(storagePath, file, {
             upsert: false, // keep history (no overwrites)
-            contentType: file.type || undefined,
-            cacheControl: "3600",
-            contentDisposition: `inline; filename="${safeName}"`
+            contentType: file.type || 'application/octet-stream',
+            cacheControl: "3600"
         });
 
     if (error) throw error;
 
     return {
         id: uniqueFolder,
-        name: file.name,
+        name: originalName, // Keep original filename for user display
         type: file.type,
         size: file.size,
         storagePath, // where the file lives
         uploadedAt: new Date().toISOString(),
+        applicationId: applicationId || null, // Track which application this belongs to
     };
 }
 
@@ -283,6 +295,7 @@ export async function getAttachmentSignedUrl(
     storagePath: string,
     expiresInSeconds = 300
 ): Promise<string> {
+    if (!supabase) throw new Error('Supabase client not initialized');
     const {data, error} = await supabase.storage
         .from("attachments")
         .createSignedUrl(storagePath, expiresInSeconds);
@@ -309,6 +322,7 @@ export async function resolveDownloadUrl(att: Attachment, ttlSeconds = 300): Pro
 
 /** Delete a stored file by its storagePath */
 export async function deleteAttachment(storagePath: string): Promise<void> {
+    if (!supabase) throw new Error('Supabase client not initialized');
     const {error} = await supabase.storage
         .from("attachments")
         .remove([storagePath]);
@@ -333,6 +347,7 @@ export async function listUserAttachments(
     const results: { path: string; name: string; isFolder: boolean }[] = [];
 
     // list top-level entries under <userId>/
+    if (!supabase) throw new Error('Supabase client not initialized');
     const {data: top, error: topErr} = await supabase.storage
         .from("attachments")
         .list(`${internalUserId}`, {limit: 100});
@@ -353,6 +368,7 @@ export async function listUserAttachments(
     // walk each subfolder and list files
     for (const folder of folders) {
         const folderPath = `${internalUserId}/${folder.name}`;
+        if (!supabase) throw new Error('Supabase client not initialized');
         const {data: children, error} = await supabase.storage
             .from("attachments")
             .list(folderPath, {limit: 100});
@@ -520,19 +536,19 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
         const {data: newUser, error: createError} = await client
             .from('users')
             .insert({
-                external_id: authUserId,
+                externalid: authUserId,
                 email: currentUser.email || `user-${authUserId}@applytrak.local`,
                 display_name: currentUser.user_metadata?.full_name ||
                     currentUser.user_metadata?.name ||
                     currentUser.email?.split('@')[0] ||
                     'ApplyTrak User',
-                avatar_url: currentUser.user_metadata?.avatar_url || null,
+                avatarurl: currentUser.user_metadata?.avatar_url || null,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
                 language: navigator.language || 'en',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                createdat: new Date().toISOString(),
+                updatedat: new Date().toISOString()
             })
-            .select('id, email, is_admin')
+            .select('id, email, isadmin')
             .single();
 
         if (createError) {
@@ -542,8 +558,8 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
                 console.log('🔄 User already exists, fetching existing record...');
                 const {data: existingUser} = await client
                     .from('users')
-                    .select('id, email, is_admin')
-                    .eq('external_id', authUserId)
+                    .select('id, email, isadmin')
+                    .eq('externalid', authUserId)
                     .single();
 
                 if (existingUser) {
@@ -562,7 +578,7 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
         console.log('✅ User created successfully:', {
             dbId,
             email: newUser.email,
-            isAdmin: newUser.is_admin
+            isAdmin: newUser.isadmin
         });
 
         return dbId;
@@ -598,12 +614,19 @@ const getUserDbId = async (): Promise<number | null> => {
             return null;
         }
 
-        console.log('🔍 Looking up user in database with external_id:', userId);
+        // Check if we have a valid session before querying
+        const { data: { session } } = await client.auth.getSession();
+        if (!session?.user) {
+            console.log('❌ No active session - skipping user lookup');
+            return null;
+        }
+
+        console.log('🔍 Looking up user in database with externalid:', userId);
 
         const {data: user, error} = await client
             .from('users')
-            .select('id, email, is_admin')
-            .eq('external_id', userId)
+            .select('id, email, isadmin')
+            .eq('externalid', userId)
             .maybeSingle();
 
         if (error) {
@@ -627,7 +650,7 @@ const getUserDbId = async (): Promise<number | null> => {
         console.log('✅ Found existing user:', {
             dbId,
             email: user.email,
-            isAdmin: user.is_admin
+            isAdmin: user.isadmin
         });
 
         return dbId;
@@ -672,11 +695,8 @@ function initializeAuth() {
 
         notifyAuthStateChange();
 
-        if (session?.user?.id) {
-            getUserDbId().catch((err) => {
-                console.warn('⚠️ Failed to verify user database record:', err);
-            });
-        }
+        // Don't call getUserDbId immediately - wait for proper authentication flow
+        // This prevents premature database queries before RLS policies are active
     });
 
     client.auth.onAuthStateChange(async (event, session) => {
@@ -710,9 +730,10 @@ function initializeAuth() {
                     localStorage.removeItem('applytrak_user_db_id');
                     console.log('🔄 New sign-in detected - cache cleared');
 
-                    // One-time local → cloud migration
-                    (async () => {
+                    // Wait for authentication to be fully established before database operations
+                    setTimeout(async () => {
                         try {
+                            console.log('🔄 Starting delayed user verification after sign-in...');
                             const userDbId = await getUserDbId();
                             if (!userDbId) {
                                 console.warn('⚠️ Could not resolve userDbId; skipping migration');
@@ -733,7 +754,7 @@ function initializeAuth() {
                         } catch (err) {
                             console.warn('⚠️ Local → cloud migration failed:', err);
                         }
-                    })();
+                    }, 2000); // Wait 2 seconds for auth to be fully established
                 }
 
                 break;
@@ -822,6 +843,18 @@ const signOut = async () => {
         await handleAuthError();
         throw error;
     }
+};
+
+const updateUserProfile = async (updates: { full_name?: string; email?: string }) => {
+    const client = initializeSupabase();
+    if (!client) throw new Error('Supabase not initialized');
+
+    const {data, error} = await client.auth.updateUser({
+        data: updates
+    });
+
+    if (error) throw error;
+    return data;
 };
 
 const resetPassword = async (email: string) => {
@@ -921,7 +954,7 @@ const syncToCloud = async (
                     const rows = (isArray ? data : [data]).map((d) => {
                         const applicationData = {
                             id: String(d.id),
-                            user_id: userDbId,
+                            userid: userDbId,
                             company: String(d.company),
                             position: String(d.position),
                             dateApplied: String(d.dateApplied),
@@ -955,7 +988,7 @@ const syncToCloud = async (
                     // Other tables: attach user + syncedAt; accept single or array
                     const rows = (isArray ? data : [data]).map((d) => ({
                         ...d,
-                        user_id: userDbId,
+                        userid: userDbId,
                         syncedAt: nowIso,
                     }));
 
@@ -996,16 +1029,16 @@ const syncToCloud = async (
                         .from(table)
                         .update(updateData)
                         .eq('id', data.id)
-                        .eq('user_id', userDbId)
+                        .eq('userid', userDbId)
                         .select();
                 } else {
                     const updateData = {...data};
-                    delete (updateData as any).user_id;
+                    delete (updateData as any).userid;
                     result = await client
                         .from(table)
                         .update({...updateData, syncedAt: nowIso})
                         .eq('id', data.id)
-                        .eq('user_id', userDbId)
+                        .eq('userid', userDbId)
                         .select();
                 }
                 break;
@@ -1021,7 +1054,7 @@ const syncToCloud = async (
                     return;
                 }
 
-                result = await client.from(table).delete().eq('id', data.id).eq('user_id', userDbId);
+                result = await client.from(table).delete().eq('id', data.id).eq('userid', userDbId);
                 break;
             }
         }
@@ -1093,14 +1126,14 @@ const syncFromCloud = async (table: string, retryCount = 0): Promise<any[]> => {
             return [];
         }
 
-        console.log(`📤 Querying Supabase for ${table} with user_id: ${userDbId}`);
+        console.log(`📤 Querying Supabase for ${table} with userid: ${userDbId}`);
         const startTime = Date.now();
 
         try {
             let query = client
                 .from(table)
                 .select('*')
-                .eq('user_id', userDbId);
+                .eq('userid', userDbId);
 
             if (table === 'applications') {
                 query = query.order('dateApplied', {ascending: false});
@@ -1591,13 +1624,13 @@ export const databaseService: DatabaseService = {
 
                     if (userDbId) {
                         await Promise.all([
-                            client.from('applications').delete().eq('user_id', userDbId),
-                            client.from('goals').delete().eq('user_id', userDbId),
-                            client.from('analytics_events').delete().eq('user_id', userDbId),
-                            client.from('user_sessions').delete().eq('user_id', userDbId),
-                            client.from('user_metrics').delete().eq('user_id', userDbId),
-                            client.from('feedback').delete().eq('user_id', userDbId),
-                            client.from('privacy_settings').delete().eq('user_id', userDbId)
+                            client.from('applications').delete().eq('userid', userDbId),
+                            client.from('goals').delete().eq('userid', userDbId),
+                            client.from('analytics_events').delete().eq('userid', userDbId),
+                            client.from('user_sessions').delete().eq('userid', userDbId),
+                            client.from('user_metrics').delete().eq('userid', userDbId),
+                            client.from('feedback').delete().eq('userid', userDbId),
+                            client.from('privacy_settings').delete().eq('userid', userDbId)
                         ]);
                         console.log('✅ Cloud data cleared');
                     }
@@ -1700,14 +1733,14 @@ export const databaseService: DatabaseService = {
                     try {
                         const client = initializeSupabase()!;
                         await client.from('goals').upsert({
-                            user_id: userDbId,
+                            userid: userDbId,
                             totalGoal: Number(goals.totalGoal),
                             weeklyGoal: Number(goals.weeklyGoal),
                             monthlyGoal: Number(goals.monthlyGoal),
                             createdAt: goals.createdAt,
                             updatedAt: goals.updatedAt
                         }, {
-                            onConflict: 'user_id'
+                            onConflict: 'userid'
                         });
                         console.log('✅ Goals synced to cloud');
                     } catch (error) {
@@ -1930,7 +1963,7 @@ export const databaseService: DatabaseService = {
                 if (userDbId) {
                     const client = initializeSupabase()!;
                     await client.from('user_metrics').upsert({
-                        user_id: userDbId,
+                        userid: userDbId,
                         sessions_count: Number(updated.sessionsCount) || 0,        // was sessionsCount
                         total_time_spent: Number(updated.totalTimeSpent) || 0,    // was totalTimeSpent
                         applications_created: Number(updated.applicationsCreated) || 0,    // was applicationsCreated
@@ -1954,10 +1987,10 @@ export const databaseService: DatabaseService = {
                         session_duration: Number(updated.totalTimeSpent) || 0,    // was sessionDuration
                         created_at: updated.firstVisit || new Date().toISOString(),     // was createdAt
                         updated_at: new Date().toISOString()                      // was updatedAt
-                    }, {
-                        onConflict: 'user_id'
-                    });
-                    console.log('✅ User metrics synced to cloud');
+                                            }, {
+                            onConflict: 'userid'
+                        });
+                        console.log('✅ User metrics synced to cloud');
                 }
             }
         } catch (error) {
@@ -2101,7 +2134,7 @@ export const databaseService: DatabaseService = {
                 if (userDbId) {
                     const client = initializeSupabase()!;
                     await client.from('privacy_settings').upsert({
-                        user_id: userDbId,
+                        userid: userDbId,
                         analytics: settings.analytics,
                         feedback: settings.feedback,
                         functional_cookies: settings.functionalCookies,
@@ -2115,7 +2148,7 @@ export const databaseService: DatabaseService = {
                         created_at: settings.consentDate,
                         updated_at: new Date().toISOString()
                     }, {
-                        onConflict: 'user_id'
+                        onConflict: 'userid'
                     });
                     console.log('✅ Privacy settings synced to cloud');
                 }
@@ -2138,7 +2171,7 @@ export const databaseService: DatabaseService = {
                         const {data, error} = await client
                             .from('privacy_settings')
                             .select('*')
-                            .eq('user_id', userDbId)
+                            .eq('userid', userDbId)
                             .maybeSingle();
 
                         if (error && error.code !== 'PGRST116') {
@@ -2185,7 +2218,7 @@ export const databaseService: DatabaseService = {
 
             const totalUsers = sessions.length > 0 ? 1 : 0;
             const totalApplications = applications.length;
-            const totalEvents = analytics.length;
+            // Removed unused totalEvents variable
             const totalSessions = sessions.length;
 
             const averageSessionDuration = sessions.length > 0
@@ -2263,7 +2296,7 @@ export const databaseService: DatabaseService = {
                 totalFeedback: stats.totalSubmissions,
                 unreadFeedback: allFeedback.filter(f => !f.metadata?.read).length,
                 averageRating: stats.averageRating,
-                recentFeedback: stats.recentFeedback,
+                recentFeedback: stats.recentFeedback || [],
                 feedbackTrends: {
                     bugs: stats.typeDistribution.bug || 0,
                     features: stats.typeDistribution.feature || 0,
@@ -2324,6 +2357,223 @@ export const databaseService: DatabaseService = {
         } catch (error) {
             console.error('Failed to cleanup old data:', error);
             throw new Error('Failed to cleanup old data');
+        }
+    },
+    
+
+    // Enhanced import with progress tracking and memory management
+    async importApplicationsWithProgress(
+        applications: Application[],
+        onProgress?: (progress: {
+            stage: 'local-import' | 'cloud-sync' | 'complete';
+            current: number;
+            total: number;
+            percentage: number;
+            message: string;
+        }) => void
+    ): Promise<void> {
+        try {
+            const total = applications.length;
+            
+            // Stage 1: Local import with progress
+            onProgress?.({
+                stage: 'local-import',
+                current: 0,
+                total,
+                percentage: 0,
+                message: 'Importing to local database...'
+            });
+
+            // Use Dexie's bulkAdd for efficient local storage
+            // Handle duplicates gracefully by either skipping or generating new IDs
+            try {
+                await db.applications.bulkAdd(applications);
+                console.log(`✅ Successfully imported ${applications.length} applications`);
+                
+                onProgress?.({
+                    stage: 'local-import',
+                    current: total,
+                    total,
+                    percentage: 100,
+                    message: 'Local import complete'
+                });
+                
+            } catch (bulkError) {
+                console.warn('Bulk import failed due to duplicates, trying individual import...');
+                
+                // If bulkAdd fails due to duplicates, try individual import with duplicate handling
+                let successCount = 0;
+                let duplicateCount = 0;
+                let errorCount = 0;
+                
+                for (let i = 0; i < applications.length; i++) {
+                    try {
+                        const app = applications[i];
+                        
+                        // Check if application already exists
+                        const existingApp = await db.applications.get(app.id);
+                        
+                        if (existingApp) {
+                            // Skip duplicate or update existing
+                            duplicateCount++;
+                            console.log(`⚠️ Skipping duplicate: ${app.company} - ${app.position}`);
+                        } else {
+                            // Add new application
+                            await db.applications.add(app);
+                            successCount++;
+                        }
+                        
+                        // Update progress every 10 applications
+                        if (i % 10 === 0) {
+                            onProgress?.({
+                                stage: 'local-import',
+                                current: i + 1,
+                                total,
+                                percentage: Math.round(((i + 1) / total) * 100),
+                                message: `Processing applications... ${i + 1}/${total}`
+                            });
+                        }
+                        
+                    } catch (error) {
+                        errorCount++;
+                        console.error(`Failed to import application ${i + 1}:`, error);
+                    }
+                }
+                
+                console.log(`📊 Import summary: ${successCount} added, ${duplicateCount} duplicates, ${errorCount} errors`);
+                
+                // Update progress to reflect actual results
+                onProgress?.({
+                    stage: 'local-import',
+                    current: total,
+                    total,
+                    percentage: 100,
+                    message: `Import complete: ${successCount} added, ${duplicateCount} duplicates`
+                });
+                
+                // If no applications were added, throw an error
+                if (successCount === 0) {
+                    throw new Error(`No new applications were imported. ${duplicateCount} duplicates found, ${errorCount} errors.`);
+                }
+            }
+
+            // Invalidate local cache immediately
+            dataCache.invalidate('applications');
+
+            // Stage 2: Cloud sync (only if signed in) with optimized batching
+            if (isAuthenticated() && applications.length) {
+                onProgress?.({
+                    stage: 'cloud-sync',
+                    current: 0,
+                    total,
+                    percentage: 0,
+                    message: 'Syncing to cloud...'
+                });
+
+                // Optimize batch size based on application count
+                const optimalBatchSize = applications.length > 500 ? 25 : IMPORT_BATCH_SIZE;
+                let syncedCount = 0;
+
+                for (let i = 0; i < applications.length; i += optimalBatchSize) {
+                    const batch = applications.slice(i, i + optimalBatchSize);
+
+                    // Shape the payload array once per chunk
+                    const payloadArray = batch.map(app => ({
+                        id: app.id,
+                        company: app.company,
+                        position: app.position,
+                        dateApplied: app.dateApplied,
+                        status: app.status,
+                        type: app.type,
+                        location: app.location,
+                        salary: app.salary,
+                        jobSource: app.jobSource,
+                        jobUrl: app.jobUrl,
+                        notes: app.notes,
+                        attachments: app.attachments,
+                        createdAt: app.createdAt,
+                        updatedAt: app.updatedAt
+                    }));
+
+                    try {
+                        // Sync batch to cloud
+                        await syncToCloud('applications', payloadArray, 'insert');
+                        syncedCount += batch.length;
+
+                        // Update progress
+                        onProgress?.({
+                            stage: 'cloud-sync',
+                            current: syncedCount,
+                            total,
+                            percentage: Math.round((syncedCount / total) * 100),
+                            message: `Synced ${syncedCount} of ${total} applications...`
+                        });
+
+                    } catch (err) {
+                        console.warn('Cloud batch sync failed:', err);
+                        // Continue with next batch instead of failing entire import
+                    }
+
+                    // Adaptive delay based on batch size and application count
+                    const delay = applications.length > 1000 ? 50 : 120;
+                    await sleep(delay);
+
+                    // Allow UI to update every few batches
+                    if (i % (optimalBatchSize * 4) === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                onProgress?.({
+                    stage: 'cloud-sync',
+                    current: total,
+                    total,
+                    percentage: 100,
+                    message: 'Cloud sync complete'
+                });
+            }
+
+            // Stage 3: Complete
+            onProgress?.({
+                stage: 'complete',
+                current: total,
+                total,
+                percentage: 100,
+                message: `Successfully imported ${total} applications`
+            });
+
+            // Memory cleanup
+            await this.cleanupAfterLargeImport();
+
+        } catch (error) {
+            console.error('Failed to import applications:', error);
+            throw new Error('Failed to import applications');
+        }
+    },
+
+    // Memory cleanup after large imports
+    async cleanupAfterLargeImport(): Promise<void> {
+        try {
+            // Clear caches to free memory
+            dataCache.clear();
+            
+            // Force garbage collection if available (Chrome/Node.js)
+            if (global.gc) {
+                global.gc();
+            }
+            
+            // Clear any temporary data
+            if (typeof window !== 'undefined' && 'caches' in window) {
+                // Clear service worker caches if they exist
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(name => caches.delete(name))
+                );
+            }
+            
+            console.log('🧹 Memory cleanup completed after large import');
+        } catch (error) {
+            console.warn('Memory cleanup failed:', error);
         }
     }
 };
@@ -2439,7 +2689,7 @@ export const forceSessionRefresh = async () => {
     if (!client) return false;
 
     try {
-        const {data, error} = await client.auth.refreshSession();
+        const {error} = await client.auth.refreshSession();
         if (error) {
             console.error('❌ Force refresh failed:', error);
             await handleAuthError();
@@ -2522,7 +2772,7 @@ export const debugSupabaseSync = async () => {
             const {data: testQuery, error: tableError} = await client
                 .from('applications')
                 .select('*')
-                .eq('user_id', userDbId)
+                .eq('userid', userDbId)
                 .limit(5);
 
             if (tableError) {
@@ -2680,7 +2930,7 @@ export const testDatabaseConnection = async () => {
         const {count, error} = await client
             .from('applications')
             .select('*', {count: 'exact', head: true})
-            .eq('user_id', userDbId);
+            .eq('userid', userDbId);
 
         if (error) {
             console.error('Table access error:', error);
@@ -2742,6 +2992,7 @@ export const authService = {
     signIn,
     signOut,
     resetPassword,
+    updateUserProfile,
     getCurrentUser,
     getCurrentSession,
     isAuthenticated,

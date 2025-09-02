@@ -1,36 +1,22 @@
-// src/components/layout/Header.tsx - IMPROVED MOBILE & DESKTOP HEADER
+// src/components/layout/Header.tsx - SIMPLIFIED HEADER WITH ESSENTIAL TABS
 import React, {useEffect, useState} from 'react';
 import {
-    Briefcase,
-    CheckCircle,
-    ChevronDown,
-    Cloud,
     LogIn,
-    LogOut,
     Menu,
     Moon,
-    Shield,
     Sun,
-    TrendingUp,
-    UserPlus,
-    Zap
+    UserPlus
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
-import {createPortal} from 'react-dom';
+
+
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface UserMenuProps {
-    user: any;
-    isOpen: boolean;
-    onToggle: () => void;
-    onClose: () => void;
-    onSignOut: () => void;
-    onPrivacySettings: () => void;
-}
+
 
 interface AuthButtonsProps {
     onLogin: () => void;
@@ -38,173 +24,9 @@ interface AuthButtonsProps {
     isLoading?: boolean;
 }
 
-interface AuthStatusProps {
-    isAuthenticated: boolean;
-    isLoading: boolean;
-}
 
-// ============================================================================
-// User Menu Component
-// ============================================================================
 
-const UserMenu: React.FC<UserMenuProps> = ({
-                                               user,
-                                               isOpen,
-                                               onToggle,
-                                               onClose,
-                                               onSignOut,
-                                               onPrivacySettings
-                                           }) => {
-    const [buttonRef, setButtonRef] = useState<HTMLButtonElement | null>(null);
 
-    const displayName = user?.user_metadata?.full_name ||
-        user?.user_metadata?.name ||
-        user?.email?.split('@')[0] ||
-        'User';
-    const email = user?.email || '';
-
-    // Close menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (isOpen &&
-                !(event.target as Element).closest('.user-menu-container') &&
-                !(event.target as Element).closest('.user-dropdown-portal')) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen, onClose]);
-
-    // Calculate dropdown position
-    const getDropdownPosition = () => {
-        if (!buttonRef) return {top: 0, right: 0};
-
-        const rect = buttonRef.getBoundingClientRect();
-        return {
-            top: rect.bottom + 8,
-            right: window.innerWidth - rect.right
-        };
-    };
-
-    const handleSignOutClick = () => {
-        onClose();
-        onSignOut();
-    };
-
-    const handlePrivacyClick = () => {
-        onClose();
-        onPrivacySettings();
-    };
-
-    return (
-        <div className="user-menu-container relative">
-            {/* User Menu Button - Simplified */}
-            <button
-                ref={setButtonRef}
-                onClick={onToggle}
-                className="
-                    flex items-center gap-2 p-2 rounded-xl
-                    bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20
-                    border border-green-200/50 dark:border-green-700/50
-                    hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-800/30 dark:hover:to-emerald-800/30
-                    transition-all duration-200 shadow-sm hover:shadow-md group
-                    min-h-[44px] min-w-[44px]
-                "
-                title={`Signed in as ${displayName}`}
-            >
-                {/* User Avatar */}
-                <div
-                    className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                    {displayName.charAt(0).toUpperCase()}
-                </div>
-
-                {/* User Info - More responsive */}
-                <div className="hidden md:block text-left">
-                    <div
-                        className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-24 lg:max-w-32">
-                        {displayName}
-                    </div>
-                    <div className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
-                        <Cloud className="h-2.5 w-2.5"/>
-                        <span className="hidden lg:inline">Synced</span>
-                    </div>
-                </div>
-
-                {/* Dropdown Arrow - Hidden on mobile */}
-                <ChevronDown
-                    className={`h-4 w-4 text-gray-600 dark:text-gray-400 transition-transform duration-200 hidden sm:block ${isOpen ? 'rotate-180' : ''}`}/>
-            </button>
-
-            {/* Portal-based Dropdown */}
-            {isOpen && buttonRef && createPortal(
-                <div
-                    className="user-dropdown-portal fixed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl w-80 max-w-[90vw]"
-                    style={{
-                        top: getDropdownPosition().top,
-                        right: getDropdownPosition().right,
-                        zIndex: 99999
-                    }}
-                >
-                    {/* User Info Header */}
-                    <div
-                        className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-2xl">
-                        <div className="flex items-center gap-3">
-                            <div
-                                className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                                {displayName.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                                    {displayName}
-                                </div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                    {email}
-                                </div>
-                                <div className="flex items-center gap-1 mt-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500"/>
-                                    <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                        Cloud Sync Active
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Menu Items */}
-                    <div className="p-2">
-                        {/* Privacy Settings */}
-                        <button
-                            onClick={handlePrivacyClick}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            <Shield className="h-4 w-4 text-gray-600 dark:text-gray-400"/>
-                            <div className="flex-1">
-                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Privacy Settings
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    Manage data preferences
-                                </div>
-                            </div>
-                        </button>
-
-                        {/* Sign Out */}
-                        <button
-                            onClick={handleSignOutClick}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                        >
-                            <LogOut className="h-4 w-4"/>
-                            <span className="text-sm font-medium">Sign Out</span>
-                        </button>
-                    </div>
-                </div>,
-                document.body
-            )}
-        </div>
-    );
-};
 
 // ============================================================================
 // Authentication Buttons Component - Improved
@@ -260,44 +82,36 @@ const AuthButtons: React.FC<AuthButtonsProps> = ({onLogin, onSignup, isLoading =
     );
 };
 
-// ============================================================================
-// Authentication Status Component - Simplified
-// ============================================================================
 
-const AuthStatus: React.FC<AuthStatusProps> = ({isAuthenticated, isLoading}) => {
-    // Don't show anything if user is not authenticated
-    if (!isAuthenticated || isLoading) {
-        return null;
-    }
-
-    // Only show green "Synced" indicator for authenticated users
-    return (
-        <div
-            className="flex items-center gap-1.5 px-2 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/>
-            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Synced</span>
-        </div>
-    );
-};
 
 // ============================================================================
-// Main Header Component - IMPROVED
+// Main Header Component - SIMPLIFIED
 // ============================================================================
 
 const Header: React.FC = () => {
     const {
         ui,
         setTheme,
-        toggleSidebar,
-        applications,
         auth,
         openAuthModal,
-        signOut,
-        showToast,
-        openPrivacySettings
+        setSelectedTab
     } = useAppStore();
+    
 
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    // Close mobile menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (mobileMenuOpen && !(event.target as Element).closest('.mobile-menu-container')) {
+                setMobileMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [mobileMenuOpen]);
 
     // Theme management
     useEffect(() => {
@@ -317,150 +131,120 @@ const Header: React.FC = () => {
     };
 
     // Authentication handlers
-    const handleSignOut = async () => {
-        try {
-            await signOut();
-            setUserMenuOpen(false);
-        } catch (error) {
-            console.error('Sign out error:', error);
-            showToast({
-                type: 'error',
-                message: 'Failed to sign out. Please try again.'
-            });
-        }
-    };
-
     const handleLogin = () => {
-        setUserMenuOpen(false);
         openAuthModal('login');
     };
 
     const handleSignup = () => {
-        setUserMenuOpen(false);
         openAuthModal('signup');
     };
 
-    const handlePrivacySettings = () => {
-        openPrivacySettings();
+    // Tab navigation handlers
+    const handleTabClick = (tab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
+        setSelectedTab(tab);
     };
 
-    // Calculate key metrics
-    const activeApplications = applications.filter(app => app.status !== 'Rejected').length;
-    const successRate = applications.length > 0
-        ? Math.round((applications.filter(app => app.status === 'Offer').length / applications.length) * 100)
-        : 0;
-
     return (
+        <>
         <header
-            className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+            className="header-fixed bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm mobile-menu-container">
             <div className="h-full px-3 sm:px-4 lg:px-6">
                 <div className="flex items-center justify-between h-full">
 
-                    {/* LEFT SECTION - Simplified */}
-                    <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        {/* Mobile Sidebar Toggle (hide while sidebar is open) */}
-                        <button
-                            onClick={toggleSidebar}
-                            className={`lg:hidden p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm
-              ${ui.sidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                            aria-label="Open sidebar"
-                            aria-expanded={ui.sidebarOpen}
-                        >
-                            <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300"/>
-                        </button>
-
-                        {/* Brand Section - Enhanced */}
-                        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                    {/* LEFT SECTION - Brand and Navigation Tabs */}
+                    <div className="flex items-center space-x-6 flex-1 min-w-0">
+                        {/* Brand Section */}
+                        <div className="flex items-center space-x-3 sm:space-x-4">
                             <div className="relative">
-                                <div
-                                    className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200/50 dark:border-blue-700/50 shadow-sm">
-                                    <ApplyTrakLogo size="sm" className="transition-transform duration-300"/>
-                                </div>
+                                <ApplyTrakLogo size="xl" className="transition-transform duration-300 hover:scale-110" showText={false}/>
                                 {auth.isAuthenticated && (
                                     <div
-                                        className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"/>
+                                        className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"/>
                                 )}
                             </div>
 
-                            <div className="min-w-0 flex-1">
-                                <h1 className="font-display text-sm sm:text-base lg:text-lg font-medium text-gradient-static tracking-tight truncate">
+                            <div className="min-w-0">
+                                <h1 className="font-display text-base sm:text-lg lg:text-xl font-bold text-gradient-static tracking-tight truncate">
                                     ApplyTrak
                                 </h1>
-                                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hidden sm:block truncate leading-tight">
-                                    Career Dashboard
+                                <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+                                    Job Application Tracker
                                 </p>
                             </div>
                         </div>
+
+                        {/* Navigation Tabs */}
+                        <div className="hidden md:flex items-center space-x-1">
+                            <button
+                                onClick={() => handleTabClick('applications')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'applications'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Applications
+                            </button>
+                            <button
+                                onClick={() => handleTabClick('goals')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'goals'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Goals
+                            </button>
+                            <button
+                                onClick={() => handleTabClick('analytics')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'analytics'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Analytics
+                            </button>
+                            {auth.isAuthenticated && (
+                                <button
+                                    onClick={() => handleTabClick('profile')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        ui.selectedTab === 'profile'
+                                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                    }`}
+                                >
+                                    Profile
+                                </button>
+                            )}
+                            <button
+                                onClick={() => handleTabClick('features')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'features'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Features
+                            </button>
+
+                        </div>
+
+                        {/* Mobile Menu Button */}
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            aria-label="Toggle mobile menu"
+                        >
+                            <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                        </button>
                     </div>
 
-                    {/* CENTER SECTION - Key Stats (Desktop Only) */}
-                    <div className="hidden lg:flex items-center space-x-4 px-6">
-                        {/* Applications Count */}
-                        <div
-                            className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50 shadow-sm">
-                            <div className="flex items-center space-x-2">
-                                <Briefcase className="h-4 w-4 text-green-600 dark:text-green-400"/>
-                                {auth.isAuthenticated && <Cloud className="h-3 w-3 text-green-500"/>}
-                            </div>
-                            <div className="text-left">
-                                <div className="text-lg font-extrabold text-gradient-blue leading-none">
-                                    {applications.length}
-                                </div>
-                                <div
-                                    className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest leading-none">
-                                    Applications
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Active Applications */}
-                        <div
-                            className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
-                            <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
-                            <div className="text-left">
-                                <div className="text-lg font-extrabold text-gradient-purple leading-none">
-                                    {activeApplications}
-                                </div>
-                                <div
-                                    className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none">
-                                    Active
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Success Rate */}
-                        <div
-                            className="flex items-center space-x-3 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50 shadow-sm">
-                            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400"/>
-                            <div className="text-left">
-                                <div className="text-lg font-extrabold text-gradient-static leading-none">
-                                    {successRate}%
-                                </div>
-                                <div
-                                    className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest leading-none">
-                                    Success
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* RIGHT SECTION - Cleaned Up */}
+                    {/* RIGHT SECTION - Auth and Theme */}
                     <div className="flex items-center space-x-2">
-                        {/* Auth Status - Show on both mobile and desktop for authenticated users only */}
-                        <AuthStatus isAuthenticated={auth.isAuthenticated} isLoading={auth.isLoading}/>
-
                         {/* Authentication Section */}
                         <div className="flex items-center">
-                            {auth.isAuthenticated ? (
-                                <UserMenu
-                                    user={auth.user}
-                                    isOpen={userMenuOpen}
-                                    onToggle={() => setUserMenuOpen(!userMenuOpen)}
-                                    onClose={() => setUserMenuOpen(false)}
-                                    onSignOut={handleSignOut}
-                                    onPrivacySettings={handlePrivacySettings}
-                                />
-                            ) : (
+                            {!auth.isAuthenticated && (
                                 <AuthButtons
                                     onLogin={handleLogin}
                                     onSignup={handleSignup}
@@ -484,7 +268,87 @@ const Header: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Menu Dropdown */}
+            {mobileMenuOpen && (
+                <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg z-50">
+                    <div className="px-4 py-2 space-y-1">
+                        <button
+                            onClick={() => {
+                                handleTabClick('applications');
+                                setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                ui.selectedTab === 'applications'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                            Applications
+                        </button>
+                        <button
+                            onClick={() => {
+                                handleTabClick('goals');
+                                setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                ui.selectedTab === 'goals'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                            Goals
+                        </button>
+                        <button
+                            onClick={() => {
+                                handleTabClick('analytics');
+                                setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                ui.selectedTab === 'analytics'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                            Analytics
+                        </button>
+                        {auth.isAuthenticated && (
+                            <button
+                                onClick={() => {
+                                    handleTabClick('profile');
+                                    setMobileMenuOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'profile'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Profile
+                            </button>
+                        )}
+                        <button
+                            onClick={() => {
+                                handleTabClick('features');
+                                setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                ui.selectedTab === 'features'
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            }`}
+                        >
+                            Features
+                        </button>
+
+
+                    </div>
+                </div>
+            )}
         </header>
+        
+
+    </>
     );
 };
 

@@ -1,5 +1,7 @@
 // src/types/index.ts - COMPLETE FIXED VERSION WITH ALL TYPES
 import * as React from 'react';
+import { User, Session } from '@supabase/supabase-js';
+
 // ============================================================================
 // CORE APPLICATION TYPES
 // ============================================================================
@@ -26,7 +28,7 @@ export interface Application {
 }
 
 export type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected';
-export type JobType = 'Onsite' | 'Remote' | 'Hybrid';
+export type JobType = 'Onsite' | 'Remote' | 'Hybrid' | 'Contract' | 'Part-time' | 'Internship';
 
 export interface Attachment {
     id?: string;
@@ -47,6 +49,12 @@ export interface Attachment {
     data?: string; // Base64 data URL (legacy)
 
     uploadedAt?: string;
+    
+    /**
+     * NEW: track which application this attachment belongs to
+     * Allows organizing files by application and handling same filenames
+     */
+    applicationId?: string | null;
 }
 
 export interface AppUser {
@@ -55,6 +63,33 @@ export interface AppUser {
     email: string;
     display_name?: string | null;
 }
+
+// ============================================================================
+// AUTHENTICATION TYPE MAPPING
+// ============================================================================
+
+/**
+ * Convert Supabase User to AppUser
+ * This ensures type safety when working with Supabase auth
+ */
+export const mapSupabaseUserToAppUser = (user: User | null): AppUser | null => {
+    if (!user || !user.email) return null;
+    
+    return {
+        id: user.id,
+        external_id: user.id, // Supabase user ID becomes external_id
+        email: user.email,
+        display_name: user.user_metadata?.display_name || user.email
+    };
+};
+
+/**
+ * Convert Supabase Session to our session format
+ */
+export const mapSupabaseSession = (session: Session | null): any | null => {
+    if (!session) return null;
+    return session;
+};
 
 // ============================================================================
 // FORM DATA TYPES (MISSING - ADDED)
@@ -469,7 +504,7 @@ export interface CloudSyncSettings {
 
 export interface SupabaseApplication {
     id: string;
-    user_id: string;
+    userid: string;
     company: string;
     position: string;
     date_applied: string;
@@ -488,7 +523,7 @@ export interface SupabaseApplication {
 
 export interface SupabaseGoals {
     id: string;
-    user_id: string;
+    userid: string;
     total_goal: number;
     weekly_goal: number;
     monthly_goal: number;
@@ -499,7 +534,7 @@ export interface SupabaseGoals {
 
 export interface SupabaseAnalyticsEvent {
     id: number;
-    user_id: string;
+    userid: string;
     event_name: string;
     properties?: Record<string, any>;
     timestamp: string;
@@ -509,7 +544,7 @@ export interface SupabaseAnalyticsEvent {
 
 export interface SupabaseFeedback {
     id: number;
-    user_id: string;
+    userid: string;
     type: FeedbackSubmission['type'];
     rating: number;
     message: string;
@@ -524,7 +559,7 @@ export interface SupabaseFeedback {
 
 export interface SupabasePrivacySettings {
     id: string;
-    user_id: string;
+    userid: string;
     analytics: boolean;
     feedback: boolean;
     functional_cookies: boolean;
@@ -558,7 +593,32 @@ export interface DatabaseService {
 
     importApplications(applications: Application[]): Promise<void>;
 
+    // Enhanced import with progress tracking
+    importApplicationsWithProgress(
+        applications: Application[],
+        onProgress?: (progress: {
+            stage: 'local-import' | 'cloud-sync' | 'complete';
+            current: number;
+            total: number;
+            percentage: number;
+            message: string;
+        }) => void
+    ): Promise<void>;
+
+    getApplicationsByDateRange(startDate: Date, endDate: Date): Promise<Application[]>;
+
+    getApplicationsByStatus(status: string): Promise<Application[]>;
+
     clearAllData(): Promise<void>;
+
+    // Cache management
+    forceRefreshApplications(): Promise<Application[]>;
+    getCacheStatus(): { [key: string]: boolean };
+    clearCache(): void;
+    invalidateCache(key: string): void;
+
+    // Memory management for large imports
+    cleanupAfterLargeImport(): Promise<void>;
 
     // Existing Goals methods
     getGoals(): Promise<Goals>;

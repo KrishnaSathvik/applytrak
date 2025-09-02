@@ -1,4 +1,4 @@
-import React, {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
@@ -7,8 +7,8 @@ import {
     AlertTriangle,
     Award,
     BarChart3,
-    Calendar,
     CheckCircle,
+    Clock,
     Info,
     Save,
     Target,
@@ -489,7 +489,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                     <div
                         className="relative overflow-hidden border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl">
                         <div
-                            className="absolute inset-0 bg-gradient-to-r from-blue-600/90 via-purple-600/90 to-pink-600/90 backdrop-blur-sm"/>
+                            className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 backdrop-blur-sm"/>
 
                         <div className="relative z-10 flex items-center justify-between p-6">
                             <div className="flex items-center gap-4">
@@ -627,7 +627,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                             <div className="space-y-3">
                                 <label
                                     className="block text-sm font-bold text-gray-900 dark:text-gray-100 tracking-wide">
-                                    <Calendar className="h-4 w-4 mr-2 inline"/>
+                                    <Clock className="h-4 w-4 mr-2 inline"/>
                                     Weekly Goal
                                 </label>
                                 <div className="relative">
@@ -720,7 +720,7 @@ const GoalModal = forwardRef<HTMLDivElement>(() => {
                                         aria-describedby={errors.monthlyGoal ? 'monthly-goal-error' : 'monthly-goal-help'}
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                        <Calendar className="h-5 w-5 text-gray-400"/>
+                                        <Clock className="h-5 w-5 text-gray-400"/>
                                     </div>
                                 </div>
                                 {errors.monthlyGoal && (

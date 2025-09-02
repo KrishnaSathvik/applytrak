@@ -7,7 +7,6 @@ import {
     AdminAnalytics,
     AdminFeedbackSummary,
     AnalyticsData,
-    AnalyticsSettings,
     Application,
     ApplicationStatus,
     AppUser,
@@ -15,13 +14,16 @@ import {
     GoalProgress,
     Goals,
     SourceSuccessRate,
-    UserMetrics
+    UserMetrics,
+    mapSupabaseUserToAppUser,
+    mapSupabaseSession
 } from '../types';
 import {authService, databaseService, supabase} from '../services/databaseService';
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
 import {verifyDatabaseAdmin} from "../utils/adminAuth";
+
 
 
 // ============================================================================
@@ -59,8 +61,8 @@ export interface Toast {
 }
 
 export interface AuthState {
-    user: any | null;
-    session: any | null;
+    user: AppUser | null;
+    session: any | null; // Keep as any for Supabase compatibility
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
@@ -78,17 +80,14 @@ export interface GlobalRefreshState {
 
 export interface UIState {
     theme: 'light' | 'dark';
-    sidebarOpen: boolean;
-    currentPage: number;
-    itemsPerPage: number;
     searchQuery: string;
-    selectedApplicationIds: string[];
     isLoading: boolean;
     error: string | null;
-    selectedTab: 'tracker' | 'analytics';
+    selectedTab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features';
+    showMarketingPage: boolean;
     analytics: {
         consentModalOpen: boolean;
-        settingsOpen: boolean;
+        settingsOpen: false;
     };
     feedback: {
         buttonVisible: boolean;
@@ -98,7 +97,7 @@ export interface UIState {
     admin: {
         authenticated: boolean;
         dashboardOpen: boolean;
-        currentSection: 'overview' | 'analytics' | 'feedback' | 'users' | 'settings' | 'support';
+        currentSection: 'overview' | 'analytics' | 'feedback' | 'users';
     };
 }
 
@@ -134,6 +133,14 @@ export interface ModalState {
     privacySettings: {
         isOpen: boolean;
     };
+
+    welcomeTour: {
+        isOpen: boolean;
+    };
+    upgrade: {
+        isOpen: boolean;
+        trigger?: 'limit_reached' | 'analytics' | 'general';
+    };
 }
 
 export interface AppState {
@@ -143,7 +150,7 @@ export interface AppState {
     goals: Goals;
     goalProgress: GoalProgress;
     analytics: AnalyticsData;
-    analyticsSettings: AnalyticsSettings;
+
     userMetrics: UserMetrics | null;
 
     // Privacy State
@@ -190,7 +197,6 @@ export interface AppState {
 
     // Search Actions
     searchApplications: (query: string) => void;
-    clearSearch: () => void;
 
     // Goals Actions
     loadGoals: () => Promise<void>;
@@ -200,14 +206,12 @@ export interface AppState {
 
     // UI Actions
     setTheme: (theme: 'light' | 'dark') => void;
-    toggleSidebar: () => void;
-    setCurrentPage: (page: number) => void;
     setSearchQuery: (query: string) => void;
-    setSelectedApplicationIds: (ids: string[]) => void;
-    clearSelection: () => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
-    setSelectedTab: (tab: 'tracker' | 'analytics') => void;
+    setSelectedTab: (tab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => void;
+    setShowMarketingPage: (show: boolean) => void;
+    resetMarketingPage: () => void;
 
     // Modal Actions
     openEditModal: (application: Application) => void;
@@ -228,7 +232,6 @@ export interface AppState {
     // Analytics Actions
     calculateAnalytics: () => void;
     trackEvent: (event: string, properties?: Record<string, any>) => Promise<void>;
-    trackPageView: (page: string) => Promise<void>;
     trackFeatureUsage: (feature: string, context?: Record<string, any>) => Promise<void>;
 
     // Privacy Actions
@@ -250,14 +253,13 @@ export interface AppState {
     loadAdminFeedback: () => Promise<void>;
     openAdminDashboard: () => void;
     closeAdminDashboard: () => void;
-    setAdminSection: (section: 'overview' | 'analytics' | 'feedback' | 'users' | 'settings' | 'support') => void;
+    setAdminSection: (section: 'overview' | 'analytics' | 'feedback' | 'users') => void;
 
     // Realtime Admin Actions
     enableRealtimeAdmin: () => void;
     disableRealtimeAdmin: () => void;
     loadRealtimeAdminAnalytics: () => Promise<void>;
     loadRealtimeFeedbackSummary: () => Promise<void>;
-    refreshAdminData: () => Promise<void>;
     getAdminConnectionStatus: () => {
         isRealtime: boolean;
         isConnected: boolean;
@@ -278,12 +280,13 @@ export interface AppState {
     resetPassword: (email: string) => Promise<void>;
     openAuthModal: (mode: 'login' | 'signup' | 'reset') => void;
     closeAuthModal: () => void;
-    getAuthStatus: () => {
-        isAuthenticated: boolean;
-        user: any | null;
-        isLoading: boolean;
-        error: string | null;
-    };
+    openApplicationLimitModal: () => void;
+    openWelcomeTourModal: () => void;
+    closeWelcomeTourModal: () => void;
+    openUpgradeModal: (trigger?: 'limit_reached' | 'analytics' | 'general') => void;
+    closeUpgradeModal: () => void;
+
+    syncLocalApplicationsToCloud: () => Promise<void>;
 
     // Global Refresh Actions
     refreshAllAdminData: () => Promise<void>;
@@ -330,10 +333,7 @@ const createOptimizedCache = () => {
     };
 };
 
-const safeParseInt = (value: any): number => {
-    const parsed = parseInt(String(value || '0'));
-    return isNaN(parsed) ? 0 : parsed;
-};
+// Removed unused safeParseInt function
 
 const optimizedCache = createOptimizedCache();
 
@@ -373,90 +373,7 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
     };
 };
 
-const calculateAnalytics = (applications: Application[]): AnalyticsData => {
-    const statusDistribution = applications.reduce((acc, app) => {
-        acc[app.status] = (acc[app.status] || 0) + 1;
-        return acc;
-    }, {} as { [key in ApplicationStatus]: number });
-
-    const completeStatusDistribution = {
-        Applied: statusDistribution.Applied || 0,
-        Interview: statusDistribution.Interview || 0,
-        Offer: statusDistribution.Offer || 0,
-        Rejected: statusDistribution.Rejected || 0
-    };
-
-    const typeDistribution = applications.reduce((acc, app) => {
-        acc[app.type] = (acc[app.type] || 0) + 1;
-        return acc;
-    }, {} as any);
-
-    const completeTypeDistribution = {
-        Onsite: typeDistribution.Onsite || 0,
-        Remote: typeDistribution.Remote || 0,
-        Hybrid: typeDistribution.Hybrid || 0
-    };
-
-    const sourceDistribution = applications.reduce((acc, app) => {
-        const source = app.jobSource || 'Unknown';
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-    }, {} as { [key: string]: number });
-
-    const sourceSuccessRates: SourceSuccessRate[] = Object.keys(sourceDistribution).map(source => {
-        const sourceApps = applications.filter(app => (app.jobSource || 'Unknown') === source);
-        const total = sourceApps.length;
-        const offers = sourceApps.filter(app => app.status === 'Offer').length;
-        const interviews = sourceApps.filter(app => app.status === 'Interview' || app.status === 'Offer').length;
-
-        return {
-            source,
-            total,
-            offers,
-            interviews,
-            successRate: total > 0 ? (offers / total) * 100 : 0,
-            interviewRate: total > 0 ? (interviews / total) * 100 : 0
-        };
-    });
-
-    const offers = completeStatusDistribution.Offer;
-    const successRate = applications.length > 0 ? (offers / applications.length) * 100 : 0;
-
-    const interviewApps = applications.filter(app => app.status === 'Interview');
-    const responseTimes = interviewApps.map(app => {
-        const appliedDate = new Date(app.dateApplied);
-        const now = new Date();
-        return (now.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24);
-    });
-    const averageResponseTime = responseTimes.length > 0
-        ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
-        : 0;
-
-    const monthlyTrend = applications.reduce((acc, app) => {
-        const date = new Date(app.dateApplied);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        const existing = acc.find(item => item.month === monthKey);
-
-        if (existing) {
-            existing.count++;
-        } else {
-            acc.push({month: monthKey, count: 1});
-        }
-
-        return acc;
-    }, [] as Array<{ month: string; count: number }>);
-
-    return {
-        statusDistribution: completeStatusDistribution,
-        typeDistribution: completeTypeDistribution,
-        sourceDistribution,
-        sourceSuccessRates,
-        successRate,
-        averageResponseTime,
-        totalApplications: applications.length,
-        monthlyTrend: monthlyTrend.sort((a, b) => a.month.localeCompare(b.month))
-    };
-};
+// Removed unused calculateAnalytics function
 
 const checkMilestones = (applicationCount: number, showToast: (toast: Omit<Toast, 'id'>) => void) => {
     const milestones = [10, 25, 50, 100, 150, 200, 250, 500];
@@ -484,17 +401,41 @@ const createDebouncedSearch = (setState: (fn: (state: AppState) => Partial<AppSt
 
         if (query.trim()) {
             const searchTerm = query.toLowerCase();
-            filtered = applications.filter(app => {
-                const searchFields = [
-                    app.company,
-                    app.position,
-                    app.location,
-                    app.jobSource,
-                    app.notes
-                ].filter(Boolean).join(' ').toLowerCase();
+            
+            // Performance optimization: use more efficient search for large datasets
+            if (applications.length > 100) {
+                // For large datasets, use Set for O(1) lookups
+                const searchSet = new Set(searchTerm.split(' ').filter(Boolean));
+                filtered = applications.filter(app => {
+                    const searchFields = [
+                        app.company,
+                        app.position,
+                        app.location,
+                        app.jobSource,
+                        app.notes
+                    ].filter(Boolean);
+                    
+                    // Check if any search term matches any field
+                    return searchFields.some(field => {
+                        if (!field) return false;
+                        const fieldLower = field.toLowerCase();
+                        return searchSet.has(fieldLower) || fieldLower.includes(searchTerm);
+                    });
+                });
+            } else {
+                // For smaller datasets, use the original approach
+                filtered = applications.filter(app => {
+                    const searchFields = [
+                        app.company,
+                        app.position,
+                        app.location,
+                        app.jobSource,
+                        app.notes
+                    ].filter(Boolean).join(' ').toLowerCase();
 
-                return searchFields.includes(searchTerm);
-            });
+                    return searchFields.includes(searchTerm);
+                });
+            }
         }
 
         setState((state: AppState) => ({
@@ -504,7 +445,7 @@ const createDebouncedSearch = (setState: (fn: (state: AppState) => Partial<AppSt
     }, 300);
 };
 
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+// Removed unused generateId function
 
 // Configuration
 //const ADMIN_PASSWORD = 'applytrak-admin-2024';//
@@ -530,18 +471,16 @@ export const useAppStore = create<AppState>()(
 
                     applications: [],
                     filteredApplications: [],
-                    goals: {totalGoal: 100, weeklyGoal: 5, monthlyGoal: 20},
+                    goals: {totalGoal: 50, weeklyGoal: 5, monthlyGoal: 20},
                     toasts: [],
                     ui: {
                         theme: 'light',
-                        sidebarOpen: false,
-                        currentPage: 1,
-                        itemsPerPage: 10,
+            
                         searchQuery: '',
-                        selectedApplicationIds: [],
                         isLoading: false,
                         error: null,
-                        selectedTab: 'tracker',
+                        selectedTab: 'applications',
+                        showMarketingPage: true,
                         analytics: {
                             consentModalOpen: false,
                             settingsOpen: false,
@@ -549,7 +488,6 @@ export const useAppStore = create<AppState>()(
                         feedback: {
                             buttonVisible: true,
                             modalOpen: false,
-                            lastSubmissionDate: undefined,
                         },
                         admin: {
                             authenticated: false,
@@ -558,22 +496,25 @@ export const useAppStore = create<AppState>()(
                         },
                     },
                     modals: {
-                        editApplication: {isOpen: false, application: undefined},
+                        editApplication: {isOpen: false},
                         goalSetting: {isOpen: false},
-                        milestone: {isOpen: false, message: undefined},
+                        milestone: {isOpen: false},
                         recovery: {isOpen: false},
-                        feedback: {isOpen: false, initialType: undefined},
-                        adminLogin: {isOpen: false, returnPath: undefined},
+                        feedback: {isOpen: false},
+                        adminLogin: {isOpen: false},
                         auth: {
                             loginOpen: false,
                             signupOpen: false,
-                            resetPasswordOpen: false,
-                            mode: undefined
+                            resetPasswordOpen: false
                         },
-                        privacySettings: {isOpen: false}
+                        privacySettings: {isOpen: false},
+
+                        welcomeTour: {isOpen: false},
+                        upgrade: {isOpen: false},
+
                     },
                     goalProgress: {
-                        totalGoal: 100,
+                        totalGoal: 50,
                         weeklyGoal: 5,
                         monthlyGoal: 20,
                         totalProgress: 0,
@@ -594,11 +535,7 @@ export const useAppStore = create<AppState>()(
                         totalApplications: 0,
                         monthlyTrend: []
                     },
-                    analyticsSettings: {
-                        enabled: false,
-                        consentGiven: false,
-                        trackingLevel: 'minimal'
-                    },
+
                     userMetrics: null,
                     feedbackList: [],
                     adminAnalytics: null,
@@ -896,8 +833,8 @@ export const useAppStore = create<AppState>()(
                                 set(state => ({
                                     ...state,
                                     auth: {
-                                        user: authState.user,
-                                        session: authState.session,
+                                        user: mapSupabaseUserToAppUser(authState.user),
+                                        session: mapSupabaseSession(authState.session),
                                         isAuthenticated: authState.isAuthenticated,
                                         isLoading: authState.isLoading,
                                         error: null
@@ -908,6 +845,9 @@ export const useAppStore = create<AppState>()(
                                     console.log('User authenticated, reloading data...');
                                     get().loadApplications();
                                     get().loadGoals();
+                                    
+                                    // Sync local applications to cloud after authentication
+                                    get().syncLocalApplicationsToCloud();
                                 }
                             });
 
@@ -920,8 +860,8 @@ export const useAppStore = create<AppState>()(
                             set(state => ({
                                 ...state,
                                 auth: {
-                                    user: currentAuth.user,
-                                    session: currentAuth.session,
+                                    user: mapSupabaseUserToAppUser(currentAuth.user),
+                                    session: mapSupabaseSession(currentAuth.session),
                                     isAuthenticated: currentAuth.isAuthenticated,
                                     isLoading: currentAuth.isLoading,
                                     error: null
@@ -961,9 +901,10 @@ export const useAppStore = create<AppState>()(
                             const authExternalId: string | undefined = (authUser as any)?.id; // Supabase Auth UID
 
                             // 2) Ensure a row in public.users (prefer find-by-email, then insert)
+                            if (!supabase) throw new Error('Supabase client not initialized');
                             let {data: dbUser, error: selErr} = await supabase
                                 .from('users')
-                                .select('id, external_id, email, display_name')
+                                .select('id, externalid, email, display_name')
                                 .eq('email', normalizedEmail)
                                 .maybeSingle();
 
@@ -982,9 +923,9 @@ export const useAppStore = create<AppState>()(
                                         timezone: tz,
                                         language: lang,
                                         // IMPORTANT: tie app user to auth user
-                                        external_id: authExternalId ?? undefined,
+                                        externalid: authExternalId ?? undefined,
                                     })
-                                    .select('id, external_id, email, display_name')
+                                    .select('id, externalid, email, display_name')
                                     .single();
 
                                 if (insErr || !inserted) {
@@ -993,24 +934,25 @@ export const useAppStore = create<AppState>()(
                                     return {user: null, error: msg};
                                 }
                                 dbUser = inserted;
-                            } else if (authExternalId && dbUser.external_id !== authExternalId) {
-                                // backfill or correct external_id if missing/mismatched
+                            } else if (authExternalId && dbUser.externalid !== authExternalId) {
+                                // backfill or correct externalid if missing/mismatched
                                 const {error: updErr} = await supabase
                                     .from('users')
-                                    .update({external_id: authExternalId})
+                                    .update({externalid: authExternalId})
                                     .eq('id', dbUser.id);
-                                if (!updErr) dbUser.external_id = authExternalId;
+                                if (!updErr) dbUser.externalid = authExternalId;
                             }
 
-                            // 3) Seed privacy + email preferences (best-effort; don’t fail signup if these error)
+                            // 3) Seed privacy + email preferences (best-effort; don't fail signup if these error)
                             try {
                                 // FORCE optional consents OFF at signup (not collecting now)
                                 const analytics = false;
                                 const marketing = false;
 
+                                if (!supabase) throw new Error('Supabase client not initialized');
                                 await supabase.from('privacy_settings').upsert(
                                     {
-                                        user_id: dbUser.id,
+                                        userid: dbUser.id,
                                         analytics,
                                         marketing_consent: marketing,
                                         cloud_sync_consent: !!privacyConsents?.cloudSync,
@@ -1020,18 +962,19 @@ export const useAppStore = create<AppState>()(
                                         consent_date: new Date().toISOString(),
                                         updated_at: new Date().toISOString(),
                                     },
-                                    {onConflict: 'user_id'}
+                                    {onConflict: 'userid'}
                                 );
 
                                 // email preferences — keep or adjust to your defaults
+                                if (!supabase) throw new Error('Supabase client not initialized');
                                 await supabase.from('email_preferences').upsert(
                                     {
-                                        user_id: dbUser.id,
+                                        userid: dbUser.id,
                                         weekly_goals: true,
                                         weekly_tips: true,
                                         updated_at: new Date().toISOString(),
                                     },
-                                    {onConflict: 'user_id'}
+                                    {onConflict: 'userid'}
                                 );
                             } catch (e) {
                                 console.warn('Non-fatal: seeding preferences failed', e);
@@ -1042,7 +985,7 @@ export const useAppStore = create<AppState>()(
 
                             const appUser: AppUser = {
                                 id: dbUser.id,
-                                external_id: dbUser.external_id,
+                                external_id: dbUser.externalid,
                                 email: dbUser.email,
                                 display_name: dbUser.display_name ?? null,
                             };
@@ -1064,7 +1007,7 @@ export const useAppStore = create<AppState>()(
                         }));
 
                         try {
-                            const result = await authService.signIn(email, password);
+                            await authService.signIn(email, password);
 
                             get().showToast({
                                 type: 'success',
@@ -1075,6 +1018,9 @@ export const useAppStore = create<AppState>()(
                             get().closeAuthModal();
 
                             console.log('User signed in successfully');
+
+                            // Sync local applications to cloud after successful authentication
+                            get().syncLocalApplicationsToCloud();
 
                             get().trackEvent('user_signed_in', {
                                 method: 'email',
@@ -1222,23 +1168,143 @@ export const useAppStore = create<AppState>()(
                                 auth: {
                                     loginOpen: false,
                                     signupOpen: false,
-                                    resetPasswordOpen: false,
-                                    mode: undefined
+                                    resetPasswordOpen: false
                                 }
                             },
                             auth: {...state.auth, error: null}
                         }));
                     },
 
-                    getAuthStatus: () => {
-                        const {auth} = get();
-                        return {
-                            isAuthenticated: auth.isAuthenticated,
-                            user: auth.user,
-                            isLoading: auth.isLoading,
-                            error: auth.error
-                        };
+                    openApplicationLimitModal: () => {
+                        console.log('🚀 openApplicationLimitModal called - redirecting to features tab');
+                        
+                        // Redirect to features tab instead of showing modal
+                        set(state => ({
+                            ...state,
+                            ui: {
+                                ...state.ui,
+                                selectedTab: 'features'
+                            }
+                        }));
+                        get().trackEvent('application_limit_reached', {
+                            applicationsCount: get().applications.length,
+                            action: 'redirected_to_features',
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        // Show a toast message to inform the user
+                        get().showToast({
+                            type: 'info',
+                            message: 'You\'ve reached the 50 application limit! Check out our features to see what\'s available.',
+                            duration: 5000
+                        });
                     },
+
+
+
+                    openWelcomeTourModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                welcomeTour: {isOpen: true}
+                            }
+                        }));
+                        get().trackEvent('welcome_tour_modal_opened', {
+                            timestamp: new Date().toISOString()
+                        });
+                    },
+
+                    closeWelcomeTourModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                welcomeTour: {isOpen: false}
+                            }
+                        }));
+                    },
+
+                    openUpgradeModal: (trigger: 'limit_reached' | 'analytics' | 'general' = 'general') => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                upgrade: {isOpen: true, trigger}
+                            }
+                        }));
+                        get().trackEvent('upgrade_modal_opened', {trigger});
+                    },
+
+                    closeUpgradeModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                upgrade: {isOpen: false}
+                            }
+                        }));
+                    },
+
+
+
+                    syncLocalApplicationsToCloud: async () => {
+                        try {
+                            console.log('🔄 Starting sync of local applications to cloud...');
+                            
+                            // Get local applications from IndexedDB
+                            const localApplications = await databaseService.getApplications();
+                            
+                            if (localApplications.length === 0) {
+                                console.log('📱 No local applications to sync');
+                                return;
+                            }
+
+                            console.log(`📱 Found ${localApplications.length} local applications to sync`);
+
+                            // Filter out applications that are already synced
+                            const unsyncedApplications = localApplications.filter(app => 
+                                app.syncStatus !== 'synced' || !app.cloudId
+                            );
+
+                            if (unsyncedApplications.length === 0) {
+                                console.log('✅ All applications are already synced');
+                                return;
+                            }
+
+                            console.log(`🔄 Syncing ${unsyncedApplications.length} unsynced applications to cloud...`);
+
+                            // Use the existing bulkAddApplications function which handles cloud sync
+                            const result = await get().bulkAddApplications(unsyncedApplications);
+
+                            if (result.successCount > 0) {
+                                get().showToast({
+                                    type: 'success',
+                                    message: `Successfully synced ${result.successCount} applications to cloud! 🎉`,
+                                    duration: 5000
+                                });
+                                
+                                console.log(`✅ Successfully synced ${result.successCount} applications to cloud`);
+                            }
+
+                            if (result.errorCount > 0) {
+                                console.warn(`⚠️ Failed to sync ${result.errorCount} applications`);
+                            }
+
+                            // Refresh applications to get updated sync status
+                            await get().loadApplications();
+
+                        } catch (error) {
+                            console.error('❌ Error syncing local applications to cloud:', error);
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to sync some applications to cloud. They will be synced automatically.',
+                                duration: 5000
+                            });
+                        }
+                    },
+
+
 
                     // ============================================================================
                     // PRIVACY ACTIONS
@@ -1278,7 +1344,7 @@ export const useAppStore = create<AppState>()(
 
                         try {
                             const {privacyService} = await import('../services/privacyService');
-                            const settings = await privacyService.getPrivacySettings(state.auth.user.id);
+                            const settings = await privacyService.getPrivacySettings(String(state.auth.user.id));
 
                             set(prevState => ({
                                 ...prevState,
@@ -1309,7 +1375,7 @@ export const useAppStore = create<AppState>()(
                                         ...(data.adminFeedback && {
                                             adminFeedback: {
                                                 ...data.adminFeedback,
-                                                topIssues: data.adminFeedback.topIssues?.map(issue => ({
+                                                topIssues: data.adminFeedback.topIssues?.map((issue: any) => ({
                                                     ...issue,
                                                     severity: issue.severity as 'low' | 'medium' | 'high'
                                                 })) || []
@@ -1437,10 +1503,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    refreshAdminData: async () => {
-                        console.log('Legacy refreshAdminData called - redirecting to unified refresh...');
-                        await get().refreshAllAdminData();
-                    },
+
 
                     getAdminConnectionStatus: () => {
                         const {isAdminRealtime, lastAdminUpdate, globalRefresh} = get();
@@ -1483,17 +1546,22 @@ export const useAppStore = create<AppState>()(
                     },
 
                     addApplication: async (applicationData) => {
-                        const {auth, applications} = get();
-
-                        // Limit non-authenticated users to 100 applications
-                        if (!auth.isAuthenticated && applications.length >= 100) {
+                        const { applications, auth } = get();
+                        
+                        // Check application limit for non-authenticated users
+                        if (!auth.isAuthenticated && applications.length >= 50) {
                             get().showToast({
                                 type: 'warning',
-                                message: 'Application limit reached. Sign up for unlimited applications!',
-                                duration: 5000
+                                message: 'You\'ve reached the 50 application limit. Sign up to continue tracking unlimited applications!',
+                                duration: 6000
                             });
-                            return;
+                            
+                            // Open upgrade modal
+                            get().openUpgradeModal('limit_reached');
+                            
+                            throw new Error('Application limit reached. Please sign up to continue.');
                         }
+
                         try {
                             const newApplication = await databaseService.addApplication(applicationData);
                             set(state => {
@@ -1621,8 +1689,7 @@ export const useAppStore = create<AppState>()(
                                     filteredApplications,
                                     ui: {
                                         ...state.ui,
-                                        isLoading: false,
-                                        selectedApplicationIds: (state.ui?.selectedApplicationIds || []).filter(selectedId => selectedId !== id)
+                                        isLoading: false
                                     }
                                 };
                             });
@@ -1663,7 +1730,7 @@ export const useAppStore = create<AppState>()(
                                     ...state,
                                     applications,
                                     filteredApplications,
-                                    ui: {...state.ui, selectedApplicationIds: []}
+                                    ui: {...state.ui}
                                 };
                             });
                             get().showToast({
@@ -1706,7 +1773,7 @@ export const useAppStore = create<AppState>()(
                                     ...state,
                                     applications,
                                     filteredApplications,
-                                    ui: {...state.ui, selectedApplicationIds: []}
+                                    ui: {...state.ui}
                                 };
                             });
                             get().showToast({
@@ -1755,7 +1822,7 @@ export const useAppStore = create<AppState>()(
                                     ...state,
                                     applications,
                                     filteredApplications,
-                                    ui: {...state.ui, selectedApplicationIds: []}
+                                    ui: {...state.ui}
                                 };
                             });
                             get().showToast({
@@ -1776,6 +1843,29 @@ export const useAppStore = create<AppState>()(
                     },
 
                     bulkAddApplications: async (applications) => {
+                        const {auth, applications: existingApplications} = get();
+                        
+                        // Check if this import would exceed the limit for unauthenticated users
+                        if (!auth.isAuthenticated && (existingApplications.length + applications.length) > 50) {
+                            const remainingSlots = Math.max(0, 50 - existingApplications.length);
+                            
+                            if (remainingSlots === 0) {
+                                // No slots remaining, show the limit modal
+                                get().openApplicationLimitModal();
+                                return { successCount: 0, errorCount: applications.length };
+                            } else {
+                                // Some slots remaining, show warning and limit the import
+                                get().showToast({
+                                    type: 'warning',
+                                    message: `You can only import ${remainingSlots} more applications. Please sign up for unlimited imports!`,
+                                    duration: 5000
+                                });
+                                
+                                // Limit the import to remaining slots
+                                applications = applications.slice(0, remainingSlots);
+                            }
+                        }
+
                         try {
                             let successCount = 0;
                             let errorCount = 0;
@@ -1850,15 +1940,32 @@ export const useAppStore = create<AppState>()(
                         get().trackEvent('search_performed', {query: query.substring(0, 20)});
                     },
 
-                    clearSearch: () => {
-                        set(state => ({
-                            ...state,
-                            ui: {...state.ui, searchQuery: ''},
-                            filteredApplications: state.applications
-                        }));
-                    },
+
 
                     handleImport: async (importedApplications) => {
+                        const {auth, applications: existingApplications} = get();
+                        
+                        // Check if this import would exceed the limit for unauthenticated users
+                        if (!auth.isAuthenticated && (existingApplications.length + importedApplications.length) > 50) {
+                            const remainingSlots = Math.max(0, 50 - existingApplications.length);
+                            
+                            if (remainingSlots === 0) {
+                                // No slots remaining, show the limit modal
+                                get().openApplicationLimitModal();
+                                return { successCount: 0, errorCount: importedApplications.length };
+                            } else {
+                                // Some slots remaining, show warning and limit the import
+                                get().showToast({
+                                    type: 'warning',
+                                    message: `You can only import ${remainingSlots} more applications. Please sign up for unlimited imports!`,
+                                    duration: 5000
+                                });
+                                
+                                // Limit the import to remaining slots
+                                importedApplications = importedApplications.slice(0, remainingSlots);
+                            }
+                        }
+
                         const applicationsToAdd = importedApplications.map(app => {
                             const {id, createdAt, updatedAt, ...appData} = app;
                             return appData;
@@ -1927,26 +2034,15 @@ export const useAppStore = create<AppState>()(
                         get().trackEvent('theme_changed', {theme});
                     },
 
-                    toggleSidebar: () => {
-                        set(state => ({...state, ui: {...state.ui, sidebarOpen: !state.ui.sidebarOpen}}));
-                        get().trackFeatureUsage('sidebar_toggle');
-                    },
 
-                    setCurrentPage: (page) => {
-                        set(state => ({...state, ui: {...state.ui, currentPage: page}}));
-                    },
+
+
 
                     setSearchQuery: (query) => {
                         get().searchApplications(query);
                     },
 
-                    setSelectedApplicationIds: (ids) => {
-                        set(state => ({...state, ui: {...state.ui, selectedApplicationIds: ids}}));
-                    },
 
-                    clearSelection: () => {
-                        set(state => ({...state, ui: {...state.ui, selectedApplicationIds: []}}));
-                    },
 
                     setLoading: (loading) => {
                         set(state => ({...state, ui: {...state.ui, isLoading: loading}}));
@@ -1956,14 +2052,24 @@ export const useAppStore = create<AppState>()(
                         set(state => ({...state, ui: {...state.ui, error}}));
                     },
 
-                    setSelectedTab: (tab) => {
-                        set(state => ({...state, ui: {...state.ui, selectedTab: tab}}));
-                        get().trackPageView(tab);
+                            setSelectedTab: (tab: 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
+            set(state => ({...state, ui: {...state.ui, selectedTab: tab}}));
+        },
+
+                    setShowMarketingPage: (show: boolean) => {
+                        set(state => ({...state, ui: {...state.ui, showMarketingPage: show}}));
+                    },
+
+                    resetMarketingPage: () => {
+                        localStorage.removeItem('applytrak_marketing_dismissed');
+                        set(state => ({...state, ui: {...state.ui, showMarketingPage: true}}));
                     },
 
                     // ============================================================================
                     // MODAL ACTIONS
                     // ============================================================================
+
+
 
                     openEditModal: (application) => {
                         set(state => ({
@@ -2053,7 +2159,7 @@ export const useAppStore = create<AppState>()(
                             ...state,
                             modals: {
                                 ...state.modals,
-                                adminLogin: {isOpen: true, returnPath}
+                                adminLogin: returnPath ? {isOpen: true, returnPath} : {isOpen: true}
                             }
                         }));
                         get().trackFeatureUsage('admin_login_modal_opened');
@@ -2064,7 +2170,7 @@ export const useAppStore = create<AppState>()(
                             ...state,
                             modals: {
                                 ...state.modals,
-                                adminLogin: {isOpen: false, returnPath: undefined}
+                                adminLogin: {isOpen: false}
                             }
                         }));
                     },
@@ -2235,20 +2341,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    trackPageView: async (page: string) => {
-                        const state = get();
 
-                        // Check if user has consented to analytics
-                        if (state.auth.user?.id && state.privacySettings) {
-                            if (!state.privacySettings.analytics) {
-                                return;
-                            }
-                        }
-
-                        if (analyticsService.isEnabled()) {
-                            await analyticsService.trackPageView(page);
-                        }
-                    },
 
                     trackFeatureUsage: async (feature: string, context?: Record<string, any>) => {
                         const state = get();
@@ -2269,12 +2362,12 @@ export const useAppStore = create<AppState>()(
                     // FEEDBACK ACTIONS
                     // ============================================================================
 
-                    openFeedbackModal: (initialType) => {
+                    openFeedbackModal: (initialType?: 'bug' | 'feature' | 'general' | 'love') => {
                         set(state => ({
                             ...state,
                             modals: {
                                 ...state.modals,
-                                feedback: {isOpen: true, initialType}
+                                feedback: initialType ? {isOpen: true, initialType} : {isOpen: true}
                             }
                         }));
                         get().trackEvent('feedback_modal_opened', {initialType});
@@ -2324,7 +2417,7 @@ export const useAppStore = create<AppState>()(
                     // ADMIN ACTIONS
                     // ============================================================================
 
-                    authenticateAdmin: async (password: string) => {
+                    authenticateAdmin: async (_password: string) => {
                         const {auth} = get();
 
                         if (!auth.isAuthenticated || !auth.user?.email) {
@@ -2336,7 +2429,7 @@ export const useAppStore = create<AppState>()(
                         }
 
                         try {
-                            const isAdmin = await verifyDatabaseAdmin(auth.user.id, auth.user.email);
+                            const isAdmin = await verifyDatabaseAdmin(String(auth.user.id), auth.user.email);
 
                             if (isAdmin) {
                                 set(state => ({
@@ -2629,8 +2722,7 @@ export const useAppStore = create<AppState>()(
                 partialize: (state: AppState) => ({
                     ui: {
                         theme: state.ui?.theme || 'light',
-                        itemsPerPage: state.ui?.itemsPerPage || 10,
-                        selectedTab: state.ui?.selectedTab || 'tracker',
+                        selectedTab: state.ui?.selectedTab || 'applications',
                         feedback: {
                             buttonVisible: state.ui?.feedback?.buttonVisible ?? true
                         },
@@ -2641,7 +2733,6 @@ export const useAppStore = create<AppState>()(
                         }
                     },
                     goals: state.goals,
-                    analyticsSettings: state.analyticsSettings,
                     privacySettings: state.privacySettings,
                     privacyConsents: state.privacyConsents,
                     isAdminRealtime: false,
@@ -2673,7 +2764,6 @@ export const useAppStore = create<AppState>()(
                             state.ui.feedback = {
                                 buttonVisible: true,
                                 modalOpen: false,
-                                lastSubmissionDate: undefined,
                             };
                         }
 
@@ -2682,8 +2772,7 @@ export const useAppStore = create<AppState>()(
                             state.modals.auth = {
                                 loginOpen: false,
                                 signupOpen: false,
-                                resetPasswordOpen: false,
-                                mode: undefined
+                                resetPasswordOpen: false
                             };
                         }
 

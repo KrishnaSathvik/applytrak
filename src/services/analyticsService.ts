@@ -18,8 +18,7 @@ class AnalyticsService {
     private eventQueue: AnalyticsEvent[] = [];
     private syncInProgress = false;
     private lastSyncAttempt = 0;
-    private readonly SYNC_RETRY_DELAY = 5000; // 5 seconds
-    private readonly MAX_RETRY_ATTEMPTS = 3;
+    // Removed unused constants
     private readonly EVENT_BATCH_SIZE = 10;
     private readonly IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
     private readonly LOCAL_STORAGE_PREFIX = 'applytrak_analytics';
@@ -98,8 +97,6 @@ class AnalyticsService {
             consentGiven: true,
             consentDate: new Date().toISOString(),
             trackingLevel: 'standard',
-            dataRetentionDays: 365,
-            shareUsageData: false,
             ...settings
         };
 
@@ -175,8 +172,7 @@ class AnalyticsService {
             properties: this.sanitizeProperties(properties),
             timestamp: new Date().toISOString(),
             sessionId: this.sessionId,
-            userId: this.getAnonymousUserId(),
-            eventId: this.generateEventId()
+            userId: this.getAnonymousUserId()
         };
 
         // Add to local events array
@@ -324,7 +320,7 @@ class AnalyticsService {
     async getAllSessions(limit: number = 10): Promise<UserSession[]> {
         try {
             // Use the correct method name from databaseService
-            const sessions = await databaseService.getUserSession('') || [];
+            // Removed unused sessions variable
             // Since getUserSession expects a sessionId but we want all sessions,
             // we'll need to fallback to local storage approach
             return this.getStoredSessions().slice(0, limit);
@@ -644,9 +640,7 @@ class AnalyticsService {
             deviceType: this.getDeviceType(),
             userAgent: this.getSafeUserAgent(),
             timezone: this.getTimezone(),
-            language: this.getLanguage(),
-            viewportSize: this.getViewportSize(),
-            colorScheme: this.getColorScheme()
+            language: this.getLanguage()
         };
 
         try {
@@ -741,9 +735,7 @@ class AnalyticsService {
         return `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     }
 
-    private generateEventId(): string {
-        return `event_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    }
+    // Removed unused generateEventId method
 
     private getAnonymousUserId(): string {
         const authUserId = localStorage.getItem('applytrak_user_id');

@@ -178,73 +178,82 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
         onSelectionChange([]);
     }, [onSelectionChange]);
 
-    // Early return if no selections
-    if (selectedIds.length === 0) return null;
+    // Don't hide the component - always show it to allow users to start selecting
 
     return (
         <>
             <div
-                className={`flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4 ${className}`}>
+                className={`flex items-center justify-between p-4 ${selectedIds.length > 0 ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' : 'bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700'} rounded-lg mb-4 ${className}`}>
                 <div className="flex items-center space-x-4">
-          <span className="text-sm font-bold text-blue-900 dark:text-blue-100 tracking-wide">
-            <span className="font-extrabold text-blue-600 dark:text-blue-400">
-              {selectedIds.length}
-            </span>{' '}
-              application{selectedIds.length !== 1 ? 's' : ''} selected
-          </span>
+                    {selectedIds.length > 0 ? (
+                        <>
+                            <span className="text-sm font-bold text-blue-900 dark:text-blue-100 tracking-wide">
+                                <span className="font-extrabold text-blue-600 dark:text-blue-400">
+                                    {selectedIds.length}
+                                </span>{' '}
+                                application{selectedIds.length !== 1 ? 's' : ''} selected
+                            </span>
 
-                    <div className="flex space-x-2">
-                        <button
-                            onClick={openStatusModal}
-                            disabled={processingState.isProcessing}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                            aria-label="Update status of selected applications"
-                        >
-                            <Edit3 className="h-4 w-4"/>
-                            Update Status
-                        </button>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={openStatusModal}
+                                    disabled={processingState.isProcessing}
+                                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                    aria-label="Update status of selected applications"
+                                >
+                                    <Edit3 className="h-4 w-4"/>
+                                    Update Status
+                                </button>
 
-                        <button
-                            onClick={handleQuickReject}
-                            disabled={processingState.isProcessing}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                            aria-label="Mark selected applications as rejected"
-                        >
-                            {isProcessingOperation('reject') ? (
-                                <>
-                                    <div
-                                        className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"/>
-                                    Rejecting...
-                                </>
-                            ) : (
-                                <>
-                                    <Archive className="h-4 w-4"/>
-                                    Mark Rejected
-                                </>
-                            )}
-                        </button>
+                                <button
+                                    onClick={handleQuickReject}
+                                    disabled={processingState.isProcessing}
+                                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md hover:bg-yellow-200 dark:hover:bg-yellow-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                    aria-label="Mark selected applications as rejected"
+                                >
+                                    {isProcessingOperation('reject') ? (
+                                        <>
+                                            <div
+                                                className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"/>
+                                            Rejecting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Archive className="h-4 w-4"/>
+                                            Mark Rejected
+                                        </>
+                                    )}
+                                </button>
 
-                        <button
-                            onClick={openDeleteModal}
-                            disabled={processingState.isProcessing}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-md hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                            aria-label="Delete selected applications"
-                        >
-                            <Trash2 className="h-4 w-4"/>
-                            Delete
-                        </button>
-                    </div>
+                                <button
+                                    onClick={openDeleteModal}
+                                    disabled={processingState.isProcessing}
+                                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-bold tracking-wide text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-md hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                    aria-label="Delete selected applications"
+                                >
+                                    <Trash2 className="h-4 w-4"/>
+                                    Delete
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                            Use the checkboxes above to select applications for bulk operations
+                        </span>
+                    )}
                 </div>
 
-                <button
-                    onClick={clearSelection}
-                    disabled={processingState.isProcessing}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                    aria-label="Clear selection"
-                >
-                    <X className="h-4 w-4"/>
-                    Clear Selection
-                </button>
+                {selectedIds.length > 0 && (
+                    <button
+                        onClick={clearSelection}
+                        disabled={processingState.isProcessing}
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                        aria-label="Clear selection"
+                    >
+                        <X className="h-4 w-4"/>
+                        Clear Selection
+                    </button>
+                )}
             </div>
 
             {/* Delete Confirmation Modal */}

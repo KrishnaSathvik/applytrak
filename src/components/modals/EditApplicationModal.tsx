@@ -3,8 +3,9 @@ import {SubmitHandler, useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
 import {AlertTriangle, CheckCircle, Edit, ExternalLink, FileText, Trash2, Upload, X} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Attachment, EditFormData} from '../../types';
+import {Attachment, EditFormData, Application} from '../../types';
 import {editApplicationFormSchema} from '../../utils/validation';
+import {uploadAttachment, getCurrentUserId} from '../../services/databaseService';
 
 // Enhanced interfaces for better type safety
 interface FileValidationResult {
@@ -30,7 +31,7 @@ const EditApplicationModal: React.FC = () => {
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [dragState, setDragState] = useState<DragState>({isDragOver: false, dragCounter: 0});
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-    const [isPreviewMode, setIsPreviewMode] = useState(false);
+    // Removed unused state
 
     // Refs for focus management
     const firstInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +99,6 @@ const EditApplicationModal: React.FC = () => {
             reset(formData);
             setAttachments(application.attachments || []);
             setHasUnsavedChanges(false);
-            setIsPreviewMode(false);
 
             // Focus management
             setTimeout(() => {
@@ -120,7 +120,6 @@ const EditApplicationModal: React.FC = () => {
             });
             setAttachments([]);
             setHasUnsavedChanges(false);
-            setIsPreviewMode(false);
             setDragState({isDragOver: false, dragCounter: 0});
         }
     }, [isOpen, application, reset]);
@@ -187,18 +186,18 @@ const EditApplicationModal: React.FC = () => {
             }
 
             // 3) Build cleaned payload from normalized values
-            const cleanedData = {
+            const cleanedData: Partial<Application> = {
                 company: normalizedCompany,
                 position: normalizedPosition,
                 dateApplied: data.dateApplied,
                 type: data.type,
-                status: data.status,
-                location: data.location?.trim() || undefined,
-                salary: data.salary?.trim() || undefined,
-                jobSource: data.jobSource?.trim() || undefined,
-                jobUrl: data.jobUrl?.trim() || undefined,
-                notes: data.notes?.trim() || undefined,
-                attachments: attachments.length > 0 ? attachments : undefined
+                status: data.status || 'Applied',
+                ...(data.location?.trim() && { location: data.location.trim() }),
+                ...(data.salary?.trim() && { salary: data.salary.trim() }),
+                ...(data.jobSource?.trim() && { jobSource: data.jobSource.trim() }),
+                ...(data.jobUrl?.trim() && { jobUrl: data.jobUrl.trim() }),
+                ...(data.notes?.trim() && { notes: data.notes.trim() }),
+                ...(attachments.length > 0 && { attachments })
             };
 
             await updateApplication(application.id, cleanedData);
@@ -220,7 +219,7 @@ const EditApplicationModal: React.FC = () => {
     }, [application, attachments, updateApplication, closeEditModal, showToast, trigger, setValue]);
 
     // Enhanced file handling
-    const handleFileSelect = useCallback((files: FileList | null) => {
+    const handleFileSelect = useCallback(async (files: FileList | null) => {
         if (!files) return;
 
         const validFiles: File[] = [];
@@ -258,30 +257,58 @@ const EditApplicationModal: React.FC = () => {
         }
 
         // Process valid files
-        validFiles.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const attachment: Attachment = {
-                    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    data: e.target?.result as string,
-                    uploadedAt: new Date().toISOString()
-                };
+        for (const file of validFiles) {
+            try {
+                let attachment: Attachment;
+                
+                // Check if user is authenticated for cloud storage
+                const isSignedIn = !!useAppStore.getState().auth?.isAuthenticated;
+                
+                if (isSignedIn && application?.id) {
+                    // CLOUD MODE: Upload to Supabase Storage with application ID
+                    const internalUserId = await getCurrentUserId();
+                    const uploaded = await uploadAttachment(internalUserId, file, application.id, 0);
+                    attachment = {
+                        id: uploaded.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        ...(uploaded.storagePath && { storagePath: uploaded.storagePath }),
+                        ...(uploaded.uploadedAt && { uploadedAt: uploaded.uploadedAt }),
+                        applicationId: application.id
+                    };
+                } else {
+                    // LOCAL MODE: Store as base64 data URL
+                    const reader = new FileReader();
+                    await new Promise<void>((resolve, reject) => {
+                        reader.onload = (e) => {
+                            attachment = {
+                                id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                data: e.target?.result as string,
+                                uploadedAt: new Date().toISOString()
+                            };
+                            resolve();
+                        };
+                        reader.onerror = () => reject(new Error(`Failed to read file "${file.name}"`));
+                        reader.readAsDataURL(file);
+                    });
+                }
 
                 setAttachments(prev => [...prev, attachment]);
                 setHasUnsavedChanges(true);
-            };
-            reader.onerror = () => {
+                
+            } catch (error) {
+                console.error('Error processing file:', error);
                 showToast({
                     type: 'error',
-                    message: `Failed to read file "${file.name}". Please try again.`,
-                    duration: 4000
+                    message: `Failed to process "${file.name}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    duration: 5000
                 });
-            };
-            reader.readAsDataURL(file);
-        });
+            }
+        }
 
         if (validFiles.length > 0) {
             showToast({
@@ -290,7 +317,7 @@ const EditApplicationModal: React.FC = () => {
                 duration: 3000
             });
         }
-    }, [validateFile, showToast]);
+    }, [validateFile, showToast, application?.id]);
 
     const removeAttachment = useCallback((index: number) => {
         const attachment = attachments[index];
@@ -754,7 +781,7 @@ Write as much as you need - no character limits!"
                                                     onClick={() => {
                                                         if (attachment.data) {
                                                             (async () => {
-                                                                const res = await fetch(attachment.data);
+                                                                const res = await fetch(attachment.data!);
                                                                 const blob = await res.blob();
                                                                 const objUrl = URL.createObjectURL(blob);
                                                                 window.open(objUrl, '_blank', 'noopener,noreferrer');

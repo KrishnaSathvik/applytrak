@@ -1,10 +1,9 @@
-import React, {useCallback, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState, useEffect} from 'react';
 import {
     Activity,
     AlertCircle,
     Award,
     BarChart3,
-    Calendar,
     CheckCircle,
     Clock,
     Database,
@@ -23,7 +22,7 @@ import {
 import {Application} from '../../types';
 import {formatDate} from '../../utils/formatters';
 import {useAppStore} from '../../store/useAppStore';
-import {exportToCSV, exportToJSON, exportToPDF, importApplications as parseImport} from '../../utils/exportImport';
+import {exportToCSV, exportToJSON, exportToPDF} from '../../utils/exportImport';
 import {Modal} from './Modal';
 import {cn} from '../../utils/helpers';
 
@@ -32,6 +31,7 @@ const FILE_CONSTRAINTS = {
     MAX_SIZE_MB: 200,
     SUPPORTED_EXTENSIONS: ['.json', '.csv'] as const,
     PREVIEW_LIMIT: 10,
+    LARGE_IMPORT_THRESHOLD: 100, // Show progress for imports > 100 apps
 } as const;
 
 const LOADING_DELAYS = {
@@ -49,12 +49,7 @@ const TOAST_DURATIONS = {
 type ExportFormat = 'json' | 'csv' | 'pdf';
 type ImportStatus = 'idle' | 'loading' | 'success' | 'error';
 
-// Import result type to handle store responses
-interface ImportResult {
-    successCount: number;
-    errorCount: number;
-    errors?: string[];
-}
+// Import result type to handle store responses - removed unused interface
 
 interface ExportOption {
     id: ExportFormat;
@@ -188,9 +183,17 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
     const [importPreview, setImportPreview] = useState<Application[]>([]);
     const [isExporting, setIsExporting] = useState(false);
     const [exportFormat, setExportFormat] = useState<ExportFormat>('json');
+    const [importProgress, setImportProgress] = useState<{
+        stage: 'parsing' | 'validating' | 'importing' | 'local-import' | 'cloud-sync' | 'complete' | 'error' | 'syncing';
+        current: number;
+        total: number;
+        percentage: number;
+        message: string;
+    } | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const {showToast, handleImport: storeHandleImport} = useAppStore();
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const {showToast} = useAppStore();
 
     // Reset import state - defined early to avoid declaration order issues
     const resetImportState = useCallback(() => {
@@ -308,7 +311,18 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
             await new Promise(resolve => setTimeout(resolve, LOADING_DELAYS.IMPORT));
 
             // ✅ use the aliased name
-            const result = await parseImport(file);
+            const { importApplicationsWithProgress } = await import('../../utils/exportImport');
+            // Use the enhanced import function with progress tracking and duplicate handling
+            const result = await importApplicationsWithProgress(
+                file, 
+                (progress) => {
+                    setImportProgress(progress);
+                },
+                {
+                    generateNewIds: true, // Generate new IDs to prevent duplicates
+                    skipDuplicates: false  // Don't skip, create new entries
+                }
+            );
 
             // Diagnostics
             console.log('[UI] import result:', {
@@ -326,53 +340,100 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
 
             setImportPreview(result.applications);
             setImportStatus('success');
+            setImportProgress({ stage: 'complete', current: result.applications.length, total: result.applications.length, percentage: 100, message: 'Import preview ready.' });
+
         } catch (error) {
             console.error('Import error:', error);
             setImportError((error as Error).message);
             setImportStatus('error');
+            setImportProgress({ stage: 'error', current: 0, total: 0, percentage: 0, message: 'Import failed.' });
         }
     }, []);
 
-    // Import confirmation handler
+    // Enhanced import confirmation with progress tracking
     const confirmImport = useCallback(async () => {
+        if (!importPreview || importPreview.length === 0) return;
+
+        setImportStatus('loading');
+        setImportError('');
+        setImportProgress({ stage: 'importing', current: 0, total: importPreview.length, percentage: 0, message: 'Starting import...' });
+
+        let countdown = 2;
+
         try {
-            if (storeHandleImport) {
-                const result = await storeHandleImport(importPreview);
-                // Handle ImportResult type properly
-                if (typeof result === 'object' && 'successCount' in result) {
-                    showToast({
-                        type: 'success',
-                        message: `Successfully imported ${result.successCount} applications!${result.errorCount > 0 ? ` ${result.errorCount} failed.` : ''}`,
-                        duration: TOAST_DURATIONS.SUCCESS
-                    });
-                } else {
-                    // Fallback for when result is just a boolean or different type
-                    showToast({
-                        type: 'success',
-                        message: `Successfully imported ${importPreview.length} applications!`,
-                        duration: TOAST_DURATIONS.SUCCESS
-                    });
-                }
-            } else if (onImport) {
-                await onImport(importPreview);
-                showToast({
-                    type: 'success',
-                    message: `Successfully imported ${importPreview.length} applications!`,
-                    duration: TOAST_DURATIONS.SUCCESS
-                });
+            // Use the enhanced database import with progress tracking
+            const { databaseService } = await import('../../services/databaseService');
+            await databaseService.importApplicationsWithProgress(importPreview, (progress) => {
+                // Map database progress stages to UI stages
+                const uiProgress = {
+                    ...progress,
+                    stage: progress.stage === 'local-import' ? 'importing' : 
+                           progress.stage === 'cloud-sync' ? 'syncing' : 
+                           progress.stage
+                } as typeof importProgress;
+                setImportProgress(uiProgress);
+            });
+
+            setImportStatus('success');
+            setImportPreview([]);
+            
+            // Show success message
+            if (onImport) {
+                onImport(importPreview);
             }
 
-            setShowImportModal(false);
-            resetImportState();
-        } catch (error) {
-            console.error('Import confirmation error:', error);
-            showToast({
-                type: 'error',
-                message: 'Failed to import applications',
-                duration: TOAST_DURATIONS.ERROR
+            // Update progress to complete with success message
+            setImportProgress({
+                stage: 'complete',
+                current: importPreview.length,
+                total: importPreview.length,
+                percentage: 100,
+                message: `✅ Successfully imported ${importPreview.length} applications! Closing automatically...`
             });
+
+            // Show countdown and auto-close modal
+            countdownIntervalRef.current = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    setImportProgress(prev => prev ? {
+                        ...prev,
+                        message: `✅ Successfully imported ${importPreview.length} applications! Closing in ${countdown} second${countdown > 1 ? 's' : ''}...`
+                    } : null);
+                } else {
+                    if (countdownIntervalRef.current) {
+                        clearInterval(countdownIntervalRef.current);
+                        countdownIntervalRef.current = null;
+                    }
+                    
+                    // Close the modal and reset state
+                    setShowImportModal(false);
+                    setImportProgress(null);
+                    setImportStatus('idle');
+                    setImportPreview([]);
+                    setImportError('');
+                    
+                    // Reset file input
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
+                    
+                    console.log('✅ Import modal automatically closed after successful import');
+                }
+            }, 1000);
+
+        } catch (error) {
+            // Clean up interval on error
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+                countdownIntervalRef.current = null;
+            }
+            
+            console.error('Import confirmation failed:', error);
+            setImportError((error as Error).message);
+            setImportStatus('error');
+            setImportProgress({ stage: 'error', current: 0, total: importPreview.length, percentage: 0, message: 'Import failed.' });
         }
-    }, [importPreview, storeHandleImport, onImport, showToast, resetImportState]);
+    }, [importPreview, onImport]);
 
     // Enhanced backup creation with metadata
     const createBackup = useCallback(async () => {
@@ -482,6 +543,19 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
         </div>
     );
 
+    // Removed unused isLargeImport variable
+
+    // Cleanup function to clear any remaining intervals
+    useEffect(() => {
+        return () => {
+            // Clear countdown interval on unmount
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+                countdownIntervalRef.current = null;
+            }
+        };
+    }, []);
+
     return (
         <>
             {/* Action Buttons */}
@@ -555,7 +629,7 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                             <StatsCard
                                 value={exportStats.monthlyApps}
                                 label="This Month"
-                                icon={Calendar}
+                                icon={Clock}
                                 color="text-orange-600 dark:text-orange-400"
                             />
                         </div>
@@ -997,13 +1071,54 @@ export const ExportImportActions: React.FC<ExportImportActionsProps> = ({
                                 </div>
                             </div>
 
+                            {/* Progress Bar for Large Imports */}
+                            {importProgress && importPreview && importPreview.length > FILE_CONSTRAINTS.LARGE_IMPORT_THRESHOLD && (
+                                <div className="progress-container mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div className="progress-header flex justify-between items-center mb-2">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            {importProgress.stage === 'complete' ? 'Import Complete' : 'Import Progress'}
+                                        </span>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            {importProgress.current} / {importPreview.length}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="progress-bar w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                                        <div 
+                                            className="progress-fill bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300 ease-out"
+                                            style={{ width: `${importProgress.percentage}%` }}
+                                        />
+                                    </div>
+                                    
+                                    <div className="progress-message text-center">
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                                            {importProgress.message}
+                                        </span>
+                                        {importProgress.stage === 'complete' && importProgress.message.includes('Closing in') && (
+                                            <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                                ⏰ Modal will close automatically
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Data Persistence Notice */}
+                                    <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                                        <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-400">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                            <span className="font-medium">Data Safety:</span>
+                                            <span>Your imported applications are safely stored locally and will persist even if you refresh the page or close the browser.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Import Actions */}
-                            <footer
-                                className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                            <footer className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
                                 <button
                                     onClick={() => {
                                         setImportStatus('idle');
                                         setImportPreview([]);
+                                        setImportProgress(null);
                                     }}
                                     className="px-6 py-3 text-gray-600 dark:text-gray-400 font-medium hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                                     type="button"

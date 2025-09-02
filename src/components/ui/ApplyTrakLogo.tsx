@@ -141,7 +141,9 @@ const ApplyTrakLogo: React.FC<ApplyTrakLogoProps> = memo(({
     const inlineStyle = useMemo(() => ({
         ...(isCustomSize && {width: pixelSize, height: pixelSize}),
         objectFit: 'contain' as const,
-        objectPosition: 'center' as const
+        objectPosition: 'center' as const,
+        imageRendering: 'crisp-edges' as const,
+        shapeRendering: 'geometricPrecision' as const
     }), [isCustomSize, pixelSize]);
 
     const textColorClass = VARIANT_CLASSES[variant];

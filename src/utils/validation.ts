@@ -6,7 +6,7 @@ import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType} from '../
 // CONSTANTS
 // ============================================================================
 
-export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
+export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid', 'Contract', 'Part-time', 'Internship'];
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
 
 // ============================================================================
@@ -147,12 +147,7 @@ export const defaultGoalsFormValues: GoalFormData = {
 // FILE VALIDATION
 // ============================================================================
 
-interface FileValidationResult {
-    isValid: boolean;
-    error?: string;
-}
-
-export const validateFile = (file: File): FileValidationResult => {
+export const validateFile = (file: File): { isValid: boolean; error?: string } => {
     const allowedTypes = [
         'application/pdf',
         'application/msword',
@@ -160,22 +155,23 @@ export const validateFile = (file: File): FileValidationResult => {
         'text/plain',
         'image/jpeg',
         'image/png',
-        'image/gif'
+        'image/gif',
+        'image/webp'
     ];
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 50 * 1024 * 1024; // 50MB (increased from 10MB)
 
     if (!allowedTypes.includes(file.type)) {
         return {
             isValid: false,
-            error: 'File type not allowed. Please upload PDF, Word, text, or image files.'
+            error: 'File type not allowed. Please upload PDF, Word, text, or image files (JPEG, PNG, GIF, WebP).'
         };
     }
 
     if (file.size > maxSize) {
         return {
             isValid: false,
-            error: 'File size too large. Please upload files smaller than 10MB.'
+            error: 'File size too large. Please upload files smaller than 50MB.'
         };
     }
 

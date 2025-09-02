@@ -20,10 +20,7 @@ interface PreviewData {
     dateRange: { earliest: string; latest: string };
 }
 
-interface RecoveryError extends Error {
-    code?: string;
-    details?: string;
-}
+// Removed unused interface
 
 const RecoveryModal: React.FC = () => {
     const {modals, showToast, loadApplications} = useAppStore();

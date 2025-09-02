@@ -1,5 +1,6 @@
 // src/App.tsx - Production Ready Application Entry Point with Privacy Integration
-import React, {useEffect, useState} from 'react';
+import React, {useEffect} from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import {useAppStore} from './store/useAppStore';
 import Layout from './components/layout/Layout';
 import {initializeDatabase} from './services/databaseService';
@@ -9,6 +10,7 @@ import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
 import {verifyDatabaseAdmin} from './utils/adminAuth';
 import PrivacySettingsModal from './components/modals/PrivacySettingsModal';
+import {useWelcomeTour} from './hooks/useWelcomeTour';
 import './styles/globals.css';
 
 
@@ -16,11 +18,11 @@ import './styles/globals.css';
 // LAZY LOADED COMPONENTS - Performance Optimization
 // ============================================================================
 
-// Core Application Components
-const ApplicationForm = React.lazy(() => import('./components/forms/ApplicationForm'));
-const MobileResponsiveApplicationTable = React.lazy(() => import('./components/tables/MobileResponsiveApplicationTable'));
-const GoalTracker = React.lazy(() => import('./components/ui/GoalTracker'));
-const AnalyticsDashboard = React.lazy(() => import('./components/charts/AnalyticsDashboard'));
+// New Tab Components
+const ApplicationsTab = React.lazy(() => import('./components/tabs/ApplicationsTab'));
+const GoalsTab = React.lazy(() => import('./components/tabs/GoalsTab'));
+const ProfileTab = React.lazy(() => import('./components/tabs/ProfileTab'));
+const FeaturesPricingTab = React.lazy(() => import('./components/tabs/FeaturesPricingTab'));
 
 // Modal Components
 const EditApplicationModal = React.lazy(() => import('./components/modals/EditApplicationModal'));
@@ -29,432 +31,27 @@ const MilestoneModal = React.lazy(() => import('./components/modals/MilestoneMod
 const RecoveryModal = React.lazy(() => import('./components/modals/RecoveryModal'));
 const FeedbackModal = React.lazy(() => import('./components/modals/FeedbackModal'));
 
-
 // Utility Components
-const ExportImportActions = React.lazy(() => import('./components/ui/ExportImportActions'));
-const RecoveryAlert = React.lazy(() => import('./components/ui/RecoveryAlert'));
 const ErrorBoundary = React.lazy(() => import('./components/ui/ErrorBoundary'));
-const BackupStatus = React.lazy(() => import('./components/ui/BackupStatus'));
+const AnalyticsDashboard = React.lazy(() => import('./components/charts/AnalyticsDashboard'));
 
 // Admin Components
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard'));
 const AuthModal = React.lazy(() => import('./components/auth/AuthModal'));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
 
-const LegalModal = React.lazy(() => import('./components/modals/LegalModal'));
+// Utility Pages
+const DiagnosticsPage = React.lazy(() => import('./pages/DiagnosticsPage'));
+
+// Marketing Page
+const MarketingPage = React.lazy(() => import('./components/marketing/MarketingPage'));
 
 
-// ============================================================================
-// LOADING FALLBACK COMPONENTS
-// ============================================================================
+const WelcomeTourModal = React.lazy(() => import('./components/onboarding/WelcomeTourModal'));
+const UpgradeModal = React.lazy(() => import('./components/modals/UpgradeModal'));
 
-const TableLoadingFallback: React.FC = () => (
-    <div className="glass-card">
-        <div className="space-y-4 animate-pulse">
-            {/* Header Loading */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div
-                    className="h-12 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl w-full sm:w-64 animate-shimmer"></div>
-                <div className="flex gap-2">
-                    <div
-                        className="h-12 bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600 rounded-xl flex-1 sm:w-32 animate-shimmer"></div>
-                    <div
-                        className="h-12 bg-gradient-to-r from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600 rounded-xl flex-1 sm:w-32 animate-shimmer"></div>
-                </div>
-            </div>
 
-            {/* Stats Loading */}
-            <div className="flex flex-col sm:flex-row justify-between gap-2">
-                <div
-                    className="h-5 bg-gradient-to-r from-indigo-200 to-indigo-300 dark:from-indigo-700 dark:to-indigo-600 rounded-lg w-full sm:w-48 animate-shimmer"></div>
-                <div
-                    className="h-5 bg-gradient-to-r from-green-200 to-green-300 dark:from-green-700 dark:to-green-600 rounded-lg w-24 sm:w-32 animate-shimmer"></div>
-            </div>
 
-            {/* Table Loading */}
-            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-lg">
-                {/* Desktop Table Header */}
-                <div className="hidden sm:block">
-                    <div className="bg-gradient-to-r from-primary-500 to-secondary-500 px-6 py-4 shadow-inner">
-                        <div className="flex gap-4">
-                            {[...Array(7)].map((_, i) => (
-                                <div key={i} className="h-4 bg-white/40 rounded flex-1 animate-pulse"></div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="space-y-0">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i}
-                                 className="border-b border-gray-200 dark:border-gray-700 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                <div className="flex gap-4 items-center">
-                                    {[...Array(7)].map((_, j) => (
-                                        <div
-                                            key={j}
-                                            className={`h-4 rounded flex-1 animate-pulse ${
-                                                j === 0 ? 'bg-gradient-to-r from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600' :
-                                                    j === 2 ? 'bg-gradient-to-r from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-600' :
-                                                        'bg-gray-200 dark:bg-gray-700'
-                                            }`}
-                                        ></div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Mobile Cards Loading */}
-                <div className="sm:hidden space-y-4 p-4">
-                    {[...Array(3)].map((_, i) => (
-                        <div key={i}
-                             className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 space-y-3 shadow-sm">
-                            <div className="flex justify-between items-start">
-                                <div
-                                    className="h-6 bg-gradient-to-r from-blue-300 to-purple-300 dark:from-blue-600 dark:to-purple-600 rounded-lg w-2/3 animate-pulse"></div>
-                                <div
-                                    className="h-7 bg-gradient-to-r from-green-300 to-emerald-300 dark:from-green-600 dark:to-emerald-600 rounded-full w-20 animate-pulse"></div>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/2 animate-pulse"></div>
-                                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 animate-pulse"></div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Pagination Loading */}
-            <div
-                className="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700 gap-4">
-                <div
-                    className="h-5 bg-gradient-to-r from-indigo-200 to-purple-200 dark:from-indigo-700 dark:to-purple-700 rounded-lg w-full sm:w-48 animate-pulse"></div>
-                <div className="flex gap-2">
-                    {[...Array(5)].map((_, i) => (
-                        <div
-                            key={i}
-                            className={`h-10 w-10 rounded-lg animate-pulse ${
-                                i === 2 ? 'bg-gradient-to-br from-blue-400 to-blue-500' : 'bg-gray-300 dark:bg-gray-600'
-                            }`}
-                        ></div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    </div>
-);
-
-// ============================================================================
-// TRACKER TAB COMPONENT
-// ============================================================================
-
-const TrackerTab: React.FC = () => {
-    const {applications, bulkAddApplications} = useAppStore();
-
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`Toast [${type.toUpperCase()}]: ${message}`);
-        }
-
-        // Browser notification integration
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(`ApplyTrak - ${type.charAt(0).toUpperCase() + type.slice(1)}`, {
-                body: message,
-                icon: '/favicon.ico'
-            });
-        }
-    };
-
-    const handleImportApplications = async (importedApplications: Application[]) => {
-        try {
-            if (!Array.isArray(importedApplications) || importedApplications.length === 0) {
-                throw new Error('No valid applications found in the import file');
-            }
-
-            const applicationsToAdd = importedApplications.map(app => {
-                const {id, createdAt, updatedAt, ...appData} = app;
-                return appData;
-            });
-
-            await bulkAddApplications(applicationsToAdd);
-            showToast(`Successfully imported ${applicationsToAdd.length} applications`, 'success');
-        } catch (error) {
-            if (process.env.NODE_ENV === 'development') {
-                console.error('Import failed:', error);
-            }
-            showToast('Import failed: ' + (error as Error).message, 'error');
-        }
-    };
-
-    const handleRestoreFromBackup = (restoredApplications: Application[]) => {
-        try {
-            if (!Array.isArray(restoredApplications) || restoredApplications.length === 0) {
-                throw new Error('No valid applications found in backup');
-            }
-
-            const applicationsToAdd = restoredApplications.map(app => {
-                const {id, createdAt, updatedAt, ...appData} = app;
-                return appData;
-            });
-
-            bulkAddApplications(applicationsToAdd);
-            showToast(`Successfully restored ${applicationsToAdd.length} applications from backup`, 'success');
-        } catch (error) {
-            if (process.env.NODE_ENV === 'development') {
-                console.error('Restore failed:', error);
-            }
-            showToast('Restore failed: ' + (error as Error).message, 'error');
-        }
-    };
-
-    return (
-        <div className="space-y-8 sm:space-y-10">
-            {/* Hero Section */}
-            <div
-                className="glass-card bg-gradient-to-br from-primary-500/10 via-secondary-500/10 to-primary-600/10 border-2 border-primary-200/30 dark:border-primary-700/30 shadow-xl">
-                <div className="flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="space-y-4 sm:space-y-6">
-                        <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gradient-static tracking-tight leading-none text-shadow-lg animate-text-shimmer">
-                            Application Tracker
-                        </h1>
-
-                        <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 font-medium leading-relaxed max-w-2xl">
-                            Turn your job search into success stories
-                            <span className="font-display font-bold text-gradient-blue tracking-wide"></span>
-                        </p>
-
-                        {/* Key Metrics Display */}
-                        <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 sm:gap-6 pt-4">
-                            <div
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-                                <span className="text-2xl animate-bounce-gentle">📊</span>
-                                <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-static">
-                                        {applications.length}
-                                    </div>
-                                    <div
-                                        className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
-                                        Applications
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-                                <span className="text-2xl">📄</span>
-                                <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-blue">15</div>
-                                    <div
-                                        className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
-                                        Per Page
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-                                <span className="text-2xl animate-ping-light">⚡</span>
-                                <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-purple">Fast</div>
-                                    <div
-                                        className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
-                                        Navigation
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-                                <span className="text-2xl animate-spin-slow">🎯</span>
-                                <div className="text-left">
-                                    <div className="text-lg font-extrabold text-gradient-static">Smart</div>
-                                    <div
-                                        className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">
-                                        Goals
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-shrink-0">
-                        <React.Suspense fallback={
-                            <div
-                                className="h-12 sm:h-14 w-full sm:w-52 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-xl animate-pulse"/>
-                        }>
-                            <ExportImportActions
-                                applications={applications}
-                                onImport={handleImportApplications}
-                            />
-                        </React.Suspense>
-                    </div>
-                </div>
-            </div>
-
-            {/* Recovery Alert System */}
-            <React.Suspense fallback={null}>
-                <RecoveryAlert/>
-            </React.Suspense>
-
-            {/* Goal Tracking Component */}
-            <React.Suspense fallback={
-                <div
-                    className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 h-48 sm:h-56 rounded-2xl animate-pulse shadow-lg"/>
-            }>
-                <GoalTracker/>
-            </React.Suspense>
-
-            {/* Application Form */}
-            <React.Suspense fallback={
-                <div
-                    className="bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 h-96 sm:h-[28rem] rounded-2xl animate-pulse shadow-lg"/>
-            }>
-                <ApplicationForm/>
-            </React.Suspense>
-
-            {/* Application Table */}
-            <React.Suspense fallback={<TableLoadingFallback/>}>
-                <div className="responsive-table">
-                    <MobileResponsiveApplicationTable/>
-                </div>
-            </React.Suspense>
-        </div>
-    );
-};
-
-// ============================================================================
-// ANALYTICS TAB COMPONENT
-// ============================================================================
-const AnalyticsTab: React.FC = () => {
-    const {privacySettings, auth} = useAppStore();
-
-    return (
-        <div className="space-y-8 sm:space-y-10">
-            {/* Analytics Hero Section */}
-            <div
-                className="glass-card bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-600/10 border-2 border-blue-200/30 dark:border-blue-700/30 shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                    <div className="space-y-4 sm:space-y-6">
-                        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-medium text-gradient-blue tracking-tight leading-none text-shadow-lg animate-text-shimmer">
-                            Analytics Dashboard
-                        </h1>
-
-                        <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 font-normal leading-relaxed max-w-2xl">
-                            Insights about your <span
-                            className="font-display font-medium text-gradient-purple tracking-wide">job search journey</span>
-                        </p>
-
-                        {/* Analytics Feature Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                            <div
-                                className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
-                                <span className="text-2xl animate-bounce-gentle">📈</span>
-                                <div>
-                                    <div
-                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-wide">
-                                        Success Metrics
-                                    </div>
-                                    <div
-                                        className="text-xs text-gray-600 dark:text-gray-400 font-normal tracking-wider">
-                                        Track your progress
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
-                                <span className="text-2xl animate-pulse">🎯</span>
-                                <div>
-                                    <div
-                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 text-gradient-purple tracking-wide">
-                                        Performance
-                                    </div>
-                                    <div
-                                        className="text-xs text-gray-600 dark:text-gray-400 font-normal tracking-wider">
-                                        Analyze trends
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                className="inline-flex items-center gap-3 px-4 py-3 bg-white/60 dark:bg-gray-800/60 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105">
-                                <span className="text-2xl animate-spin-slow">📅</span>
-                                <div>
-                                    <div
-                                        className="text-sm font-medium text-gray-900 dark:text-gray-100 text-gradient-blue tracking-wide">
-                                        Timeline
-                                    </div>
-                                    <div
-                                        className="text-xs text-gray-600 dark:text-gray-400 font-normal tracking-wider">
-                                        View history
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        className="glass rounded-2xl p-6 sm:p-8 self-center sm:self-auto shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200/30 dark:border-blue-700/30">
-                        <span className="text-4xl sm:text-6xl animate-float filter drop-shadow-lg">📊</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Analytics Dashboard Component - Show based on auth and privacy state */}
-            {(() => {
-                // User is not authenticated - show login prompt
-                if (!auth.isAuthenticated) {
-                    return (
-                        <div className="glass-card text-center space-y-6 py-12">
-                            <div className="text-6xl"></div>
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                Analytics Requires Cloud Account
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto">
-                                Sign up or login to your ApplyTrak cloud account to unlock powerful analytics about your
-                                job search progress, success rates, and trends over time.
-                            </p>
-                            <div className="text-sm text-gray-500 dark:text-gray-500 mt-4">
-                                Your local data stays private - only you can see it
-                            </div>
-                        </div>
-                    );
-                }
-
-                // User is authenticated but hasn't enabled analytics
-                if (!privacySettings?.analytics) {
-                    return (
-                        <div className="glass-card text-center space-y-4 py-12">
-                            <div className="text-6xl">🔒</div>
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                                Analytics Disabled
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                                Enable analytics in your privacy settings to see insights about your job search progress
-                                and success patterns.
-                            </p>
-                            <button
-                                onClick={() => useAppStore.getState().openPrivacySettings()}
-                                className="btn btn-primary"
-                            >
-                                Update Privacy Settings
-                            </button>
-                        </div>
-                    );
-                }
-
-                // User is authenticated and has enabled analytics
-                return (
-                    <React.Suspense fallback={
-                        <div
-                            className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 h-96 sm:h-[32rem] rounded-2xl animate-pulse shadow-lg"/>
-                    }>
-                        <AnalyticsDashboard/>
-                    </React.Suspense>
-                );
-            })()}
-        </div>
-    );
-};
 
 // ============================================================================
 // ERROR SCREEN COMPONENT
@@ -504,53 +101,33 @@ const App: React.FC = () => {
         calculateAnalytics,
         showToast,
         initializeAuth,
+        setSelectedTab,
         // NEW: Privacy-related state
         privacySettings,
-        loadUserPrivacySettings
+        loadUserPrivacySettings,
+        closeUpgradeModal
     } = useAppStore();
 
-    const [currentRoute, setCurrentRoute] = useState(() => window.location.pathname);
+    // Initialize welcome tour for new users
+    useWelcomeTour();
+
+    const location = useLocation();
+    const currentRoute = location.pathname;
 
     const isAdminDashboardOpen = ui?.admin?.dashboardOpen && ui?.admin?.authenticated;
     const isOnAdminRoute = currentRoute === '/admin';
 
     // ============================================================================
-    // ROUTE CHANGE DETECTION
+    // ROUTE CHANGE DETECTION - Now handled by React Router
     // ============================================================================
     useEffect(() => {
-        const handleRouteChange = () => {
-            const newRoute = window.location.pathname;
-            setCurrentRoute(newRoute);
-            if (process.env.NODE_ENV === 'development') {
-                console.log('Route changed to:', newRoute);
-            }
-        };
-
-        const handlePopState = () => {
-            handleRouteChange();
-        };
-
-        const handleAdminRouteChange = (event: Event) => {
-            const customEvent = event as CustomEvent;
-            if (customEvent.detail?.path) {
-                setCurrentRoute(customEvent.detail.path);
-                if (process.env.NODE_ENV === 'development') {
-                    console.log('Admin route change detected:', customEvent.detail.path);
-                }
-            }
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        window.addEventListener('adminRouteChange', handleAdminRouteChange);
-
-        return () => {
-            window.removeEventListener('popstate', handlePopState);
-            window.removeEventListener('adminRouteChange', handleAdminRouteChange);
-        };
-    }, []);
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Route changed to:', currentRoute);
+        }
+    }, [currentRoute]);
 
     // ============================================================================
-    // PRIVACY SETTINGS INITIALIZATION - NEW
+    // PRIVACY SETTINGS & ANALYTICS INITIALIZATION - NEW
     // ============================================================================
     useEffect(() => {
         const initializePrivacySettings = async () => {
@@ -566,10 +143,47 @@ const App: React.FC = () => {
             }
         };
 
+        const initializeAnalytics = async () => {
+            if (!auth.isAuthenticated || !auth.user || !privacySettings) return;
+
+            try {
+                // Check if user has analytics consent
+                if (privacySettings.analytics) {
+                    const { analyticsService } = await import('./services/analyticsService');
+                    await analyticsService.enableAnalytics({ trackingLevel: 'standard' });
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Analytics enabled for authenticated user');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to initialize analytics:', error);
+            }
+        };
+
         if (auth.isAuthenticated && auth.user && !privacySettings) {
             initializePrivacySettings();
+        } else if (auth.isAuthenticated && auth.user && privacySettings) {
+            initializeAnalytics();
         }
     }, [auth.isAuthenticated, auth.user, privacySettings, loadUserPrivacySettings]);
+
+    // ============================================================================
+    // MARKETING PAGE INITIALIZATION - Show marketing page only on first visit for ALL users
+    // ============================================================================
+    useEffect(() => {
+        // Check if user has visited before
+        const hasVisitedBefore = localStorage.getItem('applytrak_has_visited');
+        
+        // For ALL users (authenticated and unauthenticated), show marketing page only on first visit
+        if (!hasVisitedBefore) {
+            useAppStore.getState().setShowMarketingPage(true);
+            // Mark that user has visited
+            localStorage.setItem('applytrak_has_visited', 'true');
+        } else {
+            // User has visited before, show applications page
+            useAppStore.getState().setShowMarketingPage(false);
+        }
+    }, [auth.isAuthenticated]);
 
     // ============================================================================
     // ADMIN LOGOUT HANDLER
@@ -637,7 +251,7 @@ const App: React.FC = () => {
                 }
 
                 try {
-                    const isAdmin = await verifyDatabaseAdmin(auth.user.id, auth.user.email);
+                    const isAdmin = await verifyDatabaseAdmin(String(auth.user.id), auth.user.email);
 
                     if (isAdmin) {
                         if (process.env.NODE_ENV === 'development') {
@@ -685,7 +299,8 @@ const App: React.FC = () => {
         auth.isLoading,
         ui.admin.dashboardOpen,
         ui.admin.authenticated,
-        showToast
+        showToast,
+        auth.user
     ]);
 
     // ============================================================================
@@ -735,17 +350,44 @@ const App: React.FC = () => {
                 }
 
                 // Load Application Data (Skip if admin route or admin dashboard)
+                // Always load local data from IndexedDB to ensure data persistence
                 if (!isOnAdminRoute && !isAdminDashboardOpen) {
-                    await Promise.all([
-                        loadApplications(),
-                        loadGoals()
-                    ]);
+                    if (auth.isAuthenticated) {
+                        // Authenticated user: Load data and sync with cloud
+                        await Promise.all([
+                            loadApplications(),
+                            loadGoals()
+                        ]);
 
-                    calculateProgress();
-                    calculateAnalytics();
+                        calculateProgress();
+                        calculateAnalytics();
 
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log('Application data loaded and metrics calculated');
+                        }
+                    } else {
+                        // Unauthenticated user: Still load local data from IndexedDB
+                        // This ensures imported data persists even without cloud sync
+                        try {
+                            const { databaseService } = await import('./services/databaseService');
+                            const localApplications = await databaseService.getApplications();
+                            
+                            if (localApplications.length > 0) {
+                                // Update store with local data using the proper method
+                                // loadApplications() will fetch from IndexedDB and update the store correctly
+                                useAppStore.getState().loadApplications();
+                                
+                                if (process.env.NODE_ENV === 'development') {
+                                    console.log(`📱 Loaded ${localApplications.length} local applications (unauthenticated)`);
+                                }
+                            }
+                        } catch (error) {
+                            console.warn('Failed to load local applications:', error);
+                        }
+                    }
+                } else if (!isOnAdminRoute && !isAdminDashboardOpen && !auth.isAuthenticated) {
                     if (process.env.NODE_ENV === 'development') {
-                        console.log('Application data loaded and metrics calculated');
+                        console.log('User not authenticated - skipping data loading to avoid RLS issues');
                     }
                 }
 
@@ -770,9 +412,13 @@ const App: React.FC = () => {
                 }
 
                 // Setup System Theme Change Listener
+                // Only respond to system theme changes if user has explicitly set a theme preference
                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
                 const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-                    if (!localStorage.getItem('theme')) {
+                    // For shared/public access, don't auto-switch themes based on system preference
+                    // Only allow system theme changes if user has explicitly set a theme
+                    const savedTheme = localStorage.getItem('theme');
+                    if (savedTheme && savedTheme === 'system') {
                         const newTheme = e.matches ? 'dark' : 'light';
                         setTheme(newTheme);
                         document.documentElement.classList.toggle('dark', e.matches);
@@ -874,6 +520,50 @@ const App: React.FC = () => {
     ]);
 
     // ============================================================================
+    // AUTHENTICATION-BASED DATA LOADING
+    // ============================================================================
+    useEffect(() => {
+        // Load data when user becomes authenticated
+        if (auth.isAuthenticated && !isOnAdminRoute && !isAdminDashboardOpen) {
+            const loadDataAfterAuth = async () => {
+                try {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('🔄 Loading data after authentication...');
+                    }
+                    
+                    await Promise.all([
+                        loadApplications(),
+                        loadGoals()
+                    ]);
+
+                    calculateProgress();
+                    calculateAnalytics();
+
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('✅ Data loaded successfully after authentication');
+                    }
+                } catch (error) {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error('❌ Failed to load data after authentication:', error);
+                    }
+                }
+            };
+
+            // Add a small delay to ensure authentication is fully established
+            setTimeout(loadDataAfterAuth, 1000);
+        }
+    }, [auth.isAuthenticated, isOnAdminRoute, isAdminDashboardOpen, loadApplications, loadGoals, calculateProgress, calculateAnalytics, auth.user]);
+
+    // ============================================================================
+    // REDIRECT UNAUTHENTICATED USERS FROM PROFILE TAB
+    // ============================================================================
+    React.useEffect(() => {
+        if (!auth.isAuthenticated && ui?.selectedTab === 'profile') {
+            setSelectedTab('applications');
+        }
+    }, [auth.isAuthenticated, ui?.selectedTab, setSelectedTab]);
+
+    // ============================================================================
     // LOADING STATE HANDLING
     // ============================================================================
     if (ui?.isLoading && applications.length === 0 && !isOnAdminRoute && !isAdminDashboardOpen) {
@@ -893,37 +583,102 @@ const App: React.FC = () => {
     return (
         <React.Suspense fallback={<LoadingScreen/>}>
             <ErrorBoundary>
-                {isOnAdminRoute ? (
-                    <React.Suspense fallback={<LoadingScreen/>}>
-                        <AdminPage/>
-                    </React.Suspense>
-                ) : isAdminDashboardOpen ? (
-                    <React.Suspense fallback={<LoadingScreen/>}>
-                        <AdminDashboard/>
-                    </React.Suspense>
-                ) : (
-                    <div className="min-h-screen bg-grid dark:bg-grid-dark">
-                        <Layout>
-                            {ui?.selectedTab === 'tracker' && <TrackerTab/>}
-                            {ui?.selectedTab === 'analytics' && <AnalyticsTab/>}
+                <Routes>
+                    {/* Admin Routes */}
+                    <Route path="/admin" element={
+                        <React.Suspense fallback={<LoadingScreen/>}>
+                            <AdminPage/>
+                        </React.Suspense>
+                    } />
+                    
+                    {/* Special Pages */}
+                    <Route path="/diagnostics" element={
+                        <React.Suspense fallback={<LoadingScreen/>}>
+                            <DiagnosticsPage/>
+                        </React.Suspense>
+                    } />
 
-                            <React.Suspense fallback={null}>
-                                <EditApplicationModal/>
-                                <GoalModal/>
-                                <MilestoneModal/>
-                                <RecoveryModal/>
-                                <FeedbackModal/>
-                                <AuthModal/>
-                                {modals.privacySettings?.isOpen && (
-                                    <PrivacySettingsModal/>
-                                )}
+                    
+                    {/* Marketing Page */}
+                    <Route path="/marketing" element={
+                        ui?.showMarketingPage ? (
+                            <React.Suspense fallback={<LoadingScreen/>}>
+                                <MarketingPage/>
                             </React.Suspense>
-                        </Layout>
-                    </div>
-                )}
+                        ) : (
+                            <div className="min-h-screen bg-grid dark:bg-grid-dark">
+                                <Layout>
+                                    {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
+                                    {ui?.selectedTab === 'goals' && <GoalsTab/>}
+                                    {ui?.selectedTab === 'analytics' && <AnalyticsDashboard/>}
+                                    {ui?.selectedTab === 'profile' && auth.isAuthenticated && <ProfileTab/>}
+                                    {ui?.selectedTab === 'features' && <FeaturesPricingTab/>}
+
+                                    <React.Suspense fallback={null}>
+                                        <EditApplicationModal/>
+                                        <GoalModal/>
+                                        <MilestoneModal/>
+                                        <RecoveryModal/>
+                                        <FeedbackModal/>
+                                        <AuthModal/>
+
+                                        <WelcomeTourModal/>
+                                        <UpgradeModal 
+                                            isOpen={modals.upgrade?.isOpen || false}
+                                            onClose={closeUpgradeModal}
+                                            trigger={modals.upgrade?.trigger || 'general'}
+                                        />
+
+                                        {modals.privacySettings?.isOpen && (
+                                            <PrivacySettingsModal/>
+                                        )}
+                                    </React.Suspense>
+                                </Layout>
+                            </div>
+                        )
+                    } />
+                    
+                    {/* Default Route - Main Application */}
+                    <Route path="*" element={
+                        isAdminDashboardOpen ? (
+                            <React.Suspense fallback={<LoadingScreen/>}>
+                                <AdminDashboard/>
+                            </React.Suspense>
+                        ) : (
+                            <div className="min-h-screen bg-grid dark:bg-grid-dark">
+                                <Layout>
+                                    {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
+                                    {ui?.selectedTab === 'goals' && <GoalsTab/>}
+                                    {ui?.selectedTab === 'analytics' && <AnalyticsDashboard/>}
+                                    {ui?.selectedTab === 'profile' && auth.isAuthenticated && <ProfileTab/>}
+                                    {ui?.selectedTab === 'features' && <FeaturesPricingTab/>}
+
+                                    <React.Suspense fallback={null}>
+                                        <EditApplicationModal/>
+                                        <GoalModal/>
+                                        <MilestoneModal/>
+                                        <RecoveryModal/>
+                                        <FeedbackModal/>
+                                        <AuthModal/>
+
+                                        <WelcomeTourModal/>
+                                        <UpgradeModal 
+                                            isOpen={modals.upgrade?.isOpen || false}
+                                            onClose={closeUpgradeModal}
+                                            trigger={modals.upgrade?.trigger || 'general'}
+                                        />
+
+                                        {modals.privacySettings?.isOpen && (
+                                            <PrivacySettingsModal/>
+                                        )}
+                                    </React.Suspense>
+                                </Layout>
+                            </div>
+                        )
+                    } />
+                </Routes>
             </ErrorBoundary>
         </React.Suspense>
-
     );
 };
 

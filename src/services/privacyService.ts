@@ -12,20 +12,20 @@ interface PrivacyConsents {
 // Database PrivacySettings (what's stored in DB)
 interface DatabasePrivacySettings {
     id?: string;
-    user_id: number;
+    userid: number;
     analytics: boolean;
     feedback: boolean;
-    functional_cookies: boolean;
-    consent_date: string;
-    consent_version: string;
-    cloud_sync_consent: boolean;
-    data_retention_period: number;
-    anonymize_after: number;
-    tracking_level: 'minimal' | 'standard' | 'detailed';
-    data_sharing_consent: boolean;
-    marketing_consent: boolean;
-    created_at?: string;
-    updated_at?: string;
+    functionalcookies: boolean;
+    consentdate: string;
+    consentversion: string;
+    cloudsyncconsent: boolean;
+    dataretentionperiod: number;
+    anonymizeafter: number;
+    trackinglevel: 'minimal' | 'standard' | 'detailed';
+    datasharingconsent: boolean;
+    marketingconsent: boolean;
+    createdat?: string;
+    updatedat?: string;
 }
 
 // App PrivacySettings (what's used in components)
@@ -42,7 +42,7 @@ interface AppPrivacySettings {
 }
 
 interface UserDataExport {
-    user_id: number;
+    userid: number;
     export_date: string;
     user_info: any;
     applications: any[];
@@ -63,24 +63,31 @@ class PrivacyService {
     async savePrivacySettings(authUserId: string, consents: PrivacyConsents): Promise<void> {
         try {
             const client = this.ensureSupabase();
+            
+            // Check if we have a valid session before proceeding
+            const { data: { session } } = await client.auth.getSession();
+            if (!session?.user) {
+                throw new Error('No active session - user must be authenticated');
+            }
+            
             const userId = await this.getUserId(authUserId);
             if (!userId) {
                 throw new Error('User not found');
             }
 
             const privacySettings: Omit<DatabasePrivacySettings, 'id' | 'created_at' | 'updated_at'> = {
-                user_id: userId,
+                userid: userId,
                 analytics: consents.analytics,
                 feedback: consents.analytics,
-                functional_cookies: true,
-                consent_date: new Date().toISOString(),
-                consent_version: '1.0',
-                cloud_sync_consent: consents.cloudSync,
-                data_retention_period: 365,
-                anonymize_after: 730,
-                tracking_level: consents.analytics ? 'standard' : 'minimal',
-                data_sharing_consent: false,
-                marketing_consent: consents.marketing
+                functionalcookies: true,
+                consentdate: new Date().toISOString(),
+                consentversion: '1.0',
+                cloudsyncconsent: consents.cloudSync,
+                dataretentionperiod: 365,
+                anonymizeafter: 730,
+                trackinglevel: consents.analytics ? 'standard' : 'minimal',
+                datasharingconsent: false,
+                marketingconsent: consents.marketing
             };
 
             const {error} = await client
@@ -105,6 +112,14 @@ class PrivacyService {
     async getPrivacySettings(authUserId: string): Promise<AppPrivacySettings | null> {
         try {
             const client = this.ensureSupabase();
+            
+            // Check if we have a valid session before proceeding
+            const { data: { session } } = await client.auth.getSession();
+            if (!session?.user) {
+                console.log('No active session - skipping privacy settings lookup');
+                return null;
+            }
+            
             const userId = await this.getUserId(authUserId);
             if (!userId) {
                 return null;
@@ -113,7 +128,7 @@ class PrivacyService {
             const {data, error} = await client
                 .from('privacy_settings')
                 .select('*')
-                .eq('user_id', userId)
+                .eq('userid', userId)
                 .single();
 
             if (error) {
@@ -161,25 +176,25 @@ class PrivacyService {
             }
 
             const dbUpdates: Partial<DatabasePrivacySettings> = {
-                updated_at: new Date().toISOString()
+                updatedat: new Date().toISOString()
             };
 
             if ('analytics' in updates) dbUpdates.analytics = updates.analytics;
-            if ('marketing_consent' in updates) dbUpdates.marketing_consent = updates.marketing_consent;
-            if ('cloud_sync_consent' in updates) dbUpdates.cloud_sync_consent = updates.cloud_sync_consent;
-            if ('functional_cookies' in updates) dbUpdates.functional_cookies = updates.functional_cookies;
-            if ('data_retention_period' in updates) dbUpdates.data_retention_period = updates.data_retention_period;
+            if ('marketing_consent' in updates) dbUpdates.marketingconsent = updates.marketing_consent;
+            if ('cloud_sync_consent' in updates) dbUpdates.cloudsyncconsent = updates.cloud_sync_consent;
+            if ('functional_cookies' in updates) dbUpdates.functionalcookies = updates.functional_cookies;
+            if ('data_retention_period' in updates) dbUpdates.dataretentionperiod = updates.data_retention_period;
             if ('feedback' in updates) dbUpdates.feedback = updates.feedback;
-            if ('data_sharing_consent' in updates) dbUpdates.data_sharing_consent = updates.data_sharing_consent;
+            if ('data_sharing_consent' in updates) dbUpdates.datasharingconsent = updates.data_sharing_consent;
 
             if ('tracking_level' in updates && updates.tracking_level) {
-                dbUpdates.tracking_level = this.convertTrackingLevel(updates.tracking_level);
+                dbUpdates.trackinglevel = this.convertTrackingLevel(updates.tracking_level);
             }
 
             const {error} = await client
                 .from('privacy_settings')
                 .update(dbUpdates)
-                .eq('user_id', userId);
+                .eq('userid', userId);
 
             if (error) {
                 console.error('Failed to update privacy settings:', error);
@@ -287,7 +302,7 @@ class PrivacyService {
             const {data, error} = await client
                 .from('privacy_settings')
                 .select('consent_version')
-                .eq('user_id', userId)
+                .eq('userid', userId)
                 .single();
 
             if (error || !data) return true;
@@ -363,9 +378,25 @@ class PrivacyService {
         }
     }
 
-    async saveInitialPrivacySettings(authUserId: string, cloudSync: boolean): Promise<void> {
-        const consents: PrivacyConsents = {required: true, cloudSync, analytics: false, marketing: false};
-        return this.savePrivacySettings(authUserId, consents);
+    async saveInitialPrivacySettings(authUserId: string, cloudSync: boolean, analytics: boolean = true): Promise<void> {
+        const consents: PrivacyConsents = {required: true, cloudSync, analytics, marketing: false};
+        
+        // Retry mechanism for initial privacy settings (user record might not be immediately available)
+        let retries = 5;
+        while (retries > 0) {
+            try {
+                console.log(`Attempting to save privacy settings (attempt ${6 - retries}/5) for user:`, authUserId);
+                return await this.savePrivacySettings(authUserId, consents);
+            } catch (error: any) {
+                retries--;
+                console.log(`Privacy settings save failed (${retries} retries left):`, error.message);
+                if (retries === 0 || !error.message?.includes('User not found')) {
+                    throw error;
+                }
+                // Wait before retrying (increasing delay)
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
     }
 
     /**
@@ -399,6 +430,14 @@ class PrivacyService {
     async hasAnalyticsConsent(authUserId: string): Promise<boolean> {
         try {
             const client = this.ensureSupabase();
+            
+            // Check if we have a valid session before proceeding
+            const { data: { session } } = await client.auth.getSession();
+            if (!session?.user) {
+                console.log('No active session - skipping analytics consent check');
+                return false;
+            }
+            
             const userId = await this.getUserId(authUserId);
             if (!userId) return false;
 
@@ -419,6 +458,14 @@ class PrivacyService {
     async hasMarketingConsent(authUserId: string): Promise<boolean> {
         try {
             const client = this.ensureSupabase();
+            
+            // Check if we have a valid session before proceeding
+            const { data: { session } } = await client.auth.getSession();
+            if (!session?.user) {
+                console.log('No active session - skipping marketing consent check');
+                return false;
+            }
+            
             const userId = await this.getUserId(authUserId);
             if (!userId) return false;
 
@@ -449,17 +496,77 @@ class PrivacyService {
     private async getUserId(authUserId: string): Promise<number | null> {
         try {
             const client = this.ensureSupabase();
-            const {data, error} = await client
-                .from('users')
-                .select('id')
-                .eq('external_id', authUserId)
-                .single();
-
-            if (error || !data) {
-                console.error('Failed to get user ID:', error);
+            
+            // Check if we have a valid session before querying
+            const { data: { session } } = await client.auth.getSession();
+            if (!session?.user) {
+                console.log('No active session - skipping user lookup');
                 return null;
             }
 
+            console.log('Looking up user with externalid:', authUserId);
+
+            // Try to get user ID using the current_user_id function first
+            try {
+                const { data: userId, error: rpcError } = await client.rpc('current_user_id');
+                if (!rpcError && userId) {
+                    console.log('Found user ID via current_user_id function:', userId);
+                    return userId;
+                }
+            } catch (rpcError) {
+                console.log('current_user_id function failed, trying direct query:', rpcError);
+            }
+
+            // Fallback to direct query
+            const {data, error} = await client
+                .from('users')
+                .select('id')
+                .eq('externalid', authUserId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Failed to get user ID by externalid:', error);
+                
+                // If externalid lookup fails, try to get user by email from session
+                if (session?.user?.email) {
+                    console.log('Trying to get user by email:', session.user.email);
+                    const {data: emailData, error: emailError} = await client
+                        .from('users')
+                        .select('id')
+                        .eq('email', session.user.email)
+                        .maybeSingle();
+                    
+                    if (!emailError && emailData) {
+                        console.log('Found user by email with ID:', emailData.id);
+                        return emailData.id;
+                    }
+                }
+                
+                return null;
+            }
+
+            if (!data) {
+                console.log('No user found with externalid:', authUserId);
+                
+                // Try to get user by email as fallback
+                if (session?.user?.email) {
+                    console.log('Trying to get user by email as fallback:', session.user.email);
+                    const {data: emailData, error: emailError} = await client
+                        .from('users')
+                        .select('id')
+                        .eq('email', session.user.email)
+                        .maybeSingle();
+                    
+                    if (!emailError && emailData) {
+                        console.log('Found user by email with ID:', emailData.id);
+                        return emailData.id;
+                    }
+                }
+                
+                return null;
+            }
+
+            console.log('Found user with ID:', data.id);
             return data.id;
         } catch (error) {
             console.error('Error getting user ID:', error);
@@ -487,14 +594,14 @@ class PrivacyService {
     private convertToAppSettings(dbSettings: DatabasePrivacySettings): AppPrivacySettings {
         return {
             analytics: dbSettings.analytics,
-            marketing_consent: dbSettings.marketing_consent,
-            cloud_sync_consent: dbSettings.cloud_sync_consent,
-            functional_cookies: dbSettings.functional_cookies,
-            tracking_level: this.convertFromDatabaseTrackingLevel(dbSettings.tracking_level),
-            data_retention_period: dbSettings.data_retention_period,
+            marketing_consent: dbSettings.marketingconsent,
+            cloud_sync_consent: dbSettings.cloudsyncconsent,
+            functional_cookies: dbSettings.functionalcookies,
+            tracking_level: this.convertFromDatabaseTrackingLevel(dbSettings.trackinglevel),
+            data_retention_period: dbSettings.dataretentionperiod,
             feedback: dbSettings.feedback,
-            data_sharing_consent: dbSettings.data_sharing_consent,
-            updated_at: dbSettings.updated_at
+            data_sharing_consent: dbSettings.datasharingconsent,
+            ...(dbSettings.updatedat && { updated_at: dbSettings.updatedat })
         };
     }
 }

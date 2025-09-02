@@ -10,11 +10,7 @@ interface AdminRouteState {
     eventListeners: Set<() => void>;
 }
 
-interface AdminAccessResult {
-    success: boolean;
-    requiresAuth: boolean;
-    message?: string;
-}
+// Removed unused AdminAccessResult interface
 
 interface AdminStatusInfo {
     userAuthenticated: boolean;
@@ -58,13 +54,7 @@ const isValidString = (value: unknown): value is string => {
     return typeof value === 'string' && value.length > 0;
 };
 
-const safeParseUrl = (url: string): URL | null => {
-    try {
-        return new URL(url, window.location.origin);
-    } catch {
-        return null;
-    }
-};
+// Removed unused safeParseUrl function
 
 const addEventListenerWithCleanup = (
     target: EventTarget,
@@ -422,7 +412,7 @@ const setupConsoleCommands = (): void => {
                     authenticated: store?.ui?.admin?.authenticated || false,
                     dashboardOpen: store?.ui?.admin?.dashboardOpen || false,
                     currentSection: store?.ui?.admin?.currentSection || 'unknown',
-                    analyticsEnabled: store?.analyticsSettings?.enabled || false,
+                    analyticsEnabled: store?.privacySettings?.analytics || false,
                     userAuthenticated: store?.auth?.isAuthenticated || false,
                     adminSessionValid: sessionStatus?.authenticated || false,
                     adminPrivileges: sessionStatus?.isValidAdmin || false,

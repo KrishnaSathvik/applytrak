@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ApplyTrak - Email Preferences Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 24px;
+      color: #0f172a;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    }
+    h2 {
+      margin: 0 0 12px;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    p {
+      margin: 0 0 16px;
+      color: #475569;
+    }
+    .preference-card {
+      margin: 16px 0;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .preference-title {
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .preference-description {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .preference-actions {
+      margin-top: 8px;
+    }
+    .preference-actions a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+      margin-right: 16px;
+    }
+    .preference-actions a:hover {
+      text-decoration: underline;
+    }
+    .bullet {
+      color: #94a3b8;
+    }
+    .back-link {
+      margin-top: 24px;
+      text-align: center;
+    }
+    .back-link a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+    .footer-note {
+      margin-top: 12px;
+      color: #64748b;
+      font-size: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Manage Email Preferences</h2>
+    <p>Choose what you want to receive:</p>
+
+    <div class="preference-card">
+      <div class="preference-title">📊 Weekly Goals Report</div>
+      <div class="preference-description">Progress updates and goal tracking</div>
+      <div class="preference-actions">
+        <a href="#" onclick="alert('Turn off Weekly Goals')">Turn off</a>
+        <span class="bullet">•</span>
+        <a href="#" onclick="alert('Turn on Weekly Goals')">Turn on</a>
+      </div>
+    </div>
+
+    <div class="preference-card">
+      <div class="preference-title">💡 Weekly Tips & Insights</div>
+      <div class="preference-description">Personalized job search advice</div>
+      <div class="preference-actions">
+        <a href="#" onclick="alert('Turn off Weekly Tips')">Turn off</a>
+        <span class="bullet">•</span>
+        <a href="#" onclick="alert('Turn on Weekly Tips')">Turn on</a>
+      </div>
+    </div>
+
+    <div class="preference-card">
+      <div class="preference-title">📈 Monthly Analytics Report</div>
+      <div class="preference-description">Comprehensive performance insights</div>
+      <div class="preference-actions">
+        <a href="#" onclick="alert('Turn off Monthly Analytics')">Turn off</a>
+        <span class="bullet">•</span>
+        <a href="#" onclick="alert('Turn on Monthly Analytics')">Turn on</a>
+      </div>
+    </div>
+
+    <div class="preference-card">
+      <div class="preference-title">🎉 Milestone Celebrations</div>
+      <div class="preference-description">Achievement notifications and motivation</div>
+      <div class="preference-actions">
+        <a href="#" onclick="alert('Turn off Milestone Emails')">Turn off</a>
+        <span class="bullet">•</span>
+        <a href="#" onclick="alert('Turn on Milestone Emails')">Turn on</a>
+      </div>
+    </div>
+
+    <div class="preference-card">
+      <div class="preference-title">⏰ Inactivity Reminders</div>
+      <div class="preference-description">Gentle nudges to stay active</div>
+      <div class="preference-actions">
+        <a href="#" onclick="alert('Turn off Inactivity Reminders')">Turn off</a>
+        <span class="bullet">•</span>
+        <a href="#" onclick="alert('Turn on Inactivity Reminders')">Turn on</a>
+      </div>
+    </div>
+
+    <div class="back-link">
+      <a href="#">Back to ApplyTrak</a>
+    </div>
+    <div class="footer-note">Changes apply immediately.</div>
+  </div>
+</body>
+</html>

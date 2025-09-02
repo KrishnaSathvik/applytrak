@@ -2058,6 +2058,7 @@
 @supports (-webkit-touch-callout: none) {
     .header-fixed button {
         -webkit-appearance: none;
+        appearance: none;
         -webkit-tap-highlight-color: transparent;
         transform: translateZ(0);
     }

@@ -1,6 +1,7 @@
 // src/index.tsx - Production Ready Application Entry Point
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles/globals.css';
 
@@ -37,7 +38,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         };
     }
 
-    componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
         const isDevelopment = process.env.NODE_ENV === 'development';
         const isProduction = process.env.NODE_ENV === 'production';
 
@@ -56,7 +57,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         }
     }
 
-    render(): React.ReactNode {
+    override render(): React.ReactNode {
         if (this.state.hasError) {
             return (
                 <div
@@ -157,7 +158,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         return this.props.children;
     }
 
-    private reportError = (error: Error, errorInfo: React.ErrorInfo): void => {
+    private reportError = (_error: Error, _errorInfo: React.ErrorInfo): void => {
         // Implement your error reporting logic here
         try {
             // Example: Send to error tracking service
@@ -339,9 +340,11 @@ const renderApp = (): void => {
 
         root.render(
             <React.StrictMode>
-                <ErrorBoundary>
-                    <App/>
-                </ErrorBoundary>
+                <BrowserRouter>
+                    <ErrorBoundary>
+                        <App/>
+                    </ErrorBoundary>
+                </BrowserRouter>
             </React.StrictMode>
         );
 

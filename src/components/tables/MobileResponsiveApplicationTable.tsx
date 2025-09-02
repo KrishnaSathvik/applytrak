@@ -1,11 +1,11 @@
 import React, {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-    Calendar,
     Check,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
     ChevronUp,
+    Clock,
     Copy,
     DollarSign,
     Download,
@@ -19,27 +19,30 @@ import {
     Paperclip,
     Search,
     Trash2,
-    X
+    X,
+    FileText as FileTextIcon,
+    Eye as EyeIcon
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Application, Attachment} from '../../types';
+import {Application, Attachment, ApplicationStatus} from '../../types';
 import BulkOperations from './BulkOperations';
 import {Modal} from '../ui/Modal';
 import {cn} from '../../utils/helpers';
 
 // Constants
 const ITEMS_PER_PAGE = 15;
+const MAX_APPLICATIONS_FOR_INSTANT_FILTER = 100; // Threshold for instant vs debounced filtering
 const COMPANY_COLORS = [
     'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700',
-    'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700',
-    'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700',
-    'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700',
-    'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700',
-    'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700',
-    'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-700',
-    'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700',
-    'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
-    'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700'
+    'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-blue-700',
+    'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-blue-700',
+    'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-blue-700',
+    'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-blue-700',
+    'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-blue-700',
+    'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-blue-700',
+    'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-blue-700',
+    'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-blue-700',
+    'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-blue-700'
 ];
 
 // Types
@@ -57,6 +60,13 @@ interface PaginationData {
     showingTo: number;
 }
 
+// Row editing state interface
+interface EditingState {
+    id: string | null;
+    originalData: Partial<Application> | null;
+    editedData: Partial<Application> | null;
+}
+
 // Utility function for consistent company colors
 const getCompanyColor = (companyName: string): string => {
     let hash = 0;
@@ -65,6 +75,294 @@ const getCompanyColor = (companyName: string): string => {
     }
     return COMPANY_COLORS[Math.abs(hash) % COMPANY_COLORS.length];
 };
+
+// Status badge utility function
+const getStatusBadge = (status: string): string => {
+    const baseClasses = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wider uppercase';
+    switch (status) {
+        case 'Applied':
+            return `${baseClasses} bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100`;
+        case 'Interview':
+            return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100`;
+        case 'Offer':
+            return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100`;
+        case 'Rejected':
+            return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100`;
+        default:
+            return `${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100`;
+    }
+};
+
+// Inline Editable Cell Component
+interface InlineEditableCellProps {
+    value: string;
+    isEditing: boolean;
+    placeholder?: string;
+    className?: string;
+    maxLength?: number;
+    appId?: string;
+    fieldName?: string;
+}
+
+const InlineEditableCell: React.FC<InlineEditableCellProps> = memo(({
+    value,
+    isEditing,
+    placeholder = "Enter value...",
+    className = "",
+    maxLength = 100,
+    appId,
+    fieldName
+}) => {
+    const [editValue, setEditValue] = useState(value);
+
+    useEffect(() => {
+        setEditValue(value);
+    }, [value]);
+
+    if (isEditing) {
+        return (
+            <input
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                placeholder={placeholder}
+                maxLength={maxLength}
+                data-app-id={appId}
+                data-field={fieldName}
+                className="px-2 py-1 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full"
+            />
+        );
+    }
+
+    return (
+        <div className={cn("text-sm", className)}>
+            {value || <span className="text-gray-400 italic">-</span>}
+        </div>
+    );
+});
+
+InlineEditableCell.displayName = 'InlineEditableCell';
+
+// Inline Status Dropdown Component
+interface InlineStatusDropdownProps {
+    currentStatus: string;
+    isEditing: boolean;
+    onToggleEdit: () => void;
+}
+
+const InlineStatusDropdown: React.FC<InlineStatusDropdownProps> = memo(({
+    currentStatus,
+    isEditing,
+    onToggleEdit
+}) => {
+    const statusOptions = ['Applied', 'Interview', 'Offer', 'Rejected'];
+
+    if (isEditing) {
+        return (
+            <select
+                value={currentStatus}
+                onChange={() => {
+                    // Update the status immediately when changed
+                    // You can add a callback here to update the status
+                }}
+                className="px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                autoFocus
+            >
+                {statusOptions.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                ))}
+            </select>
+        );
+    }
+
+    return (
+        <div 
+            className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded px-1 py-1 transition-colors"
+            onClick={onToggleEdit}
+            title="Click to change status"
+        >
+            <span className={getStatusBadge(currentStatus)}>
+                {currentStatus}
+            </span>
+        </div>
+    );
+});
+
+InlineStatusDropdown.displayName = 'InlineStatusDropdown';
+
+
+
+// Enhanced Resume Component (like before but with view/download)
+interface EnhancedResumeProps {
+    attachments: Attachment[];
+    onView: (attachment: Attachment) => void;
+    onDownload: (attachment: Attachment) => void;
+}
+
+const EnhancedResume: React.FC<EnhancedResumeProps> = memo(({
+    attachments,
+    onView,
+    onDownload
+}) => {
+    const resumeAttachments = attachments?.filter(att => 
+        att.name.toLowerCase().includes('resume') || 
+        att.name.toLowerCase().includes('cv') ||
+        att.type === 'application/pdf'
+    ) || [];
+
+    if (attachments?.length === 0) {
+        return (
+            <div className="text-center text-gray-400 text-xs">
+                <FileTextIcon className="h-4 w-4 mx-auto mb-1" />
+                No docs
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-1">
+            {/* Resume/CV Section */}
+            {resumeAttachments.length > 0 && (
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <FileTextIcon className="h-3 w-3 text-green-600" />
+                        <span className="text-xs font-medium text-green-600">Resume</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                        <button
+                            onClick={() => onView(resumeAttachments[0])}
+                            className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                            title="View resume"
+                        >
+                            <EyeIcon className="h-3 w-3" />
+                        </button>
+                        <button
+                            onClick={() => onDownload(resumeAttachments[0])}
+                            className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                            title="Download resume"
+                        >
+                            <Download className="h-3 w-3" />
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Other Documents */}
+            {attachments.filter(att => 
+                !att.name.toLowerCase().includes('resume') && 
+                !att.name.toLowerCase().includes('cv') &&
+                att.type !== 'application/pdf'
+            ).length > 0 && (
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <Paperclip className="h-3 w-3 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-600">
+                            {attachments.filter(att => 
+                                !att.name.toLowerCase().includes('resume') && 
+                                !att.name.toLowerCase().includes('cv') &&
+                                att.type !== 'application/pdf'
+                            ).length}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => onView(attachments.find(att => 
+                            !att.name.toLowerCase().includes('resume') && 
+                            !att.name.toLowerCase().includes('cv') &&
+                            att.type !== 'application/pdf'
+                        )!)}
+                        className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                        title="View documents"
+                    >
+                        <EyeIcon className="h-3 w-3" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+});
+
+EnhancedResume.displayName = 'EnhancedResume';
+
+// Efficient Document Handler Component
+interface DocumentHandlerProps {
+    attachments: Attachment[];
+    onDocumentAction: (action: 'view' | 'download' | 'copy', attachment: Attachment) => void;
+}
+
+const DocumentHandler: React.FC<DocumentHandlerProps> = memo(({
+    attachments,
+    onDocumentAction
+}) => {
+    const resumeAttachments = attachments?.filter(att => 
+        att.name.toLowerCase().includes('resume') || 
+        att.name.toLowerCase().includes('cv') ||
+        att.type === 'application/pdf'
+    ) || [];
+
+    const otherAttachments = attachments?.filter(att => 
+        !att.name.toLowerCase().includes('resume') && 
+        !att.name.toLowerCase().includes('cv') &&
+        att.type !== 'application/pdf'
+    ) || [];
+
+    if (attachments?.length === 0) {
+        return (
+            <div className="text-center text-gray-400 text-xs">
+                <FileTextIcon className="h-4 w-4 mx-auto mb-1" />
+                No docs
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-1">
+            {/* Resume/CV Section */}
+            {resumeAttachments.length > 0 && (
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <FileTextIcon className="h-3 w-3 text-green-600" />
+                        <span className="text-xs font-medium text-green-600">Resume</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                        <button
+                            onClick={() => onDocumentAction('view', resumeAttachments[0])}
+                            className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                            title="View resume"
+                        >
+                            <EyeIcon className="h-3 w-3" />
+                        </button>
+                        <button
+                            onClick={() => onDocumentAction('download', resumeAttachments[0])}
+                            className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                            title="Download resume"
+                        >
+                            <Download className="h-3 w-3" />
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Other Documents */}
+            {otherAttachments.length > 0 && (
+                <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                        <Paperclip className="h-3 w-3 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-600">{otherAttachments.length}</span>
+                    </div>
+                    <button
+                        onClick={() => onDocumentAction('view', otherAttachments[0])}
+                        className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                        title="View documents"
+                    >
+                        <EyeIcon className="h-3 w-3" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+});
+
+DocumentHandler.displayName = 'DocumentHandler';
 
 // Resume Modal Component
 interface ResumeModalProps {
@@ -96,6 +394,10 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
     const handleDownload = useCallback(async (attachment: Attachment) => {
         if (attachment.data) {
             (async () => {
+                if (!attachment.data) {
+                    console.error('Attachment data is missing');
+                    return;
+                }
                 const res = await fetch(attachment.data);
                 const blob = await res.blob();
                 const objUrl = URL.createObjectURL(blob);
@@ -110,6 +412,10 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
             setDownloadingId(attachment.id || attachment.name);
 
             // Create blob from base64 data
+            if (!attachment.data) {
+                console.error('Attachment data is missing');
+                return;
+            }
             const base64Data = attachment.data.includes(',')
                 ? attachment.data.split(',')[1]
                 : attachment.data;
@@ -183,7 +489,7 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
                                             <FileIcon className="h-5 w-5 text-green-600 dark:text-green-400"/>
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                            <h5 className="font-semibold text-gray-900 dark:text-gray-100 whitespace-normal break-words">
                                                 {attachment.name}
                                             </h5>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -196,29 +502,54 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
                                             )}
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => handleDownload(attachment)}
-                                        disabled={downloadingId === (attachment.id || attachment.name)}
-                                        className={cn(
-                                            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex-shrink-0",
-                                            downloadingId === (attachment.id || attachment.name)
-                                                ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
-                                                : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
-                                        )}
-                                    >
-                                        {downloadingId === (attachment.id || attachment.name) ? (
-                                            <>
-                                                <div
-                                                    className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"/>
-                                                Downloading...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Download className="h-3 w-3"/>
-                                                Download
-                                            </>
-                                        )}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => {
+                                                if (attachment.data) {
+                                                    const base64Data = attachment.data.includes(',')
+                                                        ? attachment.data.split(',')[1]
+                                                        : attachment.data;
+                                                    const byteCharacters = atob(base64Data);
+                                                    const byteNumbers = new Array(byteCharacters.length);
+                                                    for (let i = 0; i < byteCharacters.length; i++) {
+                                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                                    }
+                                                    const byteArray = new Uint8Array(byteNumbers);
+                                                    const blob = new Blob([byteArray], {type: attachment.type});
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                                    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+                                                }
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                                        >
+                                            <Eye className="h-3 w-3"/>
+                                            View
+                                        </button>
+                                        <button
+                                            onClick={() => handleDownload(attachment)}
+                                            disabled={downloadingId === (attachment.id || attachment.name)}
+                                            className={cn(
+                                                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 flex-shrink-0",
+                                                downloadingId === (attachment.id || attachment.name)
+                                                    ? "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed"
+                                                    : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                                            )}
+                                        >
+                                            {downloadingId === (attachment.id || attachment.name) ? (
+                                                <>
+                                                    <div
+                                                        className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"/>
+                                                    Downloading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Download className="h-3 w-3"/>
+                                                    Download
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -273,15 +604,15 @@ const ResumeIcon: React.FC<ResumeIconProps> = memo(({
             <button
                 onClick={onClick}
                 className={cn(
-                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-h-[44px]",
                     hasResume
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50"
+                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50"
                         : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
                     className
                 )}
             >
-                <Paperclip className="h-3 w-3"/>
-                <span>
+                <Download className="h-4 w-4"/>
+                <span className="text-sm">
           {hasResume ? `${resumeAttachments.length} file${resumeAttachments.length > 1 ? 's' : ''}` : 'No Resume'}
         </span>
             </button>
@@ -294,7 +625,7 @@ const ResumeIcon: React.FC<ResumeIconProps> = memo(({
             className={cn(
                 "inline-flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 group relative",
                 hasResume
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 hover:scale-110"
+                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 hover:scale-110"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600",
                 className
             )}
@@ -302,16 +633,16 @@ const ResumeIcon: React.FC<ResumeIconProps> = memo(({
         >
             {hasResume ? (
                 <>
-                    <Paperclip className="h-4 w-4 group-hover:scale-110 transition-transform"/>
+                    <Download className="h-4 w-4 group-hover:scale-110 transition-transform"/>
                     {resumeAttachments.length > 1 && (
                         <span
-                            className="absolute -top-1 -right-1 w-4 h-4 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
               {resumeAttachments.length}
             </span>
                     )}
                 </>
             ) : (
-                <FileText className="h-4 w-4 opacity-50"/>
+                <Download className="h-4 w-4 opacity-50"/>
             )}
         </button>
     );
@@ -322,10 +653,13 @@ interface NotesModalProps {
     isOpen: boolean;
     onClose: () => void;
     application: Application | null;
+    onSaveNotes?: (notes: string) => Promise<void>;
 }
 
-const NotesModal: React.FC<NotesModalProps> = memo(({isOpen, onClose, application}) => {
+const NotesModal: React.FC<NotesModalProps> = memo(({isOpen, onClose, application, onSaveNotes}) => {
     const [copied, setCopied] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedNotes, setEditedNotes] = useState('');
 
     const handleCopy = useCallback(async () => {
         if (!application?.notes) return;
@@ -352,6 +686,27 @@ const NotesModal: React.FC<NotesModalProps> = memo(({isOpen, onClose, applicatio
         }
     }, [application?.notes]);
 
+    const handleEdit = useCallback(() => {
+        setIsEditing(true);
+        setEditedNotes(application?.notes || '');
+    }, [application?.notes]);
+
+    const handleSave = useCallback(async () => {
+        if (onSaveNotes) {
+            try {
+                await onSaveNotes(editedNotes);
+                setIsEditing(false);
+            } catch (error) {
+                console.error('Failed to save notes:', error);
+            }
+        }
+    }, [editedNotes, onSaveNotes]);
+
+    const handleCancel = useCallback(() => {
+        setIsEditing(false);
+        setEditedNotes(application?.notes || '');
+    }, [application?.notes]);
+
     if (!application) return null;
 
     const hasNotes = application.notes && application.notes.trim();
@@ -365,68 +720,83 @@ const NotesModal: React.FC<NotesModalProps> = memo(({isOpen, onClose, applicatio
             variant="primary"
             className="notes-modal"
         >
-            {/* Application Info Header */}
-            <div
-                className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-3">
-                    <div className={cn(
-                        "w-4 h-4 rounded-full border-2",
-                        getCompanyColor(application.company).split(' ')[0],
-                        getCompanyColor(application.company).split(' ')[2]
-                    )}/>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                            {application.company}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                            {application.position}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            Applied: {new Date(application.dateApplied).toLocaleDateString('en-US', {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Notes Content */}
+            {/* Notes Content Only - No Company Info Header */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400"/>
                         <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                            Notes
+                            Notes for {application.company}
                         </h4>
                     </div>
-                    {hasNotes && (
-                        <button
-                            onClick={handleCopy}
-                            className={cn(
-                                "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200",
-                                copied
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                    : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                            )}
-                        >
-                            {copied ? (
-                                <>
+                    <div className="flex items-center gap-2">
+                        {isEditing ? (
+                            <>
+                                <button
+                                    onClick={handleSave}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                                >
                                     <Check className="h-3 w-3"/>
-                                    Copied!
-                                </>
-                            ) : (
-                                <>
-                                    <Copy className="h-3 w-3"/>
-                                    Copy
-                                </>
-                            )}
-                        </button>
-                    )}
+                                    Save
+                                </button>
+                                <button
+                                    onClick={handleCancel}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                >
+                                    <X className="h-3 w-3"/>
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={handleEdit}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                                >
+                                    <Edit className="h-3 w-3"/>
+                                    Edit
+                                </button>
+                                {hasNotes && (
+                                    <button
+                                        onClick={handleCopy}
+                                        className={cn(
+                                            "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200",
+                                            copied
+                                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                        )}
+                                    >
+                                        {copied ? (
+                                            <>
+                                                <Check className="h-3 w-3"/>
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="h-3 w-3"/>
+                                                Copy
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
 
-                {hasNotes ? (
+                {isEditing ? (
+                    <div className="space-y-3">
+                        <textarea
+                            value={editedNotes}
+                            onChange={(e) => setEditedNotes(e.target.value)}
+                            placeholder="Enter your notes here..."
+                            className="w-full h-32 p-3 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none"
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                            You can use markdown formatting for better organization.
+                        </p>
+                    </div>
+                ) : hasNotes ? (
                     <div
                         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
                         <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -451,20 +821,6 @@ const NotesModal: React.FC<NotesModalProps> = memo(({isOpen, onClose, applicatio
                     </div>
                 )}
             </div>
-
-            {/* Character Count & Word Count */}
-            {hasNotes && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>
-              {application.notes!.length} characters
-            </span>
-                        <span>
-              {application.notes!.split(/\s+/).filter(word => word.length > 0).length} words
-            </span>
-                    </div>
-                </div>
-            )}
         </Modal>
     );
 });
@@ -490,15 +846,15 @@ const NotesIcon: React.FC<NotesIconProps> = memo(({
             <button
                 onClick={onClick}
                 className={cn(
-                    "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    "inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 min-h-[44px]",
                     hasNotes
                         ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50"
                         : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600",
                     className
                 )}
             >
-                <Eye className="h-3 w-3"/>
-                <span>
+                <Eye className="h-4 w-4"/>
+                <span className="text-sm">
           {hasNotes ? 'View Notes' : 'No Notes'}
         </span>
             </button>
@@ -526,22 +882,29 @@ const NotesIcon: React.FC<NotesIconProps> = memo(({
     );
 });
 
-// Main Component
+// Main Component with Performance Optimization
 const MobileResponsiveApplicationTable: React.FC = () => {
     const {
         filteredApplications,
         ui,
         setSearchQuery,
-        clearSearch,
-        openEditModal,
-        deleteApplication
+        deleteApplication,
+        updateApplication,
+        showToast
     } = useAppStore();
 
     // State management
     const [showRejected, setShowRejected] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    
+    // Row editing state
+    const [editingState, setEditingState] = useState<EditingState>({
+        id: null,
+        originalData: null,
+        editedData: null
+    });
 
     // Modal states
     const [notesModal, setNotesModal] = useState<ModalState<Application>>({
@@ -556,6 +919,20 @@ const MobileResponsiveApplicationTable: React.FC = () => {
 
     // Refs for cleanup
     const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Color cache for company colors - memoized to prevent recalculation
+    const colorCacheRef = useRef(new Map<string, string>());
+    
+    // Optimized company color function with caching
+    const getCompanyColorOptimized = useCallback((companyName: string): string => {
+        if (colorCacheRef.current.has(companyName)) {
+            return colorCacheRef.current.get(companyName)!;
+        }
+        
+        const color = getCompanyColor(companyName);
+        colorCacheRef.current.set(companyName, color);
+        return color;
+    }, []);
 
     // Cleanup on unmount
     useEffect(() => {
@@ -573,7 +950,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 clearTimeout(resizeTimeoutRef.current);
             }
             resizeTimeoutRef.current = setTimeout(() => {
-                setIsMobile(window.innerWidth < 768);
+                setIsMobile(window.innerWidth < 1024);
             }, 100);
         };
 
@@ -603,37 +980,62 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         setResumeModal({isOpen: false, application: null});
     }, []);
 
-    // Optimized filtered data
+    // Optimized filtered data with better performance
     const {activeApplications, rejectedApplications} = useMemo(() => {
-        const active: Application[] = [];
-        const rejected: Application[] = [];
-
-        filteredApplications.forEach(app => {
-            if (app.status === 'Rejected') {
-                rejected.push(app);
-            } else {
-                active.push(app);
+        // Use more efficient filtering for large datasets
+        if (filteredApplications.length > MAX_APPLICATIONS_FOR_INSTANT_FILTER) {
+            // For large datasets, use Set for O(1) lookups
+            const active: Application[] = [];
+            const rejected: Application[] = [];
+            
+            for (let i = 0; i < filteredApplications.length; i++) {
+                const app = filteredApplications[i];
+                if (app.status === 'Rejected') {
+                    rejected.push(app);
+                } else {
+                    active.push(app);
+                }
             }
-        });
-
-        return {activeApplications: active, rejectedApplications: rejected};
+            
+            return {activeApplications: active, rejectedApplications: rejected};
+        } else {
+            // For smaller datasets, use filter for cleaner code
+            const active = filteredApplications.filter(app => app.status !== 'Rejected');
+            const rejected = filteredApplications.filter(app => app.status === 'Rejected');
+            return {activeApplications: active, rejectedApplications: rejected};
+        }
     }, [filteredApplications]);
 
     const currentApplications = showRejected ? rejectedApplications : activeApplications;
 
-    // Pagination calculations
+    // Pagination calculations with performance optimization
     const paginationData = useMemo((): PaginationData => {
+        const totalApps = currentApplications.length;
+        if (totalApps === 0) {
+            return {
+                paginatedApplications: [],
+                totalPages: 0,
+                startIndex: 0,
+                endIndex: 0,
+                showingFrom: 0,
+                showingTo: 0
+            };
+        }
+
         const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-        const endIdx = startIdx + ITEMS_PER_PAGE;
-        const totalPgs = Math.ceil(currentApplications.length / ITEMS_PER_PAGE);
+        const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, totalApps);
+        const totalPgs = Math.ceil(totalApps / ITEMS_PER_PAGE);
+
+        // Only slice if we have data to avoid unnecessary array operations
+        const paginated = totalApps > 0 ? currentApplications.slice(startIdx, endIdx) : [];
 
         return {
-            paginatedApplications: currentApplications.slice(startIdx, endIdx),
+            paginatedApplications: paginated,
             totalPages: totalPgs,
             startIndex: startIdx,
             endIndex: endIdx,
             showingFrom: startIdx + 1,
-            showingTo: Math.min(endIdx, currentApplications.length)
+            showingTo: endIdx
         };
     }, [currentApplications, currentPage]);
 
@@ -674,21 +1076,98 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         }
     }, [paginationData.paginatedApplications, selectedIds]);
 
+
+
+    // Row editing handlers
+    const startRowEdit = useCallback((application: Application) => {
+        setEditingState({
+            id: application.id,
+            originalData: { ...application },
+            editedData: { ...application }
+        });
+    }, []);
+
+    const cancelRowEdit = useCallback(() => {
+        setEditingState({ id: null, originalData: null, editedData: null });
+    }, []);
+
+    const saveRowEdit = useCallback(async () => {
+        if (!editingState.id || !editingState.editedData) return;
+        
+        try {
+            // Update the application in the store
+            await updateApplication(editingState.id, editingState.editedData);
+            
+            // Show success message
+            showToast({
+                type: 'success',
+                message: 'Application updated successfully!'
+            });
+            
+            // Clear editing state
+            setEditingState({ id: null, originalData: null, editedData: null });
+        } catch (error) {
+            console.error('Failed to update application:', error);
+            
+            // Show error message
+            showToast({
+                type: 'error',
+                message: 'Failed to save your changes. Please try again.'
+            });
+        }
+    }, [editingState, updateApplication, showToast]);
+
+    const handleDocumentAction = useCallback((action: 'view' | 'download' | 'copy', attachment: Attachment) => {
+        switch (action) {
+            case 'view':
+                // Open document in new tab or modal
+                if (attachment.data) {
+                    const blob = new Blob([attachment.data], { type: attachment.type });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    // Clean up the URL after a delay
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }
+                break;
+            case 'download':
+                // Download the document
+                if (attachment.data) {
+                    const blob = new Blob([attachment.data], { type: attachment.type });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = attachment.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+                break;
+            case 'copy':
+                // Copy document link or content to clipboard
+                navigator.clipboard.writeText(attachment.name);
+                break;
+        }
+    }, []);
+
     // Utility functions
     const formatDate = useCallback((dateString: string): string => {
         try {
             const [year, month, day] = dateString.split('-').map(Number);
             const date = new Date(year, month - 1, day);
-            return date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: isMobile ? '2-digit' : 'numeric'
-            });
+            
+            // Use a consistent, compact format that fits well in the table
+            const monthStr = date.toLocaleDateString('en-US', { month: 'short' });
+            const dayNum = date.getDate();
+            const yearNum = date.getFullYear();
+            
+            // Format: "Jan 15, 2024" - always compact and readable
+            return `${monthStr} ${dayNum}, ${yearNum}`;
         } catch (error) {
             console.error('Date formatting error:', error);
             return 'Invalid Date';
         }
-    }, [isMobile]);
+    }, []);
 
     const getStatusBadge = useCallback((status: string): string => {
         const baseClasses = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wider uppercase';
@@ -706,17 +1185,24 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         }
     }, []);
 
-    // Search handlers
+    // Search handlers with performance optimization
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
-        setSearchQuery(query);
-        setCurrentPage(1);
-    }, [setSearchQuery]);
+        
+        // Only update if the query actually changed to prevent unnecessary re-renders
+        if (query !== ui.searchQuery) {
+            setSearchQuery(query);
+            setCurrentPage(1);
+        }
+    }, [setSearchQuery, ui.searchQuery]);
 
     const handleClearSearch = useCallback(() => {
-        clearSearch();
-        setCurrentPage(1);
-    }, [clearSearch]);
+        // Only clear if there's actually a query to clear
+        if (ui.searchQuery.trim()) {
+            setSearchQuery('');
+            setCurrentPage(1);
+        }
+    }, [setSearchQuery, ui.searchQuery]);
 
     // Tab switching
     const handleTabSwitch = useCallback((rejected: boolean) => {
@@ -754,6 +1240,13 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         value={ui.searchQuery}
                         onChange={handleSearchChange}
                         className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 dark:placeholder-gray-400 font-medium text-base transition-colors duration-150"
+                        // Performance optimization: prevent excessive re-renders during typing
+                        onKeyDown={(e) => {
+                            // Allow immediate search on Enter key
+                            if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                            }
+                        }}
                     />
                     {ui.searchQuery && (
                         <button
@@ -822,13 +1315,14 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 onSelectionChange={setSelectedIds}
             />
 
-            {/* Content Views */}
-            {isMobile ? (
-                <MobileCardView
+            {/* Content Views with Performance Optimization */}
+            {paginationData.paginatedApplications.length > 0 ? (
+                isMobile ? (
+                                    <MobileCardView
+                    key={`mobile-${showRejected}-${currentPage}`}
                     applications={paginationData.paginatedApplications}
                     selectedIds={selectedIds}
                     onToggleSelection={toggleRowSelection}
-                    onEdit={openEditModal}
                     onDelete={handleDelete}
                     onNotesClick={openNotesModal}
                     onResumeClick={openResumeModal}
@@ -836,23 +1330,55 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     getStatusBadge={getStatusBadge}
                     searchQuery={ui.searchQuery}
                     showRejected={showRejected}
+                    getCompanyColor={getCompanyColorOptimized}
+                    startRowEdit={startRowEdit}
+                    cancelRowEdit={cancelRowEdit}
+                    saveRowEdit={saveRowEdit}
+                    setEditingState={setEditingState}
+                    handleDocumentAction={handleDocumentAction}
+                    editingState={editingState}
                 />
+                ) : (
+                    <DesktopTableView
+                        key={`desktop-${showRejected}-${currentPage}`}
+                        applications={paginationData.paginatedApplications}
+                        selectedIds={selectedIds}
+                        onToggleSelection={toggleRowSelection}
+                        onDelete={handleDelete}
+                        onNotesClick={openNotesModal}
+                        onResumeClick={openResumeModal}
+                        formatDate={formatDate}
+                        getStatusBadge={getStatusBadge}
+                        searchQuery={ui.searchQuery}
+                        showRejected={showRejected}
+                        startIndex={paginationData.startIndex}
+                        onSelectAll={handleSelectAll}
+                        getCompanyColor={getCompanyColorOptimized}
+                        startRowEdit={startRowEdit}
+                        cancelRowEdit={cancelRowEdit}
+                        saveRowEdit={saveRowEdit}
+                        setEditingState={setEditingState}
+                        handleDocumentAction={handleDocumentAction}
+                        editingState={editingState}
+                    />
+                )
             ) : (
-                <DesktopTableView
-                    applications={paginationData.paginatedApplications}
-                    selectedIds={selectedIds}
-                    onToggleSelection={toggleRowSelection}
-                    onEdit={openEditModal}
-                    onDelete={handleDelete}
-                    onNotesClick={openNotesModal}
-                    onResumeClick={openResumeModal}
-                    formatDate={formatDate}
-                    getStatusBadge={getStatusBadge}
-                    searchQuery={ui.searchQuery}
-                    showRejected={showRejected}
-                    startIndex={paginationData.startIndex}
-                    onSelectAll={handleSelectAll}
-                />
+                <div className="text-center py-12">
+                    <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Search className="h-12 w-12 text-gray-400"/>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        No {showRejected ? 'rejected' : 'active'} applications found
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto font-medium leading-relaxed">
+                        {ui.searchQuery 
+                            ? 'Try adjusting your search terms or clear the search to see all applications.'
+                            : showRejected
+                                ? 'Rejected applications will appear here when you mark them as rejected.'
+                                : 'Add your first application using the form above to get started!'
+                        }
+                    </p>
+                </div>
             )}
 
             {/* Pagination */}
@@ -923,6 +1449,23 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                 isOpen={notesModal.isOpen}
                 onClose={closeNotesModal}
                 application={notesModal.application}
+                onSaveNotes={async (notes: string) => {
+                    if (notesModal.application) {
+                        try {
+                            await updateApplication(notesModal.application.id, { notes });
+                            showToast({
+                                type: 'success',
+                                message: 'Notes saved successfully!'
+                            });
+                        } catch (error) {
+                            console.error('Failed to save notes:', error);
+                            showToast({
+                                type: 'error',
+                                message: 'Failed to save notes. Please try again.'
+                            });
+                        }
+                    }
+                }}
             />
 
             <ResumeModal
@@ -939,14 +1482,22 @@ interface ViewProps {
     applications: Application[];
     selectedIds: string[];
     onToggleSelection: (id: string) => void;
-    onEdit: (app: Application) => void;
     onDelete: (id: string, company: string) => void;
-    onNotesClick: (app: Application) => void;
-    onResumeClick: (app: Application) => void;
+    onNotesClick?: (app: Application) => void;
+    onResumeClick?: (app: Application) => void;
+
     formatDate: (date: string) => string;
-    getStatusBadge: (status: string) => string;
-    searchQuery: string;
+    getStatusBadge?: (status: string) => string;
+    searchQuery?: string;
     showRejected: boolean;
+    getCompanyColor: (companyName: string) => string;
+    // Row editing functions
+    startRowEdit: (application: Application) => void;
+    cancelRowEdit: () => void;
+    saveRowEdit: () => Promise<void>;
+    setEditingState: React.Dispatch<React.SetStateAction<EditingState>>;
+    handleDocumentAction: (action: 'view' | 'download' | 'copy', attachment: Attachment) => void;
+    editingState: EditingState;
 }
 
 // Mobile Card View Component
@@ -954,20 +1505,24 @@ const MobileCardView: React.FC<ViewProps> = memo(({
                                                       applications,
                                                       selectedIds,
                                                       onToggleSelection,
-                                                      onEdit,
                                                       onDelete,
                                                       onNotesClick,
                                                       onResumeClick,
+
                                                       formatDate,
                                                       getStatusBadge,
                                                       searchQuery,
-                                                      showRejected
+                                                      showRejected,
+                                                      getCompanyColor
                                                   }) => {
     const highlightText = useCallback((text: string) => {
         if (!searchQuery) return text;
         const regex = new RegExp(`(${searchQuery})`, 'gi');
         return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
     }, [searchQuery]);
+
+    // Create a default highlightText function if searchQuery is not provided
+    const defaultHighlightText = useCallback((text: string) => text, []);
 
     if (applications.length === 0) {
         return (
@@ -994,21 +1549,20 @@ const MobileCardView: React.FC<ViewProps> = memo(({
     }
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-4 px-2 sm:px-0">
             {applications.map((app) => (
                 <ApplicationCard
                     key={app.id}
                     application={app}
                     isSelected={selectedIds.includes(app.id)}
                     onToggleSelection={() => onToggleSelection(app.id)}
-                    onEdit={() => onEdit(app)}
                     onDelete={() => onDelete(app.id, app.company)}
-                    onNotesClick={() => onNotesClick(app)}
-                    onResumeClick={() => onResumeClick(app)}
+                    onNotesClick={() => onNotesClick?.(app)}
+                    onResumeClick={() => onResumeClick?.(app)}
                     formatDate={formatDate}
-                    getStatusBadge={getStatusBadge}
-                    searchQuery={searchQuery}
-                    highlightText={highlightText}
+                    getStatusBadge={getStatusBadge || (() => '')}
+                    highlightText={searchQuery ? highlightText : defaultHighlightText}
+                    getCompanyColor={getCompanyColor}
                 />
             ))}
         </div>
@@ -1020,79 +1574,79 @@ interface CardProps {
     application: Application;
     isSelected: boolean;
     onToggleSelection: () => void;
-    onEdit: () => void;
     onDelete: () => void;
     onNotesClick: () => void;
     onResumeClick: () => void;
     formatDate: (date: string) => string;
     getStatusBadge: (status: string) => string;
-    searchQuery: string;
     highlightText: (text: string) => string;
+    getCompanyColor: (companyName: string) => string;
 }
 
 const ApplicationCard: React.FC<CardProps> = memo(({
                                                        application,
                                                        isSelected,
                                                        onToggleSelection,
-                                                       onEdit,
                                                        onDelete,
                                                        onNotesClick,
                                                        onResumeClick,
                                                        formatDate,
                                                        getStatusBadge,
-                                                       searchQuery,
-                                                       highlightText
+                                                       highlightText,
+                                                       getCompanyColor
                                                    }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const companyColorClasses = getCompanyColor(application.company);
-    const hasNotes = application.notes && application.notes.trim();
+    // Removed unused hasNotes
 
     return (
-        <div className={`bg-white dark:bg-gray-800 rounded-lg border-2 transition-all duration-200 ${
+        <div className={`bg-white dark:bg-gray-800 rounded-xl border-2 transition-all duration-200 shadow-sm ${
             isSelected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
         }`}>
-            <div className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start space-x-3 flex-1 min-w-0">
+            <div className="p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                    <div className="flex items-start space-x-4 flex-1 min-w-0">
                         <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={onToggleSelection}
-                            className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            className="mt-1.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 flex-shrink-0"
                             aria-label={`Select application for ${application.company}`}
                         />
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-3 mb-2">
                                 <div
-                                    className={`w-3 h-3 rounded-full border ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
+                                    className={`w-4 h-4 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
                                 <h3
-                                    className="font-extrabold text-lg text-gray-900 dark:text-gray-100 truncate"
+                                    className="font-extrabold text-xl text-gray-900 dark:text-gray-100 whitespace-normal break-words leading-tight"
                                     dangerouslySetInnerHTML={{__html: highlightText(application.company)}}
                                 />
                             </div>
                             <p
-                                className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate"
+                                className="text-base font-medium text-gray-600 dark:text-gray-400 whitespace-normal break-words leading-relaxed"
                                 dangerouslySetInnerHTML={{__html: highlightText(application.position)}}
                             />
                         </div>
                     </div>
-                    <span className={getStatusBadge(application.status)}>
-            {application.status}
-          </span>
+                    <div className="flex-shrink-0">
+                        <span className={getStatusBadge(application.status)}>
+                            {application.status}
+                        </span>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                    <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0"/>
-                        <span className="text-gray-600 dark:text-gray-400 truncate font-semibold">
+                <div className="grid grid-cols-1 gap-3 text-sm mb-4">
+                    <div className="flex items-center space-x-3">
+                        <Clock className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
+                        <span className="text-gray-700 dark:text-gray-200 whitespace-nowrap font-semibold text-base">
               {formatDate(application.dateApplied)}
             </span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3">
             <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
+                className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold tracking-wide uppercase ${
                     application.type === 'Remote'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                        ? 'bg-green-100 text-green-800 dark:bg-gray-800 dark:text-green-100'
                         : application.type === 'Hybrid'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
@@ -1101,33 +1655,48 @@ const ApplicationCard: React.FC<CardProps> = memo(({
             </span>
                     </div>
                     {application.location && (
-                        <div className="flex items-center space-x-2 col-span-2">
-                            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0"/>
+                        <div className="flex items-center space-x-3">
+                            <MapPin className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
                             <span
-                                className="text-gray-600 dark:text-gray-400 truncate font-medium"
+                                className="text-gray-700 dark:text-gray-200 whitespace-normal break-words font-medium text-base"
                                 dangerouslySetInnerHTML={{__html: highlightText(application.location)}}
                             />
                         </div>
                     )}
                     {application.salary && application.salary !== '-' && (
-                        <div className="flex items-center space-x-2 col-span-2">
-                            <DollarSign className="h-4 w-4 text-gray-400 flex-shrink-0"/>
-                            <span className="text-gray-600 dark:text-gray-400 truncate font-semibold">
+                        <div className="flex items-center space-x-3">
+                            <DollarSign className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"/>
+                            <span className="text-gray-700 dark:text-gray-200 whitespace-normal break-words font-semibold text-base">
                 {application.salary}
               </span>
                         </div>
                     )}
                 </div>
 
+                {/* Expanded Notes Section */}
+                {isExpanded && application.notes && application.notes.trim() && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-3">
+                            <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                            <span className="text-base font-semibold text-gray-700 dark:text-gray-200">Notes</span>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                                {application.notes}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div
-                    className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2">
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 flex-wrap">
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
+                            className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150"
                             aria-label={isExpanded ? "Collapse details" : "Expand details"}
                         >
-                            {isExpanded ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
+                            {isExpanded ? <ChevronUp className="h-5 w-5"/> : <ChevronDown className="h-5 w-5"/>}
                         </button>
 
                         <NotesIcon
@@ -1143,20 +1712,13 @@ const ApplicationCard: React.FC<CardProps> = memo(({
                         />
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                        <button
-                            onClick={onEdit}
-                            className="p-2 rounded-md text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
-                            aria-label="Edit application"
-                        >
-                            <Edit className="h-4 w-4"/>
-                        </button>
+                    <div className="flex items-center justify-end sm:justify-start">
                         <button
                             onClick={onDelete}
-                            className="p-2 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
+                            className="p-2.5 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
                             aria-label="Delete application"
                         >
-                            <Trash2 className="h-4 w-4"/>
+                            <Trash2 className="h-5 w-5"/>
                         </button>
                     </div>
                 </div>
@@ -1170,15 +1732,19 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                           applications,
                                                                                                           selectedIds,
                                                                                                           onToggleSelection,
-                                                                                                          onEdit,
                                                                                                           onDelete,
                                                                                                           onNotesClick,
                                                                                                           onResumeClick,
                                                                                                           formatDate,
-                                                                                                          getStatusBadge,
                                                                                                           showRejected,
                                                                                                           startIndex,
-                                                                                                          onSelectAll
+                                                                                                          onSelectAll,
+                                                                                                          getCompanyColor,
+                                                                                                          startRowEdit,
+                                                                                                          cancelRowEdit,
+                                                                                                          saveRowEdit,
+                                                                                                          setEditingState,
+                                                                                                          editingState
                                                                                                       }) => {
     if (applications.length === 0) {
         return (
@@ -1212,11 +1778,38 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
     return (
         <div
             className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+            {/* Global Save Button */}
+            {editingState.id && (
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            Editing application row
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={saveRowEdit}
+                            className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                        >
+                            <Check className="h-4 w-4 mr-1 inline" />
+                            Save Changes
+                        </button>
+                        <button
+                            onClick={cancelRowEdit}
+                            className="px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors"
+                        >
+                            <X className="h-4 w-4 mr-1 inline" />
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+            
             <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700/50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style={{ tableLayout: 'auto' }}>
+                    <thead className="bg-gray-100 dark:bg-gray-700">
                     <tr>
-                        <th className="w-12 px-4 py-4 text-center">
+                        <th className="w-10 px-2 py-2 text-center">
                             <input
                                 type="checkbox"
                                 checked={allCurrentPageSelected}
@@ -1225,19 +1818,19 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 aria-label="Select all applications on this page"
                             />
                         </th>
-                        <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">#</th>
-                        <th className="w-24 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Date</th>
-                        <th className="px-4 py-4 text-left text-xs font-extrabold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Company</th>
-                        <th className="min-w-[140px] px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Position</th>
-                        <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Type</th>
-                        <th className="min-w-[100px] px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Location</th>
-                        <th className="w-24 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Salary</th>
-                        <th className="w-20 px-4 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Source</th>
-                        <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Status</th>
-                        <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Notes</th>
-                        <th className="w-20 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Resume</th>
-                        <th className="w-16 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">URL</th>
-                        <th className="w-24 px-4 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Actions</th>
+                        <th className="w-12 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">#</th>
+                        <th className="w-20 px-2 py-2 text-center text-xs font-extrabold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Date</th>
+                        <th className="w-28 px-2 py-2 text-left text-xs font-extrabold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Company</th>
+                        <th className="w-32 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Position</th>
+                        <th className="w-16 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Type</th>
+                        <th className="w-24 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Location</th>
+                        <th className="w-20 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Salary</th>
+                        <th className="w-24 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Source</th>
+                        <th className="w-20 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Status</th>
+                        <th className="w-24 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Notes</th>
+                        <th className="w-16 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Resume</th>
+                        <th className="w-12 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">URL</th>
+                        <th className="w-20 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Actions</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1247,13 +1840,15 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                         return (
                             <tr
                                 key={app.id}
-                                className={`transition-colors duration-150 ${
-                                    selectedIds.includes(app.id)
+                                className={`group transition-colors duration-150 ${
+                                    editingState.id === app.id
+                                        ? 'bg-blue-50 dark:bg-blue-900/10 border-l-4 border-l-blue-500'
+                                        : selectedIds.includes(app.id)
                                         ? 'bg-blue-50 dark:bg-blue-900/20'
                                         : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                 }`}
                             >
-                                <td className="w-12 px-4 py-4 text-center">
+                                <td className="w-10 px-2 py-2 text-center">
                                     <input
                                         type="checkbox"
                                         checked={selectedIds.includes(app.id)}
@@ -1262,35 +1857,58 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         aria-label={`Select application for ${app.company}`}
                                     />
                                 </td>
-                                <td className="w-16 px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400 font-bold">
+                                <td className="w-12 px-2 py-2 text-center text-sm text-gray-700 dark:text-gray-200 font-bold">
                                     {startIndex + index + 1}
                                 </td>
-                                <td className="w-24 px-4 py-4 text-left">
-                                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                <td className="w-20 px-2 py-2 text-center">
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap overflow-hidden">
                                         {formatDate(app.dateApplied)}
                                     </div>
                                 </td>
-                                <td className="min-w-[140px] px-4 py-4 text-left">
+                                <td className="w-28 px-2 py-2 text-left">
                                     <div className="flex items-center gap-2">
                                         <div
                                             className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
-                                        <div
-                                            className="text-sm font-extrabold text-gray-900 dark:text-gray-100 truncate max-w-[120px]"
-                                            title={app.company}
-                                        >
-                                            {app.company}
-                                        </div>
+                                        {editingState.id === app.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingState.editedData?.company || app.company}
+                                                onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                    ...prev,
+                                                    editedData: { ...prev.editedData!, company: e.target.value }
+                                                }))}
+                                                placeholder="Enter company name"
+                                                className="text-sm font-extrabold text-gray-900 dark:text-gray-100 border border-blue-300 rounded px-2 py-1 w-full min-w-[200px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                                maxLength={50}
+                                                autoFocus
+                                            />
+                                        ) : (
+                                            <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100 whitespace-normal break-words block w-28">
+                                                {app.company}
+                                            </span>
+                                        )}
                                     </div>
                                 </td>
-                                <td className="min-w-[140px] px-4 py-4 text-left">
-                                    <div
-                                        className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[140px]"
-                                        title={app.position}
-                                    >
-                                        {app.position}
-                                    </div>
+                                <td className="w-32 px-2 py-2 text-left">
+                                    {editingState.id === app.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingState.editedData?.position || app.position}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, position: e.target.value }
+                                            }))}
+                                            placeholder="Enter position"
+                                            className="text-sm font-semibold text-gray-800 dark:text-gray-200 border border-blue-300 rounded px-2 py-1 w-full min-w-[250px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                            maxLength={100}
+                                        />
+                                    ) : (
+                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-normal break-words block w-32">
+                                            {app.position}
+                                        </span>
+                                    )}
                                 </td>
-                                <td className="w-20 px-4 py-4 text-center">
+                                <td className="w-16 px-2 py-2 text-center">
                     <span
                         className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
                             app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
@@ -1300,49 +1918,112 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                       {app.type}
                     </span>
                                 </td>
-                                <td className="min-w-[100px] px-4 py-4 text-left">
-                                    <div
-                                        className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[100px] font-medium"
-                                        title={app.location || ''}
-                                    >
-                                        {app.location || <span className="text-gray-400 italic font-normal">-</span>}
-                                    </div>
+                                <td className="w-24 px-2 py-2 text-left">
+                                    {editingState.id === app.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingState.editedData?.location || app.location || ''}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, location: e.target.value }
+                                            }))}
+                                            placeholder="Enter location"
+                                            className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[150px] focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200"
+                                            maxLength={50}
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-normal break-words block w-20 font-medium">
+                                            {app.location || <span className="text-gray-400 italic">-</span>}
+                                        </span>
+                                    )}
                                 </td>
-                                <td className="w-24 px-4 py-4 text-left">
-                                    <div
-                                        className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[80px] font-semibold"
-                                        title={app.salary || ''}
-                                    >
-                                        {app.salary && app.salary !== '-' ? app.salary :
-                                            <span className="text-gray-400 italic font-normal">-</span>}
-                                    </div>
+                                <td className="w-20 px-2 py-2 text-left">
+                                    {editingState.id === app.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingState.editedData?.salary || app.salary || ''}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, salary: e.target.value }
+                                            }))}
+                                            placeholder="Enter salary"
+                                            className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[120px] focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200"
+                                            maxLength={20}
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-normal break-words block w-20 font-medium">
+                                            {app.salary || <span className="text-gray-400 italic">-</span>}
+                                        </span>
+                                    )}
                                 </td>
-                                <td className="w-20 px-4 py-4 text-left">
-                                    <div
-                                        className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[60px] font-medium"
-                                        title={app.jobSource || ''}
-                                    >
-                                        {app.jobSource || <span className="text-gray-400 italic font-normal">-</span>}
-                                    </div>
+                                <td className="w-24 px-2 py-2 text-left">
+                                    {editingState.id === app.id ? (
+                                        <input
+                                            type="text"
+                                            value={editingState.editedData?.jobSource || app.jobSource || ''}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, jobSource: e.target.value }
+                                            }))}
+                                            placeholder="Enter source"
+                                            className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[120px] focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200"
+                                            maxLength={30}
+                                        />
+                                    ) : (
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-normal break-words block w-20 font-medium">
+                                            {app.jobSource || <span className="text-gray-400 italic">-</span>}
+                                        </span>
+                                    )}
                                 </td>
-                                <td className="w-24 px-4 py-4 text-center">
-                    <span className={getStatusBadge(app.status)}>
-                      {app.status}
-                    </span>
+                                <td className="w-20 px-2 py-2 text-center">
+                                    {editingState.id === app.id ? (
+                                        <select
+                                            value={editingState.editedData?.status || app.status}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, status: e.target.value as ApplicationStatus }
+                                            }))}
+                                            className="px-3 py-2 text-sm border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium min-w-[140px] transition-all duration-200"
+                                            autoFocus
+                                        >
+                                            {['Applied', 'Interview', 'Offer', 'Rejected'].map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <div className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded px-1 py-1 transition-colors">
+                                            <span className={getStatusBadge(app.status)}>
+                                                {app.status}
+                                            </span>
+                                        </div>
+                                    )}
                                 </td>
-                                <td className="w-20 px-4 py-4 text-center">
-                                    <NotesIcon
-                                        application={app}
-                                        onClick={() => onNotesClick(app)}
-                                    />
+                                <td className="w-24 px-2 py-2 text-center">
+                                    {editingState.id === app.id ? (
+                                        <textarea
+                                            value={editingState.editedData?.notes || app.notes || ''}
+                                            onChange={(e) => setEditingState((prev: EditingState) => ({
+                                                ...prev,
+                                                editedData: { ...prev.editedData!, notes: e.target.value }
+                                            }))}
+                                            placeholder="Enter notes"
+                                            className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[200px] max-w-[300px] h-20 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200 resize-none"
+                                            maxLength={2000}
+                                        />
+                                    ) : (
+                                        <NotesIcon
+                                            application={app}
+                                            onClick={() => onNotesClick?.(app)}
+                                        />
+                                    )}
                                 </td>
-                                <td className="w-20 px-4 py-4 text-center">
+                                <td className="w-16 px-2 py-2 text-center">
                                     <ResumeIcon
                                         application={app}
-                                        onClick={() => onResumeClick(app)}
+                                        onClick={() => onResumeClick?.(app)}
                                     />
                                 </td>
-                                <td className="w-16 px-4 py-4 text-center">
+                                <td className="w-12 px-2 py-2 text-center">
                                     {app.jobUrl ? (
                                         <button
                                             onClick={() => window.open(app.jobUrl, '_blank', 'noopener,noreferrer')}
@@ -1356,10 +2037,10 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         <span className="text-gray-400 italic font-normal">-</span>
                                     )}
                                 </td>
-                                <td className="w-24 px-4 py-4 text-center">
+                                <td className="w-20 px-2 py-2 text-center">
                                     <div className="flex items-center justify-center space-x-1">
                                         <button
-                                            onClick={() => onEdit(app)}
+                                            onClick={() => startRowEdit(app)}
                                             className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
                                             title="Edit application"
                                             aria-label="Edit application"
@@ -1395,4 +2076,4 @@ MobileCardView.displayName = 'MobileCardView';
 DesktopTableView.displayName = 'DesktopTableView';
 
 // @ts-ignore
-export default MobileResponsiveApplicationTable;
+export default React.memo(MobileResponsiveApplicationTable);

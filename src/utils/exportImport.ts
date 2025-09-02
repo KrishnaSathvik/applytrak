@@ -28,11 +28,7 @@ interface ImportResult {
     totalProcessed: number;
 }
 
-interface ValidationError {
-    row: number;
-    field: string;
-    message: string;
-}
+// Removed unused ValidationError interface
 
 // Constants
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
@@ -411,8 +407,8 @@ const sanitizeIncomingApplication = (a: any): Partial<Application> => {
         jobUrl: a?.jobUrl == null ? '' : String(a.jobUrl ?? a?.url ?? a?.link),
         notes: a?.notes == null ? '' : String(a.notes),
         attachments,
-        createdAt: a?.createdAt ? String(a.createdAt) : undefined,
-        updatedAt: a?.updatedAt ? String(a.updatedAt) : undefined,
+        ...(a?.createdAt && { createdAt: String(a.createdAt) }),
+        ...(a?.updatedAt && { updatedAt: String(a.updatedAt) }),
     };
 };
 
@@ -773,6 +769,335 @@ export const importApplications = async (file: File): Promise<ImportResult> => {
     }
 };
 
+// Enhanced import with progress tracking and memory management
+export const importApplicationsWithProgress = async (
+    file: File,
+    onProgress?: (progress: {
+        stage: 'parsing' | 'validating' | 'importing' | 'syncing' | 'complete';
+        current: number;
+        total: number;
+        percentage: number;
+        message: string;
+    }) => void,
+    options?: {
+        generateNewIds?: boolean; // Generate new IDs to prevent duplicates
+        skipDuplicates?: boolean;  // Skip duplicate applications
+    }
+): Promise<ImportResult> => {
+    // File validation
+    if (!file) {
+        throw new Error('No file provided');
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File size too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+    }
+
+    const fileName = file.name.toLowerCase();
+    let totalApplications = 0;
+
+    try {
+        // Stage 1: Parsing
+        onProgress?.({
+            stage: 'parsing',
+            current: 0,
+            total: 100,
+            percentage: 0,
+            message: 'Parsing file...'
+        });
+
+        let applications: Partial<Application>[];
+        
+        if (fileName.endsWith('.json')) {
+            applications = await parseJSONWithProgress(file, onProgress);
+        } else if (fileName.endsWith('.csv')) {
+            applications = await parseCSVWithProgress(file, onProgress);
+        } else {
+            throw new Error('Unsupported file format. Please upload a JSON or CSV file.');
+        }
+
+        totalApplications = applications.length;
+
+        // Stage 2: Pre-processing (ID generation if needed)
+        if (options?.generateNewIds) {
+            onProgress?.({
+                stage: 'parsing',
+                current: 50,
+                total: 100,
+                percentage: 75,
+                message: 'Generating new IDs...'
+            });
+
+            applications = applications.map(app => ({
+                ...app,
+                id: `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }));
+
+            console.log('🆔 Generated new IDs for all applications to prevent duplicates');
+        }
+
+        // Stage 3: Validation with streaming
+        onProgress?.({
+            stage: 'validating',
+            current: 0,
+            total: totalApplications,
+            percentage: 0,
+            message: 'Validating applications...'
+        });
+
+        const validationResult = await validateApplicationsWithProgress(applications, onProgress);
+
+        // Stage 4: Import preparation
+        onProgress?.({
+            stage: 'importing',
+            current: totalApplications,
+            total: totalApplications,
+            percentage: 100,
+            message: 'Import ready for confirmation'
+        });
+
+        return validationResult;
+
+    } catch (error) {
+        onProgress?.({
+            stage: 'complete',
+            current: 0,
+            total: totalApplications,
+            percentage: 0,
+            message: `Import failed: ${(error as Error).message}`
+        });
+        throw error;
+    }
+};
+
+// Parse JSON with progress updates
+const parseJSONWithProgress = async (
+    file: File,
+    onProgress?: (progress: any) => void
+): Promise<Partial<Application>[]> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+            try {
+                const content = event.target?.result as string;
+                
+                // Update progress
+                onProgress?.({
+                    stage: 'parsing',
+                    current: 50,
+                    total: 100,
+                    percentage: 50,
+                    message: 'Parsing JSON content...'
+                });
+
+                const data = JSON.parse(content);
+                const rawApps = extractApplicationsArray(data);
+
+                if (!rawApps.length) {
+                    throw new Error(
+                        'Invalid JSON format. Expected an array of applications or an object containing one (e.g., "applications").'
+                    );
+                }
+
+                // Update progress
+                onProgress?.({
+                    stage: 'parsing',
+                    current: 75,
+                    total: 100,
+                    percentage: 75,
+                    message: 'Sanitizing data...'
+                });
+
+                const sanitized = rawApps.map(sanitizeIncomingApplication);
+                const prefiltered = sanitized.filter(a => a && typeof a === 'object');
+
+                // Update progress
+                onProgress?.({
+                    stage: 'parsing',
+                    current: 100,
+                    total: 100,
+                    percentage: 100,
+                    message: 'JSON parsing complete'
+                });
+
+                resolve(prefiltered as Partial<Application>[]);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unknown error occurred';
+                reject(new Error(`Failed to parse JSON file: ${message}`));
+            }
+        };
+
+        reader.onerror = () => {
+            reject(new Error('Failed to read file. Please try again.'));
+        };
+
+        reader.readAsText(file);
+    });
+};
+
+// Parse CSV with progress updates
+const parseCSVWithProgress = async (
+    file: File,
+    onProgress?: (progress: any) => void
+): Promise<Partial<Application>[]> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+            try {
+                const content = event.target?.result as string;
+                const lines = content.split('\n').filter(line => line.trim());
+
+                if (lines.length < 2) {
+                    throw new Error('CSV file must contain at least a header row and one data row.');
+                }
+
+                // Update progress
+                onProgress?.({
+                    stage: 'parsing',
+                    current: 25,
+                    total: 100,
+                    percentage: 25,
+                    message: 'Processing CSV headers...'
+                });
+
+                const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+                const columnIndexes = mapCSVColumns(headers);
+
+                if (columnIndexes.company === -1 || columnIndexes.position === -1) {
+                    throw new Error('CSV must include at least "Company" and "Position" columns.');
+                }
+
+                // Update progress
+                onProgress?.({
+                    stage: 'parsing',
+                    current: 50,
+                    total: 100,
+                    percentage: 50,
+                    message: 'Processing CSV rows...'
+                });
+
+                const applications: Partial<Application>[] = [];
+                const warnings: string[] = [];
+                const totalRows = lines.length - 1;
+
+                for (let i = 1; i < lines.length; i++) {
+                    try {
+                        const values = parseCSVLine(lines[i]);
+
+                        if (values.length === 0 || values.every(v => !v.trim())) {
+                            continue; // Skip empty rows
+                        }
+
+                        const app = createApplicationFromCSVRow(values, columnIndexes, i);
+                        applications.push(app);
+
+                        // Update progress every 10 rows
+                        if (i % 10 === 0) {
+                            onProgress?.({
+                                stage: 'parsing',
+                                current: 50 + Math.round((i / totalRows) * 50),
+                                total: 100,
+                                percentage: 50 + Math.round((i / totalRows) * 50),
+                                message: `Processed ${i} of ${totalRows} rows...`
+                            });
+                        }
+                    } catch (error) {
+                        warnings.push(`Row ${i + 1}: ${(error as Error).message}`);
+                    }
+                }
+
+                // Update progress
+                onProgress?.({
+                    stage: 'parsing',
+                    current: 100,
+                    total: 100,
+                    percentage: 100,
+                    message: 'CSV parsing complete'
+                });
+
+                if (applications.length === 0) {
+                    throw new Error('No valid applications found in the CSV file.');
+                }
+
+                resolve(applications);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unknown error occurred';
+                reject(new Error(`Failed to parse CSV file: ${message}`));
+            }
+        };
+
+        reader.onerror = () => {
+            reject(new Error('Failed to read file. Please try again.'));
+        };
+
+        reader.readAsText(file);
+    });
+};
+
+// Validate applications with streaming progress
+const validateApplicationsWithProgress = async (
+    applications: Partial<Application>[],
+    onProgress?: (progress: any) => void
+): Promise<ImportResult> => {
+    const validApplications: Application[] = [];
+    const warnings: string[] = [];
+    const reasons: Record<string, number> = {};
+    const total = applications.length;
+    const chunkSize = 25; // Process in smaller chunks for better UI responsiveness
+
+    for (let i = 0; i < total; i += chunkSize) {
+        const chunk = applications.slice(i, i + chunkSize);
+        
+        // Process chunk
+        chunk.forEach((app, index) => {
+            try {
+                const validatedApp = validateAndCleanApplication(app, i + index);
+                validApplications.push(validatedApp);
+            } catch (error) {
+                const msg = (error as Error).message || 'Unknown validation error';
+                warnings.push(`Application ${i + index + 1}: ${msg}`);
+                reasons[msg] = (reasons[msg] || 0) + 1;
+            }
+        });
+
+        // Update progress
+        const current = Math.min(i + chunkSize, total);
+        const percentage = Math.round((current / total) * 100);
+        
+        onProgress?.({
+            stage: 'validating',
+            current,
+            total,
+            percentage,
+            message: `Validated ${current} of ${total} applications...`
+        });
+
+        // Allow UI to update
+        await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    if (validApplications.length === 0) {
+        const topReasons = Object.entries(reasons)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([msg, count]) => `• ${msg} (x${count})`)
+            .join('\n');
+        throw new Error(
+            `No valid applications found after validation.\nMost common issues:\n${topReasons || 'No reasons captured.'}`
+        );
+    }
+
+    return {
+        applications: validApplications,
+        warnings,
+        totalProcessed: applications.length,
+    };
+};
+
 // Export all functions
 export default {
     exportToPDF,
@@ -780,5 +1105,6 @@ export default {
     exportToJSON,
     importFromJSON,
     importFromCSV,
-    importApplications
+    importApplications,
+    importApplicationsWithProgress
 };

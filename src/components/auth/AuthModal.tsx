@@ -6,7 +6,8 @@ import SignupModal from './SignupModal';
 import ResetPasswordModal from './ResetPasswordModal';
 
 const AuthModal: React.FC = () => {
-    const {modals} = useAppStore();
+    // modals is used implicitly by the child components
+    useAppStore();
 
     return (
         <>

@@ -13,11 +13,12 @@ import {
     uploadAttachment
 } from '../../services/databaseService';
 
+
 // Constants
 const FORM_STORAGE_KEY = 'applytrak_draft_application';
 const ATTACHMENTS_STORAGE_KEY = 'applytrak_draft_attachments';
 const AUTO_SAVE_DELAY = 2000;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (increased from 10MB)
 const MAX_NOTES_LENGTH = 2000;
 
 const ALLOWED_FILE_TYPES = [
@@ -26,7 +27,9 @@ const ALLOWED_FILE_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'text/plain',
     'image/jpeg',
-    'image/png'
+    'image/png',
+    'image/gif',
+    'image/webp'
 ];
 
 const JOB_SOURCES = [
@@ -41,12 +44,20 @@ const JOB_SOURCES = [
     'Referral'
 ];
 
-const ApplicationForm: React.FC = () => {
-    const {addApplication, showToast} = useAppStore();
+interface ApplicationFormProps {
+    onSuccess?: () => void;
+}
+
+const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
+    const {addApplication, showToast, applications, auth} = useAppStore();
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [isDragOver, setIsDragOver] = useState(false);
-    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    // Removed unused state
     const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+
+    
+    // Generate a temporary ID for file organization during form creation
+    const [tempApplicationId] = useState(() => `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
 
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +125,7 @@ const ApplicationForm: React.FC = () => {
                         }
                     });
 
-                    setLastSaved(new Date(parsedData._savedAt || Date.now()));
+                    // Removed setLastSaved call
                 }
 
                 const savedAttachments = localStorage.getItem(ATTACHMENTS_STORAGE_KEY);
@@ -166,7 +177,7 @@ const ApplicationForm: React.FC = () => {
                     localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
                 }
 
-                setLastSaved(new Date());
+                // Removed setLastSaved call
             }
         } catch (error) {
             console.error('Error saving draft:', error);
@@ -196,20 +207,13 @@ const ApplicationForm: React.FC = () => {
         try {
             localStorage.removeItem(FORM_STORAGE_KEY);
             localStorage.removeItem(ATTACHMENTS_STORAGE_KEY);
-            setLastSaved(null);
+            // Removed setLastSaved call
         } catch (error) {
             console.error('Error clearing draft:', error);
         }
     }, []);
 
-    const manualSave = useCallback(() => {
-        saveDraft();
-        showToast({
-            type: 'success',
-            message: 'Draft saved successfully!',
-            duration: 2000
-        });
-    }, [saveDraft, showToast]);
+    // Removed unused manualSave function
 
     const validateFile = (file: File): boolean => {
         if (!ALLOWED_FILE_TYPES.includes(file.type)) {
@@ -232,7 +236,7 @@ const ApplicationForm: React.FC = () => {
     };
 
 // ================== UPLOAD (history) ==================
-    const processFile = async (file: File, fileIndex: number): Promise<Attachment> => {
+    const processFile = useCallback(async (file: File, fileIndex: number): Promise<Attachment> => {
         const isSignedIn = !!useAppStore.getState().auth?.isAuthenticated;
 
         // common metadata
@@ -252,9 +256,9 @@ const ApplicationForm: React.FC = () => {
 
         // CLOUD MODE (signed in) -> upload to Supabase Storage
         const internalUserId = await getCurrentUserId(); // numeric users.id (auto-upserts if missing)
-        const uploaded = await uploadAttachment(internalUserId, file, fileIndex); // returns { storagePath, ... }
+        const uploaded = await uploadAttachment(internalUserId, file, tempApplicationId, fileIndex); // returns { storagePath, ... }
         return {...base, storagePath: uploaded.storagePath} as Attachment;
-    };
+    }, [tempApplicationId]);
 
     const handleFileSelect = useCallback(async (files: FileList | null) => {
         if (!files || files.length === 0) return;
@@ -292,7 +296,7 @@ const ApplicationForm: React.FC = () => {
                 message: 'Failed to process some files. Please try again.',
             });
         }
-    }, [showToast]);
+    }, [showToast, processFile]);
 
     const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -449,12 +453,12 @@ const ApplicationForm: React.FC = () => {
                 dateApplied: data.dateApplied,
                 type: data.type,
                 status: 'Applied',
-                location: data.location || undefined,
-                salary: data.salary || undefined,
-                jobSource: data.jobSource || undefined,
-                jobUrl: data.jobUrl || undefined,
-                notes: data.notes || undefined,
-                attachments: attachments.length > 0 ? attachments : undefined,
+                location: data.location || '',
+                salary: data.salary || '',
+                jobSource: data.jobSource || '',
+                jobUrl: data.jobUrl || '',
+                notes: data.notes || '',
+                attachments: attachments.length > 0 ? attachments : [],
             });
 
             clearDraft();
@@ -473,6 +477,11 @@ const ApplicationForm: React.FC = () => {
 
             setAttachments([]);
             if (fileInputRef.current) fileInputRef.current.value = '';
+
+            // Call onSuccess callback if provided
+            if (onSuccess) {
+                onSuccess();
+            }
         } catch (error) {
             console.error('Error submitting application:', error);
             showToast({
@@ -521,6 +530,67 @@ const ApplicationForm: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Application Limit Warning */}
+            {!auth.isAuthenticated && (
+                <div className="mb-6">
+                    {applications.length >= 45 && applications.length < 50 ? (
+                        <div className="glass-card bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200/50 dark:from-yellow-900/20 dark:to-orange-900/20 dark:border-yellow-700/50">
+                            <div className="flex items-center gap-3 p-4">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                                        <span className="text-white font-bold text-sm">!</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
+                                        Approaching Application Limit
+                                    </h3>
+                                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                                        You have {applications.length}/50 applications. Sign up now to track unlimited applications and get advanced analytics!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : applications.length >= 50 ? (
+                        <div className="glass-card bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200/50 dark:from-red-900/20 dark:to-pink-900/20 dark:border-red-700/50">
+                            <div className="flex items-center gap-3 p-4">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                                        <span className="text-white font-bold text-sm">!</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-red-800 dark:text-red-200">
+                                        Application Limit Reached
+                                    </h3>
+                                    <p className="text-sm text-red-700 dark:text-red-300">
+                                        You've reached the 50 application limit. Sign up to continue tracking unlimited applications!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : applications.length >= 40 ? (
+                        <div className="glass-card bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200/50 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-700/50">
+                            <div className="flex items-center gap-3 p-4">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <span className="text-white font-bold text-sm">i</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-blue-800 dark:text-blue-200">
+                                        Free Tier: {applications.length}/50 Applications
+                                    </h3>
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                                        You're using the free tier. Sign up for unlimited applications and advanced analytics!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
                 {/* Basic Information */}
@@ -861,12 +931,15 @@ Feel free to include any relevant information that will help you track this oppo
                         </div>
                     </div>
 
-                    {/* Submit Button */}
-                    <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+
+
+                        {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className="btn btn-primary form-btn w-full sm:w-auto group relative overflow-hidden font-bold tracking-wide shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30"
+                            disabled={isSubmitting || (!auth.isAuthenticated && applications.length >= 50)}
+                            className="btn btn-primary form-btn w-full sm:w-auto group relative overflow-hidden font-bold tracking-wide shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>
@@ -889,6 +962,8 @@ Feel free to include any relevant information that will help you track this oppo
                     </div>
                 </div>
             </form>
+
+
         </div>
     );
 };

@@ -37,7 +37,7 @@ interface EngagementWeights {
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const MAX_STRING_LENGTH = 500;
 const MAX_ARRAY_LENGTH = 20;
-const FINGERPRINT_ENTROPY_THRESHOLD = 8; // Minimum bits of entropy for fingerprint
+// Removed unused FINGERPRINT_ENTROPY_THRESHOLD constant
 
 // Enhanced PII patterns for better sanitization
 const PII_PATTERNS = {
@@ -116,7 +116,7 @@ export const getBrowserInfo = (): BrowserInfo => {
             onlineStatus: navigator.onLine ?? true,
             viewport: `${window.innerWidth || 0}x${window.innerHeight || 0}`,
             colorDepth: screen.colorDepth || 24,
-            touchSupport: 'ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
+            touchSupport: Boolean('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0))
         };
     } catch (error) {
         console.warn('Browser info collection failed:', error);
@@ -298,9 +298,7 @@ export const createUserSession = (): UserSession => {
             deviceType: browserInfo.deviceType,
             userAgent: browserInfo.userAgent,
             timezone: browserInfo.timezone,
-            language: browserInfo.language,
-            viewport: browserInfo.viewport,
-            touchSupport: browserInfo.touchSupport
+            language: browserInfo.language
         };
     } catch (error) {
         console.error('Session creation failed:', error);
@@ -348,7 +346,7 @@ export const createAnalyticsEvent = (
             properties: sanitizedProperties,
             timestamp: new Date().toISOString(),
             sessionId,
-            userId: userId || undefined
+            ...(userId && { userId })
         };
     } catch (error) {
         console.error('Event creation failed:', error);
@@ -359,7 +357,7 @@ export const createAnalyticsEvent = (
             properties: {},
             timestamp: new Date().toISOString(),
             sessionId: sessionId || 'unknown',
-            userId
+            ...(userId && { userId })
         };
     }
 };
@@ -526,7 +524,7 @@ export const calculateEngagementScore = (metrics: UserMetrics): number => {
         const normalizedSessions = Math.min(Math.log10(metrics.sessionsCount + 1) / Math.log10(51), 1) * 100;
         const normalizedTime = Math.min(metrics.totalTimeSpent / (1000 * 60 * 60 * 20), 1) * 100; // 20 hours
         const normalizedApps = Math.min(Math.log10(metrics.applicationsCreated + 1) / Math.log10(101), 1) * 100;
-        const normalizedFeatures = Math.min(metrics.featuresUsed.length / 25, 1) * 100;
+        const normalizedFeatures = Math.min((metrics.featuresUsed?.length || 0) / 25, 1) * 100;
 
         // Calculate consistency score based on usage patterns
         const consistencyScore = calculateConsistencyScore(metrics);

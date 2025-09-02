@@ -28,8 +28,8 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#4A5E54",
-  "background_color": "#F5F5F0",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en-US",
@@ -39,58 +39,25 @@
     "productivity",
     "utilities"
   ],
-  "screenshots": [
-    {
-      "src": "screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "ApplyTrak Dashboard - Desktop View"
-    },
-    {
-      "src": "screenshot-narrow.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "ApplyTrak Mobile View"
-    }
-  ],
+
   "shortcuts": [
     {
       "name": "Add Application",
       "short_name": "Add Job",
       "description": "Quickly add a new job application",
-      "url": "/?action=add",
-      "icons": [
-        {
-          "src": "shortcut-add.png",
-          "sizes": "96x96"
-        }
-      ]
+      "url": "/?action=add"
     },
     {
       "name": "View Analytics",
       "short_name": "Analytics",
       "description": "View your job search analytics",
-      "url": "/?tab=analytics",
-      "icons": [
-        {
-          "src": "shortcut-analytics.png",
-          "sizes": "96x96"
-        }
-      ]
+      "url": "/?tab=analytics"
     },
     {
       "name": "Set Goals",
       "short_name": "Goals",
       "description": "Set and track your application goals",
-      "url": "/?action=goals",
-      "icons": [
-        {
-          "src": "shortcut-goals.png",
-          "sizes": "96x96"
-        }
-      ]
+      "url": "/?action=goals"
     }
   ],
   "related_applications": [],

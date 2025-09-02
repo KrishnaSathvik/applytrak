@@ -108,7 +108,7 @@ export const ADMIN_CONFIG = {
 // Enhanced Supabase client management
 let adminSupabaseClient: any = null;
 let clientInitialized = false;
-let lastConnectionTest = 0;
+// Removed unused lastConnectionTest variable
 
 const getSupabaseClient = () => {
     if (!adminSupabaseClient && !clientInitialized) {
@@ -273,8 +273,8 @@ export const verifyDatabaseAdminWithFallback = async (
         // Primary query by external_id
         const queryPromise = client
             .from('users')
-            .select('id, external_id, email, is_admin, admin_permissions, display_name')
-            .eq('external_id', authUserId)
+                    .select('id, externalid, email, isadmin, adminpermissions, display_name')
+        .eq('externalid', authUserId)
             .maybeSingle(); // Use maybeSingle to handle no results gracefully
 
         const {data: user, error} = await Promise.race([queryPromise, timeoutPromise]);
@@ -291,7 +291,7 @@ export const verifyDatabaseAdminWithFallback = async (
                 try {
                     const emailQueryPromise = client
                         .from('users')
-                        .select('id, external_id, email, is_admin, admin_permissions, display_name')
+                        .select('id, externalid, email, isadmin, adminpermissions, display_name')
                         .eq('email', userEmail)
                         .maybeSingle();
 
@@ -305,17 +305,17 @@ export const verifyDatabaseAdminWithFallback = async (
                     if (!emailError && emailUser) {
                         console.log('User found by email, updating external_id mapping...');
 
-                        // Update external_id mapping
-                        const {error: updateError} = await client
-                            .from('users')
-                            .update({external_id: authUserId})
+                                // Update externalid mapping
+        const {error: updateError} = await client
+            .from('users')
+            .update({externalid: authUserId})
                             .eq('id', emailUser.id);
 
                         if (updateError) {
                             console.warn('Failed to update external_id:', updateError.message);
                         }
 
-                        const isAdmin = emailUser.is_admin === true;
+                        const isAdmin = emailUser.isadmin === true;
                         if (userEmail) {
                             setCachedAdminStatus(authUserId, userEmail, isAdmin);
                         }
@@ -355,7 +355,7 @@ export const verifyDatabaseAdminWithFallback = async (
             return false;
         }
 
-        const isAdmin = user.is_admin === true;
+        const isAdmin = user.isadmin === true;
 
         // Cache the result
         if (userEmail || user.email) {
@@ -1014,7 +1014,7 @@ export const getSessionStatus = async (): Promise<{
 
     return {
         authenticated: session.authenticated && !isExpired && isValidAdmin,
-        timeRemaining,
+        ...(timeRemaining !== undefined && { timeRemaining }),
         needsRefresh,
         isExpired,
         isValidAdmin

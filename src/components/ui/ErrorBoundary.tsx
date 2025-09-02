@@ -51,8 +51,8 @@ interface ErrorReport {
     errorId: string;
     timestamp: string;
     message: string;
-    stack?: string;
-    componentStack?: string;
+    stack: string;
+    componentStack: string;
     userAgent: string;
     url: string;
     retryCount: number;
@@ -172,7 +172,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         };
     }
 
-    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         this.setState({errorInfo});
 
         // Call custom error handler
@@ -196,7 +196,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         }
     }
 
-    componentWillUnmount() {
+    override componentWillUnmount() {
         // Cleanup timeouts and abort ongoing operations
         this.retryTimeouts.forEach(clearTimeout);
         if (this.abortController) {
@@ -204,7 +204,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         }
     }
 
-    render() {
+    override render() {
         if (this.state.hasError && this.state.error) {
             // Use custom fallback if provided
             if (this.props.fallback) {
@@ -482,8 +482,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 timestamp: new Date().toISOString(),
                 errorId: this.state.errorId,
                 message: error.message,
-                stack: error.stack,
-                componentStack: errorInfo.componentStack,
+                stack: error.stack || '',
+                componentStack: errorInfo.componentStack || '',
                 userAgent: navigator.userAgent,
                 url: window.location.href,
                 retryCount: this.retryCount,
@@ -587,8 +587,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 errorId: this.state.errorId,
                 timestamp: new Date().toISOString(),
                 message: this.state.error?.message || 'Unknown error',
-                stack: this.state.error?.stack,
-                componentStack: this.state.errorInfo?.componentStack,
+                stack: this.state.error?.stack || '',
+                componentStack: this.state.errorInfo?.componentStack || '',
                 userAgent: navigator.userAgent,
                 url: window.location.href,
                 retryCount: this.retryCount,
@@ -619,8 +619,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 errorId: this.state.errorId,
                 timestamp: new Date().toISOString(),
                 message: this.state.error?.message || 'Unknown error',
-                stack: this.state.error?.stack,
-                componentStack: this.state.errorInfo?.componentStack,
+                stack: this.state.error?.stack || '',
+                componentStack: this.state.errorInfo?.componentStack || '',
                 userAgent: navigator.userAgent,
                 url: window.location.href,
                 retryCount: this.retryCount,
@@ -657,8 +657,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 errorId: this.state.errorId,
                 timestamp: new Date().toISOString(),
                 message: this.state.error?.message || 'Unknown error',
-                stack: this.state.error?.stack,
-                componentStack: this.state.errorInfo?.componentStack,
+                stack: this.state.error?.stack || '',
+                componentStack: this.state.errorInfo?.componentStack || '',
                 userAgent: navigator.userAgent,
                 url: window.location.href,
                 retryCount: this.retryCount,

@@ -3,7 +3,6 @@ import React, {useEffect, useState} from 'react';
 import {ChevronUp} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import Header from './Header';
-import Sidebar from './Sidebar';
 import Footer from './Footer';
 import ToastContainer from '../ui/ToastContainer';
 
@@ -14,7 +13,6 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({children}) => {
     const {ui} = useAppStore();
     const [showScrollTop, setShowScrollTop] = useState(false);
-    const [isDesktop, setIsDesktop] = useState(false);
 
     // Handle scroll visibility for scroll-to-top button
     useEffect(() => {
@@ -25,22 +23,6 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
         window.addEventListener('scroll', handleScroll, {passive: true});
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-
-    // Handle responsive behavior
-    useEffect(() => {
-        const handleResize = () => {
-            setIsDesktop(window.innerWidth >= 1024);
-        };
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const getMainContentMargin = () => {
-        if (!isDesktop) return 'ml-0';
-        return ui.sidebarOpen ? 'ml-64' : 'ml-16';
-    };
 
     const scrollToTop = () => {
         window.scrollTo({top: 0, behavior: 'smooth'});
@@ -74,16 +56,9 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
             {/* Header - Fixed at top */}
             <Header/>
 
-            {/* Sidebar */}
-            <Sidebar/>
-
             {/* Main Content Area */}
             <main className="relative z-10 pt-16 flex-1">
-                <div className={`
-          min-h-[calc(100vh-4rem-200px)] 
-          transition-all duration-300 ease-out
-          ${getMainContentMargin()}
-        `}>
+                <div className="min-h-[calc(100vh-4rem-200px)]">
                     <div className="p-4 sm:p-6 lg:p-8">
                         <div className="relative">
                             {/* Content background with glass effect */}
@@ -100,10 +75,7 @@ const Layout: React.FC<LayoutProps> = ({children}) => {
             </main>
 
             {/* Footer */}
-            <div className={`
-        relative z-10 transition-all duration-300 ease-out
-        ${getMainContentMargin()}
-      `}>
+            <div className="relative z-10">
                 <Footer/>
             </div>
 

@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <link href="%PUBLIC_URL%/favicon.ico" rel="icon"/>
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" sizes="any" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="ApplyTrak" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <meta content="width=device-width, initial-scale=1" name="viewport"/>
-    <meta content="#4A5E54" name="theme-color"/>
+
 
     <meta content="mG5l0Sl7OK_2zGiFK4vSlZMJ9UzhN_9RwDbAGovKdSo" name="google-site-verification"/>
 
@@ -108,8 +117,8 @@
             const root = document.documentElement;
             try {
                 const saved = localStorage.getItem('theme'); // 'light' | 'dark' | null
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const theme = saved || (prefersDark ? 'dark' : 'light');
+                // For shared/public access, default to light mode instead of system preference
+                const theme = saved || 'light';
                 root.classList.toggle('dark', theme === 'dark');
                 root.style.colorScheme = theme;
             } catch {

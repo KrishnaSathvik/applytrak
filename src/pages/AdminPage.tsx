@@ -53,7 +53,7 @@ const AdminPage: React.FC = () => {
     // STORE & STATE
     // ============================================================================
 
-    const {auth, ui, showToast, modals} = useAppStore();
+    const {auth, ui, showToast} = useAppStore();
 
     const [adminState, setAdminState] = useState<AdminPageState>({
         isVerifyingAdmin: true,
@@ -156,7 +156,7 @@ const AdminPage: React.FC = () => {
         }
     }, []);
 
-    const handleVerificationSuccess = useCallback((userEmail?: string) => {
+    const handleVerificationSuccess = useCallback((_userEmail?: string) => {
         console.log('Admin privileges verified - opening dashboard');
 
         setAdminAuthenticated();

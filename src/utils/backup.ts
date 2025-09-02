@@ -396,7 +396,7 @@ export const setupAutoBackup = (getApplicationsData: () => Promise<Application[]
         intervalId = setInterval(createBackup, config.autoBackupInterval * 60 * 1000);
 
         // Enhanced page unload handler
-        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+        const handleBeforeUnload = (_event: BeforeUnloadEvent) => {
             // Only create backup if not already in progress
             if (!isBackupInProgress) {
                 createBackup();

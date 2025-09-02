@@ -1,11 +1,12 @@
 // src/components/modals/SignupModal.tsx
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, Mail, User, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, UserPlus, Shield, Zap, Award } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import type { PrivacyConsents } from '../../store/useAppStore';
 import { useAppStore } from '../../store/useAppStore';
 import PrivacyConsentSection from '../auth/PrivacyConsentSection';
 import LegalModal from '../modals/LegalModal';
+import EmailVerificationModal from './EmailVerificationModal';
 import { privacyService } from '../../services/privacyService';
 import { supabase } from '../../services/databaseService'; // ⬅ adjust if your client lives elsewhere
 
@@ -33,27 +34,10 @@ const PASSWORD_REQUIREMENTS = {
 };
 const EMAIL_PATTERN = /\S+@\S+\.\S+/;
 const MIN_NAME_LENGTH = 2;
-const FUNCTIONS_BASE = process.env.REACT_APP_FUNCTIONS_BASE || '';
 
 // ===================== Helpers =====================
-async function sendWelcomeEmail(email: string, name?: string) {
-    try {
-        if (!FUNCTIONS_BASE) return;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 4000);
-        await fetch(`${FUNCTIONS_BASE}/welcome-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name }),
-            signal: controller.signal,
-        });
-        clearTimeout(timer);
-    } catch {/* non-blocking */}
-}
-const getBrowserTimezone = () => {
-    try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return undefined; }
-};
-const getBrowserLanguage = () => String((navigator as any)?.languages?.[0] || (navigator as any)?.language || 'en');
+
+// Removed unused functions
 
 // ===================== Component =====================
 const SignupModal: React.FC = () => {
@@ -63,9 +47,11 @@ const SignupModal: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
-    const [privacyConsents, setPrivacyConsents] = useState<PrivacyConsents>({ required: false, cloudSync: false, analytics: false, marketing: false });
+    const [privacyConsents, setPrivacyConsents] = useState<PrivacyConsents>({ required: false, cloudSync: false, analytics: true, marketing: false });
 
     const [legal, setLegal] = useState<{ open: boolean; kind: 'terms' | 'privacy' }>({ open: false, kind: 'terms' });
+    const [showEmailVerification, setShowEmailVerification] = useState(false);
+    const [signupEmail, setSignupEmail] = useState('');
     const openTerms = () => setLegal({ open: true, kind: 'terms' });
     const openPrivacy = () => setLegal({ open: true, kind: 'privacy' });
     const closeLegal = () => setLegal(s => ({ ...s, open: false }));
@@ -73,22 +59,54 @@ const SignupModal: React.FC = () => {
     const resetForm = () => {
         setFormData({ displayName: '', email: '', password: '', confirmPassword: '' });
         setShowPassword(false); setShowConfirmPassword(false); setErrors({});
-        setPrivacyConsents({ required: false, cloudSync: false, analytics: false, marketing: false });
+        setPrivacyConsents({ required: false, cloudSync: false, analytics: true, marketing: false });
     };
     const handleClose = () => { resetForm(); closeAuthModal(); };
 
     // ---------- Field handlers ----------
     const handleDisplayNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value; setFormData(p => ({ ...p, displayName: value })); if (errors.displayName) setErrors(p => ({ ...p, displayName: undefined }));
+        const value = e.target.value; 
+        setFormData(p => ({ ...p, displayName: value })); 
+        if (errors.displayName) {
+            setErrors(p => {
+                const newErrors = {...p};
+                delete newErrors.displayName;
+                return newErrors;
+            });
+        }
     };
     const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value; setFormData(p => ({ ...p, email: value })); if (errors.email) setErrors(p => ({ ...p, email: undefined }));
+        const value = e.target.value; 
+        setFormData(p => ({ ...p, email: value })); 
+        if (errors.email) {
+            setErrors(p => {
+                const newErrors = {...p};
+                delete newErrors.email;
+                return newErrors;
+            });
+        }
     };
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value; setFormData(p => ({ ...p, password: value })); if (errors.password) setErrors(p => ({ ...p, password: undefined }));
+        const value = e.target.value; 
+        setFormData(p => ({ ...p, password: value })); 
+        if (errors.password) {
+            setErrors(p => {
+                const newErrors = {...p};
+                delete newErrors.password;
+                return newErrors;
+            });
+        }
     };
     const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value; setFormData(p => ({ ...p, confirmPassword: value })); if (errors.confirmPassword) setErrors(p => ({ ...p, confirmPassword: undefined }));
+        const value = e.target.value; 
+        setFormData(p => ({ ...p, confirmPassword: value })); 
+        if (errors.confirmPassword) {
+            setErrors(p => {
+                const newErrors = {...p};
+                delete newErrors.confirmPassword;
+                return newErrors;
+            });
+        }
     };
 
     // ---------- Validation ----------
@@ -153,47 +171,80 @@ const SignupModal: React.FC = () => {
                 formData.email,
                 formData.password,
                 formData.displayName,
-                { required: privacyConsents.required, cloudSync: privacyConsents.cloudSync, analytics: false, marketing: false }
+                { required: privacyConsents.required, cloudSync: privacyConsents.cloudSync, analytics: privacyConsents.analytics, marketing: false }
             );
 
             if (user) {
+                // Debug: Log the user object to see what we're getting
+                console.log('Signup user object:', user);
+                console.log('User ID:', (user as any)?.id);
+                console.log('User external_id:', (user as any)?.external_id);
+                console.log('User ID type:', typeof (user as any)?.id);
+                console.log('User ID length:', (user as any)?.id?.length);
+                
                 // Supabase Auth UID — we map this to public.users.external_id
                 const authUid: string | undefined = (user as any)?.id ?? (user as any)?.external_id ?? undefined;
 
                 // Fire-and-forget non-blocking effects
                 const sideEffects: Promise<any>[] = [
-                    sendWelcomeEmail((user as any)?.email ?? formData.email, (user as any)?.display_name ?? formData.displayName),
+                    // Welcome email will be sent after email verification is completed
                 ];
 
-                // === FIX IT FAST (client-only) ===
+                // Let the database trigger handle user creation automatically
                 try {
                     if (!authUid) throw new Error('Missing auth UID after signup');
 
-                    // 1) Ensure row exists in public.users with external_id = auth.uid()
-                    const { error: profileErr } = await supabase
-                        .from('users')
-                        .upsert(
-                            {
-                                external_id: authUid,               // must match auth.uid() to satisfy RLS
-                                email: (user as any)?.email ?? formData.email,
-                                display_name: formData.displayName,
-                                timezone: getBrowserTimezone() || 'UTC',
-                                language: getBrowserLanguage(),
-                            },
-                            { onConflict: 'external_id' }
-                        );
-                    if (profileErr) console.error('users upsert failed', profileErr);
+                    // Wait a moment for the trigger to create the user record
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
-                    // 2) Save initial privacy settings (service will resolve bigint user_id internally)
+                    // Save initial privacy settings and enable analytics (service will resolve bigint user_id internally)
+                    // Make this non-blocking to avoid signup failures
                     sideEffects.push(
-                        privacyService.saveInitialPrivacySettings(authUid, privacyConsents.cloudSync)
+                        privacyService.saveInitialPrivacySettings(authUid, privacyConsents.cloudSync, privacyConsents.analytics)
+                            .then(async () => {
+                                // Update the user's display name if provided (after privacy settings are saved)
+                                if (formData.displayName && formData.displayName.trim()) {
+                                    try {
+                                        if (!supabase) throw new Error('Supabase client not initialized');
+                                        const { error: updateError } = await supabase.rpc('update_user_display_name', {
+                                            user_external_id: authUid,
+                                            new_display_name: formData.displayName.trim()
+                                        });
+                                        if (updateError) {
+                                            console.warn('Failed to update display name:', updateError);
+                                        } else {
+                                            console.log('Display name updated successfully');
+                                        }
+                                    } catch (error) {
+                                        console.warn('Failed to update display name:', error);
+                                    }
+                                }
+
+                                // Enable analytics if user consented
+                                if (privacyConsents.analytics) {
+                                    try {
+                                        const { analyticsService } = await import('../../services/analyticsService');
+                                        await analyticsService.enableAnalytics({ trackingLevel: 'standard' });
+                                        console.log('Analytics enabled for new user');
+                                    } catch (error) {
+                                        console.warn('Failed to enable analytics:', error);
+                                    }
+                                }
+                            })
+                            .catch(error => {
+                                console.warn('Failed to save initial privacy settings:', error);
+                                // Don't throw - this shouldn't block signup
+                            })
                     );
                 } catch (dbErr) {
                     console.error('post-signup profile/consent setup failed', dbErr);
                 }
 
                 await Promise.allSettled(sideEffects);
-                handleClose();
+                
+                // Show email verification modal instead of closing
+                setSignupEmail(formData.email);
+                setShowEmailVerification(true);
             }
         } catch {
             // surfaced via auth.error
@@ -204,176 +255,239 @@ const SignupModal: React.FC = () => {
 
     // ===================== UI =====================
     return (
-        <Modal isOpen={modals.auth?.signupOpen || false} onClose={handleClose} title="Create Your Account" maxWidth="max-w-md">
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-2">
-                        <UserPlus className="h-6 w-6 text-white" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Join ApplyTrak</h2>
-                    <p className="text-gray-600 dark:text-gray-400">Start tracking your job applications with confidence</p>
+        <Modal isOpen={modals.auth?.signupOpen || false} onClose={handleClose} title="" size="xl">
+            <div className="relative">
+                {/* Progress Bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 rounded-t-lg">
+                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300 rounded-t-lg" />
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Display Name */}
-                    <div className="space-y-2">
-                        <label className="form-label-enhanced"><User className="inline h-4 w-4 mr-2" />Display Name</label>
-                        <input
-                            type="text"
-                            value={formData.displayName}
-                            onChange={handleDisplayNameChange}
-                            placeholder="Your preferred name"
-                            className={`form-input-enhanced ${errors.displayName ? 'border-red-500 focus:border-red-500' : ''}`}
-                            disabled={auth.isLoading}
-                            autoComplete="name"
-                            autoFocus
-                        />
-                        {errors.displayName && <p className="form-error">{errors.displayName}</p>}
-                    </div>
-
-                    {/* Email */}
-                    <div className="space-y-2">
-                        <label className="form-label-enhanced"><Mail className="inline h-4 w-4 mr-2" />Email Address</label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={handleEmailChange}
-                            placeholder="you@example.com"
-                            className={`form-input-enhanced ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
-                            disabled={auth.isLoading}
-                            autoComplete="email"
-                        />
-                        {errors.email && <p className="form-error">{errors.email}</p>}
-                    </div>
-
-                    {/* Password */}
-                    <div className="space-y-2">
-                        <label className="form-label-enhanced"><Lock className="inline h-4 w-4 mr-2" />Password</label>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                value={formData.password}
-                                onChange={handlePasswordChange}
-                                placeholder="Create a strong password"
-                                className={`form-input-enhanced pr-12 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
-                                disabled={auth.isLoading}
-                                autoComplete="new-password"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                disabled={auth.isLoading}
-                            >
-                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                        </div>
-
-                        {/* Strength */}
-                        {formData.password && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                    <div
-                                        className={`h-1.5 rounded-full transition-all duration-300 ${
-                                            passwordStrength.score <= 2 ? 'bg-red-500' : passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
-                                        }`}
-                                        style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
-                                    />
-                                </div>
-                                <span className={`font-medium ${passwordStrength.color}`}>{passwordStrength.label}</span>
+                {/* Content */}
+                <div className="pt-8 pb-6 px-8">
+                    {/* Header Section - Enhanced with modern design */}
+                    <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30 mb-8">
+                        <div className="text-center py-8">
+                            {/* Enhanced Icon and Title */}
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 mb-6 shadow-lg">
+                                <UserPlus className="h-10 w-10 text-blue-600" />
                             </div>
-                        )}
-                        {errors.password && <p className="form-error">{errors.password}</p>}
+                            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                                Join ApplyTrak Today
+                            </h2>
+                            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                                Start tracking your job applications with confidence. Get organized, stay motivated, and land your dream job.
+                            </p>
+                            
+                            {/* Enhanced Benefits Section */}
+                            <div className="grid grid-cols-3 gap-4 mt-8 max-w-md mx-auto">
+                                <div className="text-center">
+                                    <div className="flex items-center justify-center mb-2">
+                                        <Award className="h-4 w-4 text-blue-500" />
+                                    </div>
+                                    <div className="text-sm font-bold text-gray-900">Unlimited</div>
+                                    <div className="text-xs text-gray-600">Applications</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="flex items-center justify-center mb-2">
+                                        <Shield className="h-4 w-4 text-green-500" />
+                                    </div>
+                                    <div className="text-sm font-bold text-gray-900">100%</div>
+                                    <div className="text-xs text-gray-600">Private</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="flex items-center justify-center mb-2">
+                                        <Zap className="h-4 w-4 text-yellow-500" />
+                                    </div>
+                                    <div className="text-sm font-bold text-gray-900">Fast</div>
+                                    <div className="text-xs text-gray-600">Setup</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Confirm Password */}
-                    <div className="space-y-2">
-                        <label className="form-label-enhanced"><Lock className="inline h-4 w-4 mr-2" />Confirm Password</label>
-                        <div className="relative">
-                            <input
-                                type={showConfirmPassword ? 'text' : 'password'}
-                                value={formData.confirmPassword}
-                                onChange={handleConfirmPasswordChange}
-                                placeholder="Confirm your password"
-                                className={`form-input-enhanced pr-12 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
+                    {/* Signup Form - Enhanced */}
+                    <div className="glass-card mb-8">
+                        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+                            {/* Display Name */}
+                            <div className="space-y-2">
+                                <label className="form-label-enhanced">
+                                    <User className="inline h-4 w-4 mr-2" />
+                                    Display Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.displayName}
+                                    onChange={handleDisplayNameChange}
+                                    placeholder="Your preferred name"
+                                    className={`form-input-enhanced ${errors.displayName ? 'border-red-500 focus:border-red-500' : ''}`}
+                                    disabled={auth.isLoading}
+                                    autoComplete="name"
+                                    autoFocus
+                                />
+                                {errors.displayName && <p className="form-error">{errors.displayName}</p>}
+                            </div>
+
+                            {/* Email */}
+                            <div className="space-y-2">
+                                <label className="form-label-enhanced">
+                                    <Mail className="inline h-4 w-4 mr-2" />
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleEmailChange}
+                                    placeholder="you@example.com"
+                                    className={`form-input-enhanced ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
+                                    disabled={auth.isLoading}
+                                    autoComplete="email"
+                                />
+                                {errors.email && <p className="form-error">{errors.email}</p>}
+                            </div>
+
+                            {/* Password */}
+                            <div className="space-y-2">
+                                <label className="form-label-enhanced">
+                                    <Lock className="inline h-4 w-4 mr-2" />
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        onChange={handlePasswordChange}
+                                        placeholder="Create a strong password"
+                                        className={`form-input-enhanced pr-12 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
+                                        disabled={auth.isLoading}
+                                        autoComplete="new-password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                        disabled={auth.isLoading}
+                                    >
+                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
+
+                                {/* Strength */}
+                                {formData.password && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                            <div
+                                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                                    passwordStrength.score <= 2 ? 'bg-red-500' : passwordStrength.score <= 4 ? 'bg-yellow-500' : 'bg-green-500'
+                                                }`}
+                                                style={{ width: `${(passwordStrength.score / 6) * 100}%` }}
+                                            />
+                                        </div>
+                                        <span className={`font-medium ${passwordStrength.color}`}>{passwordStrength.label}</span>
+                                    </div>
+                                )}
+                                {errors.password && <p className="form-error">{errors.password}</p>}
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div className="space-y-2">
+                                <label className="form-label-enhanced">
+                                    <Lock className="inline h-4 w-4 mr-2" />
+                                    Confirm Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        value={formData.confirmPassword}
+                                        onChange={handleConfirmPasswordChange}
+                                        placeholder="Confirm your password"
+                                        className={`form-input-enhanced pr-12 ${errors.confirmPassword ? 'border-red-500 focus:border-red-500' : ''}`}
+                                        disabled={auth.isLoading}
+                                        autoComplete="new-password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                        disabled={auth.isLoading}
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                                {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
+                            </div>
+
+                            {/* Privacy Consents */}
+                            <PrivacyConsentSection
+                                value={privacyConsents}
+                                onChange={setPrivacyConsents}
                                 disabled={auth.isLoading}
-                                autoComplete="new-password"
+                                onViewTerms={openTerms}
+                                onViewPrivacy={openPrivacy}
                             />
+
+                            {/* Auth Error */}
+                            {auth.error && (
+                                <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200/50 dark:border-red-700/50">
+                                    <p className="text-sm text-red-700 dark:text-red-300 font-medium">{auth.error}</p>
+                                </div>
+                            )}
+
+                            {/* Submit */}
                             <button
-                                type="button"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                                disabled={auth.isLoading}
+                                type="submit"
+                                disabled={auth.isLoading || !isFormValid()}
+                                className="w-full btn btn-primary form-btn group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed min-h-[3.25rem] justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
                             >
-                                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                {auth.isLoading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                                        Creating account...
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                                        Create Account
+                                    </>
+                                )}
                             </button>
-                        </div>
-                        {errors.confirmPassword && <p className="form-error">{errors.confirmPassword}</p>}
+                        </form>
                     </div>
 
-                    {/* Privacy Consents */}
-                    <PrivacyConsentSection
-                        value={privacyConsents}
-                        onChange={setPrivacyConsents}
-                        disabled={auth.isLoading}
-                        onViewTerms={openTerms}
-                        onViewPrivacy={openPrivacy}
-                    />
+                    {/* Action Links - Enhanced */}
+                    <div className="glass-card">
+                        <div className="space-y-4 p-6">
+                            <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+                                Already have an account?{' '}
+                                <button
+                                    onClick={() => openAuthModal('login')}
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                                    disabled={auth.isLoading}
+                                >
+                                    Sign in
+                                </button>
+                            </div>
 
-                    {/* Auth Error */}
-                    {auth.error && (
-                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200/50 dark:border-red-700/50">
-                            <p className="text-sm text-red-700 dark:text-red-300 font-medium">{auth.error}</p>
+
                         </div>
-                    )}
-
-                    {/* Submit */}
-                    <button
-                        type="submit"
-                        disabled={auth.isLoading || !isFormValid()}
-                        className="w-full btn btn-primary form-btn group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed min-h-[3.25rem] justify-center"
-                    >
-                        {auth.isLoading ? (
-                            <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                                Creating account...
-                            </>
-                        ) : (
-                            <>
-                                <UserPlus className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
-                                Create Account
-                            </>
-                        )}
-                    </button>
-                </form>
-
-                {/* Switch to Login */}
-                <div className="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
-                    <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-                        Already have an account?{' '}
-                        <button
-                            onClick={() => openAuthModal('login')}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
-                            disabled={auth.isLoading}
-                        >
-                            Sign in
-                        </button>
                     </div>
-                </div>
-
-                {/* Legal links */}
-                <div className="text-center">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                        By creating an account, you confirm that you have read and agree to our
-                        <button type="button" onClick={openTerms} className="text-blue-600 dark:text-blue-400 hover:underline ml-1">Terms of Service</button>
-                        {' '}and
-                        <button type="button" onClick={openPrivacy} className="text-blue-600 dark:text-blue-400 hover:underline ml-1">Privacy Policy</button>
-                    </p>
                 </div>
 
                 {/* Legal modal */}
                 <LegalModal isOpen={legal.open} kind={legal.kind} onClose={closeLegal} />
+                
+                {/* Email Verification Modal */}
+                <EmailVerificationModal
+                    isOpen={showEmailVerification}
+                    onClose={() => {
+                        setShowEmailVerification(false);
+                        // Don't close the signup modal here - let verification complete handle it
+                    }}
+                    email={signupEmail}
+                    onVerificationComplete={() => {
+                        setShowEmailVerification(false);
+                        handleClose(); // Close the signup modal after verification
+                    }}
+                />
             </div>
         </Modal>
     );
