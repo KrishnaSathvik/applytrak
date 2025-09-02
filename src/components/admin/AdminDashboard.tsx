@@ -292,6 +292,13 @@ const AdminDashboard: React.FC = () => {
         if (!isDashboardOpen || !isAuthenticated) return;
 
         console.log('🚀 Initializing unified admin dashboard system...');
+        console.log('📊 Admin dashboard initialization state:', {
+            isDashboardOpen,
+            isAuthenticated,
+            isAdminRealtime,
+            hasAdminFeedback: !!adminFeedback,
+            feedbackCount: adminFeedback?.recentFeedback?.length || 0
+        });
 
         let autoRefreshInterval: NodeJS.Timeout | null = null;
         let retryTimeout: NodeJS.Timeout | null = null;
@@ -688,15 +695,86 @@ const AdminDashboard: React.FC = () => {
                                         <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">Analytics Overview</h2>
                                         <p className="text-xs text-gray-600">Detailed analytics and insights</p>
                                     </div>
-                                    <div className="text-center py-6 sm:py-8 md:py-12">
-                                        <BarChart3 className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 text-gray-400 mx-auto mb-4" />
-                                        <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
-                                            Analytics Dashboard
-                                        </h3>
-                                        <p className="text-xs sm:text-sm md:text-base text-gray-600">
-                                            Advanced analytics features coming soon!
-                                        </p>
-                                    </div>
+                                    
+                                    {adminAnalytics ? (
+                                        <div className="space-y-4">
+                                            {/* Usage Metrics */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
+                                                <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+                                                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
+                                                        {adminAnalytics.usageMetrics?.totalSessions || 0}
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                                                </div>
+                                                <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+                                                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
+                                                        {Math.round(adminAnalytics.usageMetrics?.averageSessionDuration || 0)}m
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm text-gray-600">Avg Session</div>
+                                                </div>
+                                                <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+                                                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 mb-1">
+                                                        {adminAnalytics.usageMetrics?.totalApplicationsCreated || 0}
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm text-gray-600">Applications</div>
+                                                </div>
+                                                <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+                                                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 mb-1">
+                                                        {adminAnalytics.usageMetrics?.featuresUsage ? Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0}
+                                                    </div>
+                                                    <div className="text-xs sm:text-sm text-gray-600">Features Used</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Device Metrics */}
+                                            <div className="glass-card p-4">
+                                                <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Device Usage</h3>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="text-center">
+                                                        <div className="text-lg sm:text-xl font-bold text-blue-600 mb-1">
+                                                            {adminAnalytics.deviceMetrics?.desktop || 0}
+                                                        </div>
+                                                        <div className="text-xs sm:text-sm text-gray-600">Desktop</div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="text-lg sm:text-xl font-bold text-green-600 mb-1">
+                                                            {adminAnalytics.deviceMetrics?.mobile || 0}
+                                                        </div>
+                                                        <div className="text-xs sm:text-sm text-gray-600">Mobile</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Features Usage */}
+                                            {adminAnalytics.usageMetrics?.featuresUsage && Object.keys(adminAnalytics.usageMetrics.featuresUsage).length > 0 && (
+                                                <div className="glass-card p-4">
+                                                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">Feature Usage</h3>
+                                                    <div className="space-y-2">
+                                                        {Object.entries(adminAnalytics.usageMetrics.featuresUsage).map(([feature, count]) => (
+                                                            <div key={feature} className="flex justify-between items-center">
+                                                                <span className="text-xs sm:text-sm text-gray-600 capitalize">
+                                                                    {feature.replace(/_/g, ' ')}
+                                                                </span>
+                                                                <span className="text-xs sm:text-sm font-semibold text-gray-900">
+                                                                    {count}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-6 sm:py-8 md:py-12">
+                                            <BarChart3 className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 text-gray-400 mx-auto mb-4" />
+                                            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
+                                                Loading Analytics...
+                                            </h3>
+                                            <p className="text-xs sm:text-sm md:text-base text-gray-600">
+                                                Analytics data is being loaded.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

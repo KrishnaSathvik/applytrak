@@ -447,6 +447,13 @@ class FeedbackService {
 
         this.persistFeedback(recentFeedback);
         this.invalidateCache();
+        
+        console.log('💾 Feedback stored successfully:', {
+            feedbackId: feedback.id,
+            type: feedback.type,
+            totalFeedback: recentFeedback.length,
+            timestamp: feedback.timestamp
+        });
     }
 
     private persistFeedback(feedback: FeedbackSubmission[]): void {

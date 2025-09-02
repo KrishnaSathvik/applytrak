@@ -2378,6 +2378,31 @@ export const useAppStore = create<AppState>()(
                                 feedbackList: [feedback, ...state.feedbackList]
                             }));
 
+                            // Refresh admin dashboard data if it's open
+                            const { ui } = get();
+                            if (ui.admin.dashboardOpen && ui.admin.authenticated) {
+                                console.log('🔄 Refreshing admin dashboard after feedback submission...');
+                                console.log('📊 Admin dashboard state:', {
+                                    dashboardOpen: ui.admin.dashboardOpen,
+                                    authenticated: ui.admin.authenticated,
+                                    supabaseConfigured: !!process.env.REACT_APP_SUPABASE_URL
+                                });
+                                try {
+                                    if (process.env.REACT_APP_SUPABASE_URL) {
+                                        console.log('🔄 Loading realtime feedback summary...');
+                                        await get().loadRealtimeFeedbackSummary();
+                                    } else {
+                                        console.log('🔄 Loading local admin feedback...');
+                                        await get().loadAdminFeedback();
+                                    }
+                                    console.log('✅ Admin dashboard refreshed successfully');
+                                } catch (error) {
+                                    console.warn('⚠️ Failed to refresh admin dashboard after feedback submission:', error);
+                                }
+                            } else {
+                                console.log('ℹ️ Admin dashboard not open or not authenticated, skipping refresh');
+                            }
+
                             get().showToast({
                                 type: 'success',
                                 message: 'Thank you for your feedback! This helps make ApplyTrak better.',
@@ -2546,8 +2571,16 @@ export const useAppStore = create<AppState>()(
 
                     loadAdminFeedback: async () => {
                         try {
+                            console.log('🔄 Loading admin feedback data...');
                             const stats = feedbackService.getFeedbackStats();
                             const recentFeedback = feedbackService.getRecentFeedback(10);
+
+                            console.log('📊 Admin feedback data loaded:', {
+                                totalFeedback: stats.totalSubmissions,
+                                recentFeedbackCount: recentFeedback.length,
+                                averageRating: stats.averageRating,
+                                typeDistribution: stats.typeDistribution
+                            });
 
                             const adminFeedback: AdminFeedbackSummary = {
                                 totalFeedback: stats.totalSubmissions,
