@@ -212,7 +212,7 @@ const MobileAnalyticsTab: React.FC = () => {
               }`}
             >
               <TrendingUp className="h-4 w-4" />
-              {auth.isAuthenticated ? 'Basic' : 'Free'}
+              Basic
             </button>
             {auth.isAuthenticated ? (
               <button
@@ -228,22 +228,12 @@ const MobileAnalyticsTab: React.FC = () => {
               </button>
             ) : (
               <button
-                onClick={() => {
-                  useAppStore.getState().showToast({
-                    type: 'info',
-                    message: 'Sign up to unlock advanced analytics!',
-                    duration: 4000
-                  });
-                  useAppStore.setState(state => ({
-                    ...state,
-                    modals: {
-                      ...state.modals,
-                      signup: { isOpen: true }
-                    }
-                  }));
-                }}
-                className="px-4 py-2 rounded-md text-sm font-medium text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60 flex items-center gap-2"
-                title="Sign up to unlock advanced analytics"
+                onClick={() => setActiveTab('advanced')}
+                className={`px-4 py-2 rounded-md transition-colors text-sm font-medium flex items-center gap-2 ${
+                  activeTab === 'advanced' 
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
               >
                 <Building className="h-4 w-4" />
                 Advanced
@@ -446,7 +436,7 @@ const MobileAnalyticsTab: React.FC = () => {
               <Building className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
             <h3 className="mobile-text-xl mobile-font-bold text-gray-900 dark:text-gray-100 mb-3">
-              Advanced Analytics
+              Login to See Full Analytics
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Sign up to access advanced analytics including company success rates, 
@@ -458,20 +448,6 @@ const MobileAnalyticsTab: React.FC = () => {
                 <span>✓ Salary trend tracking</span>
                 <span>✓ Detailed performance metrics</span>
               </div>
-              <button
-                onClick={() => {
-                  useAppStore.setState(state => ({
-                    ...state,
-                    modals: {
-                      ...state.modals,
-                      signup: { isOpen: true }
-                    }
-                  }));
-                }}
-                className="btn btn-primary w-full"
-              >
-                Sign Up for Advanced Analytics
-              </button>
             </div>
           </div>
         </div>

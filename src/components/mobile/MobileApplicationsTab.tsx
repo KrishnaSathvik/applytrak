@@ -8,8 +8,7 @@ import ImportModal from '../modals/ImportModal';
 const MobileApplicationsTab: React.FC = () => {
   const { 
     applications, 
-    filteredApplications,
-    auth
+    filteredApplications
   } = useAppStore();
   
   const [showImportModal, setShowImportModal] = useState(false);
@@ -40,11 +39,7 @@ const MobileApplicationsTab: React.FC = () => {
               <span>Total: {applications.length}</span>
               <span>Active: {applications.filter(app => app.status !== 'Rejected').length}</span>
               <span>Interviews: {applications.filter(app => app.status === 'Interview').length}</span>
-              {!auth.isAuthenticated && (
-                <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                  Free Tier: {applications.length}/50
-                </span>
-              )}
+
             </div>
           </div>
           <div className="flex flex-col sm:flex-row mobile-gap-2">

@@ -45,7 +45,7 @@ const ApplicationsTab: React.FC = () => {
               <span>Interviews: {applications.filter(app => app.status === 'Interview').length}</span>
               {!auth.isAuthenticated && (
                 <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                  Free Tier: {applications.length}/50
+                  Limit: {applications.length}/50
                 </span>
               )}
             </div>
@@ -61,6 +61,36 @@ const ApplicationsTab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Stats */}
+      {applications.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
+          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
+              {applications.filter(app => app.status === 'Applied').length}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">Applied</div>
+          </div>
+          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 mb-1">
+              {applications.filter(app => app.status === 'Interview').length}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">Interviews</div>
+          </div>
+          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
+              {applications.filter(app => app.status === 'Offer').length}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">Offers</div>
+          </div>
+          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mb-1">
+              {applications.filter(app => app.status === 'Rejected').length}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-600">Rejected</div>
+          </div>
+        </div>
+      )}
 
       {/* Add Application Form - Always Visible */}
       <div className="glass-card">
@@ -99,35 +129,7 @@ const ApplicationsTab: React.FC = () => {
         )}
       </div>
 
-      {/* Quick Stats */}
-      {applications.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
-              {applications.filter(app => app.status === 'Applied').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Applied</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 mb-1">
-              {applications.filter(app => app.status === 'Interview').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Interviews</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
-              {applications.filter(app => app.status === 'Offer').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Offers</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mb-1">
-              {applications.filter(app => app.status === 'Rejected').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Rejected</div>
-          </div>
-        </div>
-      )}
+
       
       {/* Import Modal */}
       <ImportModal 
