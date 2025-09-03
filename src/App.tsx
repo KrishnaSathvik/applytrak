@@ -334,19 +334,6 @@ const App: React.FC = () => {
 
                 setTheme(initialTheme);
 
-                const isDark = initialTheme === 'dark';
-                document.documentElement.classList.toggle('dark', isDark);
-                document.documentElement.style.colorScheme = initialTheme;
-
-                const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-                if (metaThemeColor) {
-                    metaThemeColor.setAttribute('content', isDark ? '#1f2937' : '#ffffff');
-                }
-
-                if (!savedTheme) {
-                    localStorage.setItem('theme', initialTheme);
-                }
-
                 if (process.env.NODE_ENV === 'development') {
                     console.log(`Theme system initialized: ${initialTheme} mode`);
                 }
@@ -429,14 +416,6 @@ const App: React.FC = () => {
                     if (savedTheme && savedTheme === 'system') {
                         const newTheme = e.matches ? 'dark' : 'light';
                         setTheme(newTheme);
-                        document.documentElement.classList.toggle('dark', e.matches);
-                        document.body.classList.toggle('dark', e.matches);
-                        document.documentElement.style.colorScheme = newTheme;
-
-                        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-                        if (metaThemeColor) {
-                            metaThemeColor.setAttribute('content', e.matches ? '#1f2937' : '#ffffff');
-                        }
                     }
                 };
 

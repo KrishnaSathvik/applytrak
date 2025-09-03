@@ -71,7 +71,7 @@ const EnhancedMetricsOverview: React.FC<{
                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
                     {enhancedMetrics.totalUsers}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                     {isRealtime && isAuthenticated ? "Platform Users" : "Total Users"}
                 </div>
             </div>
@@ -79,19 +79,19 @@ const EnhancedMetricsOverview: React.FC<{
                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
                     {enhancedMetrics.activeDaily}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">Active Today</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Active Today</div>
             </div>
             <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 mb-1">
                     {enhancedMetrics.totalSessions}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total Sessions</div>
             </div>
             <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 mb-1">
                     {enhancedMetrics.totalAppsCreated}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">Applications</div>
+                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Applications</div>
             </div>
         </div>
     );
@@ -126,7 +126,7 @@ const SystemHealthPanel: React.FC<{
         if (key === 'systemMode') {
             if (value.includes('Multi-User')) return 'text-blue-600 dark:text-blue-400';
             if (value.includes('Real-time')) return 'text-green-600 dark:text-green-400';
-            return 'text-gray-600 dark:text-gray-400';
+            return 'text-gray-600 dark:text-gray-300 dark:text-gray-400';
         }
         if (value.includes('Active') || value.includes('Authenticated') || value === 'Cloud + Local') {
             return 'text-green-600 dark:text-green-400';
@@ -134,7 +134,7 @@ const SystemHealthPanel: React.FC<{
         if (value.includes('Guest') || value === 'Local Storage') {
             return 'text-yellow-600 dark:text-yellow-400';
         }
-        return 'text-gray-600 dark:text-gray-400';
+        return 'text-gray-600 dark:text-gray-300 dark:text-gray-400';
     }, []);
 
     const getDotColor = useCallback((key: string, value: string) => {
@@ -148,19 +148,19 @@ const SystemHealthPanel: React.FC<{
     return (
         <div className="glass-card">
             <div className="mb-2 sm:mb-3">
-                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                     <Database className="h-4 w-4 sm:h-5 sm:w-5"/>
                     System Health
                     {isRealtime && (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">LIVE</span>
                     )}
                 </h2>
-                <p className="text-xs text-gray-600">System status and configuration</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">System status and configuration</p>
             </div>
             <div className="space-y-3">
                 {Object.entries(healthMetrics).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 capitalize">
+                        <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 dark:text-gray-400 capitalize">
                             {key.replace(/([A-Z])/g, ' $1').trim()}
                         </span>
                         <span className={`text-xs sm:text-sm font-medium flex items-center gap-1 ${getStatusColor(key, value)}`}>
@@ -304,21 +304,31 @@ const AdminDashboard: React.FC = () => {
         let retryTimeout: NodeJS.Timeout | null = null;
         let debounceTimeout: NodeJS.Timeout | null = null;
 
-        const startUnifiedAdminSystem = () => {
+        const startUnifiedAdminSystem = async () => {
             console.log('🔄 Starting unified admin system...');
 
-            // Initial data load
-            refreshAllAdminData().catch(error => {
+            try {
+                // Initial data load with error handling
+                await refreshAllAdminData();
+            } catch (error) {
                 console.error('❌ Initial admin data load failed:', error);
-            });
+                showToast({
+                    type: 'warning',
+                    message: 'Some admin data could not be loaded. Using local data.',
+                    duration: 5000
+                });
+            }
 
             // Auto-refresh setup
             if (globalRefreshStatus.autoRefreshEnabled) {
-                autoRefreshInterval = setInterval(() => {
+                autoRefreshInterval = setInterval(async () => {
                     console.log('🔄 Auto-refresh triggered');
-                    refreshAllAdminData().catch(error => {
+                    try {
+                        await refreshAllAdminData();
+                    } catch (error) {
                         console.error('❌ Auto-refresh failed:', error);
-                    });
+                        // Don't show toast for auto-refresh failures to avoid spam
+                    }
                 }, AUTO_REFRESH_INTERVAL * 1000);
             }
 
@@ -527,11 +537,11 @@ const AdminDashboard: React.FC = () => {
                         <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 sm:gap-3">
                                 <div className="space-y-0.5 sm:space-y-1">
-                                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                                         <Shield className="h-5 w-5 sm:h-6 sm:w-6" />
                                         Admin Dashboard
                                     </h1>
-                                    <p className="text-gray-600 text-xs sm:text-sm md:text-base">
+                                    <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base">
                                         {isAdminRealtime && auth.isAuthenticated ? 'SaaS Analytics & Management' : 'Job Application Analytics'}
                                     </p>
                                     <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-500">
@@ -580,7 +590,7 @@ const AdminDashboard: React.FC = () => {
                                             className={`px-3 sm:px-4 py-2 rounded-md transition-colors text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2 ${
                                                 currentSection === id 
                                                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
-                                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                    : 'text-gray-600 dark:text-gray-300 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                             }`}
                                         >
                                             <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -610,7 +620,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="glass-card">
                                     <div className="mb-2 sm:mb-3">
                                         <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">Job Application Metrics</h2>
-                                        <p className="text-xs text-gray-600">Current application statistics and trends</p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-300">Current application statistics and trends</p>
                                     </div>
                                     
                                     {applications.length === 0 ? (
@@ -621,7 +631,7 @@ const AdminDashboard: React.FC = () => {
                                             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
                                                 No applications tracked
                                             </h3>
-                                            <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-4 sm:mb-6 px-4">
+                                            <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 px-4">
                                                 Start tracking applications to see detailed analytics here!
                                             </p>
                                         </div>
@@ -631,25 +641,25 @@ const AdminDashboard: React.FC = () => {
                                                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
                                                     {applications.filter(app => app.status === 'Applied').length}
                                                 </div>
-                                                <div className="text-xs sm:text-sm text-gray-600">Applied</div>
+                                                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Applied</div>
                                             </div>
                                             <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 mb-1">
                                                     {applications.filter(app => app.status === 'Interview').length}
                                                 </div>
-                                                <div className="text-xs sm:text-sm text-gray-600">Interviews</div>
+                                                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Interviews</div>
                                             </div>
                                             <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
                                                     {applications.filter(app => app.status === 'Offer').length}
                                                 </div>
-                                                <div className="text-xs sm:text-sm text-gray-600">Offers</div>
+                                                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Offers</div>
                                             </div>
                                             <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                                 <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mb-1">
                                                     {applications.filter(app => app.status === 'Rejected').length}
                                                 </div>
-                                                <div className="text-xs sm:text-sm text-gray-600">Rejected</div>
+                                                <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Rejected</div>
                                             </div>
                                         </div>
                                     )}
@@ -660,7 +670,7 @@ const AdminDashboard: React.FC = () => {
                                     <div className="glass-card">
                                         <div className="mb-2 sm:mb-3">
                                             <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">Recent Activity</h2>
-                                            <p className="text-xs text-gray-600">Latest system events and feedback</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-300">Latest system events and feedback</p>
                                         </div>
                                         <div className="space-y-3">
                                             {adminFeedback.recentFeedback.slice(0, 5).map((feedback) => {
@@ -693,7 +703,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="glass-card">
                                     <div className="mb-2 sm:mb-3">
                                         <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">Analytics Overview</h2>
-                                        <p className="text-xs text-gray-600">Detailed analytics and insights</p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-300">Detailed analytics and insights</p>
                                     </div>
                                     
                                     {adminAnalytics ? (
@@ -704,25 +714,25 @@ const AdminDashboard: React.FC = () => {
                                                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
                                                         {adminAnalytics.usageMetrics?.totalSessions || 0}
                                                     </div>
-                                                    <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                                                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total Sessions</div>
                                                 </div>
                                                 <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
                                                         {Math.round(adminAnalytics.usageMetrics?.averageSessionDuration || 0)}m
                                                     </div>
-                                                    <div className="text-xs sm:text-sm text-gray-600">Avg Session</div>
+                                                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Avg Session</div>
                                                 </div>
                                                 <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 mb-1">
                                                         {adminAnalytics.usageMetrics?.totalApplicationsCreated || 0}
                                                     </div>
-                                                    <div className="text-xs sm:text-sm text-gray-600">Applications</div>
+                                                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Applications</div>
                                                 </div>
                                                 <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                                     <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 mb-1">
                                                         {adminAnalytics.usageMetrics?.featuresUsage ? Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0}
                                                     </div>
-                                                    <div className="text-xs sm:text-sm text-gray-600">Features Used</div>
+                                                    <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Features Used</div>
                                                 </div>
                                             </div>
 
@@ -734,13 +744,13 @@ const AdminDashboard: React.FC = () => {
                                                         <div className="text-lg sm:text-xl font-bold text-blue-600 mb-1">
                                                             {adminAnalytics.deviceMetrics?.desktop || 0}
                                                         </div>
-                                                        <div className="text-xs sm:text-sm text-gray-600">Desktop</div>
+                                                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Desktop</div>
                                                     </div>
                                                     <div className="text-center">
                                                         <div className="text-lg sm:text-xl font-bold text-green-600 mb-1">
                                                             {adminAnalytics.deviceMetrics?.mobile || 0}
                                                         </div>
-                                                        <div className="text-xs sm:text-sm text-gray-600">Mobile</div>
+                                                        <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Mobile</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -752,7 +762,7 @@ const AdminDashboard: React.FC = () => {
                                                     <div className="space-y-2">
                                                         {Object.entries(adminAnalytics.usageMetrics.featuresUsage).map(([feature, count]) => (
                                                             <div key={feature} className="flex justify-between items-center">
-                                                                <span className="text-xs sm:text-sm text-gray-600 capitalize">
+                                                                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 capitalize">
                                                                     {feature.replace(/_/g, ' ')}
                                                                 </span>
                                                                 <span className="text-xs sm:text-sm font-semibold text-gray-900">
@@ -770,7 +780,7 @@ const AdminDashboard: React.FC = () => {
                                             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
                                                 Loading Analytics...
                                             </h3>
-                                            <p className="text-xs sm:text-sm md:text-base text-gray-600">
+                                            <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
                                                 Analytics data is being loaded.
                                             </p>
                                         </div>
@@ -785,7 +795,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="glass-card">
                                     <div className="mb-2 sm:mb-3">
                                         <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">User Feedback</h2>
-                                        <p className="text-xs text-gray-600">Manage and review user feedback</p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-300">Manage and review user feedback</p>
                                     </div>
                                     
                                     {!adminFeedback?.recentFeedback || adminFeedback.recentFeedback.length === 0 ? (
@@ -794,7 +804,7 @@ const AdminDashboard: React.FC = () => {
                                             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 mb-2">
                                                 No feedback received
                                             </h3>
-                                            <p className="text-xs sm:text-sm md:text-base text-gray-600">
+                                            <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-300">
                                                 User feedback will appear here when available.
                                             </p>
                                         </div>
@@ -852,7 +862,7 @@ const AdminDashboard: React.FC = () => {
                                 <div className="glass-card">
                                     <div className="mb-2 sm:mb-3">
                                         <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">User Analytics</h2>
-                                        <p className="text-xs text-gray-600">User behavior and engagement metrics</p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-300">User behavior and engagement metrics</p>
                                     </div>
                                     
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
@@ -860,7 +870,7 @@ const AdminDashboard: React.FC = () => {
                                             <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
                                                 {adminAnalytics?.userMetrics?.totalUsers || 1}
                                             </div>
-                                            <div className="text-xs sm:text-sm text-gray-600">
+                                            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                                 {isAdminRealtime && auth.isAuthenticated ? "Platform Users" : "Total Users"}
                                             </div>
                                         </div>
@@ -868,19 +878,19 @@ const AdminDashboard: React.FC = () => {
                                             <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
                                                 {adminAnalytics?.userMetrics?.activeUsers?.daily || 0}
                                             </div>
-                                            <div className="text-xs sm:text-sm text-gray-600">Active Today</div>
+                                            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Active Today</div>
                                         </div>
                                         <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                             <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 mb-1">
                                                 {adminAnalytics?.usageMetrics?.totalSessions || 0}
                                             </div>
-                                            <div className="text-xs sm:text-sm text-gray-600">Total Sessions</div>
+                                            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Total Sessions</div>
                                         </div>
                                         <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
                                             <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 mb-1">
                                                 {adminAnalytics?.usageMetrics?.featuresUsage ? Object.keys(adminAnalytics.usageMetrics.featuresUsage).length : 0}
                                             </div>
-                                            <div className="text-xs sm:text-sm text-gray-600">Features Used</div>
+                                            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Features Used</div>
                                         </div>
                                     </div>
                                 </div>

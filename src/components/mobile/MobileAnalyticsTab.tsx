@@ -176,13 +176,13 @@ const MobileAnalyticsTab: React.FC = () => {
     <div className="mobile-content">
       <div className="mobile-space-y-6">
       {/* Header Section */}
-      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
+      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
         <div className="text-center py-8">
-          <BarChart3 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-          <h1 className="mobile-text-xl font-bold text-gray-900 mb-2">
+          <BarChart3 className="h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <h1 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Analytics Dashboard
           </h1>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Track your application progress and insights
           </p>
         </div>

@@ -17,11 +17,11 @@ const MobileFeaturesTab: React.FC = () => {
             {/* Header Section */}
             <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
                 <div className="text-center py-8">
-                    <Star className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    <Star className="h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                         Features
                     </h1>
-                    <p className="text-gray-600 text-lg mb-4">
+                    <p className="text-gray-600 dark:text-gray-300 text-lg mb-4">
                         Discover powerful features for your job search
                     </p>
                 </div>
@@ -32,16 +32,16 @@ const MobileFeaturesTab: React.FC = () => {
                 {/* Hero Section */}
                 <div className="glass-card">
                     <div className="text-center py-8">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
                             Powerful Features for Your Job Search
                         </h2>
-                        <p className="text-sm text-gray-600 max-w-2xl mx-auto mb-6">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6">
                             Everything you need to track applications, set goals, and land your dream job.
                         </p>
                         
                         {/* Why Choose ApplyTrak Text */}
                         <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-6 max-w-4xl mx-auto text-left">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 text-center">
                                 Why ApplyTrak Beats Excel & Other Job Apps
                             </h3>
                             <div className="space-y-4 text-sm leading-relaxed">
@@ -70,13 +70,13 @@ const MobileFeaturesTab: React.FC = () => {
 
                 {/* Features Text Section */}
                 <div className="glass-card">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6 text-center">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
                         Core Features That Make Job Tracking Effortless
                     </h3>
                     <div className="space-y-6 text-sm leading-relaxed">
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                <Database className="h-5 w-5 text-blue-600" />
+                                <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 Application Tracking
                             </h4>
                             <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -85,11 +85,11 @@ const MobileFeaturesTab: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Unlimited applications
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Status tracking
                                 </span>
                             </div>
@@ -97,7 +97,7 @@ const MobileFeaturesTab: React.FC = () => {
 
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                <Target className="h-5 w-5 text-purple-600" />
+                                <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                 Goal Setting & Progress Tracking
                             </h4>
                             <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -106,11 +106,11 @@ const MobileFeaturesTab: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Visual progress bars
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Streak tracking
                                 </span>
                             </div>
@@ -118,7 +118,7 @@ const MobileFeaturesTab: React.FC = () => {
 
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-green-600" />
+                                <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
                                 Analytics & Insights
                             </h4>
                             <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -127,11 +127,11 @@ const MobileFeaturesTab: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Success rate tracking
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Trend analysis
                                 </span>
                             </div>
@@ -139,7 +139,7 @@ const MobileFeaturesTab: React.FC = () => {
 
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                <Upload className="h-5 w-5 text-orange-600" />
+                                <Upload className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                                 Import & Export System
                             </h4>
                             <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -148,11 +148,11 @@ const MobileFeaturesTab: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     JSON & CSV support
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     PDF reports
                                 </span>
                             </div>
@@ -160,7 +160,7 @@ const MobileFeaturesTab: React.FC = () => {
 
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                <Zap className="h-5 w-5 text-indigo-600" />
+                                <Zap className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                                 Advanced Search & Filtering
                             </h4>
                             <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -169,11 +169,11 @@ const MobileFeaturesTab: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Real-time search
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Bulk operations
                                 </span>
                             </div>
@@ -181,7 +181,7 @@ const MobileFeaturesTab: React.FC = () => {
 
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                                <Users className="h-5 w-5 text-pink-600" />
+                                <Users className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                                 Mobile-First Design
                             </h4>
                             <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -190,11 +190,11 @@ const MobileFeaturesTab: React.FC = () => {
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Works on all devices
                                 </span>
                                 <span className="flex items-center gap-1">
-                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Offline support
                                 </span>
                             </div>

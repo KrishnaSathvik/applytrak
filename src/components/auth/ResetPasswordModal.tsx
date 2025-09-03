@@ -134,7 +134,7 @@ const ResetPasswordModal: React.FC = () => {
                                             <div className="flex items-center justify-center mb-2">
                                                 <Shield className="h-4 w-4 text-blue-500" />
                                             </div>
-                                            <div className="text-sm font-bold text-gray-900">Secure</div>
+                                            <div className="text-sm font-bold text-gray-900 dark:text-gray-100">Secure</div>
                                             <div className="text-xs text-gray-600">Link</div>
                                         </div>
                                         <div className="text-center">

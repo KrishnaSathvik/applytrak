@@ -14,11 +14,6 @@ const MobileHeader: React.FC = () => {
   const handleThemeToggle = () => {
     const newTheme = ui.theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    const isDark = newTheme === 'dark';
-    document.documentElement.classList.toggle('dark', isDark);
-    document.body.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.style.colorScheme = newTheme;
   };
 
   const handleLogin = () => {

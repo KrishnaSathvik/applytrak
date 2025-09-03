@@ -100,13 +100,13 @@ const GoalsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
+      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
         <div className="text-center py-8">
-          <Target className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <Target className="h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Goal Setting & Progress
           </h1>
-          <p className="text-gray-600 text-lg mb-4">
+          <p className="text-gray-600 dark:text-gray-300 text-lg mb-4">
             Set targets, track progress, and celebrate your achievements
           </p>
         </div>
@@ -146,9 +146,9 @@ const GoalsTab: React.FC = () => {
       {activeTab === 'goals' && (
         <div className="space-y-6">
           {/* Motivational Message */}
-          <div className="glass-card bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
+          <div className="glass-card bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
             <div className="text-center py-6">
-              <p className="text-lg text-gray-800 font-medium">
+              <p className="text-lg text-gray-800 dark:text-gray-200 font-medium">
                 {getMotivationalMessage()}
               </p>
             </div>
@@ -160,26 +160,26 @@ const GoalsTab: React.FC = () => {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                                          <Clock className="h-6 w-6 text-blue-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Weekly Goal</h3>
+                                          <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Weekly Goal</h3>
                 </div>
                 <span className={`text-2xl font-bold ${getProgressColor(goalProgress.weeklyProgress)}`}>
                   {Math.round(goalProgress.weeklyProgress)}%
                 </span>
               </div>
               <div className="mb-4">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                   {goalProgress.weeklyApplications}/{goals.weeklyGoal}
                 </div>
-                <div className="text-gray-600">Applications this week</div>
+                <div className="text-gray-600 dark:text-gray-300">Applications this week</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
                 <div 
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressBarColor(goalProgress.weeklyProgress)}`}
                   style={{width: `${Math.min(100, goalProgress.weeklyProgress)}%`}}
                 ></div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {goalProgress.weeklyProgress >= 100 
                   ? '🎯 Weekly goal achieved!' 
                   : `${goals.weeklyGoal - goalProgress.weeklyApplications} more to go`
@@ -191,26 +191,26 @@ const GoalsTab: React.FC = () => {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <TrendingUp className="h-6 w-6 text-purple-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Monthly Goal</h3>
+                  <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Monthly Goal</h3>
                 </div>
                 <span className={`text-2xl font-bold ${getProgressColor(goalProgress.monthlyProgress)}`}>
                   {Math.round(goalProgress.monthlyProgress)}%
                 </span>
               </div>
               <div className="mb-4">
-                <div className="text-3xl font-bold text-purple-600 mb-1">
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
                   {goalProgress.monthlyApplications}/{goals.monthlyGoal}
                 </div>
-                <div className="text-gray-600">Applications this month</div>
+                <div className="text-gray-600 dark:text-gray-300">Applications this month</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
                 <div 
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressBarColor(goalProgress.monthlyProgress)}`}
                   style={{width: `${Math.min(100, goalProgress.monthlyProgress)}%`}}
                 ></div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {goalProgress.monthlyProgress >= 100 
                   ? '🎯 Monthly goal achieved!' 
                   : `${goals.monthlyGoal - goalProgress.monthlyApplications} more to go`
@@ -222,26 +222,26 @@ const GoalsTab: React.FC = () => {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <Award className="h-6 w-6 text-green-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Total Goal</h3>
+                  <Award className="h-6 w-6 text-green-600 dark:text-green-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Total Goal</h3>
                 </div>
                 <span className={`text-2xl font-bold ${getProgressColor(goalProgress.totalProgress)}`}>
                   {Math.round(goalProgress.totalProgress)}%
                 </span>
               </div>
               <div className="mb-4">
-                <div className="text-3xl font-bold text-green-600 mb-1">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
                   {goalProgress.totalApplications}/{goals.totalGoal}
                 </div>
-                <div className="text-gray-600">Total applications</div>
+                <div className="text-gray-600 dark:text-gray-300">Total applications</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
                 <div 
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressBarColor(goalProgress.totalProgress)}`}
                   style={{width: `${Math.min(100, goalProgress.totalProgress)}%`}}
                 ></div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {goalProgress.totalProgress >= 100 
                   ? '🎯 Total goal achieved!' 
                   : `${goals.totalGoal - goalProgress.totalApplications} more to go`
@@ -255,20 +255,20 @@ const GoalsTab: React.FC = () => {
             {/* Weekly Streak */}
             <div className="glass-card">
               <div className="flex items-center mb-4">
-                <Star className="h-6 w-6 text-yellow-600 mr-2" />
-                <h3 className="text-lg font-semibold text-gray-900">Weekly Streak</h3>
+                <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Weekly Streak</h3>
               </div>
               <div className="text-center py-6">
-                <div className="text-4xl font-bold text-yellow-600 mb-2">
+                <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-400 mb-2">
                   {goalProgress.weeklyStreak}
                 </div>
-                <div className="text-gray-600 mb-4">Weeks in a row</div>
+                <div className="text-gray-600 dark:text-gray-300 mb-4">Weeks in a row</div>
                 {goalProgress.weeklyStreak > 0 ? (
                   <div className="space-y-2">
-                    <div className="text-sm text-green-600 font-medium">
+                    <div className="text-sm text-green-600 dark:text-green-400 font-medium">
                       🔥 Amazing consistency!
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {goalProgress.weeklyStreak === 1 
                         ? 'First week down!' 
                         : goalProgress.weeklyStreak >= 5 
@@ -278,7 +278,7 @@ const GoalsTab: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     Start your streak this week!
                   </div>
                 )}
@@ -288,25 +288,25 @@ const GoalsTab: React.FC = () => {
             {/* Achievements */}
             <div className="glass-card">
               <div className="flex items-center mb-4">
-                <Trophy className="h-6 w-6 text-orange-600 mr-2" />
-                <h3 className="text-lg font-semibold text-gray-900">Achievements</h3>
+                <Trophy className="h-6 w-6 text-orange-600 dark:text-orange-400 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Achievements</h3>
               </div>
               <div className="space-y-4">
                 {/* First Application */}
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.totalApplications > 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+                      goalProgress.totalApplications > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}>
                       {goalProgress.totalApplications > 0 ? '✓' : '1'}
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900">First Application</div>
-                      <div className="text-sm text-gray-600">Submit your first job application</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">First Application</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">Submit your first job application</div>
                     </div>
                   </div>
                   {goalProgress.totalApplications > 0 && (
-                    <span className="text-green-600 text-sm font-medium">Unlocked!</span>
+                    <span className="text-green-600 dark:text-green-400 text-sm font-medium">Unlocked!</span>
                   )}
                 </div>
 
@@ -314,17 +314,17 @@ const GoalsTab: React.FC = () => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.weeklyProgress >= 100 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                      goalProgress.weeklyProgress >= 100 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}>
                       {goalProgress.weeklyProgress >= 100 ? '✓' : '5'}
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900">Weekly Goal Achiever</div>
-                      <div className="text-sm text-gray-600">Meet your weekly application target</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">Weekly Goal Achiever</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">Meet your weekly application target</div>
                     </div>
                   </div>
                   {goalProgress.weeklyProgress >= 100 && (
-                    <span className="text-blue-600 text-sm font-medium">Unlocked!</span>
+                    <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">Unlocked!</span>
                   )}
                 </div>
 
@@ -332,17 +332,17 @@ const GoalsTab: React.FC = () => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.weeklyStreak >= 3 ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'
+                      goalProgress.weeklyStreak >= 3 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}>
                       {goalProgress.weeklyStreak >= 3 ? '✓' : '3'}
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900">Streak Master</div>
-                      <div className="text-sm text-gray-600">Maintain a 3+ week streak</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">Streak Master</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">Maintain a 3+ week streak</div>
                     </div>
                   </div>
                   {goalProgress.weeklyStreak >= 3 && (
-                    <span className="text-purple-600 text-sm font-medium">Unlocked!</span>
+                    <span className="text-purple-600 dark:text-purple-400 text-sm font-medium">Unlocked!</span>
                   )}
                 </div>
               </div>
@@ -350,20 +350,20 @@ const GoalsTab: React.FC = () => {
           </div>
 
           {/* Tips & Motivation */}
-          <div className="glass-card bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200/30 dark:border-indigo-700/30">
+          <div className="glass-card bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-2 border-indigo-200/30 dark:border-indigo-700/30">
             <div className="text-center py-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">💡 Tips for Success</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">💡 Tips for Success</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left max-w-2xl mx-auto">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>• Set realistic goals:</strong> Start with achievable targets and increase gradually
                 </div>
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>• Track consistently:</strong> Log applications daily to maintain momentum
                 </div>
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>• Celebrate wins:</strong> Acknowledge every milestone, no matter how small
                 </div>
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>• Stay motivated:</strong> Remember why you started and where you want to go
                 </div>
               </div>
@@ -377,8 +377,8 @@ const GoalsTab: React.FC = () => {
           {/* Goal Settings Form */}
           <div className="glass-card">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Set Your Goals</h2>
-              <p className="text-sm text-gray-600">Configure your weekly, monthly, and total application targets</p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Set Your Goals</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Configure your weekly, monthly, and total application targets</p>
             </div>
 
             <div className="space-y-6">
@@ -400,7 +400,7 @@ const GoalsTab: React.FC = () => {
                         weeklyGoal: value === '' ? 0 : parseInt(value) || 0 
                       }));
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 5"
                   />
                   <span className="text-sm text-gray-500">applications per week</span>
@@ -426,7 +426,7 @@ const GoalsTab: React.FC = () => {
                         monthlyGoal: value === '' ? 0 : parseInt(value) || 0 
                       }));
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 20"
                   />
                   <span className="text-sm text-gray-500">applications per month</span>
@@ -452,7 +452,7 @@ const GoalsTab: React.FC = () => {
                         totalGoal: value === '' ? 0 : parseInt(value) || 0 
                       }));
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 100"
                   />
                   <span className="text-sm text-gray-500">total applications</span>
@@ -461,7 +461,7 @@ const GoalsTab: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setFormData({ weeklyGoal: 5, monthlyGoal: 20, totalGoal: 50 })}
                   className="px-4 py-2 text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg font-medium transition-colors text-sm"
@@ -496,32 +496,32 @@ const GoalsTab: React.FC = () => {
           </div>
 
           {/* Goal Guidelines */}
-          <div className="glass-card bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200/30 dark:border-green-700/30">
+          <div className="glass-card bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border-2 border-green-200/30 dark:border-green-700/30">
             <div className="text-center py-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">🎯 Goal Setting Guidelines</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">🎯 Goal Setting Guidelines</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-4xl mx-auto">
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <Clock className="h-6 w-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Weekly Goals</h4>
-                  <p className="text-sm text-gray-600">Start small and build momentum. 3-5 applications per week is a great starting point.</p>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Weekly Goals</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Start small and build momentum. 3-5 applications per week is a great starting point.</p>
                 </div>
                 
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Monthly Goals</h4>
-                  <p className="text-sm text-gray-600">Aim for consistency. Monthly goals should be achievable based on your weekly targets.</p>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Monthly Goals</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Aim for consistency. Monthly goals should be achievable based on your weekly targets.</p>
                 </div>
                 
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Target className="h-6 w-6 text-green-600" />
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Target className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Total Goals</h4>
-                  <p className="text-sm text-gray-600">Set ambitious but realistic long-term targets. Quality over quantity matters most.</p>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Total Goals</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Set ambitious but realistic long-term targets. Quality over quantity matters most.</p>
                 </div>
               </div>
             </div>

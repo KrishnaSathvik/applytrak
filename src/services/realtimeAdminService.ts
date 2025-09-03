@@ -142,6 +142,13 @@ export const realtimeAdminService = {
                 return [];
             }
 
+            // Check if we have a valid session before querying
+            const { data: { session } } = await client.auth.getSession();
+            if (!session?.user) {
+                console.log('❌ No active session - skipping user fetch');
+                return [];
+            }
+
             const {data: users, error} = await client
                 .from('users')
                 .select(`
@@ -160,6 +167,16 @@ export const realtimeAdminService = {
 
             if (error) {
                 console.error('❌ Failed to fetch users:', error);
+                
+                // Handle specific error codes
+                if (error.code === '42501') {
+                    console.error('❌ Permission denied - check RLS policies for users table');
+                } else if (error.code === '42P01') {
+                    console.error('❌ Users table does not exist');
+                } else if (error.code === 'PGRST116') {
+                    console.log('ℹ️ No users found in database');
+                }
+                
                 return [];
             }
 

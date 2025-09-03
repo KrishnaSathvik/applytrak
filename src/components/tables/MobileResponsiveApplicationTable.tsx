@@ -24,10 +24,13 @@ import {
     Eye as EyeIcon
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import {Application, Attachment, ApplicationStatus, JobType} from '../../types';
+import {Application, Attachment, ApplicationStatus} from '../../types';
 import BulkOperations from './BulkOperations';
 import {Modal} from '../ui/Modal';
 import {cn} from '../../utils/helpers';
+
+
+
 
 // Constants
 const ITEMS_PER_PAGE = 15;
@@ -60,12 +63,7 @@ interface PaginationData {
     showingTo: number;
 }
 
-// Row editing state interface
-interface EditingState {
-    id: string | null;
-    originalData: Partial<Application> | null;
-    editedData: Partial<Application> | null;
-}
+// No longer using inline editing - using EditApplicationModal instead
 
 // Utility function for consistent company colors
 const getCompanyColor = (companyName: string): string => {
@@ -391,62 +389,52 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }, []);
 
-    const handleDownload = useCallback(async (attachment: Attachment) => {
-        if (attachment.data) {
-            (async () => {
-                if (!attachment.data) {
-                    console.error('Attachment data is missing');
-                    return;
-                }
-                const res = await fetch(attachment.data);
-                const blob = await res.blob();
-                const objUrl = URL.createObjectURL(blob);
-                window.open(objUrl, '_blank', 'noopener,noreferrer');
-                setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
-            })();
-        } else if ((attachment as any).storagePath) {
-            // getAttachmentSignedUrl(...).then(u => window.open(u, '_blank', 'noopener,noreferrer'));
-        }
 
+
+    const handleDownload = useCallback(async (attachment: Attachment) => {
         try {
             setDownloadingId(attachment.id || attachment.name);
 
-            // Create blob from base64 data
-            if (!attachment.data) {
-                console.error('Attachment data is missing');
+            if (attachment.storagePath) {
+                // For cloud-stored attachments, we'd need to get a signed URL
+                alert('Cloud-stored attachments download is not yet implemented in this view.');
+                setDownloadingId(null);
                 return;
             }
-            const base64Data = attachment.data.includes(',')
-                ? attachment.data.split(',')[1]
-                : attachment.data;
+            
+            if (attachment.data) {
+                // If we already stored a Blob URL (blob:…), download directly
+                if (attachment.data.startsWith('blob:')) {
+                    const link = document.createElement('a');
+                    link.href = attachment.data;
+                    link.download = attachment.name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setDownloadingId(null);
+                    return;
+                }
 
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                // For data URLs, convert to blob and download
+                const res = await fetch(attachment.data);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = attachment.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                setDownloadingId(null);
+                return;
             }
-
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], {type: attachment.type});
-
-            // Create and trigger download
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = attachment.name;
-            link.style.display = 'none';
-
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // Clean up
-            window.URL.revokeObjectURL(url);
+            
+            alert('No file available to download.');
+            setDownloadingId(null);
         } catch (error) {
             console.error('Failed to download attachment:', error);
-            // You might want to show a toast notification here
-        } finally {
+            alert('Unable to download this attachment. Please try again.');
             setDownloadingId(null);
         }
     }, []);
@@ -504,21 +492,35 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
-                                            onClick={() => {
-                                                if (attachment.data) {
-                                                    const base64Data = attachment.data.includes(',')
-                                                        ? attachment.data.split(',')[1]
-                                                        : attachment.data;
-                                                    const byteCharacters = atob(base64Data);
-                                                    const byteNumbers = new Array(byteCharacters.length);
-                                                    for (let i = 0; i < byteCharacters.length; i++) {
-                                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                            onClick={async () => {
+                                                try {
+                                                    if (attachment.storagePath) {
+                                                        // For cloud-stored attachments, we'd need to get a signed URL
+                                                        alert('Cloud-stored attachments viewing is not yet implemented in this view.');
+                                                        return;
                                                     }
-                                                    const byteArray = new Uint8Array(byteNumbers);
-                                                    const blob = new Blob([byteArray], {type: attachment.type});
-                                                    const url = window.URL.createObjectURL(blob);
-                                                    window.open(url, '_blank', 'noopener,noreferrer');
-                                                    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+                                                    
+                                                    if (attachment.data) {
+                                                        // If we already stored a Blob URL (blob:…), open directly
+                                                        if (attachment.data.startsWith('blob:')) {
+                                                            window.open(attachment.data, '_blank', 'noopener,noreferrer');
+                                                            return;
+                                                        }
+
+                                                        // For data URLs, convert to blob URL
+                                                        const res = await fetch(attachment.data);
+                                                        const blob = await res.blob();
+                                                        const objUrl = URL.createObjectURL(blob);
+                                                        window.open(objUrl, '_blank', 'noopener,noreferrer');
+                                                        // revoke after a minute to give the new tab time to load
+                                                        setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
+                                                        return;
+                                                    }
+                                                    
+                                                    alert('No file available to view.');
+                                                } catch (error) {
+                                                    console.error('Failed to view attachment:', error);
+                                                    alert('Unable to view this attachment. Please try downloading it instead.');
                                                 }
                                             }}
                                             className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50"
@@ -893,18 +895,15 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         showToast
     } = useAppStore();
 
+
+
     // State management
     const [showRejected, setShowRejected] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     
-    // Row editing state
-    const [editingState, setEditingState] = useState<EditingState>({
-        id: null,
-        originalData: null,
-        editedData: null
-    });
+    // No longer using inline editing - using EditApplicationModal instead
 
     // Modal states
     const [notesModal, setNotesModal] = useState<ModalState<Application>>({
@@ -1079,43 +1078,12 @@ const MobileResponsiveApplicationTable: React.FC = () => {
 
 
     // Row editing handlers
-    const startRowEdit = useCallback((application: Application) => {
-        setEditingState({
-            id: application.id,
-            originalData: { ...application },
-            editedData: { ...application }
-        });
-    }, []);
-
-    const cancelRowEdit = useCallback(() => {
-        setEditingState({ id: null, originalData: null, editedData: null });
-    }, []);
-
-    const saveRowEdit = useCallback(async () => {
-        if (!editingState.id || !editingState.editedData) return;
-        
-        try {
-            // Update the application in the store
-            await updateApplication(editingState.id, editingState.editedData);
-            
-            // Show success message
-            showToast({
-                type: 'success',
-                message: 'Application updated successfully!'
-            });
-            
-            // Clear editing state
-            setEditingState({ id: null, originalData: null, editedData: null });
-        } catch (error) {
-            console.error('Failed to update application:', error);
-            
-            // Show error message
-            showToast({
-                type: 'error',
-                message: 'Failed to save your changes. Please try again.'
-            });
-        }
-    }, [editingState, updateApplication, showToast]);
+    // Edit modal handlers
+    const { openEditModal } = useAppStore();
+    
+    const handleEditClick = useCallback((application: Application) => {
+        openEditModal(application);
+    }, [openEditModal]);
 
     const handleDocumentAction = useCallback((action: 'view' | 'download' | 'copy', attachment: Attachment) => {
         switch (action) {
@@ -1316,12 +1284,8 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                     searchQuery={ui.searchQuery}
                     showRejected={showRejected}
                     getCompanyColor={getCompanyColorOptimized}
-                    startRowEdit={startRowEdit}
-                    cancelRowEdit={cancelRowEdit}
-                    saveRowEdit={saveRowEdit}
-                    setEditingState={setEditingState}
+                    handleEditClick={handleEditClick}
                     handleDocumentAction={handleDocumentAction}
-                    editingState={editingState}
                 />
                 ) : (
                     <DesktopTableView
@@ -1338,12 +1302,8 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         startIndex={paginationData.startIndex}
                         onSelectAll={handleSelectAll}
                         getCompanyColor={getCompanyColorOptimized}
-                        startRowEdit={startRowEdit}
-                        cancelRowEdit={cancelRowEdit}
-                        saveRowEdit={saveRowEdit}
-                        setEditingState={setEditingState}
+                        handleEditClick={handleEditClick}
                         handleDocumentAction={handleDocumentAction}
-                        editingState={editingState}
                         updateApplication={updateApplication}
                     />
                 )
@@ -1475,13 +1435,9 @@ interface ViewProps {
     searchQuery?: string;
     showRejected: boolean;
     getCompanyColor: (companyName: string) => string;
-    // Row editing functions
-    startRowEdit: (application: Application) => void;
-    cancelRowEdit: () => void;
-    saveRowEdit: () => Promise<void>;
-    setEditingState: React.Dispatch<React.SetStateAction<EditingState>>;
+    // Edit modal function
+    handleEditClick: (application: Application) => void;
     handleDocumentAction: (action: 'view' | 'download' | 'copy', attachment: Attachment) => void;
-    editingState: EditingState;
     // Application update function
     updateApplication?: (id: string, updates: Partial<Application>) => Promise<void>;
 }
@@ -1740,11 +1696,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                           startIndex,
                                                                                                           onSelectAll,
                                                                                                           getCompanyColor,
-                                                                                                          startRowEdit,
-                                                                                                          cancelRowEdit,
-                                                                                                          saveRowEdit,
-                                                                                                          setEditingState,
-                                                                                                          editingState,
+                                                                                                          handleEditClick,
                                                                                                           updateApplication
                                                                                                       }) => {
     if (applications.length === 0) {
@@ -1825,7 +1777,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                             <tr
                                 key={app.id}
                                 className={`group transition-colors duration-150 ${
-                                    editingState.id === app.id
+                                    false
                                         ? 'bg-blue-50 dark:bg-blue-900/10 border-l-4 border-l-blue-500'
                                         : selectedIds.includes(app.id)
                                         ? 'bg-blue-50 dark:bg-blue-900/20'
@@ -1861,53 +1813,21 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     <div className="flex items-center gap-2">
                                         <div
                                             className={`w-3 h-3 rounded-full border flex-shrink-0 ${companyColorClasses.split(' ')[0]} ${companyColorClasses.split(' ')[2]}`}/>
-                                        {editingState.id === app.id ? (
-                                            <input
-                                                type="text"
-                                                value={editingState.editedData?.company || app.company}
-                                                onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                    ...prev,
-                                                    editedData: { ...prev.editedData!, company: e.target.value }
-                                                }))}
-                                                placeholder="Enter company name"
-                                                className="text-sm font-extrabold text-gray-900 dark:text-gray-100 border border-blue-300 rounded px-2 py-1 w-full min-w-[200px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                                maxLength={50}
-                                                autoFocus
-                                            />
-                                        ) : (
-                                            <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100 whitespace-normal break-words block w-28">
-                                                {app.company}
-                                            </span>
-                                        )}
+                                        <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100 whitespace-normal break-words block w-28">
+                                            {app.company}
+                                        </span>
                                     </div>
                                 </td>
                                 <td className="w-32 px-2 py-2 text-left">
-                                    {editingState.id === app.id ? (
-                                        <input
-                                            type="text"
-                                            value={editingState.editedData?.position || app.position}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, position: e.target.value }
-                                            }))}
-                                            placeholder="Enter position"
-                                            className="text-sm font-semibold text-gray-800 dark:text-gray-200 border border-blue-300 rounded px-2 py-1 w-full min-w-[250px] focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                                            maxLength={100}
-                                        />
-                                    ) : (
-                                        <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-normal break-words block w-32">
-                                            {app.position}
-                                        </span>
-                                    )}
+                                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 whitespace-normal break-words block w-32">
+                                        {app.position}
+                                    </span>
                                 </td>
                                 <td className="w-16 px-2 py-2 text-center">
-                                    {editingState.id === app.id ? (
+                                    {false ? (
                                         <select
-                                            value={editingState.editedData?.type || app.type}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, type: e.target.value as JobType }
-                                            }))}
+                                            value={app.type}
+                                            onChange={() => {}}
                                             className="px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium min-w-[80px] transition-all duration-200"
                                         >
                                             {['Onsite', 'Remote', 'Hybrid'].map(type => (
@@ -1926,14 +1846,11 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     )}
                                 </td>
                                 <td className="w-24 px-2 py-2 text-left">
-                                    {editingState.id === app.id ? (
+                                    {false ? (
                                         <input
                                             type="text"
-                                            value={editingState.editedData?.location || app.location || ''}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, location: e.target.value }
-                                            }))}
+                                            value={app.location || ''}
+                                            onChange={() => {}}
                                             placeholder="Enter location"
                                             className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[150px] focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200"
                                             maxLength={50}
@@ -1945,14 +1862,11 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     )}
                                 </td>
                                 <td className="w-20 px-2 py-2 text-left">
-                                    {editingState.id === app.id ? (
+                                    {false ? (
                                         <input
                                             type="text"
-                                            value={editingState.editedData?.salary || app.salary || ''}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, salary: e.target.value }
-                                            }))}
+                                            value={app.salary || ''}
+                                            onChange={() => {}}
                                             placeholder="Enter salary"
                                             className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[120px] focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200"
                                             maxLength={20}
@@ -1964,14 +1878,11 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                     )}
                                 </td>
                                 <td className="w-24 px-2 py-2 text-left">
-                                    {editingState.id === app.id ? (
+                                    {false ? (
                                         <input
                                             type="text"
-                                            value={editingState.editedData?.jobSource || app.jobSource || ''}
-                                            onChange={(e) => setEditingState((prev: EditingState) => ({
-                                                ...prev,
-                                                editedData: { ...prev.editedData!, jobSource: e.target.value }
-                                            }))}
+                                            value={app.jobSource || ''}
+                                            onChange={() => {}}
                                             placeholder="Enter source"
                                             className="text-sm text-gray-700 dark:text-gray-300 border border-blue-300 rounded px-2 py-1 w-full min-w-[120px] focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium transition-all duration-200"
                                             maxLength={30}
@@ -2026,10 +1937,10 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                 </td>
                                 <td className="w-20 px-2 py-2 text-center">
                                     <div className="flex items-center justify-center space-x-1">
-                                        {editingState.id === app.id ? (
+                                        {false ? (
                                             <>
                                                 <button
-                                                    onClick={saveRowEdit}
+                                                    onClick={() => {}}
                                                     className="inline-flex items-center justify-center w-7 h-7 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors duration-150"
                                                     title="Save changes"
                                                     aria-label="Save changes"
@@ -2037,7 +1948,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                     <Check className="h-3.5 w-3.5"/>
                                                 </button>
                                                 <button
-                                                    onClick={cancelRowEdit}
+                                                    onClick={() => {}}
                                                     className="inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors duration-150"
                                                     title="Cancel editing"
                                                     aria-label="Cancel editing"
@@ -2048,7 +1959,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         ) : (
                                             <>
                                                 <button
-                                                    onClick={() => startRowEdit(app)}
+                                                    onClick={() => handleEditClick(app)}
                                                     className="inline-flex items-center justify-center w-7 h-7 rounded-full text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors duration-150"
                                                     title="Edit application"
                                                     aria-label="Edit application"

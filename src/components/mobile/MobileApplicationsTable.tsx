@@ -20,6 +20,8 @@ import { useAppStore } from '../../store/useAppStore';
 import { Application, Attachment } from '../../types';
 import { Modal } from '../ui/Modal';
 
+
+
 // Notes Modal Content Component
 interface NotesModalContentProps {
   application: Application;
@@ -187,27 +189,35 @@ interface ResumeModalContentProps {
 const ResumeModalContent: React.FC<ResumeModalContentProps> = ({ application }) => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
+
+
   const handleDownload = async (attachment: Attachment) => {
-    if (attachment.data) {
-      try {
-        setDownloadingId(attachment.id || attachment.name);
-        
-        // Create blob from base64 data
-        const base64Data = attachment.data.includes(',')
-          ? attachment.data.split(',')[1]
-          : attachment.data;
-
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+    try {
+      setDownloadingId(attachment.id || attachment.name);
+      
+      if (attachment.storagePath) {
+        // For cloud-stored attachments, we'd need to get a signed URL
+        alert('Cloud-stored attachments download is not yet implemented in this view.');
+        setDownloadingId(null);
+        return;
+      }
+      
+      if (attachment.data) {
+        // If we already stored a Blob URL (blob:…), download directly
+        if (attachment.data.startsWith('blob:')) {
+          const link = document.createElement('a');
+          link.href = attachment.data;
+          link.download = attachment.name;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setDownloadingId(null);
+          return;
         }
 
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: attachment.type });
-        
-        // Create download link
+        // For data URLs, convert to blob and download
+        const res = await fetch(attachment.data);
+        const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -216,37 +226,49 @@ const ResumeModalContent: React.FC<ResumeModalContentProps> = ({ application }) 
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
         setDownloadingId(null);
-      } catch (error) {
-        console.error('Failed to download attachment:', error);
-        setDownloadingId(null);
+        return;
       }
+      
+      alert('No file available to download.');
+      setDownloadingId(null);
+    } catch (error) {
+      console.error('Failed to download attachment:', error);
+      alert('Unable to download this attachment. Please try again.');
+      setDownloadingId(null);
     }
   };
 
-  const handleView = (attachment: Attachment) => {
-    if (attachment.data) {
-      try {
-        const base64Data = attachment.data.includes(',')
-          ? attachment.data.split(',')[1]
-          : attachment.data;
-
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+  const handleView = async (attachment: Attachment) => {
+    try {
+      if (attachment.storagePath) {
+        // For cloud-stored attachments, we'd need to get a signed URL
+        // For now, show a message that this needs to be implemented
+        alert('Cloud-stored attachments viewing is not yet implemented in this view.');
+        return;
+      }
+      
+      if (attachment.data) {
+        // If we already stored a Blob URL (blob:…), open directly
+        if (attachment.data.startsWith('blob:')) {
+          window.open(attachment.data, '_blank', 'noopener,noreferrer');
+          return;
         }
 
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: attachment.type });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener,noreferrer');
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-      } catch (error) {
-        console.error('Failed to view attachment:', error);
+        // For data URLs, convert to blob URL
+        const res = await fetch(attachment.data);
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        window.open(objUrl, '_blank', 'noopener,noreferrer');
+        // revoke after a minute to give the new tab time to load
+        setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
+        return;
       }
+      
+      alert('No file available to view.');
+    } catch (error) {
+      console.error('Failed to view attachment:', error);
+      alert('Unable to view this attachment. Please try downloading it instead.');
     }
   };
 

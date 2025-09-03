@@ -27,21 +27,21 @@ const MobileApplicationsTab: React.FC = () => {
     <div className="mobile-content">
       <div className="mobile-space-y-4">
       {/* Header Section */}
-      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
+      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mobile-gap-4">
           <div className="space-y-1">
-            <h1 className="mobile-text-xl font-bold text-gray-900">
+            <h1 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100">
               Applications
             </h1>
-            <p className="mobile-text-sm text-gray-600">
+            <p className="mobile-text-sm text-gray-600 dark:text-gray-300">
               Track and manage your job applications
             </p>
-            <div className="flex flex-wrap items-center mobile-gap-2 mobile-text-sm text-gray-500">
+            <div className="flex flex-wrap items-center mobile-gap-2 mobile-text-sm text-gray-500 dark:text-gray-400">
               <span>Total: {applications.length}</span>
               <span>Active: {applications.filter(app => app.status !== 'Rejected').length}</span>
               <span>Interviews: {applications.filter(app => app.status === 'Interview').length}</span>
               {!auth.isAuthenticated && (
-                <span className="text-blue-600 font-semibold">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">
                   Free Tier: {applications.length}/50
                 </span>
               )}
@@ -63,28 +63,28 @@ const MobileApplicationsTab: React.FC = () => {
       {applications.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
           <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
               {applications.filter(app => app.status === 'Applied').length}
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Applied</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Applied</div>
           </div>
           <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 mb-1">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 dark:text-yellow-400 mb-1">
               {applications.filter(app => app.status === 'Interview').length}
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Interviews</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Interviews</div>
           </div>
           <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
               {applications.filter(app => app.status === 'Offer').length}
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Offers</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Offers</div>
           </div>
           <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mb-1">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400 mb-1">
               {applications.filter(app => app.status === 'Rejected').length}
             </div>
-            <div className="text-xs sm:text-sm text-gray-600">Rejected</div>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Rejected</div>
           </div>
         </div>
       )}
@@ -92,8 +92,8 @@ const MobileApplicationsTab: React.FC = () => {
       {/* Add Application Form - Always Visible */}
       <div className="glass-card">
         <div className="mb-4">
-          <h2 className="mobile-text-lg font-semibold text-gray-900">Add New Application</h2>
-          <p className="mobile-text-sm text-gray-600">Fill out the details below to track your job application</p>
+          <h2 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100">Add New Application</h2>
+          <p className="mobile-text-sm text-gray-600 dark:text-gray-300">Fill out the details below to track your job application</p>
         </div>
         <MobileApplicationForm onSuccess={() => {}} />
       </div>
@@ -101,8 +101,8 @@ const MobileApplicationsTab: React.FC = () => {
       {/* Applications Table */}
       <div className="glass-card">
         <div className="mb-4">
-          <h2 className="mobile-text-lg font-semibold text-gray-900">Your Applications</h2>
-          <p className="mobile-text-sm text-gray-600">
+          <h2 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100">Your Applications</h2>
+          <p className="mobile-text-sm text-gray-600 dark:text-gray-300">
             Showing {filteredApplications.length} of {applications.length} applications
           </p>
         </div>

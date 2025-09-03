@@ -8,7 +8,7 @@ import {
     UserPlus
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
-import ApplyTrakLogo from '../ui/ApplyTrakLogo';
+
 
 
 
@@ -113,21 +113,9 @@ const Header: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [mobileMenuOpen]);
 
-    // Theme management
-    useEffect(() => {
-        const isDark = ui.theme === 'dark';
-        document.documentElement.classList.toggle('dark', isDark);
-        document.body.classList.toggle('dark', isDark);
-    }, [ui.theme]);
-
     const handleThemeToggle = () => {
         const newTheme = ui.theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
-        const isDark = newTheme === 'dark';
-        document.documentElement.classList.toggle('dark', isDark);
-        document.body.classList.toggle('dark', isDark);
-        localStorage.setItem('theme', newTheme);
-        document.documentElement.style.colorScheme = newTheme;
     };
 
     // Authentication handlers
@@ -155,14 +143,6 @@ const Header: React.FC = () => {
                     <div className="flex items-center space-x-6 flex-1 min-w-0">
                         {/* Brand Section */}
                         <div className="flex items-center space-x-3 sm:space-x-4">
-                            <div className="relative">
-                                <ApplyTrakLogo size="xl" className="transition-transform duration-300 hover:scale-110" showText={false}/>
-                                {auth.isAuthenticated && (
-                                    <div
-                                        className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"/>
-                                )}
-                            </div>
-
                             <div className="min-w-0">
                                 <h1 className="font-display text-base sm:text-lg lg:text-xl font-bold text-gradient-static tracking-tight truncate">
                                     ApplyTrak

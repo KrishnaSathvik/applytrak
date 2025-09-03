@@ -288,13 +288,13 @@ const FeedbackModal: React.FC = () => {
             isOpen={modals.feedback.isOpen}
             onClose={closeFeedbackModal}
             title="Share Your Feedback"
-            size="lg"
+            size="md"
             variant="primary"
         >
-            <div className="space-y-8">
+            <div className="space-y-6">
                 {/* Feedback Type Selection */}
                 <div>
-                    <div className="card-header mb-6">
+                    <div className="card-header mb-4">
                         <h3 className="text-xl font-bold text-white tracking-tight">What would you like to share?</h3>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -313,8 +313,8 @@ const FeedbackModal: React.FC = () => {
                                 type="button"
                                 onClick={() => setFeedbackType(type)}
                                 className={`
-                  glass-card p-6 rounded-2xl border-2 transition-all duration-300 
-                  flex flex-col items-center gap-4 text-center group
+                  glass-card p-4 rounded-2xl border-2 transition-all duration-300 
+                  flex flex-col items-center gap-3 text-center group
                   hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20
                   ${feedbackType === type
                                     ? `border-${gradient.split('-')[1]}-300 dark:border-${gradient.split('-')[1]}-600 shadow-lg scale-105`
@@ -325,14 +325,14 @@ const FeedbackModal: React.FC = () => {
                                 aria-describedby={`feedback-type-${type}-desc`}
                             >
                                 <div className={`
-                  w-16 h-16 rounded-full flex items-center justify-center
+                  w-12 h-12 rounded-full flex items-center justify-center
                   ${feedbackType === type 
                     ? `bg-gradient-to-br ${gradient} text-white shadow-lg` 
                     : `${bgColor} ${color}`
                   }
                   transition-all duration-300 group-hover:scale-110
                 `}>
-                                    <Icon className="h-8 w-8"/>
+                                    <Icon className="h-6 w-6"/>
                                 </div>
                                 <div>
                   <span className="text-lg font-bold text-gray-900 dark:text-gray-100 block mb-2">
@@ -351,22 +351,22 @@ const FeedbackModal: React.FC = () => {
                 </div>
 
                 {/* Rating */}
-                <div className="glass-card p-6">
-                    <div className="card-header mb-6">
+                <div className="glass-card p-4">
+                    <div className="card-header mb-4">
                         <h3 className="text-xl font-bold text-white tracking-tight">How would you rate ApplyTrak?</h3>
                     </div>
-                    <div className="flex gap-2 justify-center mb-6">
+                    <div className="flex gap-1 justify-center mb-4">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <button
                                 key={star}
                                 type="button"
                                 onClick={() => setRating(star)}
-                                className="transition-all duration-300 hover:scale-125 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                className="transition-all duration-300 hover:scale-125 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 hover:bg-gray-100 dark:hover:bg-gray-800"
                                 title={`Rate ${star} star${star !== 1 ? 's' : ''}`}
                                 aria-label={`Rate ${star} star${star !== 1 ? 's' : ''}`}
                             >
                                 <Star
-                                    className={`h-10 w-10 transition-all duration-300 ${
+                                    className={`h-8 w-8 transition-all duration-300 ${
                                         star <= rating
                                             ? 'text-yellow-400 fill-yellow-400 drop-shadow-lg'
                                             : 'text-gray-300 dark:text-gray-600 hover:text-yellow-300'
@@ -376,18 +376,18 @@ const FeedbackModal: React.FC = () => {
                         ))}
                     </div>
                     <div className="text-center">
-                        <div className="text-4xl mb-3" role="img" aria-label={getRatingLabel(rating).text}>
+                        <div className="text-2xl mb-2" role="img" aria-label={getRatingLabel(rating).text}>
                             {getRatingLabel(rating).emoji}
                         </div>
-                        <p className={`text-xl font-bold ${getRatingLabel(rating).color}`}>
+                        <p className={`text-lg font-bold ${getRatingLabel(rating).color}`}>
                             {getRatingLabel(rating).text}
                         </p>
                     </div>
                 </div>
 
                 {/* Message */}
-                <div className="glass-card p-6">
-                    <div className="card-header mb-6">
+                <div className="glass-card p-4">
+                    <div className="card-header mb-4">
                         <h3 className="text-xl font-bold text-white tracking-tight">
                             Tell us more
                             <span className="text-red-300 ml-1" aria-label="required">*</span>
@@ -399,7 +399,7 @@ const FeedbackModal: React.FC = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={getPlaceholderText()}
-                rows={6}
+                rows={4}
                 maxLength={2000}
                 required
                 className={`
@@ -410,7 +410,7 @@ const FeedbackModal: React.FC = () => {
                 }
               `}
                 aria-describedby="message-help message-error"
-                style={{minHeight: '140px'}}
+                style={{minHeight: '100px'}}
             />
                         {!validation.message.isValid && validation.message.error && (
                             <div className="absolute inset-y-0 right-4 flex items-start pt-4">
@@ -443,8 +443,8 @@ const FeedbackModal: React.FC = () => {
                 </div>
 
                 {/* Email (Optional) */}
-                <div className="glass-card p-6">
-                    <div className="card-header mb-6">
+                <div className="glass-card p-4">
+                    <div className="card-header mb-4">
                         <h3 className="text-xl font-bold text-white tracking-tight">Email (optional - for follow-up)</h3>
                     </div>
                     <div className="relative">
@@ -519,7 +519,7 @@ const FeedbackModal: React.FC = () => {
                 )}
 
                 {/* Privacy Note */}
-                <div className="glass-card p-6 border border-blue-200/50 dark:border-blue-700/50">
+                <div className="glass-card p-4 border border-blue-200/50 dark:border-blue-700/50">
                     <div className="flex items-start gap-4">
                         <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
                             <span className="text-blue-600 dark:text-blue-400 text-lg">🔒</span>

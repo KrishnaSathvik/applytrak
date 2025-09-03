@@ -58,7 +58,7 @@ const MobileNavigation: React.FC = () => {
   };
 
   return (
-    <nav className="mobile-nav">
+    <nav className="mobile-nav bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = ui.selectedTab === item.id;
@@ -67,7 +67,7 @@ const MobileNavigation: React.FC = () => {
           <button
             key={item.id}
             onClick={() => handleTabClick(item.id)}
-            className={`mobile-nav-item ${isActive ? 'active' : ''}`}
+            className={`mobile-nav-item ${isActive ? 'active' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100`}
             aria-label={item.description}
             title={item.description}
           >
@@ -76,7 +76,7 @@ const MobileNavigation: React.FC = () => {
               {item.label}
             </span>
             {isActive && (
-              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full" />
+              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full" />
             )}
           </button>
         );

@@ -97,13 +97,13 @@ const MobileGoalsTab: React.FC = () => {
     <div className="mobile-content">
       <div className="mobile-space-y-6">
       {/* Header Section */}
-      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30">
+      <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30">
         <div className="text-center py-8">
-          <Target className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-          <h1 className="mobile-text-xl font-bold text-gray-900 mb-2">
+          <Target className="h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <h1 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Goal Setting & Progress
           </h1>
-          <p className="mobile-text-sm text-gray-600 mb-4">
+          <p className="mobile-text-sm text-gray-600 dark:text-gray-300 mb-4">
             Set targets, track progress, and celebrate your achievements
           </p>
         </div>
@@ -148,26 +148,26 @@ const MobileGoalsTab: React.FC = () => {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <Calendar className="h-6 w-6 text-blue-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Weekly Goal</h3>
+                  <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Weekly Goal</h3>
                 </div>
                 <span className={`text-2xl font-bold ${getProgressColor(weeklyProgress)}`}>
                   {Math.round(weeklyProgress)}%
                 </span>
               </div>
               <div className="mb-4">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
+                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                   {currentWeekApps}/{goals.weeklyGoal}
                 </div>
-                <div className="text-gray-600">Applications this week</div>
+                <div className="text-gray-600 dark:text-gray-400">Applications this week</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
                 <div 
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressColor(weeklyProgress)}`}
                   style={{width: `${Math.min(100, weeklyProgress)}%`}}
                 ></div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {weeklyProgress >= 100 
                   ? '🎯 Weekly goal achieved!' 
                   : `${goals.weeklyGoal - currentWeekApps} more to go`
@@ -179,26 +179,26 @@ const MobileGoalsTab: React.FC = () => {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <TrendingUp className="h-6 w-6 text-purple-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Monthly Goal</h3>
+                  <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Monthly Goal</h3>
                 </div>
                 <span className={`text-2xl font-bold ${getProgressColor(monthlyProgress)}`}>
                   {Math.round(monthlyProgress)}%
                 </span>
               </div>
               <div className="mb-4">
-                <div className="text-3xl font-bold text-purple-600 mb-1">
+                <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
                   {currentMonthApps}/{goals.monthlyGoal}
                 </div>
-                <div className="text-gray-600">Applications this month</div>
+                <div className="text-gray-600 dark:text-gray-400">Applications this month</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
                 <div 
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressColor(monthlyProgress)}`}
                   style={{width: `${Math.min(100, monthlyProgress)}%`}}
                 ></div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {monthlyProgress >= 100 
                   ? '🎯 Monthly goal achieved!' 
                   : `${goals.monthlyGoal - currentMonthApps} more to go`
@@ -210,26 +210,26 @@ const MobileGoalsTab: React.FC = () => {
             <div className="card">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <Award className="h-6 w-6 text-green-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Total Goal</h3>
+                  <Award className="h-6 w-6 text-green-600 dark:text-green-400 mr-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Total Goal</h3>
                 </div>
                 <span className={`text-2xl font-bold ${getProgressColor(totalProgress)}`}>
                   {Math.round(totalProgress)}%
                 </span>
               </div>
               <div className="mb-4">
-                <div className="text-3xl font-bold text-green-600 mb-1">
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
                   {totalApps}/{goals.totalGoal}
                 </div>
-                <div className="text-gray-600">Total applications</div>
+                <div className="text-gray-600 dark:text-gray-400">Total applications</div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3">
                 <div 
                   className={`h-3 rounded-full transition-all duration-500 ${getProgressColor(totalProgress)}`}
                   style={{width: `${Math.min(100, totalProgress)}%`}}
                 ></div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {totalProgress >= 100 
                   ? '🎯 Total goal achieved!' 
                   : `${goals.totalGoal - totalApps} more to go`
@@ -246,8 +246,8 @@ const MobileGoalsTab: React.FC = () => {
           {/* Goal Settings Form */}
           <div className="glass-card">
             <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Set Your Goals</h2>
-              <p className="text-sm text-gray-600">Configure your weekly, monthly, and total application targets</p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Set Your Goals</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Configure your weekly, monthly, and total application targets</p>
             </div>
 
             <div className="space-y-6">
@@ -272,9 +272,9 @@ const MobileGoalsTab: React.FC = () => {
                     className="mobile-form-input flex-1"
                     placeholder="e.g., 5"
                   />
-                  <span className="text-sm text-gray-500">applications per week</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">applications per week</span>
                 </div>
-                <p className="text-xs text-gray-500">Recommended: 3-10 applications per week</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Recommended: 3-10 applications per week</p>
               </div>
 
               {/* Monthly Goal */}
@@ -298,9 +298,9 @@ const MobileGoalsTab: React.FC = () => {
                     className="mobile-form-input flex-1"
                     placeholder="e.g., 20"
                   />
-                  <span className="text-sm text-gray-500">applications per month</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">applications per month</span>
                 </div>
-                <p className="text-xs text-gray-500">Recommended: 15-50 applications per month</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Recommended: 15-50 applications per month</p>
               </div>
 
               {/* Total Goal */}
@@ -324,13 +324,13 @@ const MobileGoalsTab: React.FC = () => {
                     className="mobile-form-input flex-1"
                     placeholder="e.g., 100"
                   />
-                  <span className="text-sm text-gray-500">total applications</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">total applications</span>
                 </div>
-                <p className="text-xs text-gray-500">Recommended: 50-200 total applications</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Recommended: 50-200 total applications</p>
               </div>
 
               {/* Action Buttons */}
-              <div className="mobile-flex mobile-flex-col mobile-gap-4 pt-4 border-t border-gray-200">
+              <div className="mobile-flex mobile-flex-col mobile-gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setFormData({ weeklyGoal: 5, monthlyGoal: 20, totalGoal: 50 })}
                   className="btn btn-secondary mobile-text-sm"

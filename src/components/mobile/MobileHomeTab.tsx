@@ -34,7 +34,7 @@ const MobileHomeTab: React.FC = () => {
       {/* Hero Section - Mobile Optimized */}
       <section className="py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30 relative overflow-hidden">
+          <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30 relative overflow-hidden">
             {/* Background Logo Watermark */}
             <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
               <img 
@@ -46,7 +46,7 @@ const MobileHomeTab: React.FC = () => {
             <div className="text-center py-8 relative z-10">
               {/* New App Badge */}
               <div className="flex justify-center mb-4">
-                <div className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                <div className="inline-flex items-center px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">
                   <Star className="h-3 w-3 mr-1.5 fill-current" />
                   Professional Job Application Tracker
                 </div>
@@ -61,7 +61,7 @@ const MobileHomeTab: React.FC = () => {
                 />
               </div>
               
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
                 Track Your Job Applications
               </h1>
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed">
@@ -79,13 +79,13 @@ const MobileHomeTab: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={handleImportApplications}
-                    className="flex-1 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 text-sm px-4 py-2 rounded-lg font-semibold transition-all duration-200"
+                    className="flex-1 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm px-4 py-2 rounded-lg font-semibold transition-all duration-200"
                   >
                     Import Data
                   </button>
                   <button
                     onClick={handleStartTour}
-                    className="flex-1 border-2 border-green-600 text-green-600 hover:bg-green-50 text-sm px-4 py-2 rounded-lg font-semibold transition-all duration-200"
+                    className="flex-1 border-2 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 text-sm px-4 py-2 rounded-lg font-semibold transition-all duration-200"
                   >
                     Take Tour
                   </button>
@@ -95,15 +95,15 @@ const MobileHomeTab: React.FC = () => {
               {/* Feature Highlights */}
               <div className="grid grid-cols-1 gap-3 max-w-2xl mx-auto">
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                   <span>Unlimited applications</span>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
-                  <Zap className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                  <Zap className="h-4 w-4 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
                   <span>Import from CSV/Excel</span>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
-                  <Shield className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  <Shield className="h-4 w-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
                   <span>100% private & secure</span>
                 </div>
               </div>
@@ -115,7 +115,7 @@ const MobileHomeTab: React.FC = () => {
       {/* Problem Section - Mobile Optimized */}
       <section className="py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="glass-card bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200/30 dark:border-red-700/30 mb-8">
+          <div className="glass-card bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-2 border-red-200/30 dark:border-red-700/30 mb-8">
             <div className="text-center py-8">
               <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">
                 Job Hunting Can Be Overwhelming
@@ -129,10 +129,10 @@ const MobileHomeTab: React.FC = () => {
           <div className="grid gap-6">
             <div className="glass-card p-4">
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 bg-red-100 rounded-full flex items-center justify-center">
-                  <X className="h-6 w-6 text-red-600" />
+                <div className="w-12 h-12 mx-auto mb-3 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                  <X className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Scattered Information</h3>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Scattered Information</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Job details spread across emails, spreadsheets, and sticky notes.
                 </p>
@@ -141,10 +141,10 @@ const MobileHomeTab: React.FC = () => {
             
             <div className="glass-card p-4">
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 bg-red-100 rounded-full flex items-center justify-center">
-                  <X className="h-6 w-6 text-red-600" />
+                <div className="w-12 h-12 mx-auto mb-3 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                  <X className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Missed Follow-ups</h3>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Missed Follow-ups</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Forgetting to follow up on applications or missing important deadlines.
                 </p>
@@ -153,10 +153,10 @@ const MobileHomeTab: React.FC = () => {
             
             <div className="glass-card p-4">
               <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 bg-red-100 rounded-full flex items-center justify-center">
-                  <X className="h-6 w-6 text-red-600" />
+                <div className="w-12 h-12 mx-auto mb-3 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                  <X className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">No Progress Tracking</h3>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">No Progress Tracking</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Hard to see if you're making progress or need to adjust your strategy.
                 </p>
@@ -169,9 +169,9 @@ const MobileHomeTab: React.FC = () => {
       {/* Solution Section - Mobile Optimized */}
       <section className="py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200/30 dark:border-blue-700/30 mb-12">
+          <div className="glass-card bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-2 border-blue-200/30 dark:border-blue-700/30 mb-12">
             <div className="text-center py-8">
-              <h2 className="text-2xl font-bold mb-3">
+              <h2 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">
                 ApplyTrak Makes It Simple
               </h2>
               <p className="text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto">
@@ -184,10 +184,10 @@ const MobileHomeTab: React.FC = () => {
             {/* Feature 1: Goal Setting */}
             <div className="glass-card p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Target className="h-5 w-5 text-blue-600" />
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold">Set Meaningful Goals</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Set Meaningful Goals</h3>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
                 Set weekly and monthly application targets to keep yourself motivated and on track. 
@@ -195,16 +195,16 @@ const MobileHomeTab: React.FC = () => {
               </p>
               <ul className="space-y-2">
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Weekly and monthly targets</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Weekly and monthly targets</span>
                 </li>
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Visual progress tracking</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Visual progress tracking</span>
                 </li>
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Stay motivated with streaks</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Stay motivated with streaks</span>
                 </li>
               </ul>
             </div>
@@ -212,10 +212,10 @@ const MobileHomeTab: React.FC = () => {
             {/* Feature 2: Analytics */}
             <div className="glass-card p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <BarChart3 className="h-5 w-5 text-green-600" />
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold">Track Your Progress</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Track Your Progress</h3>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
                 See your application pipeline at a glance. Track how many applications you've sent, 
@@ -223,16 +223,16 @@ const MobileHomeTab: React.FC = () => {
               </p>
               <ul className="space-y-2">
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Application status tracking</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Application status tracking</span>
                 </li>
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Interview and offer tracking</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Interview and offer tracking</span>
                 </li>
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Simple visual charts</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Simple visual charts</span>
                 </li>
               </ul>
             </div>
@@ -240,10 +240,10 @@ const MobileHomeTab: React.FC = () => {
             {/* Feature 3: Import */}
             <div className="glass-card p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Upload className="h-5 w-5 text-purple-600" />
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                  <Upload className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold">Import Your Data</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Import Your Data</h3>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
                 Don't start from scratch. Import your existing applications from spreadsheets 
@@ -251,16 +251,16 @@ const MobileHomeTab: React.FC = () => {
               </p>
               <ul className="space-y-2">
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>CSV and Excel import</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">CSV and Excel import</span>
                 </li>
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Smart field mapping</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Smart field mapping</span>
                 </li>
                 <li className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Quick setup process</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Quick setup process</span>
                 </li>
               </ul>
             </div>
@@ -283,8 +283,8 @@ const MobileHomeTab: React.FC = () => {
           <div className="grid gap-6">
             <div className="glass-card p-4 text-center">
               <div className="flex justify-center mb-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Secure Cloud Sync</h3>
@@ -293,8 +293,8 @@ const MobileHomeTab: React.FC = () => {
             
             <div className="glass-card p-4 text-center">
               <div className="flex justify-center mb-3">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <Zap className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <Zap className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Works Offline & Online</h3>
@@ -303,8 +303,8 @@ const MobileHomeTab: React.FC = () => {
             
             <div className="glass-card p-4 text-center">
               <div className="flex justify-center mb-3">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Award className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                  <Award className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Professional Quality</h3>

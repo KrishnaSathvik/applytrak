@@ -1,7 +1,7 @@
 // src/components/layout/Footer.tsx
 import React, {useMemo} from 'react';
 import {Github, Heart, Mail, MessageSquare} from 'lucide-react';
-import ApplyTrakLogo from '../ui/ApplyTrakLogo';
+
 import {useAppStore} from '../../store/useAppStore';
 
 const Footer: React.FC = () => {
@@ -19,7 +19,8 @@ const Footer: React.FC = () => {
             modalState?.recovery?.isOpen ||
             modalState?.feedback?.isOpen ||
             modalState?.adminLogin?.isOpen ||
-            modalState?.privacySettings?.isOpen;
+            modalState?.privacySettings?.isOpen ||
+            modalState?.editApplication?.isOpen;
     }, [modalState]);
 
     const handleFeedbackClick = () => {
@@ -42,12 +43,6 @@ const Footer: React.FC = () => {
                     
                     {/* Left: Brand Section */}
                     <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                        <div className="flex items-center gap-3">
-                            <ApplyTrakLogo size="sm"/>
-                        </div>
-                        
-                        <div className="hidden sm:block w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
-                        
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <span>© {currentYear} ApplyTrak</span>
                             <span className="hidden sm:inline">•</span>

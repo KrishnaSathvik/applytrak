@@ -239,8 +239,28 @@ function randomToken(): string {
 /** Maps auth.uid() -> users.id (bigint). Requires SQL function `public.current_user_id()` */
 export async function getCurrentUserId(): Promise<number> {
     if (!supabase) throw new Error('Supabase client not initialized');
+    
+    // Check if we have a valid session first
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+        throw new Error("No active authentication session");
+    }
+    
     const {data, error} = await supabase.rpc("current_user_id");
-    if (error || data == null) throw error ?? new Error("current_user_id() returned null");
+    if (error) {
+        console.error('❌ current_user_id RPC error:', error);
+        // If the RPC fails, try to get the user ID directly
+        const userId = await getUserDbId();
+        if (userId) return userId;
+        throw error;
+    }
+    if (data == null) {
+        console.warn('⚠️ current_user_id() returned null, user may not exist in users table');
+        // Try to get the user ID directly as fallback
+        const userId = await getUserDbId();
+        if (userId) return userId;
+        throw new Error("current_user_id() returned null and no fallback user ID found");
+    }
     return data as number;
 }
 
@@ -533,6 +553,20 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
 
         console.log('📝 Creating user record for:', currentUser.email);
 
+        // First check if user already exists to avoid conflicts
+        const {data: existingUser} = await client
+            .from('users')
+            .select('id, email, isadmin')
+            .eq('externalid', authUserId)
+            .maybeSingle();
+
+        if (existingUser) {
+            console.log('✅ User already exists, using existing record');
+            const dbId = parseInt(existingUser.id.toString());
+            localStorage.setItem('applytrak_user_db_id', dbId.toString());
+            return dbId;
+        }
+
         const {data: newUser, error: createError} = await client
             .from('users')
             .insert({
@@ -554,8 +588,9 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
         if (createError) {
             console.error('❌ Error creating user:', createError);
 
+            // Handle specific error codes
             if (createError.code === '23505') {
-                console.log('🔄 User already exists, fetching existing record...');
+                console.log('🔄 Duplicate key error - user already exists, fetching existing record...');
                 const {data: existingUser} = await client
                     .from('users')
                     .select('id, email, isadmin')
@@ -567,6 +602,11 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
                     localStorage.setItem('applytrak_user_db_id', dbId.toString());
                     return dbId;
                 }
+            }
+
+            if (createError.code === '42501') {
+                console.error('❌ Permission denied - check RLS policies');
+                return null;
             }
 
             return null;

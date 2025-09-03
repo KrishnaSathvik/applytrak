@@ -149,6 +149,7 @@ textarea:focus {
   z-index: 100;
   display: flex;
   justify-content: space-around;
+  transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease;
 }
 
 .mobile-nav-item {
@@ -161,10 +162,15 @@ textarea:focus {
   font-size: 12px;
   min-height: 44px;
   justify-content: center;
+  transition: color var(--duration-normal) ease;
 }
 
 .mobile-nav-item.active {
   color: var(--color-primary, #3b82f6);
+}
+
+.mobile-nav-item:hover {
+  color: var(--color-text-primary, #0f172a);
 }
 
 .mobile-nav-item svg {
@@ -201,12 +207,24 @@ textarea:focus {
   color: var(--color-text-primary, #0f172a);
   margin: 0 0 2px 0;
   line-height: 1.3;
+  transition: color var(--duration-normal) ease;
+}
+
+/* Dark mode styles for mobile app company */
+:root.dark .mobile-app-company {
+  color: var(--color-text-primary, #f8fafc);
 }
 
 .mobile-app-position {
   font-size: 14px;
   color: var(--color-text-secondary, #64748b);
   margin: 0;
+  transition: color var(--duration-normal) ease;
+}
+
+/* Dark mode styles for mobile app position */
+:root.dark .mobile-app-position {
+  color: var(--color-text-secondary, #cbd5e1);
 }
 
 .mobile-app-actions {
@@ -256,6 +274,12 @@ textarea:focus {
   font-weight: 500;
   display: flex;
   align-items: center;
+  transition: color var(--duration-normal) ease;
+}
+
+/* Dark mode styles for mobile detail label */
+:root.dark .mobile-detail-label {
+  color: var(--color-text-secondary, #cbd5e1);
 }
 
 .mobile-detail-value {
@@ -264,6 +288,12 @@ textarea:focus {
   text-align: right;
   max-width: 60%;
   word-break: break-word;
+  transition: color var(--duration-normal) ease;
+}
+
+/* Dark mode styles for mobile detail value */
+:root.dark .mobile-detail-value {
+  color: var(--color-text-primary, #f8fafc);
 }
 
 /* Notes & Attachments */
@@ -387,41 +417,37 @@ textarea:focus {
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .mobile-app-card {
-    background: var(--color-background-dark, #1e293b);
-    border-color: var(--color-border-dark, #334155);
-  }
-  
-  .mobile-notes-section,
-  .mobile-attachments-section {
-    background: var(--color-surface-dark, #334155);
-    border-color: var(--color-border-dark, #475569);
-  }
-  
+:root.dark .mobile-app-card {
+  background: var(--color-background, #1e293b);
+  border-color: var(--color-border, #334155);
+}
 
-  
-  .mobile-btn-edit {
-    background: var(--color-surface-dark, #334155);
-    color: var(--color-primary-light, #60a5fa);
-    border-color: var(--color-border-dark, #475569);
-  }
-  
-  .mobile-btn-edit:hover {
+:root.dark .mobile-notes-section,
+:root.dark .mobile-attachments-section {
+  background: var(--color-surface, #334155);
+  border-color: var(--color-border, #475569);
+}
+
+:root.dark .mobile-btn-edit {
+  background: var(--color-surface, #334155);
+  color: var(--color-primary, #60a5fa);
+  border-color: var(--color-border, #475569);
+}
+
+:root.dark .mobile-btn-edit:hover {
     background: var(--color-primary, #3b82f6);
     color: white;
-  }
-  
-  .mobile-btn-danger {
-    background: #7f1d1d;
-    color: #fca5a5;
-    border-color: #991b1b;
-  }
-  
-  .mobile-btn-danger:hover {
-    background: #dc2626;
-    color: white;
-  }
+}
+
+:root.dark .mobile-btn-danger {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border-color: #991b1b;
+}
+
+:root.dark .mobile-btn-danger:hover {
+  background: #dc2626;
+  color: white;
 }
 
 /* Mobile form improvements */
@@ -435,6 +461,12 @@ textarea:focus {
   margin-bottom: 8px;
   color: var(--color-text-primary, #0f172a);
   font-size: 14px;
+  transition: color var(--duration-normal) ease;
+}
+
+/* Dark mode styles for mobile form labels */
+:root.dark .mobile-form-label {
+  color: var(--color-text-primary, #f8fafc);
 }
 
 .mobile-form-input {
@@ -445,12 +477,28 @@ textarea:focus {
   font-size: 16px;
   background: var(--color-background, #ffffff);
   color: var(--color-text-primary, #0f172a);
+  transition: border-color var(--duration-normal) ease, box-shadow var(--duration-normal) ease, background-color var(--duration-normal) ease, color var(--duration-normal) ease;
+}
+
+/* Explicit dark mode styles for mobile form inputs */
+:root.dark .mobile-form-input {
+  background: var(--color-surface, #1e293b);
+  color: var(--color-text-primary, #f8fafc);
+  border-color: var(--color-border, #334155);
 }
 
 .mobile-form-input:focus {
   outline: none;
   border-color: var(--color-primary, #3b82f6);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Dark mode focus styles for mobile form inputs */
+:root.dark .mobile-form-input:focus {
+  background: var(--color-surface, #1e293b);
+  color: var(--color-text-primary, #f8fafc);
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .mobile-form-select {
@@ -462,11 +510,37 @@ textarea:focus {
   background: var(--color-background, #ffffff);
   color: var(--color-text-primary, #0f172a);
   appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 12px center;
   background-repeat: no-repeat;
   background-size: 16px;
   padding-right: 40px;
+  cursor: pointer;
+}
+
+/* Dark mode styles for mobile form select */
+:root.dark .mobile-form-select {
+  background: var(--color-surface, #1e293b);
+  color: var(--color-text-primary, #f8fafc);
+  border-color: var(--color-border, #334155);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+}
+
+/* Focus styles for mobile form select */
+.mobile-form-select:focus {
+  outline: none;
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+:root.dark .mobile-form-select:focus {
+  border-color: var(--color-primary, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .mobile-form-textarea {
@@ -479,6 +553,13 @@ textarea:focus {
   color: var(--color-text-primary, #0f172a);
   resize: vertical;
   min-height: 100px;
+}
+
+/* Dark mode styles for mobile form textarea */
+:root.dark .mobile-form-textarea {
+  background: var(--color-surface, #1e293b);
+  color: var(--color-text-primary, #f8fafc);
+  border-color: var(--color-border, #334155);
 }
 
 /* Mobile header */
@@ -651,6 +732,27 @@ textarea:focus {
 .mobile-status-rejected {
   background: #fee2e2;
   color: #dc2626;
+}
+
+/* Dark mode styles for mobile status badges */
+:root.dark .mobile-status-applied {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+
+:root.dark .mobile-status-interview {
+  background: #92400e;
+  color: #fbbf24;
+}
+
+:root.dark .mobile-status-offer {
+  background: #065f46;
+  color: #6ee7b7;
+}
+
+:root.dark .mobile-status-rejected {
+  background: #991b1b;
+  color: #fca5a5;
 }
 
 /* Mobile loading states */
@@ -904,29 +1006,27 @@ textarea:focus {
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .mobile-status-tab {
-    background: var(--color-background, #0f172a);
-    border-color: var(--color-border, #334155);
-    color: var(--color-text-secondary, #cbd5e1);
-  }
-  
-  .mobile-status-tab:hover {
-    background: var(--color-surface, #1e293b);
-    border-color: var(--color-text-muted, #64748b);
-    color: var(--color-text-primary, #f8fafc);
-  }
-  
-  .mobile-status-tab.active {
-    background: var(--color-primary, #3b82f6);
-    border-color: var(--color-primary, #3b82f6);
-    color: white;
-  }
-  
-  .mobile-status-tab.active:hover {
-    background: var(--color-primary-dark, #1d4ed8);
-    border-color: var(--color-primary-dark, #1d4ed8);
-  }
+:root.dark .mobile-status-tab {
+  background: var(--color-background, #0f172a);
+  border-color: var(--color-border, #334155);
+  color: var(--color-text-secondary, #cbd5e1);
+}
+
+:root.dark .mobile-status-tab:hover {
+  background: var(--color-surface, #1e293b);
+  border-color: var(--color-text-muted, #64748b);
+  color: var(--color-text-primary, #f8fafc);
+}
+
+:root.dark .mobile-status-tab.active {
+  background: var(--color-primary, #3b82f6);
+  border-color: var(--color-primary, #3b82f6);
+  color: white;
+}
+
+:root.dark .mobile-status-tab.active:hover {
+  background: var(--color-primary-dark, #1d4ed8);
+  border-color: var(--color-primary-dark, #1d4ed8);
 }
 
 /* =============================================================================

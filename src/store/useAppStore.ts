@@ -129,7 +129,10 @@ export interface ModalState {
     privacySettings: {
         isOpen: boolean;
     };
-
+    editApplication: {
+        isOpen: boolean;
+        application?: Application | null;
+    };
     welcomeTour: {
         isOpen: boolean;
     };
@@ -279,6 +282,8 @@ export interface AppState {
     closeWelcomeTourModal: () => void;
     openUpgradeModal: (trigger?: 'limit_reached' | 'analytics' | 'general') => void;
     closeUpgradeModal: () => void;
+    openEditModal: (application: Application) => void;
+    closeEditModal: () => void;
 
     syncLocalApplicationsToCloud: () => Promise<void>;
 
@@ -512,7 +517,7 @@ export const useAppStore = create<AppState>()(
                             resetPasswordOpen: false
                         },
                         privacySettings: {isOpen: false},
-
+                        editApplication: {isOpen: false, application: null},
                         welcomeTour: {isOpen: false},
                         upgrade: {isOpen: false},
 
@@ -1250,6 +1255,30 @@ export const useAppStore = create<AppState>()(
                         }));
                     },
 
+                    openEditModal: (application: Application) => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                editApplication: {isOpen: true, application}
+                            }
+                        }));
+                        // Track feature usage with error handling (commented out for debugging)
+                        // get().trackFeatureUsage('edit_modal_opened').catch(error => {
+                        //     console.warn('Failed to track edit modal usage:', error);
+                        // });
+                    },
+
+                    closeEditModal: () => {
+                        set(state => ({
+                            ...state,
+                            modals: {
+                                ...state.modals,
+                                editApplication: {isOpen: false, application: null}
+                            }
+                        }));
+                    },
+
 
 
                     syncLocalApplicationsToCloud: async () => {
@@ -1422,6 +1451,14 @@ export const useAppStore = create<AppState>()(
                     },
 
                     loadRealtimeAdminAnalytics: async () => {
+                        // Check if user is properly authenticated before making API calls
+                        const { auth } = get();
+                        if (!auth.isAuthenticated || !auth.user) {
+                            console.log('⚠️ User not authenticated, skipping realtime admin analytics');
+                            await get().loadAdminAnalytics(); // Fallback to local data
+                            return;
+                        }
+
                         const maxRetries = 2;
                         let retryCount = 0;
 
@@ -1479,6 +1516,14 @@ export const useAppStore = create<AppState>()(
                     },
 
                     loadRealtimeFeedbackSummary: async () => {
+                        // Check if user is properly authenticated before making API calls
+                        const { auth } = get();
+                        if (!auth.isAuthenticated || !auth.user) {
+                            console.log('⚠️ User not authenticated, skipping realtime feedback summary');
+                            get().loadAdminFeedback(); // Fallback to local data
+                            return;
+                        }
+
                         try {
                             console.log('Loading real-time feedback summary...');
 
@@ -2034,7 +2079,22 @@ export const useAppStore = create<AppState>()(
 
                     setTheme: (theme) => {
                         set(state => ({...state, ui: {...state.ui, theme}}));
-                        document.documentElement.classList.toggle('dark', theme === 'dark');
+                        
+                        // Apply theme to document
+                        const isDark = theme === 'dark';
+                        document.documentElement.classList.toggle('dark', isDark);
+                        document.body.classList.toggle('dark', isDark);
+                        document.documentElement.style.colorScheme = theme;
+                        
+                        // Update meta theme color
+                        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+                        if (metaThemeColor) {
+                            metaThemeColor.setAttribute('content', isDark ? '#1f2937' : '#ffffff');
+                        }
+                        
+                        // Save to localStorage
+                        localStorage.setItem('theme', theme);
+                        
                         get().trackEvent('theme_changed', {theme});
                     },
 
