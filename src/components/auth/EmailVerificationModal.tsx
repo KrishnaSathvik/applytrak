@@ -70,6 +70,10 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
                 console.log('Email verified! User signed in automatically');
                 setVerificationStatus('verified');
                 await handleVerificationComplete();
+            } else if (event === 'TOKEN_REFRESHED' && session?.user?.email_confirmed_at) {
+                console.log('Email verified via token refresh! User signed in automatically');
+                setVerificationStatus('verified');
+                await handleVerificationComplete();
             }
         });
 
@@ -84,6 +88,34 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
         }
         return undefined;
     }, [resendCountdown]);
+
+    // Periodic check for email verification (in case auth state change doesn't fire)
+    useEffect(() => {
+        if (!isOpen || verificationStatus === 'verified') return;
+
+        const checkVerificationStatus = async () => {
+            if (!supabase) return;
+            
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.email_confirmed_at && session.user.email === email) {
+                    console.log('Email verification detected via periodic check');
+                    setVerificationStatus('verified');
+                    await handleVerificationComplete();
+                }
+            } catch (error) {
+                console.warn('Error checking verification status:', error);
+            }
+        };
+
+        // Check immediately
+        checkVerificationStatus();
+
+        // Then check every 3 seconds
+        const interval = setInterval(checkVerificationStatus, 3000);
+        
+        return () => clearInterval(interval);
+    }, [isOpen, verificationStatus, email]);
 
     const handleVerificationComplete = async () => {
         try {
@@ -159,7 +191,8 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
             if (!supabase) throw new Error('Supabase client not initialized');
             const { data: { session } } = await supabase.auth.getSession();
 
-            if (session?.user?.email_confirmed_at) {
+            if (session?.user?.email_confirmed_at && session.user.email === email) {
+                console.log('Manual verification check: Email confirmed!');
                 setVerificationStatus('verified');
                 await handleVerificationComplete();
             } else {

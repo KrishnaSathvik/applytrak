@@ -40,11 +40,7 @@ const MobileLoginModal: React.FC<MobileLoginModalProps> = ({
     setIsLoading(true);
     try {
       await signIn(data.email, data.password);
-      showToast({
-        type: 'success',
-        message: 'Welcome back! You\'re now signed in.',
-        duration: 3000
-      });
+      // Welcome toast is handled by the main auth flow, no need to duplicate
       reset();
       onClose();
     } catch (error: any) {

@@ -833,6 +833,33 @@ function initializeAuth() {
                                 return;
                             }
 
+                            // Load complete user data from database
+                            try {
+                                const { data: dbUser, error: dbError } = await client
+                                    .from('users')
+                                    .select('id, externalid, email, display_name')
+                                    .eq('id', userDbId)
+                                    .maybeSingle();
+
+                                if (!dbError && dbUser && authState.user) {
+                                    // Update auth state with complete user data
+                                    authState = {
+                                        ...authState,
+                                        user: {
+                                            ...authState.user,
+                                            user_metadata: {
+                                                ...authState.user.user_metadata,
+                                                full_name: dbUser.display_name
+                                            }
+                                        }
+                                    };
+                                    notifyAuthStateChange();
+                                    console.log('✅ User data loaded from database:', dbUser);
+                                }
+                            } catch (userDataError) {
+                                console.warn('⚠️ Failed to load user data from database:', userDataError);
+                            }
+
                             const localApps = await db.applications.toArray();
                             if (!localApps?.length) {
                                 console.log('ℹ️ No local applications to migrate');
@@ -942,12 +969,58 @@ const updateUserProfile = async (updates: { full_name?: string; email?: string }
     const client = initializeSupabase();
     if (!client) throw new Error('Supabase not initialized');
 
-    const {data, error} = await client.auth.updateUser({
+    // Update Supabase auth metadata
+    const {data: authData, error: authError} = await client.auth.updateUser({
         data: updates
     });
 
-    if (error) throw error;
-    return data;
+    if (authError) throw authError;
+
+    // Also update the database record
+    try {
+        const currentUser = authData.user;
+        if (!currentUser) {
+            throw new Error('No user data received from auth update');
+        }
+
+        // Get the database user ID
+        const dbUserId = await getUserDbId();
+        if (!dbUserId) {
+            console.warn('Could not get database user ID, skipping database update');
+            return;
+        }
+
+        // Update the users table
+        const dbUpdates: any = {
+            updatedat: new Date().toISOString()
+        };
+
+        if (updates.full_name) {
+            dbUpdates.display_name = updates.full_name;
+        }
+
+        if (updates.email) {
+            dbUpdates.email = updates.email;
+        }
+
+        const {error: dbError} = await client
+            .from('users')
+            .update(dbUpdates)
+            .eq('id', dbUserId);
+
+        if (dbError) {
+            console.error('Failed to update database user record:', dbError);
+            // Don't throw here - auth update succeeded, just log the database error
+        } else {
+            console.log('Successfully updated database user record');
+        }
+
+    } catch (error) {
+        console.error('Error updating database user record:', error);
+        // Don't throw here - auth update succeeded, just log the error
+    }
+
+    return authData;
 };
 
 const resetPassword = async (email: string) => {

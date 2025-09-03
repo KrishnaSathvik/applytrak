@@ -285,7 +285,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
 
             showToast({
                 type: 'success',
-                message: `${newAttachments.length} file(s) attached successfully!`,
+                message: `${newAttachments.length} file${newAttachments.length > 1 ? 's' : ''} uploaded successfully!`,
                 duration: 2000,
             });
         } catch (error) {

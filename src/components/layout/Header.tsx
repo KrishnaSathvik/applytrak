@@ -194,6 +194,16 @@ const Header: React.FC = () => {
                             >
                                 Analytics
                             </button>
+                            <button
+                                onClick={() => handleTabClick('features')}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    ui.selectedTab === 'features'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Features
+                            </button>
                             {auth.isAuthenticated && (
                                 <button
                                     onClick={() => handleTabClick('profile')}
@@ -206,16 +216,6 @@ const Header: React.FC = () => {
                                     Profile
                                 </button>
                             )}
-                            <button
-                                onClick={() => handleTabClick('features')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                    ui.selectedTab === 'features'
-                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
-                                }`}
-                            >
-                                Features
-                            </button>
 
                         </div>
 

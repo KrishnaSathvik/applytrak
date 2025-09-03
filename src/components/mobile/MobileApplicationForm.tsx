@@ -113,7 +113,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
 
       showToast({
         type: 'success',
-        message: `Successfully uploaded ${uploadedAttachments.length} file(s)`,
+        message: `${uploadedAttachments.length} file${uploadedAttachments.length > 1 ? 's' : ''} uploaded successfully!`,
         duration: 3000
       });
     } catch (error) {
@@ -213,12 +213,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
       reset();
       setAttachments([]);
       
-      showToast({
-        type: 'success',
-        message: 'Application added successfully!',
-        duration: 3000
-      });
-
+      // Success toast is handled by the main store addApplication function
       onSuccess?.();
     } catch (error) {
       console.error('Failed to add application:', error);

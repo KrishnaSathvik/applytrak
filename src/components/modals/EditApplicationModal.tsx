@@ -211,11 +211,7 @@ const EditApplicationModal: React.FC = () => {
             await updateApplication(application.id, cleanedData);
             closeEditModal();
 
-            showToast({
-                type: 'success',
-                message: 'Application updated successfully!',
-                duration: 3000
-            });
+            // Success toast is handled by the main store updateApplication function
         } catch (error) {
             console.error('Error updating application:', error);
             showToast({
@@ -342,7 +338,7 @@ const EditApplicationModal: React.FC = () => {
         if (validFiles.length > 0) {
             showToast({
                 type: 'success',
-                message: `${validFiles.length} file${validFiles.length > 1 ? 's' : ''} added successfully!`,
+                message: `${validFiles.length} file${validFiles.length > 1 ? 's' : ''} uploaded successfully!`,
                 duration: 3000
             });
         }

@@ -20,6 +20,7 @@ const ProfileTab: React.FC = () => {
   const [newDisplayName, setNewDisplayName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [, setSnoozeDuration] = useState<number | null>(null);
 
   // Check if user is authenticated and email verified
   const isAuthenticated = auth.isAuthenticated;
@@ -128,14 +129,108 @@ const ProfileTab: React.FC = () => {
     setShowDeleteConfirm(true);
   };
 
-  const confirmDeleteAccount = () => {
-    // This would typically call a delete account service
-    showToast({
-      type: 'info',
-      message: 'Account deletion feature coming soon. Please contact support.',
-      duration: 5000
-    });
-    setShowDeleteConfirm(false);
+  const confirmDeleteAccount = async () => {
+    try {
+      // Import privacy service to delete all user data
+      const { privacyService } = await import('../../services/privacyService');
+      
+      if (!auth.user?.id) {
+        showToast({
+          type: 'error',
+          message: 'User not found. Please try signing out and back in.',
+          duration: 5000
+        });
+        return;
+      }
+
+      await privacyService.deleteAllUserData(String(auth.user.id));
+      
+      showToast({
+        type: 'success',
+        message: 'Account deleted successfully. You will be signed out.',
+        duration: 5000
+      });
+
+      // Sign out and reload after a delay
+      setTimeout(async () => {
+        await signOut();
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      showToast({
+        type: 'error',
+        message: 'Failed to delete account. Please try again or contact support.',
+        duration: 5000
+      });
+    } finally {
+      setShowDeleteConfirm(false);
+    }
+  };
+
+
+
+  const handleQuickSnooze = async (minutes: number) => {
+    try {
+      const { supabase, authService } = await import('../../services/databaseService');
+      if (!supabase) {
+        showToast({
+          type: 'error',
+          message: 'Database connection not available',
+          duration: 3000
+        });
+        return;
+      }
+      
+      // Get the database user ID (integer) instead of auth user ID (UUID)
+      const dbUserId = await authService.getUserDbId();
+      
+      if (!dbUserId) {
+        showToast({
+          type: 'error',
+          message: 'User not found in database',
+          duration: 3000
+        });
+        return;
+      }
+
+      const snoozeUntil = new Date(Date.now() + minutes * 60 * 1000);
+      
+      console.log('Snoozing notifications for user:', dbUserId, 'until:', snoozeUntil.toISOString());
+      
+      // Use the RPC function to update notification preferences
+      const { data, error } = await supabase.rpc('upsert_notification_preferences', {
+        user_bigint: dbUserId,
+        quick_snooze_val: true,
+        snooze_until_val: snoozeUntil.toISOString()
+      });
+
+      if (error) {
+        console.error('RPC call failed:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
+
+      if (!data || !data.success) {
+        console.error('Unexpected response from upsert function:', data);
+        throw new Error('Failed to update notification preferences');
+      }
+
+      setSnoozeDuration(minutes);
+      showToast({
+        type: 'success',
+        message: `Notifications snoozed for ${minutes === 15 ? '15 minutes' : minutes === 60 ? '1 hour' : '4 hours'}`,
+        duration: 3000
+      });
+
+    } catch (error) {
+      console.error('Failed to snooze notifications:', error);
+      showToast({
+        type: 'error',
+        message: 'Failed to snooze notifications. Please try again.',
+        duration: 3000
+      });
+    }
   };
 
   return (
@@ -310,20 +405,7 @@ const ProfileTab: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center">
-              <Info className="h-5 w-5 text-blue-600 mr-3" />
-              <div>
-                <div className="font-medium text-gray-900">Info Notifications</div>
-                <div className="text-sm text-gray-600">General information and updates</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium">
-                Muted
-              </button>
-            </div>
-          </div>
+
 
           <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center">
@@ -334,13 +416,22 @@ const ProfileTab: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium">
+              <button 
+                onClick={() => handleQuickSnooze(15)}
+                className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+              >
                 15m
               </button>
-              <button className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium">
+              <button 
+                onClick={() => handleQuickSnooze(60)}
+                className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+              >
                 1h
               </button>
-              <button className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium">
+              <button 
+                onClick={() => handleQuickSnooze(240)}
+                className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+              >
                 4h
               </button>
             </div>
@@ -412,27 +503,7 @@ const ProfileTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Preferences */}
-      <div className="glass-card">
-        <div className="flex items-center mb-6">
-          <Settings className="h-6 w-6 text-blue-600 mr-3" />
-          <h2 className="text-xl font-semibold text-gray-900">Preferences</h2>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center">
-              <Bell className="h-5 w-5 text-blue-600 mr-3" />
-              <div>
-                <div className="font-medium text-gray-900">Notifications</div>
-                <div className="text-sm text-gray-600">Email and browser notifications</div>
-              </div>
-            </div>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-              Configure
-            </button>
-          </div>
-        </div>
-      </div>
+
 
       {/* Account Actions */}
       <div className="glass-card border-2 border-gray-200/30 dark:border-gray-700/30">

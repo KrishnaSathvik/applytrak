@@ -227,6 +227,9 @@ export interface AppState {
     // Toast Actions
     showToast: (toast: Omit<Toast, 'id'>) => void;
     removeToast: (id: string) => void;
+    getToastCategory: (message: string) => string | null;
+    getCategoryCooldown: (category: string) => number;
+    clearToastTracking: () => void;
 
     // Analytics Actions
     calculateAnalytics: () => void;
@@ -866,11 +869,18 @@ export const useAppStore = create<AppState>()(
 
                                 if (authState.isAuthenticated && !authState.isLoading) {
                                     console.log('User authenticated, reloading data...');
-                                    get().loadApplications();
-                                    get().loadGoals();
                                     
-                                    // Sync local applications to cloud after authentication
-                                    get().syncLocalApplicationsToCloud();
+                                    // Debounce data loading to prevent multiple calls
+                                    const lastDataLoad = localStorage.getItem('last_data_load');
+                                    const now = Date.now();
+                                    if (!lastDataLoad || (now - parseInt(lastDataLoad)) > 5000) { // 5 second cooldown
+                                        get().loadApplications();
+                                        get().loadGoals();
+                                        
+                                        // Sync local applications to cloud after authentication
+                                        get().syncLocalApplicationsToCloud();
+                                        localStorage.setItem('last_data_load', now.toString());
+                                    }
                                 }
                             });
 
@@ -1032,6 +1042,52 @@ export const useAppStore = create<AppState>()(
                         try {
                             await authService.signIn(email, password);
 
+                            // Load complete user data from database after successful sign-in
+                            try {
+                                const { supabase } = await import('../services/databaseService');
+                                if (!supabase) {
+                                    console.warn('Supabase client not available for user data loading');
+                                    return;
+                                }
+                                
+                                const { data: { session } } = await supabase.auth.getSession();
+                                
+                                if (session?.user) {
+                                    // Get user data from database
+                                    const { data: dbUser, error: dbError } = await supabase
+                                        .from('users')
+                                        .select('id, externalid, email, display_name')
+                                        .eq('externalid', session.user.id)
+                                        .maybeSingle();
+
+                                    if (!dbError && dbUser) {
+                                        // Update auth state with complete user data
+                                        const appUser: AppUser = {
+                                            id: dbUser.id,
+                                            external_id: dbUser.externalid,
+                                            email: dbUser.email,
+                                            display_name: dbUser.display_name ?? null,
+                                        };
+
+                                        set(state => ({
+                                            ...state,
+                                            auth: {
+                                                ...state.auth,
+                                                user: appUser,
+                                                isAuthenticated: true,
+                                                isLoading: false,
+                                                error: null
+                                            }
+                                        }));
+
+                                        console.log('User data loaded from database:', appUser);
+                                    }
+                                }
+                            } catch (userDataError) {
+                                console.warn('Failed to load user data from database:', userDataError);
+                                // Don't fail sign-in if user data loading fails
+                            }
+
                             get().showToast({
                                 type: 'success',
                                 message: 'Welcome back! Your data is now synced across devices.',
@@ -1076,6 +1132,9 @@ export const useAppStore = create<AppState>()(
 
                         try {
                             await authService.signOut();
+
+                            // Clear all toast tracking data on sign out
+                            get().clearToastTracking();
 
                             set(state => ({
                                 ...state,
@@ -1297,6 +1356,15 @@ export const useAppStore = create<AppState>()(
 
                     syncLocalApplicationsToCloud: async () => {
                         try {
+                            // Debounce sync calls to prevent multiple simultaneous syncs
+                            const lastSync = localStorage.getItem('last_sync_attempt');
+                            const now = Date.now();
+                            if (lastSync && (now - parseInt(lastSync)) < 3000) { // 3 second cooldown
+                                console.log('⏱️ Sync already in progress, skipping...');
+                                return;
+                            }
+                            localStorage.setItem('last_sync_attempt', now.toString());
+                            
                             console.log('🔄 Starting sync of local applications to cloud...');
                             
                             // Get local applications from IndexedDB
@@ -1831,7 +1899,7 @@ export const useAppStore = create<AppState>()(
                             });
                             get().showToast({
                                 type: 'success',
-                                message: `${ids.length} applications deleted successfully!`
+                                message: `${ids.length} application${ids.length > 1 ? 's' : ''} deleted successfully!`
                             });
                             get().trackEvent('applications_bulk_deleted', {count: ids.length});
                             startTransition(() => {
@@ -1874,7 +1942,7 @@ export const useAppStore = create<AppState>()(
                             });
                             get().showToast({
                                 type: 'success',
-                                message: `${ids.length} applications updated to ${status}!`
+                                message: `${ids.length} application${ids.length > 1 ? 's' : ''} updated to ${status}!`
                             });
                             get().trackEvent('applications_status_updated', {count: ids.length, status});
                             startTransition(() => {
@@ -1923,7 +1991,7 @@ export const useAppStore = create<AppState>()(
                             });
                             get().showToast({
                                 type: 'success',
-                                message: `${ids.length} applications updated successfully!`
+                                message: `${ids.length} application${ids.length > 1 ? 's' : ''} updated successfully!`
                             });
                             get().trackEvent('applications_bulk_updated', {count: ids.length});
                             startTransition(() => {
@@ -1989,7 +2057,7 @@ export const useAppStore = create<AppState>()(
                             if (successCount > 0) {
                                 get().showToast({
                                     type: 'success',
-                                    message: `Successfully imported ${successCount} applications!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+                                    message: `${successCount} application${successCount > 1 ? 's' : ''} imported successfully!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
                                     duration: 5000
                                 });
                                 get().trackEvent('applications_bulk_imported', {successCount, errorCount});
@@ -2272,10 +2340,85 @@ export const useAppStore = create<AppState>()(
                     // TOAST ACTIONS
                     // ============================================================================
 
+                    // Helper function to categorize toasts for better management
+                    getToastCategory: (message: string) => {
+                        const lowerMessage = message.toLowerCase();
+                        
+                        if (lowerMessage.includes('welcome') || lowerMessage.includes('signed in')) {
+                            return 'welcome';
+                        }
+                        if (lowerMessage.includes('signed out') || lowerMessage.includes('logout')) {
+                            return 'logout';
+                        }
+                        if (lowerMessage.includes('saved') || lowerMessage.includes('updated') || lowerMessage.includes('created')) {
+                            return 'save';
+                        }
+                        if (lowerMessage.includes('deleted') || lowerMessage.includes('removed')) {
+                            return 'delete';
+                        }
+                        if (lowerMessage.includes('error') || lowerMessage.includes('failed')) {
+                            return 'error';
+                        }
+                        if (lowerMessage.includes('sync') || lowerMessage.includes('synced')) {
+                            return 'sync';
+                        }
+                        if (lowerMessage.includes('refresh') || lowerMessage.includes('reload')) {
+                            return 'refresh';
+                        }
+                        if (lowerMessage.includes('milestone') || lowerMessage.includes('achievement')) {
+                            return 'milestone';
+                        }
+                        if (lowerMessage.includes('admin') || lowerMessage.includes('dashboard')) {
+                            return 'admin';
+                        }
+                        
+                        return null; // No special category
+                    },
+
+                    // Helper function to get cooldown period for different toast categories
+                    getCategoryCooldown: (category: string) => {
+                        const cooldowns: Record<string, number> = {
+                            'welcome': 30000,    // 30 seconds - welcome messages
+                            'logout': 10000,     // 10 seconds - logout messages
+                            'save': 5000,        // 5 seconds - save/update messages
+                            'delete': 5000,      // 5 seconds - delete messages
+                            'error': 10000,      // 10 seconds - error messages
+                            'sync': 15000,       // 15 seconds - sync messages
+                            'refresh': 10000,    // 10 seconds - refresh messages
+                            'milestone': 60000,  // 1 minute - milestone messages
+                            'admin': 15000,      // 15 seconds - admin messages
+                        };
+                        
+                        return cooldowns[category] || 5000; // Default 5 seconds
+                    },
+
+                    // Helper function to clear all toast tracking data
+                    clearToastTracking: () => {
+                        sessionStorage.removeItem('welcome_toast_shown');
+                        sessionStorage.removeItem('recent_toasts');
+                        ['welcome', 'logout', 'save', 'delete', 'error', 'sync', 'refresh', 'milestone', 'admin'].forEach(category => {
+                            sessionStorage.removeItem(`${category}_toast_shown`);
+                        });
+                        console.log('🧹 Toast tracking data cleared');
+                    },
+
                     showToast: (toast) => {
                         const now = Date.now();
                         const currentToasts = get().toasts;
 
+                        // Create a unique key for this toast based on message and type
+                        const toastKey = `${toast.type}:${toast.message}`;
+                        
+                        // Check if this exact toast was shown recently (within threshold)
+                        const recentToasts = JSON.parse(sessionStorage.getItem('recent_toasts') || '{}');
+                        const lastShown = recentToasts[toastKey];
+                        
+                        if (lastShown && (now - lastShown) < DUPLICATE_TOAST_THRESHOLD) {
+                            console.log('🚫 Duplicate toast prevented (recent):', toast.message);
+                            return;
+                        }
+
+                        // Check for similar toasts in current toast list
                         const isDuplicate = currentToasts.some(t => {
                             const toastTimestamp = parseInt(t.id.substring(0, 8), 36) * 1000;
                             const timeDiff = now - toastTimestamp;
@@ -2286,9 +2429,35 @@ export const useAppStore = create<AppState>()(
                         });
 
                         if (isDuplicate) {
-                            console.log('Duplicate toast prevented:', toast.message);
+                            console.log('🚫 Duplicate toast prevented (current):', toast.message);
                             return;
                         }
+
+                        // Special handling for different toast categories
+                        const category = get().getToastCategory(toast.message);
+                        if (category) {
+                            const categoryKey = `${category}_toast_shown`;
+                            const categoryShown = sessionStorage.getItem(categoryKey);
+                            
+                            if (categoryShown && (now - parseInt(categoryShown)) < get().getCategoryCooldown(category)) {
+                                console.log(`🚫 ${category} toast already shown recently, preventing duplicate`);
+                                return;
+                            }
+                            
+                            sessionStorage.setItem(categoryKey, now.toString());
+                        }
+
+                        // Update recent toasts tracking
+                        recentToasts[toastKey] = now;
+                        
+                        // Clean up old entries (older than 1 hour)
+                        Object.keys(recentToasts).forEach(key => {
+                            if (now - recentToasts[key] > 3600000) { // 1 hour
+                                delete recentToasts[key];
+                            }
+                        });
+                        
+                        sessionStorage.setItem('recent_toasts', JSON.stringify(recentToasts));
 
                         const timestamp = Math.floor(now / 1000).toString(36);
                         const random = Math.random().toString(36).substr(2, 5);

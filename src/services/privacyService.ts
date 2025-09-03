@@ -274,16 +274,47 @@ class PrivacyService {
                 throw new Error('User not found');
             }
 
+            console.log('Attempting to delete user data for user ID:', userId);
+
             const {data, error} = await client.rpc('cleanup_user_data', {
                 user_bigint: userId
             });
 
-            if (error || !data) {
-                console.error('Failed to delete user data:', error);
-                throw new Error('Failed to delete user data');
+            if (error) {
+                console.error('RPC call failed:', error);
+                throw new Error(`Database error: ${error.message}`);
             }
 
-            console.log('All user data deleted successfully for user:', userId);
+            if (!data) {
+                console.error('No data returned from cleanup function');
+                throw new Error('No response from cleanup function');
+            }
+
+            // Handle the new JSON response format
+            if (typeof data === 'object' && data !== null) {
+                const result = data as any;
+                
+                if (result.success) {
+                    console.log(`User data deleted successfully. Deleted ${result.deleted_records} records for user:`, userId);
+                    return;
+                } else {
+                    const errors = result.errors || [];
+                    console.error('Cleanup function failed with errors:', errors);
+                    throw new Error(`Failed to delete user data: ${errors.join(', ')}`);
+                }
+            } else if (typeof data === 'boolean') {
+                // Handle the old boolean response format
+                if (data) {
+                    console.log('User data deleted successfully for user:', userId);
+                    return;
+                } else {
+                    throw new Error('Cleanup function returned false');
+                }
+            } else {
+                console.error('Unexpected response format:', data);
+                throw new Error('Unexpected response from cleanup function');
+            }
+
         } catch (error) {
             console.error('Failed to delete user data:', error);
             throw error;

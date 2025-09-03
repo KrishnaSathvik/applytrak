@@ -64,9 +64,8 @@
     <link href="https://fonts.googleapis.com" rel="preconnect"/>
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
     
-    <!-- Preload Critical Fonts -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"/></noscript>
+    <!-- Load Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"/>
 
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -137,16 +136,23 @@
         // Check if Inter font is loaded, fallback to system fonts if not
         (() => {
             if ('fonts' in document) {
+                // Wait for fonts to be ready, then check again after a short delay
                 document.fonts.ready.then(() => {
-                    // Check if Inter font is available
-                    const interAvailable = document.fonts.check('1em Inter');
-                    if (!interAvailable) {
-                        console.warn('Inter font not available, using system fonts');
-                        document.documentElement.style.setProperty('--font-family-primary', 
-                            '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif');
-                    } else {
-                        console.log('Inter font loaded successfully');
-                    }
+                    // Give fonts a moment to fully load
+                    setTimeout(() => {
+                        // Check if Inter font is available with multiple fallback checks
+                        const interAvailable = document.fonts.check('1em Inter') || 
+                                             document.fonts.check('16px Inter') ||
+                                             document.fonts.check('400 16px Inter');
+                        
+                        if (!interAvailable) {
+                            console.warn('Inter font not available, using system fonts');
+                            document.documentElement.style.setProperty('--font-family-primary', 
+                                '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif');
+                        } else {
+                            console.log('Inter font loaded successfully');
+                        }
+                    }, 100); // Small delay to ensure fonts are fully loaded
                 });
             }
         })();

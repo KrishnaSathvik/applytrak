@@ -15,7 +15,7 @@
 /* =============================================================================
    INTER FONT SYSTEM
    ============================================================================= */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Inter font is loaded in index.html for better performance */
 
 /* System font fallback strategy - no additional @font-face needed */
 

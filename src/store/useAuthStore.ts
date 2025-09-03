@@ -111,16 +111,35 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 try {
                     await authService.updateUserProfile(updates);
                     
-                    // Update local user state
-                    const currentUser = get().user;
-                    if (currentUser && updates.full_name) {
+                    // Get the updated user data from auth service
+                    const updatedUser = await authService.getCurrentUser();
+                    
+                    if (updatedUser) {
+                        // Update local user state with fresh data
                         set({
-                            user: { ...currentUser, display_name: updates.full_name },
+                            user: {
+                                id: updatedUser.id,
+                                email: updatedUser.email || '',
+                                display_name: updatedUser.user_metadata?.full_name || 
+                                            updatedUser.user_metadata?.name ||
+                                            updatedUser.email?.split('@')[0] ||
+                                            'User'
+                            },
                             isLoading: false,
                             error: null
                         });
                     } else {
-                        set({ isLoading: false, error: null });
+                        // Fallback: update local state with provided updates
+                        const currentUser = get().user;
+                        if (currentUser && updates.full_name) {
+                            set({
+                                user: { ...currentUser, display_name: updates.full_name },
+                                isLoading: false,
+                                error: null
+                            });
+                        } else {
+                            set({ isLoading: false, error: null });
+                        }
                     }
                 } catch (error: any) {
                     const errorMessage = error?.message || 'Failed to update profile';

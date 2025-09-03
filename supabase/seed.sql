@@ -872,18 +872,29 @@ CREATE OR REPLACE FUNCTION public.cleanup_user_data(user_bigint bigint)
 RETURNS boolean AS $$
 BEGIN
     -- Delete all user data in the correct order (respecting foreign keys)
+    -- Only delete from tables that actually exist
     DELETE FROM public.analytics_events WHERE userid = user_bigint;
     DELETE FROM public.user_metrics WHERE userid = user_bigint;
     DELETE FROM public.user_sessions WHERE userid = user_bigint;
-    DELETE FROM public.sync_status WHERE userid = user_bigint;
-    DELETE FROM public.sync_errors WHERE userid = user_bigint;
-    DELETE FROM public.backups WHERE userid = user_bigint;
     DELETE FROM public.feedback WHERE userid = user_bigint;
     DELETE FROM public.applications WHERE userid = user_bigint;
     DELETE FROM public.goals WHERE userid = user_bigint;
     DELETE FROM public.privacy_settings WHERE userid = user_bigint;
     DELETE FROM public.email_preferences WHERE userid = user_bigint;
-    DELETE FROM public.admin_audit_log WHERE userid = user_bigint;
+    DELETE FROM public.notification_preferences WHERE userid = user_bigint;
+    
+    -- Try to delete from optional tables (ignore if they don't exist)
+    BEGIN
+        DELETE FROM public.backups WHERE userid = user_bigint;
+    EXCEPTION WHEN undefined_table THEN
+        -- Table doesn't exist, continue
+    END;
+    
+    BEGIN
+        DELETE FROM public.admin_audit_log WHERE userid = user_bigint;
+    EXCEPTION WHEN undefined_table THEN
+        -- Table doesn't exist, continue
+    END;
     
     -- Finally delete the user record
     DELETE FROM public.users WHERE id = user_bigint;
