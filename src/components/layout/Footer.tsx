@@ -3,6 +3,7 @@ import React, {useMemo} from 'react';
 import {Github, Heart, Mail, MessageSquare} from 'lucide-react';
 
 import {useAppStore} from '../../store/useAppStore';
+import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 
 const Footer: React.FC = () => {
     const {
@@ -43,12 +44,15 @@ const Footer: React.FC = () => {
                     
                     {/* Left: Brand Section */}
                     <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                            <span>© {currentYear} ApplyTrak</span>
-                            <span className="hidden sm:inline">•</span>
-                            <span className="flex items-center gap-1">
-                                Made with <Heart className="h-3 w-3 text-red-500 fill-current"/> for job seekers
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <ApplyTrakLogo size="sm" className="transition-transform duration-300 hover:scale-110" showText={false} />
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span>© {currentYear} ApplyTrak</span>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="flex items-center gap-1">
+                                    Made with <Heart className="h-3 w-3 text-red-500 fill-current"/> for job seekers
+                                </span>
+                            </div>
                         </div>
                     </div>
 

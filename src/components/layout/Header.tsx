@@ -8,6 +8,7 @@ import {
     UserPlus
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
+import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 
 
 
@@ -143,6 +144,7 @@ const Header: React.FC = () => {
                     <div className="flex items-center space-x-6 flex-1 min-w-0">
                         {/* Brand Section */}
                         <div className="flex items-center space-x-3 sm:space-x-4">
+                            <ApplyTrakLogo size="sm" className="transition-transform duration-300 hover:scale-110" showText={false} />
                             <div className="min-w-0">
                                 <h1 className="font-display text-base sm:text-lg lg:text-xl font-bold text-gradient-static tracking-tight truncate">
                                     ApplyTrak

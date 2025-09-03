@@ -67,6 +67,7 @@ const MobileAnalyticsTab: React.FC = () => {
           salary: salaryNum,
           status: app.status,
           type: app.type,
+          employmentType: app.employmentType,
           date: new Date(app.dateApplied)
         };
       })
@@ -77,9 +78,22 @@ const MobileAnalyticsTab: React.FC = () => {
       ? Math.round(salaryData.reduce((sum, item) => sum + item.salary, 0) / salaryData.length)
       : 0;
 
+    const salaryByJobType = salaryData.reduce((acc, item) => {
+      if (!acc[item.type]) acc[item.type] = [];
+      acc[item.type].push(item.salary);
+      return acc;
+    }, {} as Record<string, number[]>);
+
+    const salaryByJobTypeAvg = Object.entries(salaryByJobType).map(([jobType, salaries]) => ({
+      jobType,
+      average: Math.round((salaries as number[]).reduce((sum, s) => sum + s, 0) / (salaries as number[]).length),
+      count: (salaries as number[]).length
+    }));
+
     return {
       all: salaryData,
       average: averageSalary,
+      byType: salaryByJobTypeAvg,
       highest: salaryData[0],
       lowest: salaryData[salaryData.length - 1]
     };
@@ -248,44 +262,59 @@ const MobileAnalyticsTab: React.FC = () => {
         <div className="mobile-space-y-4">
           {/* Key Metrics */}
           <div className="card">
-            <h2 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Key Metrics
+            <h2 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 border-b-2 border-blue-200 dark:border-blue-700 pb-2">
+              Summary Overview
             </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 font-medium">
+              Key performance metrics and application statistics
+            </p>
             
             <div className="mobile-grid-2">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
+                <h3 className="text-xs font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wider mb-2">
+                  Total Applications
+                </h3>
                 <div className="mobile-text-2xl mobile-font-bold text-blue-600 dark:text-blue-400 mb-1">
                   {totalApplications}
                 </div>
-                <div className="text-sm text-blue-800 dark:text-blue-200">
-                  Total Applications
+                <div className="text-xs text-blue-700 dark:text-blue-300">
+                  All time applications
                 </div>
               </div>
               
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                <h3 className="text-xs font-bold text-green-800 dark:text-green-200 uppercase tracking-wider mb-2">
+                  Success Rate
+                </h3>
                 <div className="mobile-text-2xl mobile-font-bold text-green-600 dark:text-green-400 mb-1">
                   {getSuccessRate()}%
                 </div>
-                <div className="text-sm text-green-800 dark:text-green-200">
-                  Success Rate
+                <div className="text-xs text-green-700 dark:text-green-300">
+                  Applications → Offers
                 </div>
               </div>
               
               <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-center">
+                <h3 className="text-xs font-bold text-yellow-800 dark:text-yellow-200 uppercase tracking-wider mb-2">
+                  Interview Rate
+                </h3>
                 <div className="mobile-text-2xl mobile-font-bold text-yellow-600 dark:text-yellow-400 mb-1">
                   {getInterviewRate()}%
                 </div>
-                <div className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Interview Rate
+                <div className="text-xs text-yellow-700 dark:text-yellow-300">
+                  Applications → Interviews
                 </div>
               </div>
               
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
+                <h3 className="text-xs font-bold text-purple-800 dark:text-purple-200 uppercase tracking-wider mb-2">
+                  Avg Response Time
+                </h3>
                 <div className="mobile-text-2xl mobile-font-bold text-purple-600 dark:text-purple-400 mb-1">
                   {analytics.averageResponseTime === 0 ? '-' : `${analytics.averageResponseTime}d`}
                 </div>
-                <div className="text-sm text-purple-800 dark:text-purple-200">
-                  Avg Response
+                <div className="text-xs text-purple-700 dark:text-purple-300">
+                  Days to hear back
                 </div>
               </div>
             </div>
@@ -294,32 +323,52 @@ const MobileAnalyticsTab: React.FC = () => {
           {/* Key Insights */}
           {totalApplications > 0 && (
             <div className="card">
-              <h3 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 border-b-2 border-blue-200 dark:border-blue-700 pb-2">
                 Key Insights
-              </h3>
+              </h2>
               <div className="mobile-space-y-4">
-                {/* Most Used Job Type */}
+                {/* Application Momentum */}
                 {(() => {
-                  const typeData = applications.reduce((acc, app) => {
-                    acc[app.type] = (acc[app.type] || 0) + 1;
-                    return acc;
-                  }, {} as Record<string, number>);
-                  const mostUsedType = Object.entries(typeData).reduce((max, [type, count]) => 
-                    count > max.count ? { type, count } : max, { type: '', count: 0 });
+                  // Calculate application timeline data
+                  const timelineData: Record<string, number> = {};
+                  applications.forEach(app => {
+                    const date = new Date(app.dateApplied);
+                    const weekKey = `${date.getFullYear()}-W${String(Math.ceil(date.getDate() / 7)).padStart(2, '0')}`;
+                    timelineData[weekKey] = (timelineData[weekKey] || 0) + 1;
+                  });
+
+                  const timelineArray = Object.entries(timelineData)
+                    .map(([week, count]) => ({ week, applications: count }))
+                    .sort((a, b) => a.week.localeCompare(b.week));
+
+                  if (timelineArray.length < 2) return null;
+
+                  const recent = timelineArray.slice(-4); // Last 4 weeks
+                  const previous = timelineArray.slice(-8, -4); // Previous 4 weeks
                   
-                  return mostUsedType.count > 0 ? (
+                  const recentAvg = recent.reduce((sum, week) => sum + week.applications, 0) / recent.length;
+                  const previousAvg = previous.reduce((sum, week) => sum + week.applications, 0) / previous.length;
+                  
+                  const change = previousAvg > 0 ? ((recentAvg - previousAvg) / previousAvg) * 100 : 0;
+                  
+                  return (
                     <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        Most Used Job Type
+                        Application Momentum
                       </h4>
                       <p className="mobile-text-2xl mobile-font-bold text-purple-600 dark:text-purple-400">
-                        {mostUsedType.type}
+                        {Math.round(recentAvg)}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {mostUsedType.count} applications
+                        <span className="font-bold">apps/week</span>
+                        {change !== 0 && (
+                          <span className={`ml-2 ${change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ({change > 0 ? '+' : ''}{Math.round(change)}%)
+                          </span>
+                        )}
                       </p>
                     </div>
-                  ) : null;
+                  );
                 })()}
 
                 {/* Best Performing Source */}
@@ -369,7 +418,7 @@ const MobileAnalyticsTab: React.FC = () => {
         <div className="mobile-space-y-4">
           {/* Status Breakdown */}
           <div className="card">
-            <h2 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 border-b-2 border-blue-200 dark:border-blue-700 pb-2">
               Status Breakdown
             </h2>
             
@@ -398,7 +447,7 @@ const MobileAnalyticsTab: React.FC = () => {
           {/* Monthly Progress */}
           {Object.keys(applicationsByMonth).length > 0 && (
             <div className="card">
-              <h2 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 border-b-2 border-purple-200 dark:border-purple-700 pb-2">
                 Monthly Progress
               </h2>
               
@@ -440,12 +489,12 @@ const MobileAnalyticsTab: React.FC = () => {
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
               Sign up to access advanced analytics including company success rates, 
-              salary trends, and detailed performance metrics with cloud sync.
+              salary analysis by job type, and detailed performance metrics with cloud sync.
             </p>
             <div className="mobile-space-y-3">
               <div className="flex items-center mobile-justify-center mobile-gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <span>✓ Company success rate analysis</span>
-                <span>✓ Salary trend tracking</span>
+                <span>✓ Salary analysis by job type</span>
                 <span>✓ Detailed performance metrics</span>
               </div>
             </div>
@@ -458,10 +507,10 @@ const MobileAnalyticsTab: React.FC = () => {
           {/* Company Success Rates */}
           {companySuccessRates.length > 0 && (
             <div className="card">
-              <h3 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 border-b-2 border-green-200 dark:border-green-700 pb-2">
                 Company Success Rates
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              </h2>
+              <p className="text-base text-gray-700 dark:text-gray-300 mb-4 font-medium">
                 Companies with 2+ applications ranked by success rate
               </p>
               
@@ -501,9 +550,9 @@ const MobileAnalyticsTab: React.FC = () => {
           {/* Salary Analysis */}
           {salaryTrends.all.length > 0 && (
             <div className="card">
-              <h3 className="mobile-text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                Salary Analysis
-              </h3>
+              <h2 className="mobile-text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 border-b-2 border-purple-200 dark:border-purple-700 pb-2">
+                Salary Analysis by Job Type
+              </h2>
               
               <div className="mobile-space-y-4">
                 <div className="mobile-grid-2">
@@ -525,6 +574,30 @@ const MobileAnalyticsTab: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Salary by Job Type */}
+                {salaryTrends.byType.length > 0 && (
+                  <div className="mobile-space-y-3">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                      Average Salary by Job Type
+                    </h4>
+                    {salaryTrends.byType.map((item) => (
+                      <div key={item.jobType} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                            {item.jobType}
+                          </div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {item.count} applications
+                          </span>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          ${item.average.toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 
                 {salaryTrends.highest && (
                   <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
@@ -536,6 +609,26 @@ const MobileAnalyticsTab: React.FC = () => {
                     </div>
                     <div className="text-sm text-green-700 dark:text-green-300">
                       {salaryTrends.highest.position} at {salaryTrends.highest.company}
+                    </div>
+                    <div className="text-xs text-green-600 dark:text-green-400 font-medium mt-1">
+                      {salaryTrends.highest.type} • {salaryTrends.highest.employmentType}
+                    </div>
+                  </div>
+                )}
+
+                {salaryTrends.lowest && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                      Lowest Offer
+                    </h4>
+                    <div className="mobile-text-xl mobile-font-bold text-blue-600 dark:text-blue-400 mb-1">
+                      ${salaryTrends.lowest.salary.toLocaleString()}
+                    </div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                      {salaryTrends.lowest.position} at {salaryTrends.lowest.company}
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
+                      {salaryTrends.lowest.type} • {salaryTrends.lowest.employmentType}
                     </div>
                   </div>
                 )}

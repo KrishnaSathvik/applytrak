@@ -39,16 +39,13 @@ const ApplicationsTab: React.FC = () => {
             <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm md:text-base">
               Track and manage your job applications
             </p>
-            <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span>Total: {applications.length}</span>
-              <span>Active: {applications.filter(app => app.status !== 'Rejected').length}</span>
-              <span>Interviews: {applications.filter(app => app.status === 'Interview').length}</span>
-              {!auth.isAuthenticated && (
+            {!auth.isAuthenticated && (
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <span className="text-blue-600 dark:text-blue-400 font-semibold">
                   Limit: {applications.length}/50
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
             <button
@@ -62,44 +59,10 @@ const ApplicationsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      {applications.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 mb-1">
-              {applications.filter(app => app.status === 'Applied').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Applied</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 mb-1">
-              {applications.filter(app => app.status === 'Interview').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Interviews</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mb-1">
-              {applications.filter(app => app.status === 'Offer').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Offers</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mb-1">
-              {applications.filter(app => app.status === 'Rejected').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600">Rejected</div>
-          </div>
-        </div>
-      )}
+
 
       {/* Add Application Form - Always Visible */}
-      <div className="glass-card">
-        <div className="mb-2 sm:mb-3">
-          <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100">Add New Application</h2>
-          <p className="text-xs text-gray-600 dark:text-gray-300">Fill out the details below to track your job application</p>
-        </div>
-        <ApplicationForm onSuccess={handleFormSuccess} />
-      </div>
+      <ApplicationForm onSuccess={handleFormSuccess} />
 
 
 

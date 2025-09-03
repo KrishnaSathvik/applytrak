@@ -90,7 +90,7 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
                 {/* Job Type */}
                 <div>
                     <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Job Type *
+                        Job Type
                     </label>
                     <select
                         id="type"
@@ -100,15 +100,36 @@ export const BasicInformation: React.FC<BasicInformationProps> = ({
                         }`}
                     >
                         <option value="Remote">Remote</option>
-                        <option value="On-site">On-site</option>
+                        <option value="Onsite">Onsite</option>
                         <option value="Hybrid">Hybrid</option>
-                        <option value="Contract">Contract</option>
-                        <option value="Part-time">Part-time</option>
-                        <option value="Internship">Internship</option>
                     </select>
                     {errors.type && (
                         <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                             {errors.type.message}
+                        </p>
+                    )}
+                </div>
+
+                {/* Employment Type */}
+                <div>
+                    <label htmlFor="employmentType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Employment Type
+                    </label>
+                    <select
+                        id="employmentType"
+                        {...register('employmentType')}
+                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white ${
+                            errors.employmentType ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                    >
+                        <option value="Full-time">Full-time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Internship">Internship</option>
+                    </select>
+                    {errors.employmentType && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                            {errors.employmentType.message}
                         </p>
                     )}
                 </div>

@@ -73,12 +73,22 @@ module.exports = {
             },
 
             // =================================================================
-            // GEIST FONT SYSTEM - Optimized typography
+            // INTER FONT SYSTEM - Optimized typography
             // =================================================================
             fontFamily: {
                 sans: [
                     'var(--font-family-primary)',
-                    'Geist',
+                    'Inter',
+                    'ui-sans-serif',
+                    'system-ui',
+                    '-apple-system',
+                    'BlinkMacSystemFont',
+                    'Segoe UI',
+                    'sans-serif'
+                ],
+                display: [
+                    'var(--font-family-primary)',
+                    'Inter',
                     'ui-sans-serif',
                     'system-ui',
                     '-apple-system',
@@ -88,7 +98,6 @@ module.exports = {
                 ],
                 mono: [
                     'var(--font-family-primary)',
-                    'Geist',
                     'ui-monospace',
                     'monospace'
                 ],
@@ -107,7 +116,7 @@ module.exports = {
                 '5xl': ['3rem', {lineHeight: '1', letterSpacing: '-0.04em'}],
             },
 
-            // Optimized font weights for Geist
+            // Optimized font weights for Inter
             fontWeight: {
                 light: '300',    // --font-weight-light
                 normal: '400',   // --font-weight-normal
@@ -311,7 +320,7 @@ module.exports = {
             addBase({
                 ':root': {
                     // Ensure CSS custom properties are available to Tailwind
-                    '--font-family-primary': 'Geist, ui-sans-serif, system-ui, sans-serif',
+                    '--font-family-primary': 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
                 },
 
                 // Enhanced focus styles

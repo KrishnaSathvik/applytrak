@@ -13,7 +13,8 @@ interface ExportMetadata {
 interface ExportSummary {
     totalApplications: number;
     statusBreakdown: Record<string, number>;
-    typeBreakdown: Record<string, number>;
+    jobTypeBreakdown: Record<string, number>;
+    employmentTypeBreakdown: Record<string, number>;
 }
 
 interface ExportData {
@@ -33,7 +34,8 @@ interface ImportResult {
 // Constants
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
 const VALID_STATUSES = ['Applied', 'Interview', 'Offer', 'Rejected'] as const;
-const VALID_TYPES = ['Remote', 'Hybrid', 'Onsite'] as const;
+const VALID_JOB_TYPES = ['Remote', 'Onsite', 'Hybrid'] as const;
+const VALID_EMPLOYMENT_TYPES = ['Full-time', 'Contract', 'Part-time', 'Internship'] as const;
 
 const CSV_COLUMN_MAPPING = {
     company: ['company', 'company name', 'employer'],
@@ -109,15 +111,21 @@ const calculateSummary = (applications: Application[]): ExportSummary => {
         return acc;
     }, {} as Record<string, number>);
 
-    const typeBreakdown = VALID_TYPES.reduce((acc, type) => {
+    const jobTypeBreakdown = VALID_JOB_TYPES.reduce((acc, type) => {
         acc[type] = applications.filter(app => app.type === type).length;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const employmentTypeBreakdown = VALID_EMPLOYMENT_TYPES.reduce((acc, type) => {
+        acc[type] = applications.filter(app => app.employmentType === type).length;
         return acc;
     }, {} as Record<string, number>);
 
     return {
         totalApplications: applications.length,
         statusBreakdown,
-        typeBreakdown
+        jobTypeBreakdown,
+        employmentTypeBreakdown
     };
 };
 
@@ -710,21 +718,25 @@ const validateAndCleanApplication = (app: any, index: number): Application => {
     // Status validation
     const status = VALID_STATUSES.includes(app.status) ? app.status : 'Applied';
 
-    // Type validation
-    const type = VALID_TYPES.includes(app.type) ? app.type : 'Remote';
+    // Job type validation
+    const type = VALID_JOB_TYPES.includes(app.type) ? app.type : 'Remote';
+    
+    // Employment type validation (default to '-' if not provided)
+    const employmentType = VALID_EMPLOYMENT_TYPES.includes(app.employmentType) ? app.employmentType : '-';
 
     return {
         id: app.id || `imported-${Date.now()}-${index}`,
-        company: String(app.company).trim(),
-        position: String(app.position).trim(),
+        company: String(app.company).trim() || '-',
+        position: String(app.position).trim() || '-',
         dateApplied,
         status: status as any,
         type: type as any,
-        location: app.location?.trim?.() || '',
-        salary: app.salary?.trim?.() || '',
-        jobSource: app.jobSource?.trim?.() || '',
-        jobUrl: app.jobUrl?.trim?.() || '',
-        notes: app.notes?.trim?.() || '',
+        employmentType: employmentType as any,
+        location: app.location?.trim?.() || '-',
+        salary: app.salary?.trim?.() || '-',
+        jobSource: app.jobSource?.trim?.() || '-',
+        jobUrl: app.jobUrl?.trim?.() || '-',
+        notes: app.notes?.trim?.() || '-',
         // ensure attachments are metadata-only
         attachments: Array.isArray(app.attachments)
             ? app.attachments.map(sanitizeAttachment)

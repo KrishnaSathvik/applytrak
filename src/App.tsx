@@ -4,11 +4,11 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import {useAppStore} from './store/useAppStore';
 import ResponsiveLayout from './components/layout/ResponsiveLayout';
 import {initializeDatabase} from './services/databaseService';
-import LoadingScreen from './components/ui/LoadingScreen';
+
 import {setupAutoBackup} from './utils/backup';
 import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
-import {verifyDatabaseAdmin} from './utils/adminAuth';
+// verifyDatabaseAdmin import removed - no longer needed after removing auto-redirect
 import PrivacySettingsModal from './components/modals/PrivacySettingsModal';
 
 import './styles/globals.css';
@@ -186,130 +186,32 @@ const App: React.FC = () => {
     }, [auth.isAuthenticated]);
 
     // ============================================================================
-    // ADMIN LOGOUT HANDLER
+    // ADMIN LOGOUT HANDLER - REMOVED FOR SECURITY
+    // ============================================================================
+    // Admin logout handler removed - logout is now handled directly in components
+
+    // ============================================================================
+    // ADMIN STATE RESET ON LOGOUT
     // ============================================================================
     useEffect(() => {
-        const handleAdminLogout = () => {
-            if (process.env.NODE_ENV === 'development') {
-                console.log('Admin logout requested - resetting admin state and signing out');
-            }
-
-            useAppStore.setState(state => ({
-                ui: {
-                    ...state.ui,
-                    admin: {
-                        authenticated: false,
-                        dashboardOpen: false,
-                        currentSection: 'overview'
-                    }
-                }
-            }));
-
-            useAppStore.getState().signOut();
-        };
-
-        (window as any).__admin_logout = handleAdminLogout;
-
-        // Add utility function for testing marketing page
-        (window as any).__reset_marketing_page = () => {
-            localStorage.removeItem('applytrak_has_visited');
-            useAppStore.getState().setShowMarketingPage(true);
-            console.log('Marketing page reset - refresh the page to see it');
-        };
-
-        return () => {
-            delete (window as any).__admin_logout;
-            delete (window as any).__reset_marketing_page;
-        };
-    }, []);
-
-    // ============================================================================
-    // AUTOMATIC ADMIN DETECTION AFTER LOGIN
-    // ============================================================================
-    useEffect(() => {
-        const checkAndRedirectAdmin = async () => {
-            if (!auth.isAuthenticated) {
-                if (ui.admin.dashboardOpen || ui.admin.authenticated) {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log('User logged out - resetting admin state');
-                    }
-                    useAppStore.setState(state => ({
-                        ui: {
-                            ...state.ui,
-                            admin: {
-                                authenticated: false,
-                                dashboardOpen: false,
-                                currentSection: 'overview'
-                            }
-                        }
-                    }));
-                }
-                return;
-            }
-
-            if (
-                auth.isAuthenticated &&
-                auth.user &&
-                auth.user.email &&
-                !ui.admin.dashboardOpen &&
-                !auth.isLoading
-            ) {
+        if (!auth.isAuthenticated) {
+            if (ui.admin.dashboardOpen || ui.admin.authenticated) {
                 if (process.env.NODE_ENV === 'development') {
-                    console.log('Checking if authenticated user is admin:', auth.user.email);
+                    console.log('User logged out - resetting admin state');
                 }
-
-                try {
-                    const isAdmin = await verifyDatabaseAdmin(String(auth.user.id), auth.user.email);
-
-                    if (isAdmin) {
-                        if (process.env.NODE_ENV === 'development') {
-                            console.log('Admin detected! Auto-redirecting to admin dashboard...');
-                        }
-
-                        useAppStore.setState(state => ({
-                            ui: {
-                                ...state.ui,
-                                admin: {
-                                    ...state.ui.admin,
-                                    authenticated: true,
-                                    dashboardOpen: true,
-                                    currentSection: 'overview'
-                                }
-                            }
-                        }));
-
-                        showToast({
-                            type: 'success',
-                            message: '🔑 Welcome to ApplyTrak Admin Dashboard',
-                            duration: 4000
-                        });
-
-                        if (process.env.NODE_ENV === 'development') {
-                            console.log('Admin user automatically redirected to dashboard');
-                        }
-                    } else {
-                        if (process.env.NODE_ENV === 'development') {
-                            console.log('Regular user - staying on main application');
+                useAppStore.setState(state => ({
+                    ui: {
+                        ...state.ui,
+                        admin: {
+                            authenticated: false,
+                            dashboardOpen: false,
+                            currentSection: 'overview'
                         }
                     }
-                } catch (error) {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.error('Error checking admin status:', error);
-                    }
-                }
+                }));
             }
-        };
-
-        checkAndRedirectAdmin();
-    }, [
-        auth.isAuthenticated,
-        auth.user?.email,
-        auth.isLoading,
-        ui.admin.dashboardOpen,
-        ui.admin.authenticated,
-        showToast,
-        auth.user
-    ]);
+        }
+    }, [auth.isAuthenticated, ui.admin.dashboardOpen, ui.admin.authenticated]);
 
     // ============================================================================
     // APP INITIALIZATION
@@ -424,14 +326,7 @@ const App: React.FC = () => {
                     console.log('System theme change listener active');
                 }
 
-                // Show Success Message (Only for main app)
-                if (!isOnAdminRoute && !isAdminDashboardOpen) {
-                    showToast({
-                        type: 'success',
-                        message: '🎉 ApplyTrak loaded successfully! Ready to track your applications.',
-                        duration: 3000
-                    });
-                }
+                // Success message removed - not needed on every app load
 
                 if (process.env.NODE_ENV === 'development') {
                     console.log('ApplyTrak initialization completed successfully!');
@@ -554,7 +449,14 @@ const App: React.FC = () => {
     // LOADING STATE HANDLING
     // ============================================================================
     if (ui?.isLoading && applications.length === 0 && !isOnAdminRoute && !isAdminDashboardOpen) {
-        return <LoadingScreen/>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+                </div>
+            </div>
+        );
     }
 
     // ============================================================================
@@ -568,19 +470,31 @@ const App: React.FC = () => {
     // MAIN APPLICATION RENDER
     // ============================================================================
     return (
-        <React.Suspense fallback={<LoadingScreen/>}>
+        <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+        }>
             <ErrorBoundary>
                 <Routes>
                     {/* Admin Routes */}
                     <Route path="/admin" element={
-                        <React.Suspense fallback={<LoadingScreen/>}>
+                        <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+        }>
                             <AdminPage/>
                         </React.Suspense>
                     } />
                     
                     {/* Special Pages */}
                     <Route path="/diagnostics" element={
-                        <React.Suspense fallback={<LoadingScreen/>}>
+                        <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+        }>
                             <DiagnosticsPage/>
                         </React.Suspense>
                     } />
@@ -589,7 +503,11 @@ const App: React.FC = () => {
                     {/* Marketing Page */}
                     <Route path="/marketing" element={
                         ui?.showMarketingPage ? (
-                            <React.Suspense fallback={<LoadingScreen/>}>
+                            <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+        }>
                                 <MarketingPage/>
                             </React.Suspense>
                         ) : (
@@ -626,11 +544,19 @@ const App: React.FC = () => {
                     {/* Default Route - Main Application */}
                     <Route path="*" element={
                         isAdminDashboardOpen ? (
-                            <React.Suspense fallback={<LoadingScreen/>}>
+                            <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+        }>
                                 <AdminDashboard/>
                             </React.Suspense>
                         ) : ui?.showMarketingPage ? (
-                            <React.Suspense fallback={<LoadingScreen/>}>
+                            <React.Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            </div>
+        }>
                                 <MarketingPage/>
                             </React.Suspense>
                         ) : (

@@ -22,6 +22,8 @@ import {authService, databaseService, supabase} from '../services/databaseServic
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
+import {backgroundSyncService} from '../services/backgroundSyncService';
+import {offlineStorageService} from '../services/offlineStorageService';
 import {verifyDatabaseAdmin} from "../utils/adminAuth";
 
 
@@ -287,6 +289,17 @@ export interface AppState {
 
     syncLocalApplicationsToCloud: () => Promise<void>;
 
+    // Background Sync Actions
+    addToSyncQueue: (type: 'application' | 'goal' | 'settings', operation: 'create' | 'update' | 'delete', data: any) => void;
+    forceSyncNow: () => Promise<void>;
+    getSyncStatus: () => any;
+    clearSyncErrors: () => void;
+
+    // Storage Health Actions
+    getStorageHealth: () => Promise<any>;
+    performStorageCleanup: () => Promise<void>;
+    getStorageMetrics: () => any;
+
     // Global Refresh Actions
     refreshAllAdminData: () => Promise<void>;
     enableAutoRefresh: (intervalSeconds?: number) => void;
@@ -536,7 +549,8 @@ export const useAppStore = create<AppState>()(
                     },
                     analytics: {
                         statusDistribution: {Applied: 0, Interview: 0, Offer: 0, Rejected: 0},
-                        typeDistribution: {Onsite: 0, Remote: 0, Hybrid: 0},
+                        typeDistribution: {Remote: 0, Onsite: 0, Hybrid: 0},
+                        employmentTypeDistribution: {'Full-time': 0, Contract: 0, 'Part-time': 0, Internship: 0, '-': 0},
                         sourceDistribution: {},
                         sourceSuccessRates: [],
                         successRate: 0,
@@ -1311,12 +1325,7 @@ export const useAppStore = create<AppState>()(
                             const result = await get().bulkAddApplications(unsyncedApplications);
 
                             if (result.successCount > 0) {
-                                get().showToast({
-                                    type: 'success',
-                                    message: `Successfully synced ${result.successCount} applications to cloud! 🎉`,
-                                    duration: 5000
-                                });
-                                
+                                // Silent sync success - no UI notifications
                                 console.log(`✅ Successfully synced ${result.successCount} applications to cloud`);
                             }
 
@@ -1329,12 +1338,50 @@ export const useAppStore = create<AppState>()(
 
                         } catch (error) {
                             console.error('❌ Error syncing local applications to cloud:', error);
-                            get().showToast({
-                                type: 'error',
-                                message: 'Failed to sync some applications to cloud. They will be synced automatically.',
-                                duration: 5000
-                            });
+                            // Silent error handling - no UI notifications
                         }
+                    },
+
+                    // Background Sync Actions
+                    addToSyncQueue: (type, operation, data) => {
+                        backgroundSyncService.addToSyncQueue(type, operation, data);
+                    },
+
+                    forceSyncNow: async () => {
+                        try {
+                            await backgroundSyncService.forceSyncNow();
+                            // Silent sync - no UI notifications
+                        } catch (error) {
+                            console.error('Force sync failed:', error);
+                            // Silent error handling - no UI notifications
+                        }
+                    },
+
+                    getSyncStatus: () => {
+                        return backgroundSyncService.getSyncStatus();
+                    },
+
+                    clearSyncErrors: () => {
+                        backgroundSyncService.clearErrors();
+                    },
+
+                    // Storage Health Actions
+                    getStorageHealth: async () => {
+                        return await offlineStorageService.getStorageHealth();
+                    },
+
+                    performStorageCleanup: async () => {
+                        try {
+                            await offlineStorageService.performCleanup();
+                            // Silent cleanup - no UI notifications
+                        } catch (error) {
+                            console.error('Storage cleanup failed:', error);
+                            // Silent error handling - no UI notifications
+                        }
+                    },
+
+                    getStorageMetrics: () => {
+                        return offlineStorageService.getStorageMetrics();
                     },
 
 
@@ -2296,9 +2343,22 @@ export const useAppStore = create<AppState>()(
                         }, {} as Record<string, number>);
 
                         const completeTypeDistribution = {
-                            Onsite: typeDistribution['Onsite'] || 0,
                             Remote: typeDistribution['Remote'] || 0,
+                            Onsite: typeDistribution['Onsite'] || 0,
                             Hybrid: typeDistribution['Hybrid'] || 0
+                        };
+
+                        const employmentTypeDistribution = applications.reduce((acc: Record<string, number>, app) => {
+                            acc[app.employmentType] = (acc[app.employmentType] || 0) + 1;
+                            return acc;
+                        }, {} as Record<string, number>);
+
+                        const completeEmploymentTypeDistribution = {
+                            'Full-time': employmentTypeDistribution['Full-time'] || 0,
+                            Contract: employmentTypeDistribution['Contract'] || 0,
+                            'Part-time': employmentTypeDistribution['Part-time'] || 0,
+                            Internship: employmentTypeDistribution['Internship'] || 0,
+                            '-': employmentTypeDistribution['-'] || 0
                         };
 
                         const sourceDistribution = applications.reduce((acc: Record<string, number>, app) => {
@@ -2356,6 +2416,7 @@ export const useAppStore = create<AppState>()(
                         const analytics = {
                             statusDistribution: completeStatusDistribution,
                             typeDistribution: completeTypeDistribution,
+                            employmentTypeDistribution: completeEmploymentTypeDistribution,
                             sourceDistribution,
                             sourceSuccessRates,
                             successRate,
@@ -2572,6 +2633,14 @@ export const useAppStore = create<AppState>()(
                             message: 'Admin logged out.',
                             duration: 2000
                         });
+
+                        // Always redirect to home page after admin logout
+                        if (typeof window !== 'undefined') {
+                            // Set selected tab to home first
+                            get().setSelectedTab('home');
+                            // Then redirect to home page
+                            window.location.href = '/';
+                        }
                     },
 
                     loadAdminAnalytics: async () => {

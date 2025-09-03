@@ -73,6 +73,7 @@ const EditApplicationModal: React.FC = () => {
             position: '',
             dateApplied: new Date().toISOString().split('T')[0],
             type: 'Remote',
+            employmentType: 'Full-time',
             status: 'Applied', // Keep for validation but not editable
             location: '',
             salary: '',
@@ -98,6 +99,7 @@ const EditApplicationModal: React.FC = () => {
                 position: application.position,
                 dateApplied: application.dateApplied,
                 type: application.type,
+                employmentType: application.employmentType,
                 status: application.status, // Keep for validation but won't be editable
                 location: application.location || '',
                 salary: application.salary || '',
@@ -121,6 +123,7 @@ const EditApplicationModal: React.FC = () => {
                 salary: '',
                 jobSource: '',
                 jobUrl: '',
+                employmentType: 'Full-time',
                 notes: '' // Keep for validation but not editable
             });
             setAttachments([]);
@@ -196,6 +199,7 @@ const EditApplicationModal: React.FC = () => {
                 position: normalizedPosition,
                 dateApplied: data.dateApplied,
                 type: data.type,
+                employmentType: data.employmentType,
                 // Status and notes are not editable in this modal - they have dedicated UI elsewhere
                 ...(data.location?.trim() && { location: data.location.trim() }),
                 ...(data.salary?.trim() && { salary: data.salary.trim() }),
@@ -416,7 +420,7 @@ const EditApplicationModal: React.FC = () => {
             } else if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
                 event.preventDefault();
                 if (!isSubmitting && hasUnsavedChanges) {
-                    handleSubmit(onSubmit)();
+                    handleSubmit(onSubmit as any)();
                 }
             }
         };
@@ -503,7 +507,7 @@ const EditApplicationModal: React.FC = () => {
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                    <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-8">
                         {/* Section 1: Basic Information */}
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 mb-6">
@@ -593,13 +597,36 @@ const EditApplicationModal: React.FC = () => {
                                         aria-describedby={errors.type ? 'type-error' : undefined}
                                     >
                                         <option value="Remote">🏠 Remote</option>
-                                        <option value="Hybrid">🔄 Hybrid</option>
                                         <option value="Onsite">🏢 Onsite</option>
+                                        <option value="Hybrid">🔄 Hybrid</option>
                                     </select>
                                     {errors.type && (
                                         <p id="type-error" className="form-error flex items-center">
                                             <AlertTriangle className="h-3 w-3 mr-1"/>
                                             {errors.type.message}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="form-label-enhanced">
+                                        Employment Type <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        {...register('employmentType')}
+                                        className={`form-input-enhanced h-12 text-base transition-all duration-200 leading-normal py-3 ${errors.employmentType ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
+                                        style={{lineHeight: '1.5', paddingTop: '12px', paddingBottom: '12px'}}
+                                        aria-describedby={errors.employmentType ? 'employmentType-error' : undefined}
+                                    >
+                                        <option value="Full-time">💼 Full-time</option>
+                                        <option value="Contract">📋 Contract</option>
+                                        <option value="Part-time">⏰ Part-time</option>
+                                        <option value="Internship">🎓 Internship</option>
+                                    </select>
+                                    {errors.employmentType && (
+                                        <p id="employmentType-error" className="form-error flex items-center">
+                                            <AlertTriangle className="h-3 w-3 mr-1"/>
+                                            {errors.employmentType.message}
                                         </p>
                                     )}
                                 </div>

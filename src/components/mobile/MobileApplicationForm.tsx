@@ -66,6 +66,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
       position: '',
       dateApplied: getTodayLocalDate(),
       type: 'Remote',
+      employmentType: 'Full-time',
       location: '',
       salary: '',
       jobSource: '',
@@ -196,6 +197,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
         position: data.position,
         dateApplied: data.dateApplied,
         type: data.type,
+        employmentType: data.employmentType,
         status: 'Applied' as const,
         ...(data.location && { location: data.location }),
         ...(data.salary && { salary: data.salary }),
@@ -231,7 +233,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="mobile-space-y-6">
+    <form onSubmit={handleSubmit(onSubmit as any)} className="mobile-space-y-6">
       {/* Company and Position */}
       <div className="mobile-grid-2">
         <div className="mobile-form-group">
@@ -277,10 +279,21 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
           <label className="mobile-form-label">Job Type</label>
           <select {...register('type')} className="mobile-form-select">
             <option value="Remote">Remote</option>
+            <option value="Onsite">Onsite</option>
             <option value="Hybrid">Hybrid</option>
-            <option value="On-site">On-site</option>
           </select>
         </div>
+      </div>
+
+      {/* Employment Type */}
+      <div className="mobile-form-group">
+        <label className="mobile-form-label">Employment Type</label>
+        <select {...register('employmentType')} className="mobile-form-select">
+          <option value="Full-time">Full-time</option>
+          <option value="Contract">Contract</option>
+          <option value="Part-time">Part-time</option>
+          <option value="Internship">Internship</option>
+        </select>
       </div>
 
       {/* Location and Salary */}

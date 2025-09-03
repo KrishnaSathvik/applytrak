@@ -17,6 +17,7 @@ import {
     UserSession
 } from '../types';
 
+
 // ============================================================================
 // CONFIGURATION & CONSTANTS
 // ============================================================================
@@ -554,17 +555,47 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
         console.log('📝 Creating user record for:', currentUser.email);
 
         // First check if user already exists to avoid conflicts
-        const {data: existingUser} = await client
+        const {data: existingUser, error: lookupError} = await client
             .from('users')
-            .select('id, email, isadmin')
+            .select('id, email')
             .eq('externalid', authUserId)
             .maybeSingle();
 
-        if (existingUser) {
+        if (existingUser && !lookupError) {
             console.log('✅ User already exists, using existing record');
             const dbId = parseInt(existingUser.id.toString());
             localStorage.setItem('applytrak_user_db_id', dbId.toString());
             return dbId;
+        }
+
+        // Also check by email to handle cases where externalid might be different
+        if (currentUser.email) {
+            try {
+                console.log('🔍 Checking for existing user by email:', currentUser.email);
+                const {data: emailUser, error: emailError} = await client
+                    .from('users')
+                    .select('id, email')
+                    .eq('email', currentUser.email)
+                    .maybeSingle();
+
+                if (emailError) {
+                    console.warn('Email lookup failed:', emailError.message);
+                    // If it's a schema error, skip further attempts
+                    if (emailError.message.includes('does not exist')) {
+                        console.warn('Database schema error detected, skipping further attempts');
+                        return null;
+                    }
+                } else if (emailUser) {
+                    console.log('✅ User found by email, using existing record');
+                    const dbId = parseInt(emailUser.id.toString());
+                    localStorage.setItem('applytrak_user_db_id', dbId.toString());
+                    return dbId;
+                } else {
+                    console.log('📝 No existing user found by email, will create new record');
+                }
+            } catch (emailLookupError) {
+                console.warn('Email lookup error:', emailLookupError);
+            }
         }
 
         const {data: newUser, error: createError} = await client
@@ -582,7 +613,7 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
                 createdat: new Date().toISOString(),
                 updatedat: new Date().toISOString()
             })
-            .select('id, email, isadmin')
+            .select('id, email')
             .single();
 
         if (createError) {
@@ -593,7 +624,7 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
                 console.log('🔄 Duplicate key error - user already exists, fetching existing record...');
                 const {data: existingUser} = await client
                     .from('users')
-                    .select('id, email, isadmin')
+                    .select('id, email')
                     .eq('externalid', authUserId)
                     .single();
 
@@ -617,8 +648,7 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
 
         console.log('✅ User created successfully:', {
             dbId,
-            email: newUser.email,
-            isAdmin: newUser.isadmin
+            email: newUser.email
         });
 
         return dbId;
@@ -665,16 +695,40 @@ const getUserDbId = async (): Promise<number | null> => {
 
         const {data: user, error} = await client
             .from('users')
-            .select('id, email, isadmin')
+            .select('id, email')
             .eq('externalid', userId)
             .maybeSingle();
 
         if (error) {
             console.error('❌ Error looking up user:', error);
 
-            if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
+            if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.code === '406' || error.code === '400') {
                 console.log('👤 User not found in database, creating new user record...');
                 return await createUserRecord(userId);
+            }
+
+            // For other errors, try to get user by email as fallback
+            const { data: { session } } = await client.auth.getSession();
+            if (session?.user?.email) {
+                try {
+                    console.log('🔄 Trying fallback lookup by email:', session.user.email);
+                    const {data: emailUser, error: emailError} = await client
+                        .from('users')
+                        .select('id, email')
+                        .eq('email', session.user.email)
+                        .maybeSingle();
+
+                    if (emailError) {
+                        console.warn('Fallback email lookup failed:', emailError.message);
+                    } else if (emailUser) {
+                        console.log('✅ Found user by email fallback');
+                        const dbId = parseInt(emailUser.id.toString());
+                        localStorage.setItem('applytrak_user_db_id', dbId.toString());
+                        return dbId;
+                    }
+                } catch (fallbackError) {
+                    console.warn('Fallback email lookup error:', fallbackError);
+                }
             }
 
             return null;
@@ -689,8 +743,7 @@ const getUserDbId = async (): Promise<number | null> => {
         localStorage.setItem('applytrak_user_db_id', dbId.toString());
         console.log('✅ Found existing user:', {
             dbId,
-            email: user.email,
-            isAdmin: user.isadmin
+            email: user.email
         });
 
         return dbId;
@@ -1298,7 +1351,7 @@ class BackgroundSyncManager {
                 dataCache.set(table, cloudData);
 
                 if (table === 'applications') {
-                    const mappedApps = this.mapApplicationsData(cloudData);
+                    const mappedApps = mapApplicationsData(cloudData);
                     await db.applications.clear();
                     await db.applications.bulkAdd(mappedApps);
                     dataCache.set('applications', mappedApps);
@@ -1313,30 +1366,37 @@ class BackgroundSyncManager {
         }
     }
 
-    private mapApplicationsData(cloudApps: any[]): Application[] {
-        return cloudApps
-            .filter(app => app && app.id)
-            .map(app => ({
-                id: String(app.id),
-                company: app.company || '',
-                position: app.position || '',
-                dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
-                status: app.status || 'Applied',
-                type: app.type || 'Remote',
-                location: app.location || '',
-                salary: app.salary || '',
-                jobSource: app.jobSource || '',
-                jobUrl: app.jobUrl || '',
-                notes: app.notes || '',
-                attachments: Array.isArray(app.attachments) ? app.attachments : [],
-                createdAt: app.createdAt || new Date().toISOString(),
-                updatedAt: app.updatedAt || new Date().toISOString()
-            }))
-            .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
-    }
+
 }
 
 const backgroundSyncManager = BackgroundSyncManager.getInstance();
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+const mapApplicationsData = (cloudApps: any[]): Application[] => {
+    return cloudApps
+        .filter(app => app && app.id)
+        .map(app => ({
+            id: String(app.id),
+            company: app.company || '-',
+            position: app.position || '-',
+            dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
+            status: app.status || 'Applied',
+            type: app.type || 'Remote',
+            employmentType: app.employmentType || '-',
+            location: app.location || '-',
+            salary: app.salary || '-',
+            jobSource: app.jobSource || '-',
+            jobUrl: app.jobUrl || '-',
+            notes: app.notes || '-',
+            attachments: Array.isArray(app.attachments) ? app.attachments : [],
+            createdAt: app.createdAt || new Date().toISOString(),
+            updatedAt: app.updatedAt || new Date().toISOString()
+        }))
+        .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
+};
 
 // ============================================================================
 // DATABASE SERVICE IMPLEMENTATION
@@ -1386,25 +1446,7 @@ export const databaseService: DatabaseService = {
                 try {
                     const cloudApps = await syncFromCloud('applications');
                     if (cloudApps && cloudApps.length > 0) {
-                        const mappedApps = cloudApps
-                            .filter(app => app && app.id)
-                            .map(app => ({
-                                id: String(app.id),
-                                company: app.company || '',
-                                position: app.position || '',
-                                dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
-                                status: app.status || 'Applied',
-                                type: app.type || 'Remote',
-                                location: app.location || '',
-                                salary: app.salary || '',
-                                jobSource: app.jobSource || '',
-                                jobUrl: app.jobUrl || '',
-                                notes: app.notes || '',
-                                attachments: Array.isArray(app.attachments) ? app.attachments : [],
-                                createdAt: app.createdAt || new Date().toISOString(),
-                                updatedAt: app.updatedAt || new Date().toISOString()
-                            }))
-                            .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
+                        const mappedApps = mapApplicationsData(cloudApps);
 
                         await db.applications.clear();
                         await db.applications.bulkAdd(mappedApps);

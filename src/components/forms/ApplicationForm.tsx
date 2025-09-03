@@ -2,7 +2,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {SubmitHandler, useForm} from 'react-hook-form';
 import {yupResolver} from '@hookform/resolvers/yup';
-import {ExternalLink, Plus, Sparkles, Upload, X} from 'lucide-react';
+import {ExternalLink, Plus, Sparkles, Upload, X, ChevronDown, ChevronRight} from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {ApplicationFormData, Attachment} from '../../types';
 import {applicationFormSchema} from '../../utils/validation';
@@ -54,6 +54,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     // Removed unused state
     const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+    
+    // Collapsible sections state
+    const [isAdditionalInfoExpanded, setIsAdditionalInfoExpanded] = useState(false);
+    const [isAttachmentsExpanded, setIsAttachmentsExpanded] = useState(false);
 
     
     // Generate a temporary ID for file organization during form creation
@@ -89,6 +93,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
             position: '',
             dateApplied: todayLocal,
             type: 'Remote',
+            employmentType: 'Full-time',
             location: '',
             salary: '',
             jobSource: '',
@@ -136,13 +141,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
 
                 setIsDraftLoaded(true);
 
-                if (savedFormData || savedAttachments) {
-                    showToast({
-                        type: 'info',
-                        message: 'Draft application restored!',
-                        duration: 3000
-                    });
-                }
+                // Silent draft restoration - no UI notifications
             } catch (error) {
                 console.error('Error loading draft:', error);
                 setIsDraftLoaded(true);
@@ -452,6 +451,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
                 position: data.position,
                 dateApplied: data.dateApplied,
                 type: data.type,
+                employmentType: data.employmentType,
                 status: 'Applied',
                 location: data.location || '',
                 salary: data.salary || '',
@@ -472,6 +472,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
                 salary: '',
                 jobSource: '',
                 jobUrl: '',
+                employmentType: 'Full-time',
                 notes: '',
             });
 
@@ -592,135 +593,209 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
-                {/* Basic Information */}
-                <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-                    <div className="space-y-3">
-                        <label className="form-label-enhanced">Company Name*</label>
-                        <input
-                            type="text"
-                            {...register('company')}
-                            className={`form-input-enhanced ${
-                                errors.company
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                                    : 'focus:border-green-500 focus:ring-green-500/20'
-                            }`}
-                            placeholder="e.g. Google, Microsoft"
-                            autoComplete="organization"
-                        />
-                        {errors.company && (
-                            <p className="form-error">⚠️ {errors.company.message}</p>
-                        )}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                {/* Core Job Information Section - Always Visible */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                    <div className="flex items-center space-x-3 mb-6">
+                        <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Core Job Information</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Company, position, and job details</p>
+                        </div>
                     </div>
+                            {/* Basic Information */}
+                            <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-6 mb-6">
+                                <div className="space-y-3">
+                                    <label className="form-label-enhanced">Company Name*</label>
+                                    <input
+                                        type="text"
+                                        {...register('company')}
+                                        className={`form-input-enhanced ${
+                                            errors.company
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                : 'focus:border-green-500 focus:ring-green-500/20'
+                                        }`}
+                                        placeholder="e.g. Google, Microsoft"
+                                        autoComplete="organization"
+                                    />
+                                    {errors.company && (
+                                        <p className="form-error">⚠️ {errors.company.message}</p>
+                                    )}
+                                </div>
 
-                    <div className="space-y-3">
-                        <label className="form-label-enhanced">Position*</label>
-                        <input
-                            type="text"
-                            {...register('position')}
-                            className={`form-input-enhanced ${
-                                errors.position
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                                    : 'focus:border-blue-500 focus:ring-blue-500/20'
-                            }`}
-                            placeholder="e.g. Senior Software Engineer"
-                            autoComplete="organization-title"
-                        />
-                        {errors.position && (
-                            <p className="form-error">⚠️ {errors.position.message}</p>
-                        )}
-                    </div>
+                                <div className="space-y-3">
+                                    <label className="form-label-enhanced">Position*</label>
+                                    <input
+                                        type="text"
+                                        {...register('position')}
+                                        className={`form-input-enhanced ${
+                                            errors.position
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                : 'focus:border-blue-500 focus:ring-blue-500/20'
+                                        }`}
+                                        placeholder="e.g. Senior Software Engineer"
+                                        autoComplete="organization-title"
+                                    />
+                                    {errors.position && (
+                                        <p className="form-error">⚠️ {errors.position.message}</p>
+                                    )}
+                                </div>
 
-                    <div className="space-y-3 sm:col-span-2 lg:col-span-1">
-                        <label className="form-label-enhanced">Date Applied*</label>
-                        <input
-                            type="date"
-                            {...register('dateApplied')}
-                            className={`form-input-enhanced ${
-                                errors.dateApplied
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                                    : 'focus:border-purple-500 focus:ring-purple-500/20'
-                            }`}
-                            max={todayLocal}
-                        />
-                        {errors.dateApplied && (
-                            <p className="form-error">⚠️ {errors.dateApplied.message}</p>
-                        )}
+                                <div className="space-y-3 sm:col-span-2 lg:col-span-1">
+                                    <label className="form-label-enhanced">Date Applied*</label>
+                                    <input
+                                        type="date"
+                                        {...register('dateApplied')}
+                                        className={`form-input-enhanced ${
+                                            errors.dateApplied
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                : 'focus:border-purple-500 focus:ring-purple-500/20'
+                                        }`}
+                                        max={todayLocal}
+                                    />
+                                    {errors.dateApplied && (
+                                        <p className="form-error">⚠️ {errors.dateApplied.message}</p>
+                                    )}
+                                </div>
+                            </div>
+                    
+                    <div className="space-y-6">
+                        {/* Job Type and Employment Type Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="form-label-enhanced">Work Arrangement</label>
+                                <select
+                                    {...register('type')}
+                                    className={`form-input-enhanced ${
+                                        errors.type
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                            : 'focus:border-indigo-500 focus:ring-indigo-500/20'
+                                    }`}
+                                >
+                                    <option value="Remote" className="font-medium">🏠 Remote</option>
+                                    <option value="Onsite" className="font-medium">🏢 Onsite</option>
+                                    <option value="Hybrid" className="font-medium">🔄 Hybrid</option>
+                                </select>
+                                {errors.type && (
+                                    <p className="form-error">⚠️ {errors.type.message}</p>
+                                )}
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Where you'll be working</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="form-label-enhanced">Employment Type</label>
+                                <select
+                                    {...register('employmentType')}
+                                    className={`form-input-enhanced ${
+                                        errors.employmentType
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                            : 'focus:border-indigo-500 focus:ring-indigo-500/20'
+                                    }`}
+                                >
+                                    <option value="Full-time" className="font-medium">💼 Full-time</option>
+                                    <option value="Contract" className="font-medium">📋 Contract</option>
+                                    <option value="Part-time" className="font-medium">⏰ Part-time</option>
+                                    <option value="Internship" className="font-medium">🎓 Internship</option>
+                                </select>
+                                {errors.employmentType && (
+                                    <p className="form-error">⚠️ {errors.employmentType.message}</p>
+                                )}
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Type of employment</p>
+                            </div>
+                        </div>
+
+                        {/* Location and Salary Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="form-label-enhanced">Location</label>
+                                <input
+                                    type="text"
+                                    {...register('location')}
+                                    className="form-input-enhanced focus:border-teal-500 focus:ring-teal-500/20"
+                                    placeholder="e.g. San Francisco, CA"
+                                />
+                                {errors.location && (
+                                    <p className="form-error">⚠️ {errors.location.message}</p>
+                                )}
+                                <p className="text-xs text-gray-500 dark:text-gray-400">City, State or Country</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="form-label-enhanced">Salary</label>
+                                <input
+                                    type="text"
+                                    {...register('salary')}
+                                    className="form-input-enhanced focus:border-green-500 focus:ring-green-500/20"
+                                    placeholder="e.g. $120,000/year"
+                                    inputMode="numeric"
+                                />
+                                {errors.salary && (
+                                    <p className="form-error">⚠️ {errors.salary.message}</p>
+                                )}
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Annual salary or hourly rate</p>
+                            </div>
+                        </div>
+
+                        {/* Job Source Row */}
+                        <div className="grid grid-cols-1 gap-6">
+                            <div className="space-y-3">
+                                <label className="form-label-enhanced">Job Source</label>
+                                <input
+                                    type="text"
+                                    {...register('jobSource')}
+                                    list="jobSources"
+                                    className="form-input-enhanced focus:border-blue-500 focus:ring-blue-500/20"
+                                    placeholder="e.g. LinkedIn"
+                                />
+                                <datalist id="jobSources">
+                                    {JOB_SOURCES.map(source => (
+                                        <option key={source} value={source}/>
+                                    ))}
+                                </datalist>
+                                {errors.jobSource && (
+                                    <p className="form-error">⚠️ {errors.jobSource.message}</p>
+                                )}
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Where you found this job posting</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Job Details */}
-                <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
-                    <div className="space-y-3">
-                        <label className="form-label-enhanced">Job Type*</label>
-                        <select
-                            {...register('type')}
-                            className={`form-input-enhanced ${
-                                errors.type
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                                    : 'focus:border-indigo-500 focus:ring-indigo-500/20'
-                            }`}
-                        >
-                            <option value="Remote" className="font-medium">🏠 Remote</option>
-                            <option value="Hybrid" className="font-medium">🔄 Hybrid</option>
-                            <option value="Onsite" className="font-medium">🏢 Onsite</option>
-                        </select>
-                        {errors.type && (
-                            <p className="form-error">⚠️ {errors.type.message}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="form-label-enhanced">Location</label>
-                        <input
-                            type="text"
-                            {...register('location')}
-                            className="form-input-enhanced focus:border-teal-500 focus:ring-teal-500/20"
-                            placeholder="e.g. San Francisco, CA"
-                        />
-                        {errors.location && (
-                            <p className="form-error">⚠️ {errors.location.message}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="form-label-enhanced">Salary</label>
-                        <input
-                            type="text"
-                            {...register('salary')}
-                            className="form-input-enhanced focus:border-green-500 focus:ring-green-500/20"
-                            placeholder="e.g. $120,000/year"
-                            inputMode="numeric"
-                        />
-                        {errors.salary && (
-                            <p className="form-error">⚠️ {errors.salary.message}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="form-label-enhanced">Job Source</label>
-                        <input
-                            type="text"
-                            {...register('jobSource')}
-                            list="jobSources"
-                            className="form-input-enhanced focus:border-blue-500 focus:ring-blue-500/20"
-                            placeholder="e.g. LinkedIn"
-                        />
-                        <datalist id="jobSources">
-                            {JOB_SOURCES.map(source => (
-                                <option key={source} value={source}/>
-                            ))}
-                        </datalist>
-                        {errors.jobSource && (
-                            <p className="form-error">⚠️ {errors.jobSource.message}</p>
-                        )}
-                    </div>
-                </div>
-
-                {/* Job URL */}
-                <div className="space-y-3">
-                    <label className="form-label-enhanced">Job Posting URL</label>
-                    <div className="flex flex-col sm:flex-row gap-3">
+                {/* Additional Information Section - Collapsible */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <button
+                        type="button"
+                        onClick={() => setIsAdditionalInfoExpanded(!isAdditionalInfoExpanded)}
+                        className="w-full p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 rounded-xl"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="flex items-center justify-center w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                    <ExternalLink className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Additional Information</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Job posting URL and notes</p>
+                                </div>
+                            </div>
+                            {isAdditionalInfoExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                            ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                            )}
+                        </div>
+                    </button>
+                    
+                    {isAdditionalInfoExpanded && (
+                        <div className="px-6 pb-6">
+                    
+                    <div className="space-y-6">
+                        {/* Job URL */}
+                        <div className="space-y-3">
+                            <label className="form-label-enhanced">Job Posting URL</label>
+                            <div className="flex flex-col sm:flex-row gap-3">
                         <input
                             type="url"
                             {...register('jobUrl')}
@@ -743,19 +818,18 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
                     {errors.jobUrl && (
                         <p className="form-error">⚠️ {errors.jobUrl.message}</p>
                     )}
-                </div>
-
-                {/* Notes Section */}
-                <div
-                    className="space-y-4 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl p-6 border border-blue-200/30 dark:border-blue-700/30">
-                    <div className="flex items-center justify-between">
-                        <label className="form-label-enhanced text-lg font-bold text-blue-900 dark:text-blue-100 mb-0">
-                            📝 Notes
-                        </label>
-                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {notesValue.length} / {MAX_NOTES_LENGTH} characters
                         </div>
-                    </div>
+
+                        {/* Notes Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label className="form-label-enhanced text-lg font-bold text-gray-900 dark:text-white mb-0">
+                                    📝 Notes
+                                </label>
+                                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    {notesValue.length} / {MAX_NOTES_LENGTH} characters
+                                </div>
+                            </div>
 
                     <div className="relative">
             <textarea
@@ -814,14 +888,45 @@ Feel free to include any relevant information that will help you track this oppo
                         </div>
                     </div>
 
-                    {errors.notes && (
-                        <p className="form-error mt-2">⚠️ {errors.notes.message}</p>
+                            {errors.notes && (
+                                <p className="form-error mt-2">⚠️ {errors.notes.message}</p>
+                            )}
+                        </div>
+                    </div>
+                        </div>
                     )}
                 </div>
 
-                {/* Attachments */}
-                <div className="space-y-4">
-                    <label className="form-label-enhanced">Resume</label>
+                {/* Attachments Section - Collapsible */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <button
+                        type="button"
+                        onClick={() => setIsAttachmentsExpanded(!isAttachmentsExpanded)}
+                        className="w-full p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 rounded-xl"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="flex items-center justify-center w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                                    <Upload className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Attachments</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Upload your resume and documents</p>
+                                </div>
+                            </div>
+                            {isAttachmentsExpanded ? (
+                                <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                            ) : (
+                                <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                            )}
+                        </div>
+                    </button>
+                    
+                    {isAttachmentsExpanded && (
+                        <div className="px-6 pb-6">
+                    
+                    <div className="space-y-4">
+                        <label className="form-label-enhanced">Resume</label>
                     {attachments.length > 0 && (
                         <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-1 lg:grid-cols-2 sm:gap-4 mb-4">
                             {attachments.map((attachment, index) => (
@@ -931,8 +1036,13 @@ Feel free to include any relevant information that will help you track this oppo
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                    </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
 
 
                         {/* Submit Button */}
@@ -960,7 +1070,6 @@ Feel free to include any relevant information that will help you track this oppo
                             )}
                         </button>
                     </div>
-                </div>
             </form>
 
 

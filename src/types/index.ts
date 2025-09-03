@@ -13,6 +13,7 @@ export interface Application {
     dateApplied: string;
     status: ApplicationStatus;
     type: JobType;
+    employmentType: EmploymentType;
     location?: string;
     salary?: string;
     jobSource?: string;
@@ -28,7 +29,8 @@ export interface Application {
 }
 
 export type ApplicationStatus = 'Applied' | 'Interview' | 'Offer' | 'Rejected';
-export type JobType = 'Onsite' | 'Remote' | 'Hybrid' | 'Contract' | 'Part-time' | 'Internship';
+export type JobType = 'Remote' | 'Onsite' | 'Hybrid';
+export type EmploymentType = 'Full-time' | 'Contract' | 'Part-time' | 'Internship' | '-';
 
 export interface Attachment {
     id?: string;
@@ -101,6 +103,7 @@ export interface ApplicationFormData {
     dateApplied: string;
     status?: ApplicationStatus; // Made optional
     type: JobType;
+    employmentType: EmploymentType;
     location?: string;
     salary?: string;
     jobSource?: string;
@@ -167,6 +170,7 @@ export interface Backup {
 export interface AnalyticsData {
     statusDistribution: StatusDistribution;
     typeDistribution: TypeDistribution;
+    employmentTypeDistribution: EmploymentTypeDistribution;
     sourceDistribution?: { [key: string]: number };
     sourceSuccessRates: SourceSuccessRate[];
     successRate: number;
@@ -185,9 +189,17 @@ export interface StatusDistribution {
 }
 
 export interface TypeDistribution {
-    Onsite: number;
     Remote: number;
+    Onsite: number;
     Hybrid: number;
+}
+
+export interface EmploymentTypeDistribution {
+    'Full-time': number;
+    Contract: number;
+    'Part-time': number;
+    Internship: number;
+    '-': number;
 }
 
 export interface SourceSuccessRate {
@@ -685,6 +697,7 @@ export interface DatabaseService {
 export interface FilterOptions {
     status?: ApplicationStatus[];
     type?: JobType[];
+    employmentType?: EmploymentType[];
     dateRange?: {
         start: string;
         end: string;
@@ -872,7 +885,8 @@ export const isFeedbackSubmission = (obj: any): obj is FeedbackSubmission => {
 // ============================================================================
 
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
-export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid'];
+export const JOB_TYPES: JobType[] = ['Remote', 'Onsite', 'Hybrid'];
+export const EMPLOYMENT_TYPES: EmploymentType[] = ['Full-time', 'Contract', 'Part-time', 'Internship', '-'];
 export const FEEDBACK_TYPES: FeedbackSubmission['type'][] = ['bug', 'feature', 'general', 'love'];
 export const TRACKING_LEVELS: TrackingLevel[] = ['minimal', 'standard', 'detailed'];
 

@@ -507,13 +507,14 @@ const MobileEditModalContent: React.FC<MobileEditModalContentProps> = ({ applica
             Job Type *
           </label>
           <select
-            value={editedData.type || 'Onsite'}
+            value={editedData.type || 'Full-time'}
             onChange={(e) => handleInputChange('type', e.target.value)}
             className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
-            <option value="Onsite">Onsite</option>
-            <option value="Remote">Remote</option>
-            <option value="Hybrid">Hybrid</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Contract">Contract</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Internship">Internship</option>
           </select>
         </div>
 
@@ -635,9 +636,12 @@ const MobileApplicationsTable: React.FC = () => {
   // Pagination settings
   const ITEMS_PER_PAGE = 7; // Smaller page size for mobile
 
+  // Use applications directly - modern React can handle large datasets
+  const safeApplications = filteredApplications;
+
   // Filter and sort applications
   const processedApplications = useMemo(() => {
-    let filtered = filteredApplications;
+    let filtered = safeApplications;
 
     // Apply search filter
     if (searchTerm) {
@@ -664,7 +668,7 @@ const MobileApplicationsTable: React.FC = () => {
     });
 
     return filtered;
-  }, [filteredApplications, searchTerm, statusFilter]);
+  }, [safeApplications, searchTerm, statusFilter]);
 
   // Pagination calculations
   const totalPages = Math.ceil(processedApplications.length / ITEMS_PER_PAGE);
@@ -830,7 +834,14 @@ const MobileApplicationsTable: React.FC = () => {
               {app.type && (
                 <div className="mobile-detail-row">
                   <span className="mobile-detail-label">Type</span>
-                  <span className="mobile-detail-value">{app.type}</span>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase whitespace-nowrap ${
+                    app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700' :
+                      app.type === 'Onsite' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700' :
+                        app.type === 'Hybrid' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700' :
+                          'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
+                  }`}>
+                    {app.type}
+                  </span>
                 </div>
               )}
 

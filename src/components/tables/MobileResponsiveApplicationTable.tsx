@@ -895,6 +895,9 @@ const MobileResponsiveApplicationTable: React.FC = () => {
         showToast
     } = useAppStore();
 
+    // Use applications directly - modern React can handle large datasets
+    const safeApplications = filteredApplications;
+
 
 
     // State management
@@ -999,11 +1002,11 @@ const MobileResponsiveApplicationTable: React.FC = () => {
             return {activeApplications: active, rejectedApplications: rejected};
         } else {
             // For smaller datasets, use filter for cleaner code
-            const active = filteredApplications.filter(app => app.status !== 'Rejected');
-            const rejected = filteredApplications.filter(app => app.status === 'Rejected');
+            const active = safeApplications.filter(app => app.status !== 'Rejected');
+            const rejected = safeApplications.filter(app => app.status === 'Rejected');
             return {activeApplications: active, rejectedApplications: rejected};
         }
-    }, [filteredApplications]);
+    }, [safeApplications]);
 
     const currentApplications = showRejected ? rejectedApplications : activeApplications;
 
@@ -1594,16 +1597,43 @@ const ApplicationCard: React.FC<CardProps> = memo(({
             </span>
                     </div>
                     <span className="text-gray-400">•</span>
-                    <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-bold tracking-wide uppercase ${
-                            application.type === 'Remote'
-                                ? 'bg-green-100 text-green-800 dark:bg-gray-800 dark:text-green-100'
-                                : application.type === 'Hybrid'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                        }`}>
-              {application.type}
-            </span>
+                    <div className="flex items-center gap-2">
+                        {/* Work Type */}
+                        <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase whitespace-nowrap ${
+                                application.type === 'Remote'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                    : application.type === 'Onsite'
+                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                                        : application.type === 'Hybrid'
+                                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700'
+                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
+                            }`}>
+                            {application.type === 'Remote' ? '🏠' : application.type === 'Onsite' ? '🏢' : '🔄'} {application.type}
+                        </span>
+                        
+                        {/* Employment Type */}
+                        {application.employmentType && application.employmentType !== '-' ? (
+                            <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase whitespace-nowrap ${
+                                    application.employmentType === 'Full-time'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700'
+                                        : application.employmentType === 'Contract'
+                                            ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700'
+                                            : application.employmentType === 'Part-time'
+                                                ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700'
+                                                : application.employmentType === 'Internship'
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700'
+                                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
+                                }`}>
+                                {application.employmentType === 'Full-time' ? '💼' : 
+                                 application.employmentType === 'Contract' ? '📋' : 
+                                 application.employmentType === 'Part-time' ? '⏰' : '🎓'} {application.employmentType}
+                            </span>
+                        ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                        )}
+                    </div>
                     {application.location && (
                         <>
                             <span className="text-gray-400">•</span>
@@ -1758,7 +1788,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                         <th className="w-20 px-2 py-2 text-center text-xs font-extrabold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Date</th>
                         <th className="w-28 px-2 py-2 text-left text-xs font-extrabold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Company</th>
                         <th className="w-32 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Position</th>
-                        <th className="w-16 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Type</th>
+                        <th className="w-20 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Work Type</th>
+                        <th className="w-20 px-2 py-2 text-center text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Employment</th>
                         <th className="w-24 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Location</th>
                         <th className="w-20 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Salary</th>
                         <th className="w-24 px-2 py-2 text-left text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest">Source</th>
@@ -1823,26 +1854,36 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                         {app.position}
                                     </span>
                                 </td>
-                                <td className="w-16 px-2 py-2 text-center">
-                                    {false ? (
-                                        <select
-                                            value={app.type}
-                                            onChange={() => {}}
-                                            className="px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium min-w-[80px] transition-all duration-200"
-                                        >
-                                            {['Onsite', 'Remote', 'Hybrid'].map(type => (
-                                                <option key={type} value={type}>{type}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
+                                {/* Work Type Column */}
+                                <td className="w-20 px-2 py-2 text-center">
+                                    <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase whitespace-nowrap min-w-[70px] justify-center ${
+                                            app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-700' :
+                                                app.type === 'Onsite' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-700' :
+                                                    app.type === 'Hybrid' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-700' :
+                                                        'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
+                                        }`}>
+                                        {app.type === 'Remote' ? '🏠' : app.type === 'Onsite' ? '🏢' : '🔄'} {app.type}
+                                    </span>
+                                </td>
+                                
+                                {/* Employment Type Column */}
+                                <td className="w-20 px-2 py-2 text-center">
+                                    {app.employmentType && app.employmentType !== '-' ? (
                                         <span
-                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
-                                                app.type === 'Remote' ? 'bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-400' :
-                                                    app.type === 'Hybrid' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/20 dark:text-blue-400' :
-                                                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase whitespace-nowrap min-w-[70px] justify-center ${
+                                                app.employmentType === 'Full-time' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700' :
+                                                    app.employmentType === 'Contract' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-700' :
+                                                        app.employmentType === 'Part-time' ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700' :
+                                                            app.employmentType === 'Internship' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-700' :
+                                                                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'
                                             }`}>
-                                          {app.type}
+                                            {app.employmentType === 'Full-time' ? '💼' : 
+                                             app.employmentType === 'Contract' ? '📋' : 
+                                             app.employmentType === 'Part-time' ? '⏰' : '🎓'} {app.employmentType}
                                         </span>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">-</span>
                                     )}
                                 </td>
                                 <td className="w-24 px-2 py-2 text-left">

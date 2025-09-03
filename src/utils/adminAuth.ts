@@ -217,12 +217,20 @@ const updateCacheHitRate = (): void => {
 
 // Enhanced email-based admin check
 export const isAdminByEmail = (email: string): boolean => {
-    if (!email || typeof email !== 'string') return false;
+    if (!email || typeof email !== 'string') {
+        console.log('❌ Admin check failed: Invalid email provided');
+        return false;
+    }
 
     const normalizedEmail = email.toLowerCase().trim();
-    return ADMIN_CONFIG.ADMIN_EMAILS.map(adminEmail =>
+    const isAdmin = ADMIN_CONFIG.ADMIN_EMAILS.map(adminEmail =>
         adminEmail.toLowerCase().trim()
     ).includes(normalizedEmail);
+    
+    console.log(`🔐 Admin check for ${normalizedEmail}: ${isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN'}`);
+    console.log(`📋 Authorized admin emails: ${ADMIN_CONFIG.ADMIN_EMAILS.join(', ')}`);
+    
+    return isAdmin;
 };
 
 // Enhanced database admin verification with comprehensive fallbacks
@@ -273,7 +281,7 @@ export const verifyDatabaseAdminWithFallback = async (
         // Primary query by external_id
         const queryPromise = client
             .from('users')
-                    .select('id, externalid, email, isadmin, adminpermissions, display_name')
+                    .select('id, externalid, email, adminpermissions, display_name')
         .eq('externalid', authUserId)
             .maybeSingle(); // Use maybeSingle to handle no results gracefully
 
@@ -291,7 +299,7 @@ export const verifyDatabaseAdminWithFallback = async (
                 try {
                     const emailQueryPromise = client
                         .from('users')
-                        .select('id, externalid, email, isadmin, adminpermissions, display_name')
+                        .select('id, externalid, email, adminpermissions, display_name')
                         .eq('email', userEmail)
                         .maybeSingle();
 
@@ -315,7 +323,8 @@ export const verifyDatabaseAdminWithFallback = async (
                             console.warn('Failed to update external_id:', updateError.message);
                         }
 
-                        const isAdmin = emailUser.isadmin === true;
+                        // Check if user is admin by email (since we can't select isadmin column)
+                        const isAdmin = isAdminByEmail(emailUser.email);
                         if (userEmail) {
                             setCachedAdminStatus(authUserId, userEmail, isAdmin);
                         }
@@ -355,7 +364,8 @@ export const verifyDatabaseAdminWithFallback = async (
             return false;
         }
 
-        const isAdmin = user.isadmin === true;
+        // Check if user is admin by email (since we can't select isadmin column)
+        const isAdmin = isAdminByEmail(user.email);
 
         // Cache the result
         if (userEmail || user.email) {
@@ -387,18 +397,22 @@ export const verifyDatabaseAdminWithFallback = async (
 // Simplified database admin verification (email-only for reliability)
 export const verifyDatabaseAdmin = async (authUserId: string, userEmail?: string): Promise<boolean> => {
     try {
-        console.log('Admin verification - authUserId:', authUserId, 'userEmail:', userEmail);
+        console.log('🔐 ADMIN VERIFICATION START');
+        console.log('📧 User email:', userEmail);
+        console.log('🆔 Auth user ID:', authUserId);
+        console.log('📋 Authorized admin emails:', ADMIN_CONFIG.ADMIN_EMAILS);
 
         // Primary email-based verification
         if (userEmail && isAdminByEmail(userEmail)) {
-            console.log('Admin verified by email:', userEmail);
+            console.log('✅ ADMIN VERIFIED - User has admin privileges');
             return true;
         }
 
-        console.log('Not admin email:', userEmail);
+        console.log('❌ ADMIN DENIED - User does not have admin privileges');
+        console.log('📧 User email not in admin list:', userEmail);
         return false;
     } catch (error) {
-        console.error('Admin verification error:', error);
+        console.error('❌ Admin verification error:', error);
         return false;
     }
 };

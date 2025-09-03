@@ -63,6 +63,10 @@
     <!-- Preconnect for Fonts -->
     <link href="https://fonts.googleapis.com" rel="preconnect"/>
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    
+    <!-- Preload Critical Fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"/></noscript>
 
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -124,6 +128,26 @@
             } catch {
                 root.classList.remove('dark');
                 root.style.colorScheme = 'light';
+            }
+        })();
+    </script>
+
+    <!-- Font Loading Detection -->
+    <script>
+        // Check if Inter font is loaded, fallback to system fonts if not
+        (() => {
+            if ('fonts' in document) {
+                document.fonts.ready.then(() => {
+                    // Check if Inter font is available
+                    const interAvailable = document.fonts.check('1em Inter');
+                    if (!interAvailable) {
+                        console.warn('Inter font not available, using system fonts');
+                        document.documentElement.style.setProperty('--font-family-primary', 
+                            '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif');
+                    } else {
+                        console.log('Inter font loaded successfully');
+                    }
+                });
             }
         })();
     </script>

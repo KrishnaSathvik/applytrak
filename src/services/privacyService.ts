@@ -512,9 +512,11 @@ class PrivacyService {
                 if (!rpcError && userId) {
                     console.log('Found user ID via current_user_id function:', userId);
                     return userId;
+                } else if (rpcError) {
+                    console.warn('current_user_id RPC failed:', rpcError.message);
                 }
             } catch (rpcError) {
-                console.log('current_user_id function failed, trying direct query:', rpcError);
+                console.warn('current_user_id function failed, trying direct query:', rpcError);
             }
 
             // Fallback to direct query
@@ -527,18 +529,37 @@ class PrivacyService {
             if (error) {
                 console.error('Failed to get user ID by externalid:', error);
                 
+                // Handle specific error codes
+                if (error.code === 'PGRST116' || error.code === '406' || error.code === '400') {
+                    console.log('User not found with externalid, trying email fallback...');
+                } else {
+                    console.log('Database error, skipping email fallback:', error.message);
+                    return null;
+                }
+                
                 // If externalid lookup fails, try to get user by email from session
                 if (session?.user?.email) {
-                    console.log('Trying to get user by email:', session.user.email);
-                    const {data: emailData, error: emailError} = await client
-                        .from('users')
-                        .select('id')
-                        .eq('email', session.user.email)
-                        .maybeSingle();
-                    
-                    if (!emailError && emailData) {
-                        console.log('Found user by email with ID:', emailData.id);
-                        return emailData.id;
+                    try {
+                        console.log('Trying to get user by email:', session.user.email);
+                        const {data: emailData, error: emailError} = await client
+                            .from('users')
+                            .select('id')
+                            .eq('email', session.user.email)
+                            .maybeSingle();
+                        
+                        if (emailError) {
+                            console.warn('Email lookup failed:', emailError.message);
+                            // If it's a schema error, don't try again
+                            if (emailError.message.includes('does not exist')) {
+                                console.log('Database schema error detected, skipping further attempts');
+                                return null;
+                            }
+                        } else if (emailData) {
+                            console.log('Found user by email with ID:', emailData.id);
+                            return emailData.id;
+                        }
+                    } catch (emailLookupError) {
+                        console.warn('Email lookup error:', emailLookupError);
                     }
                 }
                 
@@ -550,16 +571,27 @@ class PrivacyService {
                 
                 // Try to get user by email as fallback
                 if (session?.user?.email) {
-                    console.log('Trying to get user by email as fallback:', session.user.email);
-                    const {data: emailData, error: emailError} = await client
-                        .from('users')
-                        .select('id')
-                        .eq('email', session.user.email)
-                        .maybeSingle();
-                    
-                    if (!emailError && emailData) {
-                        console.log('Found user by email with ID:', emailData.id);
-                        return emailData.id;
+                    try {
+                        console.log('Trying to get user by email as fallback:', session.user.email);
+                        const {data: emailData, error: emailError} = await client
+                            .from('users')
+                            .select('id')
+                            .eq('email', session.user.email)
+                            .maybeSingle();
+                        
+                        if (emailError) {
+                            console.warn('Fallback email lookup failed:', emailError.message);
+                            // If it's a schema error, don't try again
+                            if (emailError.message.includes('does not exist')) {
+                                console.log('Database schema error detected, skipping further attempts');
+                                return null;
+                            }
+                        } else if (emailData) {
+                            console.log('Found user by email with ID:', emailData.id);
+                            return emailData.id;
+                        }
+                    } catch (fallbackError) {
+                        console.warn('Fallback email lookup error:', fallbackError);
                     }
                 }
                 

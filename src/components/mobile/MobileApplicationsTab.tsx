@@ -35,12 +35,7 @@ const MobileApplicationsTab: React.FC = () => {
             <p className="mobile-text-sm text-gray-600 dark:text-gray-300">
               Track and manage your job applications
             </p>
-            <div className="flex flex-wrap items-center mobile-gap-2 mobile-text-sm text-gray-500 dark:text-gray-400">
-              <span>Total: {applications.length}</span>
-              <span>Active: {applications.filter(app => app.status !== 'Rejected').length}</span>
-              <span>Interviews: {applications.filter(app => app.status === 'Interview').length}</span>
 
-            </div>
           </div>
           <div className="flex flex-col sm:flex-row mobile-gap-2">
             <button
@@ -54,35 +49,7 @@ const MobileApplicationsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      {applications.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-6">
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-              {applications.filter(app => app.status === 'Applied').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Applied</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600 dark:text-yellow-400 mb-1">
-              {applications.filter(app => app.status === 'Interview').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Interviews</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
-              {applications.filter(app => app.status === 'Offer').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Offers</div>
-          </div>
-          <div className="glass-card p-2 sm:p-3 md:p-4 text-center">
-            <div className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 dark:text-red-400 mb-1">
-              {applications.filter(app => app.status === 'Rejected').length}
-            </div>
-            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Rejected</div>
-          </div>
-        </div>
-      )}
+
 
       {/* Add Application Form - Always Visible */}
       <div className="glass-card">

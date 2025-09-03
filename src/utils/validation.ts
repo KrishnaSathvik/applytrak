@@ -1,12 +1,13 @@
 // src/utils/validation.ts - Production Ready Validation Utils
 import * as yup from 'yup';
-import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType} from '../types';
+import {ApplicationFormData, ApplicationStatus, GoalFormData, JobType, EmploymentType} from '../types';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-export const JOB_TYPES: JobType[] = ['Onsite', 'Remote', 'Hybrid', 'Contract', 'Part-time', 'Internship'];
+export const JOB_TYPES: JobType[] = ['Remote', 'Onsite', 'Hybrid'];
+export const EMPLOYMENT_TYPES: EmploymentType[] = ['Full-time', 'Contract', 'Part-time', 'Internship'];
 export const APPLICATION_STATUSES: ApplicationStatus[] = ['Applied', 'Interview', 'Offer', 'Rejected'];
 
 // ============================================================================
@@ -47,8 +48,13 @@ export const applicationFormSchema = yup.object({
 
     type: yup
         .string()
-        .required('Job type is required')
+        .notRequired()
         .oneOf(JOB_TYPES, 'Please select a valid job type'),
+
+    employmentType: yup
+        .string()
+        .notRequired()
+        .oneOf(EMPLOYMENT_TYPES, 'Please select a valid employment type'),
 
     location: yup
         .string()
@@ -171,6 +177,7 @@ export const defaultApplicationFormValues: ApplicationFormData = {
     position: '',
     dateApplied: new Date().toISOString().split('T')[0],
     type: 'Remote',
+    employmentType: 'Full-time',
     location: '',
     salary: '',
     jobSource: '',

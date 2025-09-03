@@ -1,6 +1,6 @@
 // src/utils/adminRoute.ts - Production Ready Admin Routing
 import {useAppStore} from '../store/useAppStore';
-import {getSessionStatus, verifyCurrentAdmin} from './adminAuth';
+import {verifyCurrentAdmin} from './adminAuth';
 
 // Enhanced interfaces for better type safety
 interface AdminRouteState {
@@ -12,13 +12,7 @@ interface AdminRouteState {
 
 // Removed unused AdminAccessResult interface
 
-interface AdminStatusInfo {
-    userAuthenticated: boolean;
-    hasAdminPrivileges: boolean;
-    adminSessionValid: boolean;
-    sessionValidAdmin: boolean;
-    currentRoute: string;
-}
+// AdminStatusInfo interface removed - no longer needed
 
 // Constants with better organization
 const ADMIN_CONFIG = {
@@ -49,10 +43,7 @@ const adminRouteState: AdminRouteState = {
     eventListeners: new Set()
 };
 
-// Utility Functions
-const isValidString = (value: unknown): value is string => {
-    return typeof value === 'string' && value.length > 0;
-};
+// Utility functions removed - no longer needed
 
 // Removed unused safeParseUrl function
 
@@ -294,176 +285,9 @@ const checkUrlForLegacyAdmin = async (): Promise<void> => {
     }
 };
 
-// Enhanced Keyboard Shortcut Handler
-const createKeyboardHandler = (): EventListener => {
-    const resetShortcutSequence = (): void => {
-        adminRouteState.shortcutSequence = [];
-        if (adminRouteState.shortcutTimer) {
-            clearTimeout(adminRouteState.shortcutTimer);
-            adminRouteState.shortcutTimer = null;
-        }
-    };
+// Keyboard shortcuts removed for security - admin access only via login
 
-    return async (event: Event): Promise<void> => {
-        if (!(event instanceof KeyboardEvent)) return;
-
-        try {
-            // Check for required modifiers
-            if (!event.ctrlKey || !event.shiftKey) {
-                resetShortcutSequence();
-                return;
-            }
-
-            // Validate key code
-            if (!isValidString(event.code) || !ADMIN_SHORTCUT_SEQUENCE.includes(event.code as any)) {
-                resetShortcutSequence();
-                return;
-            }
-
-            // Add to sequence
-            adminRouteState.shortcutSequence.push(event.code);
-
-            // Reset timer
-            if (adminRouteState.shortcutTimer) {
-                clearTimeout(adminRouteState.shortcutTimer);
-            }
-            adminRouteState.shortcutTimer = setTimeout(resetShortcutSequence, ADMIN_CONFIG.SHORTCUT_TIMEOUT);
-
-            // Check sequence completion
-            if (adminRouteState.shortcutSequence.length === ADMIN_SHORTCUT_SEQUENCE.length) {
-                const isCorrectSequence = adminRouteState.shortcutSequence.every(
-                    (key, index) => key === ADMIN_SHORTCUT_SEQUENCE[index]
-                );
-
-                if (isCorrectSequence) {
-                    event.preventDefault();
-                    console.log('Admin keyboard shortcut activated');
-                    await openAdminAccess();
-                    resetShortcutSequence();
-                }
-            }
-        } catch (error) {
-            console.error('Keyboard shortcut handler error:', error);
-            resetShortcutSequence();
-        }
-    };
-};
-
-// Enhanced Console Commands
-const setupConsoleCommands = (): void => {
-    try {
-        const windowAny = window as any;
-
-        // Main admin command
-        windowAny.__applytrak_admin = async (): Promise<string> => {
-            try {
-                console.log('Opening ApplyTrak Admin Dashboard via console');
-                await openAdminAccess();
-                return 'Navigated to admin route';
-            } catch (error) {
-                console.error('Console admin command failed:', error);
-                return 'Failed to access admin panel';
-            }
-        };
-
-        // Analytics command
-        windowAny.__applytrak_analytics = async (): Promise<string> => {
-            try {
-                const store = useAppStore.getState();
-                console.log('Opening Analytics via console');
-
-                if (!store?.auth?.isAuthenticated) {
-                    await openAdminAccess();
-                    return 'Authentication required';
-                }
-
-                const hasAdminPrivileges = await checkAdminPrivileges();
-                if (!hasAdminPrivileges) {
-                    await openAdminAccess();
-                    return 'Admin privileges required';
-                }
-
-                // Navigate to analytics if admin authenticated
-                if (store.ui?.admin?.authenticated) {
-                    if (typeof store.setAdminSection === 'function') {
-                        store.setAdminSection('analytics');
-                    }
-                    if (typeof store.openAdminDashboard === 'function' && !store.ui.admin.dashboardOpen) {
-                        store.openAdminDashboard();
-                    }
-                    return 'Analytics section opened';
-                }
-
-                await openAdminAccess();
-                return 'Admin authentication required';
-            } catch (error) {
-                console.error('Analytics command failed:', error);
-                return 'Error opening analytics';
-            }
-        };
-
-        // Info command
-        windowAny.__applytrak_info = async (): Promise<Record<string, any>> => {
-            try {
-                const store = useAppStore.getState();
-                const sessionStatus = await getSessionStatus();
-
-                return {
-                    authenticated: store?.ui?.admin?.authenticated || false,
-                    dashboardOpen: store?.ui?.admin?.dashboardOpen || false,
-                    currentSection: store?.ui?.admin?.currentSection || 'unknown',
-                    analyticsEnabled: store?.privacySettings?.analytics || false,
-                    userAuthenticated: store?.auth?.isAuthenticated || false,
-                    adminSessionValid: sessionStatus?.authenticated || false,
-                    adminPrivileges: sessionStatus?.isValidAdmin || false,
-                    shortcuts: 'Ctrl+Shift+A+D+M for admin access',
-                    currentRoute: window.location.pathname
-                };
-            } catch (error) {
-                console.error('Info command failed:', error);
-                return {error: 'Failed to retrieve info'};
-            }
-        };
-
-        // Admin status command
-        windowAny.__applytrak_admin_status = async (): Promise<AdminStatusInfo | { error: string }> => {
-            try {
-                const store = useAppStore.getState();
-                const isAdmin = await verifyCurrentAdmin();
-                const sessionStatus = await getSessionStatus();
-
-                const status: AdminStatusInfo = {
-                    userAuthenticated: store?.auth?.isAuthenticated || false,
-                    hasAdminPrivileges: isAdmin,
-                    adminSessionValid: sessionStatus?.authenticated || false,
-                    sessionValidAdmin: sessionStatus?.isValidAdmin || false,
-                    currentRoute: window.location.pathname
-                };
-
-                console.log('Admin Status Check:', status);
-                return status;
-            } catch (error) {
-                console.error('Admin status check failed:', error);
-                return {error: 'Failed to check admin status'};
-            }
-        };
-
-        // Log available commands
-        console.log(
-            '%cApplyTrak Admin Access Available (Production)',
-            'color: #3b82f6; font-weight: bold; font-size: 16px; background: #f0f9ff; padding: 8px; border-radius: 4px;'
-        );
-        console.log('%cAvailable Commands:', 'color: #374151; font-weight: bold; font-size: 14px;');
-        console.log('%c  • __applytrak_admin() - Open admin access', 'color: #6b7280; font-size: 12px;');
-        console.log('%c  • __applytrak_analytics() - Open analytics', 'color: #6b7280; font-size: 12px;');
-        console.log('%c  • __applytrak_info() - Show admin status', 'color: #6b7280; font-size: 12px;');
-        console.log('%c  • __applytrak_admin_status() - Check privileges', 'color: #6b7280; font-size: 12px;');
-        console.log('%c  • Ctrl+Shift+A+D+M - Keyboard shortcut', 'color: #6b7280; font-size: 12px;');
-        console.log('%cDatabase admin verification enabled', 'color: #059669; font-weight: bold; font-size: 12px;');
-    } catch (error) {
-        console.error('Console commands setup failed:', error);
-    }
-};
+// Console commands removed for security - admin access only via login
 
 // Enhanced Initialization
 export const initializeAdminRoutes = (): (() => void) => {
@@ -477,8 +301,7 @@ export const initializeAdminRoutes = (): (() => void) => {
         console.log('Initializing admin routes with enhanced security...');
         adminRouteState.isInitialized = true;
 
-        // Create event handlers
-        const keyboardHandler = createKeyboardHandler();
+        // Create event handlers for legacy URL cleanup only
         const hashChangeHandler = () => {
             setTimeout(checkUrlForLegacyAdmin, 100);
         };
@@ -486,12 +309,10 @@ export const initializeAdminRoutes = (): (() => void) => {
             setTimeout(checkUrlForLegacyAdmin, 100);
         };
 
-        // Initialize components
+        // Initialize components - only legacy URL cleanup
         checkUrlForLegacyAdmin();
-        setupConsoleCommands();
 
-        // Add event listeners with cleanup tracking
-        addEventListenerWithCleanup(document, 'keydown', keyboardHandler, {passive: false});
+        // Add event listeners with cleanup tracking - only for URL cleanup
         addEventListenerWithCleanup(window, 'hashchange', hashChangeHandler);
         addEventListenerWithCleanup(window, 'popstate', popStateHandler);
 
@@ -526,12 +347,7 @@ export const initializeAdminRoutes = (): (() => void) => {
             adminRouteState.shortcutSequence = [];
             adminRouteState.isInitialized = false;
 
-            // Clean up console commands
-            const windowAny = window as any;
-            delete windowAny.__applytrak_admin;
-            delete windowAny.__applytrak_analytics;
-            delete windowAny.__applytrak_info;
-            delete windowAny.__applytrak_admin_status;
+            // Console commands already removed for security
 
             console.log('Admin routes cleanup completed');
         } catch (error) {
@@ -639,15 +455,7 @@ export const adminAccess = {
         await openAdminAccess();
     },
 
-    // Legacy URL access (redirects to /admin)
-    byUrl: async (): Promise<void> => {
-        try {
-            window.location.hash = 'admin-dashboard-krishna-2024';
-            console.log('Legacy admin URL hash set - will redirect to /admin');
-        } catch (error) {
-            console.error('Legacy URL access failed:', error);
-        }
-    },
+    // Legacy URL access removed for security
 
     // Create bookmark
     bookmark: async (): Promise<void> => {
@@ -671,14 +479,7 @@ export const adminAccess = {
         }
     },
 
-    // Get status
-    status: async (): Promise<AdminStatusInfo | { error: string }> => {
-        const windowAny = window as any;
-        if (typeof windowAny.__applytrak_admin_status === 'function') {
-            return await windowAny.__applytrak_admin_status();
-        }
-        return {error: 'Admin status function not available'};
-    },
+    // Status check removed for security
 
     // Route checks
     isOnAdminRoute: (): boolean => isAdminRoute(),

@@ -415,16 +415,11 @@ export const formatJobType = (type: string): string => {
     if (!type) return '';
 
     const typeMap: Record<string, string> = {
-        'remote': 'Remote',
-        'onsite': 'On-site',
-        'on-site': 'On-site',
-        'hybrid': 'Hybrid',
-        'contract': 'Contract',
-        'fulltime': 'Full-time',
         'full-time': 'Full-time',
+        'fulltime': 'Full-time',
+        'contract': 'Contract',
         'parttime': 'Part-time',
         'part-time': 'Part-time',
-        'temporary': 'Temporary',
         'internship': 'Internship'
     };
 
