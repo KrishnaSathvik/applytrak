@@ -182,7 +182,7 @@ const AdminDashboard: React.FC = () => {
         goals,
         goalProgress,
         analytics,
-        closeAdminDashboard,
+        logoutAdmin,
         setAdminSection,
         adminAnalytics,
         adminFeedback,
@@ -394,7 +394,7 @@ const AdminDashboard: React.FC = () => {
             }
 
             if (e.key === 'Escape') {
-                closeAdminDashboard();
+                logoutAdmin();
             }
         };
 
@@ -478,12 +478,12 @@ const AdminDashboard: React.FC = () => {
     }, [timeRange, isAdminRealtime, auth.isAuthenticated, applications.length, goals, goalProgress, analytics, adminAnalytics, globalRefreshStatus, showToast]);
 
     const handleLogout = useCallback(() => {
-        closeAdminDashboard();
+        logoutAdmin();
         showToast({
             type: 'info',
-            message: 'Admin dashboard closed'
+            message: 'Logged out from admin dashboard'
         });
-    }, [closeAdminDashboard, showToast]);
+    }, [logoutAdmin, showToast]);
 
     const getFeedbackTypeIcon = (type: string) => {
         switch (type) {
@@ -571,9 +571,10 @@ const AdminDashboard: React.FC = () => {
                                     <button
                                         onClick={handleLogout}
                                         className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg font-semibold transition-colors flex items-center justify-center min-h-[36px] sm:min-h-[40px]"
+                                        title="Logout from admin dashboard"
                                     >
                                         <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                        <span className="text-xs sm:text-sm">Close</span>
+                                        <span className="text-xs sm:text-sm">Logout</span>
                                     </button>
                                 </div>
                             </div>

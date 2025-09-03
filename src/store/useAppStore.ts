@@ -2702,7 +2702,8 @@ export const useAppStore = create<AppState>()(
                                 ...state.ui,
                                 admin: {
                                     ...state.ui.admin,
-                                    dashboardOpen: false
+                                    dashboardOpen: false,
+                                    authenticated: false
                                 }
                             },
                             globalRefresh: {
