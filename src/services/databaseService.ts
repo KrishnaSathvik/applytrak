@@ -1160,7 +1160,7 @@ const syncToCloud = async (
                             notes: d.notes ? String(d.notes) : null,
                             attachments: Array.isArray(d.attachments) ? d.attachments : [],
                             createdAt: d.createdAt || nowIso,
-                            updatedAt: d.updatedAt || nowIso,
+                            // Don't set updatedAt - let database trigger handle it
                             syncedAt: nowIso,
                         };
 
