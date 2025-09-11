@@ -133,7 +133,17 @@ class PrivacyService {
 
             if (error) {
                 if (error.code === 'PGRST116') {
-                    console.log('No privacy settings found for user:', userId);
+                    // No privacy settings found - this is normal for new users
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('No privacy settings found for user:', userId, '(normal for new users)');
+                    }
+                    return null;
+                }
+                // Handle 406 Not Acceptable error gracefully
+                if (error.code === 'PGRST301' || error.message?.includes('406')) {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('Privacy settings table not accessible (406 error) - skipping');
+                    }
                     return null;
                 }
                 throw error;

@@ -2,6 +2,8 @@
 import ReactGA from 'react-ga4';
 
 // Google Analytics Configuration
+// For Vercel deployment, you can set REACT_APP_GA_TRACKING_ID in environment variables
+// If not set, it defaults to G-NGNH0RH9WZ
 const GA_TRACKING_ID = process.env.REACT_APP_GA_TRACKING_ID || 'G-NGNH0RH9WZ';
 
 // Initialize Google Analytics

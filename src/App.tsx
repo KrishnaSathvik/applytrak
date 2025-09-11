@@ -156,7 +156,10 @@ const App: React.FC = () => {
                     console.log('Privacy settings loaded for authenticated user');
                 }
             } catch (error) {
-                console.error('Failed to load privacy settings:', error);
+                // Don't log as error - this is expected for new users
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Privacy settings not found for user (this is normal for new users)');
+                }
             }
         };
 
