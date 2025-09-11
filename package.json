@@ -68,6 +68,7 @@
     "eject": "react-scripts eject",
     "serve": "serve -s build",
     "deploy": "npm run build && npx vercel --prod",
+    "vercel-build": "npm install --legacy-peer-deps && craco build",
     "supabase:generate-types": "npx supabase gen types typescript --project-id YOUR_PROJECT_REF > src/types/supabase.ts",
     "supabase:reset": "npx supabase db reset",
     "supabase:migration": "npx supabase migration new"
