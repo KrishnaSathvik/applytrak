@@ -184,12 +184,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
         }
     }, [getValues, attachments, isDraftLoaded, todayLocal]);
 
-    // Extract individual fields from watched values
-    const company = watchedValues.company;
-    const position = watchedValues.position;
-    const location = watchedValues.location;
-    const salary = watchedValues.salary;
-    const jobSource = watchedValues.jobSource;
+    // Note: Individual field extraction removed since we use watchedValues directly in useEffect
 
     // Single auto-save effect for all form changes
     useEffect(() => {
