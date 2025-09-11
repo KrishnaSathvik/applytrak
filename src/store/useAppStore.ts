@@ -189,7 +189,7 @@ export interface AppState {
     updateApplicationStatus: (ids: string[], status: ApplicationStatus) => Promise<void>;
     bulkDeleteApplications: (ids: string[]) => Promise<void>;
     bulkUpdateApplications: (ids: string[], updates: Partial<Application>) => Promise<void>;
-    bulkAddApplications: (applications: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<{
+    bulkAddApplications: (applications: Omit<Application, 'id' | 'createdAt' | 'updatedAt'>[], options?: { silent?: boolean }) => Promise<{
         successCount: number;
         errorCount: number;
     }>;
@@ -1379,7 +1379,7 @@ export const useAppStore = create<AppState>()(
                             console.log(`🔄 Syncing ${unsyncedApplications.length} unsynced applications to cloud...`);
 
                             // Use the existing bulkAddApplications function which handles cloud sync
-                            const result = await get().bulkAddApplications(unsyncedApplications);
+                            const result = await get().bulkAddApplications(unsyncedApplications, { silent: true });
 
                             if (result.successCount > 0) {
                                 // Silent sync success - no UI notifications
@@ -2032,7 +2032,7 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    bulkAddApplications: async (applications) => {
+                    bulkAddApplications: async (applications, options = {}) => {
                         const {auth, applications: existingApplications} = get();
                         
                         // Check if this import would exceed the limit for unauthenticated users
@@ -2098,18 +2098,20 @@ export const useAppStore = create<AppState>()(
                                 }));
                             }
 
-                            if (successCount > 0) {
-                                get().showToast({
-                                    type: 'success',
-                                    message: `${successCount} application${successCount > 1 ? 's' : ''} imported successfully!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
-                                    duration: 5000
-                                });
-                                get().trackEvent('applications_bulk_imported', {successCount, errorCount});
-                            } else {
-                                get().showToast({
-                                    type: 'error',
-                                    message: 'Failed to import applications. Please check the file format.'
-                                });
+                            if (!options.silent) {
+                                if (successCount > 0) {
+                                    get().showToast({
+                                        type: 'success',
+                                        message: `${successCount} application${successCount > 1 ? 's' : ''} imported successfully!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`,
+                                        duration: 5000
+                                    });
+                                    get().trackEvent('applications_bulk_imported', {successCount, errorCount});
+                                } else {
+                                    get().showToast({
+                                        type: 'error',
+                                        message: 'Failed to import applications. Please check the file format.'
+                                    });
+                                }
                             }
 
                             startTransition(() => {

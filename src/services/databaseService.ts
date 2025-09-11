@@ -1160,7 +1160,7 @@ const syncToCloud = async (
                             notes: d.notes ? String(d.notes) : null,
                             attachments: Array.isArray(d.attachments) ? d.attachments : [],
                             createdAt: d.createdAt || nowIso,
-                            // Don't set updatedAt - let database trigger handle it
+                            updatedAt: d.updatedAt || nowIso,
                             syncedAt: nowIso,
                         };
 
@@ -1530,7 +1530,7 @@ class BackgroundSyncManager {
                     console.log(`📊 Background sync: ${addedCount} added, ${updatedCount} updated`);
                     
                     // Refresh cache with current local data
-                    const refreshedApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+                    const refreshedApps = await db.applications.orderBy('createdAt').reverse().toArray();
                     dataCache.set('applications', refreshedApps);
                 }
 
@@ -1572,7 +1572,7 @@ const mapApplicationsData = (cloudApps: any[]): Application[] => {
             createdAt: app.createdAt || new Date().toISOString(),
             updatedAt: app.updatedAt || new Date().toISOString()
         }))
-        .sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
 // ============================================================================
@@ -1607,11 +1607,11 @@ export const databaseService: DatabaseService = {
                 return cachedApps;
             }
 
-            const localApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+            const localApps = await db.applications.orderBy('createdAt').reverse().toArray();
             console.log('📱 Local applications count:', localApps.length);
 
             const sortedLocalApps = localApps.sort((a, b) =>
-                new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime()
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
 
             dataCache.set(cacheKey, sortedLocalApps);
@@ -1647,7 +1647,7 @@ export const databaseService: DatabaseService = {
                             addedCount++;
                         }
                         
-                        const refreshedApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+                        const refreshedApps = await db.applications.orderBy('createdAt').reverse().toArray();
                         dataCache.set(cacheKey, refreshedApps);
 
                         console.log(`☁️ Initial cloud sync successful: ${addedCount} applications added`);
@@ -1674,7 +1674,7 @@ export const databaseService: DatabaseService = {
             console.error('❌ getApplications() failed:', error.message);
 
             try {
-                const emergencyApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+                const emergencyApps = await db.applications.orderBy('createdAt').reverse().toArray();
                 console.log(`🚨 Emergency recovery: ${emergencyApps.length} applications`);
                 return emergencyApps;
             } catch (emergencyError) {
