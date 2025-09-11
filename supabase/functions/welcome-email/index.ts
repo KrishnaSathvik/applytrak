@@ -136,7 +136,7 @@ serve(async (req) => {
         if (error) console.error("users lookup error:", error);
 
         const settingsUrl = user?.externalid
-            ? `${PREFS_ENDPOINT}?eid=${user.externalid}`
+            ? `https://www.applytrak.com/email-preferences.html?eid=${user.externalid}`
             : CTA_URL;
 
         const html = renderWelcomeHTML({

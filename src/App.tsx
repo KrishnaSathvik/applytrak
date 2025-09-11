@@ -1,6 +1,7 @@
 // src/App.tsx - Production Ready Application Entry Point with Privacy Integration
 import React, {useEffect} from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
+import { Analytics } from "@vercel/analytics/react";
 import {useAppStore} from './store/useAppStore';
 import ResponsiveLayout from './components/layout/ResponsiveLayout';
 import {initializeDatabase} from './services/databaseService';
@@ -591,6 +592,7 @@ const App: React.FC = () => {
                     } />
                 </Routes>
             </ErrorBoundary>
+            <Analytics />
         </React.Suspense>
     );
 };

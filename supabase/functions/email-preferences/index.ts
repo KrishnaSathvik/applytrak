@@ -16,21 +16,32 @@ function htmlResponse(innerHtml: string, status = 200) {
   <meta charset="utf-8">
   <title>ApplyTrak</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; padding: 24px; color: #111; }
+    .container { max-width: 640px; margin: 0 auto; }
+    .preference { margin: 16px 0; padding: 16px; background: #f8fafc; border-radius: 8px; }
+    .preference strong { display: block; margin-bottom: 4px; }
+    .preference span { color: #64748b; font-size: 14px; }
+    .preference a { color: #3b82f6; text-decoration: none; font-weight: bold; }
+    .preference a:hover { text-decoration: underline; }
+    .separator { color: #94a3b8; }
+  </style>
 </head>
-<body style="font-family:Arial,Helvetica,sans-serif; padding:24px; color:#111;">
+<body>
+<div class="container">
 ${innerHtml}
+</div>
 </body>
 </html>`;
+    
+    // Try to force HTML rendering by using a different approach
     return new Response(html, {
         status,
         headers: {
-            // 🔒 force browsers to render as HTML
             "Content-Type": "text/html; charset=utf-8",
-            "Content-Disposition": "inline",
-            // avoid any stale cache with wrong content-type
-            "Cache-Control": "no-store, max-age=0, must-revalidate",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
-            "X-Content-Type-Options": "nosniff"
+            "Expires": "0"
         }
     });
 }
