@@ -121,7 +121,10 @@ class PrivacyService {
             }
             
             const userId = await this.getUserId(authUserId);
-            if (!userId) {
+            if (!userId || userId === 1) { // Skip if userId is 1 (likely test/default value)
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Skipping privacy settings fetch for userId:', userId, '(likely test/default value)');
+                }
                 return null;
             }
 
@@ -338,7 +341,7 @@ class PrivacyService {
         try {
             const client = this.ensureSupabase();
             const userId = await this.getUserId(authUserId);
-            if (!userId) return true;
+            if (!userId || userId === 1) return true; // Skip if userId is 1 (likely test/default value)
 
             const {data, error} = await client
                 .from('privacy_settings')

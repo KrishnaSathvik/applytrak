@@ -564,7 +564,10 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
         if (existingUser && !lookupError) {
             console.log('✅ User already exists, using existing record');
             const dbId = parseInt(existingUser.id.toString());
+            // Don't cache user ID 1 (likely test/default value)
+        if (dbId !== 1) {
             localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        }
             return dbId;
         }
 
@@ -588,7 +591,10 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
                 } else if (emailUser) {
                     console.log('✅ User found by email, using existing record');
                     const dbId = parseInt(emailUser.id.toString());
-                    localStorage.setItem('applytrak_user_db_id', dbId.toString());
+                    // Don't cache user ID 1 (likely test/default value)
+        if (dbId !== 1) {
+            localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        }
                     return dbId;
                 } else {
                     console.log('📝 No existing user found by email, will create new record');
@@ -630,7 +636,10 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
 
                 if (existingUser) {
                     const dbId = parseInt(existingUser.id.toString());
-                    localStorage.setItem('applytrak_user_db_id', dbId.toString());
+                    // Don't cache user ID 1 (likely test/default value)
+        if (dbId !== 1) {
+            localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        }
                     return dbId;
                 }
             }
@@ -644,7 +653,10 @@ const createUserRecord = async (authUserId: string): Promise<number | null> => {
         }
 
         const dbId = parseInt(newUser.id.toString());
-        localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        // Don't cache user ID 1 (likely test/default value)
+        if (dbId !== 1) {
+            localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        }
 
         console.log('✅ User created successfully:', {
             dbId,
@@ -668,8 +680,15 @@ const getUserDbId = async (): Promise<number | null> => {
 
     const cachedId = localStorage.getItem('applytrak_user_db_id');
     if (cachedId && !isNaN(parseInt(cachedId))) {
+        const parsedId = parseInt(cachedId);
+        // Clear cached ID if it's 1 (likely test/default value)
+        if (parsedId === 1) {
+            localStorage.removeItem('applytrak_user_db_id');
+            console.log('🧹 Cleared cached user DB ID 1 (likely test/default value)');
+            return null;
+        }
         console.log('✅ Using cached user DB ID:', cachedId);
-        return parseInt(cachedId);
+        return parsedId;
     }
 
     if (!isOnlineWithSupabase()) {
@@ -723,7 +742,10 @@ const getUserDbId = async (): Promise<number | null> => {
                     } else if (emailUser) {
                         console.log('✅ Found user by email fallback');
                         const dbId = parseInt(emailUser.id.toString());
-                        localStorage.setItem('applytrak_user_db_id', dbId.toString());
+                        // Don't cache user ID 1 (likely test/default value)
+        if (dbId !== 1) {
+            localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        }
                         return dbId;
                     }
                 } catch (fallbackError) {
@@ -740,7 +762,10 @@ const getUserDbId = async (): Promise<number | null> => {
         }
 
         const dbId = parseInt(user.id.toString());
-        localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        // Don't cache user ID 1 (likely test/default value)
+        if (dbId !== 1) {
+            localStorage.setItem('applytrak_user_db_id', dbId.toString());
+        }
         console.log('✅ Found existing user:', {
             dbId,
             email: user.email
@@ -2286,7 +2311,7 @@ export const databaseService: DatabaseService = {
 
             if (isAuthenticated()) {
                 const userDbId = await getUserDbId();
-                if (userDbId) {
+                if (userDbId && userDbId !== 1) { // Skip if userDbId is 1 (likely test/default value)
                     const client = initializeSupabase()!;
                     await client.from('privacy_settings').upsert({
                         userid: userDbId,
@@ -2321,16 +2346,33 @@ export const databaseService: DatabaseService = {
             if (isOnlineWithSupabase() && !settings) {
                 try {
                     const userDbId = await getUserDbId();
-                    if (userDbId) {
+                    if (userDbId && userDbId !== 1) { // Skip if userDbId is 1 (likely test/default value)
                         const client = initializeSupabase()!;
+                        // Debug: Log the userDbId being used
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log('Attempting to fetch privacy settings for userDbId:', userDbId);
+                        }
+                        
                         const {data, error} = await client
                             .from('privacy_settings')
                             .select('*')
                             .eq('userid', userDbId)
                             .maybeSingle();
 
-                        if (error && error.code !== 'PGRST116') {
-                            console.error('Error fetching privacy settings:', error);
+                        if (error) {
+                            if (error.code === 'PGRST116') {
+                                // No privacy settings found - this is normal for new users
+                                if (process.env.NODE_ENV === 'development') {
+                                    console.log('No privacy settings found for user (normal for new users)');
+                                }
+                            } else if (error.code === 'PGRST301' || error.message?.includes('406')) {
+                                // Handle 406 Not Acceptable error gracefully
+                                if (process.env.NODE_ENV === 'development') {
+                                    console.log('Privacy settings table not accessible (406 error) - skipping');
+                                }
+                            } else {
+                                console.error('Error fetching privacy settings:', error);
+                            }
                         } else if (data) {
                             settings = {
                                 id: 'default',

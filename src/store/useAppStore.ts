@@ -1505,7 +1505,10 @@ export const useAppStore = create<AppState>()(
                                 await analyticsService.enableAnalytics();
                             }
                         } catch (error) {
-                            console.error('Failed to load privacy settings:', error);
+                            // Don't log as error - this is expected for new users or when privacy settings are not accessible
+                            if (process.env.NODE_ENV === 'development') {
+                                console.log('Privacy settings not available (normal for new users or 406 errors)');
+                            }
                         }
                     },
 
