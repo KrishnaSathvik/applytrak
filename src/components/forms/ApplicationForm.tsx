@@ -112,7 +112,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
         return () => clearTimeout(timer);
     }, [setValue, todayLocal]);
 
-    const watchedValues = watch();
+    // Only watch specific fields to prevent excessive re-renders
     const jobUrl = watch('jobUrl');
     const notesValue = watch('notes') || '';
 
@@ -181,9 +181,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
         } catch (error) {
             console.error('Error saving draft:', error);
         }
-    }, [getValues, attachments, isDraftLoaded]);
+    }, [getValues, attachments, isDraftLoaded, todayLocal]);
 
-    // Auto-save on form changes
+    // Auto-save on form changes - optimized approach
     useEffect(() => {
         if (!isDraftLoaded) return;
 
@@ -200,7 +200,32 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
                 clearTimeout(autoSaveTimerRef.current);
             }
         };
-    }, [watchedValues, attachments, saveDraft, isDraftLoaded]);
+    }, [jobUrl, notesValue, attachments, saveDraft, isDraftLoaded]);
+
+    // Watch individual form fields for auto-save (more efficient)
+    const company = watch('company');
+    const position = watch('position');
+    const location = watch('location');
+    const salary = watch('salary');
+    const jobSource = watch('jobSource');
+
+    useEffect(() => {
+        if (!isDraftLoaded) return;
+
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+        }
+
+        autoSaveTimerRef.current = setTimeout(() => {
+            saveDraft();
+        }, AUTO_SAVE_DELAY);
+
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+            }
+        };
+    }, [company, position, location, salary, jobSource, saveDraft, isDraftLoaded]);
 
     const clearDraft = useCallback(() => {
         try {
