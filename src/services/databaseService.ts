@@ -1149,19 +1149,19 @@ const syncToCloud = async (
                             id: String(d.id),
                             userid: userDbId,
                             company: String(d.company),
-                            "position": String(d.position),
-                            "dateApplied": String(d.dateApplied),
+                            position: String(d.position),
+                            dateApplied: String(d.dateApplied),
                             status: String(d.status),
                             type: String(d.type),
                             location: d.location ? String(d.location) : null,
                             salary: d.salary ? String(d.salary) : null,
-                            "jobSource": d.jobSource ? String(d.jobSource) : null,
-                            "jobUrl": d.jobUrl ? String(d.jobUrl) : null,
+                            jobSource: d.jobSource ? String(d.jobSource) : null,
+                            jobUrl: d.jobUrl ? String(d.jobUrl) : null,
                             notes: d.notes ? String(d.notes) : null,
                             attachments: Array.isArray(d.attachments) ? d.attachments : [],
-                            "createdAt": d.createdAt || nowIso,
-                            "updatedAt": d.updatedAt || nowIso,
-                            "syncedAt": nowIso,
+                            createdAt: d.createdAt || nowIso,
+                            updatedAt: d.updatedAt || nowIso,
+                            syncedAt: nowIso,
                         };
 
                         if (!applicationData.id || !applicationData.company || !applicationData.position) {
@@ -1203,18 +1203,18 @@ const syncToCloud = async (
                 if (table === 'applications') {
                     const updateData = {
                         company: data.company,
-                        "position": data.position,
-                        "dateApplied": data.dateApplied,
+                        position: data.position,
+                        dateApplied: data.dateApplied,
                         status: data.status,
                         type: data.type,
                         location: data.location || null,
                         salary: data.salary || null,
-                        "jobSource": data.jobSource || null,
-                        "jobUrl": data.jobUrl || null,
+                        jobSource: data.jobSource || null,
+                        jobUrl: data.jobUrl || null,
                         notes: data.notes || null,
                         attachments: data.attachments || [],
-                        "updatedAt": data.updatedAt || nowIso,
-                        "syncedAt": nowIso,
+                        updatedAt: data.updatedAt || nowIso,
+                        syncedAt: nowIso,
                     };
 
                     console.log('📝 Mapped update data:', updateData);
