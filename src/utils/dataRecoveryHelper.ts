@@ -54,7 +54,7 @@ export const recoverData = async (optionIndex: number = 0) => {
     return { success: true, recoveredCount: selectedOption.count };
   } catch (error) {
     console.error('❌ Data recovery failed:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' };
   }
 };
 

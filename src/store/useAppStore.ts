@@ -22,8 +22,6 @@ import {authService, databaseService, supabase} from '../services/databaseServic
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
-import {backgroundSyncService} from '../services/backgroundSyncService';
-import {offlineStorageService} from '../services/offlineStorageService';
 import {verifyDatabaseAdmin} from "../utils/adminAuth";
 
 
@@ -292,16 +290,6 @@ export interface AppState {
 
     syncLocalApplicationsToCloud: () => Promise<void>;
 
-    // Background Sync Actions
-    addToSyncQueue: (type: 'application' | 'goal' | 'settings', operation: 'create' | 'update' | 'delete', data: any) => void;
-    forceSyncNow: () => Promise<void>;
-    getSyncStatus: () => any;
-    clearSyncErrors: () => void;
-
-    // Storage Health Actions
-    getStorageHealth: () => Promise<any>;
-    performStorageCleanup: () => Promise<void>;
-    getStorageMetrics: () => any;
 
     // Global Refresh Actions
     refreshAllAdminData: () => Promise<void>;
@@ -1410,47 +1398,6 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    // Background Sync Actions
-                    addToSyncQueue: (type, operation, data) => {
-                        backgroundSyncService.addToSyncQueue(type, operation, data);
-                    },
-
-                    forceSyncNow: async () => {
-                        try {
-                            await backgroundSyncService.forceSyncNow();
-                            // Silent sync - no UI notifications
-                        } catch (error) {
-                            console.error('Force sync failed:', error);
-                            // Silent error handling - no UI notifications
-                        }
-                    },
-
-                    getSyncStatus: () => {
-                        return backgroundSyncService.getSyncStatus();
-                    },
-
-                    clearSyncErrors: () => {
-                        backgroundSyncService.clearErrors();
-                    },
-
-                    // Storage Health Actions
-                    getStorageHealth: async () => {
-                        return await offlineStorageService.getStorageHealth();
-                    },
-
-                    performStorageCleanup: async () => {
-                        try {
-                            await offlineStorageService.performCleanup();
-                            // Silent cleanup - no UI notifications
-                        } catch (error) {
-                            console.error('Storage cleanup failed:', error);
-                            // Silent error handling - no UI notifications
-                        }
-                    },
-
-                    getStorageMetrics: () => {
-                        return offlineStorageService.getStorageMetrics();
-                    },
 
 
 
