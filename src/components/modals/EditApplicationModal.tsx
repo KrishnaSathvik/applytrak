@@ -5,7 +5,7 @@ import {AlertTriangle, Edit, ExternalLink, FileText, Trash2, Upload, X} from 'lu
 import {useAppStore} from '../../store/useAppStore';
 import {Attachment, EditFormData, Application} from '../../types';
 import {editApplicationFormSchema} from '../../utils/validation';
-import {uploadAttachment, getCurrentUserId} from '../../services/databaseService';
+import {uploadAttachment, getCurrentUserId, getAttachmentSignedUrl} from '../../services/databaseService';
 
 // Enhanced interfaces for better type safety
 interface FileValidationResult {
@@ -783,7 +783,7 @@ const EditApplicationModal: React.FC = () => {
                                                                 }
                                                             })();
                                                         } else if ((attachment as any).storagePath) {
-                                                            // getAttachmentSignedUrl(...).then(u => window.open(u, '_blank', 'noopener,noreferrer'));
+                                                            getAttachmentSignedUrl((attachment as any).storagePath, 300).then(u => window.open(u, '_blank', 'noopener,noreferrer'));
                                                         }
                                                     }}
                                                     title="View file"

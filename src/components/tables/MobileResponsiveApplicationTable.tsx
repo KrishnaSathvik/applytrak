@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import {useAppStore} from '../../store/useAppStore';
 import {Application, Attachment, ApplicationStatus} from '../../types';
+import {getAttachmentSignedUrl} from '../../services/databaseService';
 import BulkOperations from './BulkOperations';
 import {Modal} from '../ui/Modal';
 import {cn} from '../../utils/helpers';
@@ -396,8 +397,14 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
             setDownloadingId(attachment.id || attachment.name);
 
             if (attachment.storagePath) {
-                // For cloud-stored attachments, we'd need to get a signed URL
-                alert('Cloud-stored attachments download is not yet implemented in this view.');
+                // For cloud-stored attachments, get a signed URL and download
+                const url = await getAttachmentSignedUrl(attachment.storagePath, 300);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = attachment.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
                 setDownloadingId(null);
                 return;
             }
@@ -495,8 +502,9 @@ const ResumeModal: React.FC<ResumeModalProps> = memo(({isOpen, onClose, applicat
                                             onClick={async () => {
                                                 try {
                                                     if (attachment.storagePath) {
-                                                        // For cloud-stored attachments, we'd need to get a signed URL
-                                                        alert('Cloud-stored attachments viewing is not yet implemented in this view.');
+                                                        // For cloud-stored attachments, get a signed URL
+                                                        const url = await getAttachmentSignedUrl(attachment.storagePath, 300);
+                                                        window.open(url, '_blank', 'noopener,noreferrer');
                                                         return;
                                                     }
                                                     

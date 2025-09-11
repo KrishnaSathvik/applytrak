@@ -112,9 +112,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
         return () => clearTimeout(timer);
     }, [setValue, todayLocal]);
 
-    // Only watch specific fields to prevent excessive re-renders
-    const jobUrl = watch('jobUrl');
-    const notesValue = watch('notes') || '';
+    // Watch all form values for auto-save (single watch to prevent excessive re-renders)
+    const watchedValues = watch();
+    const jobUrl = watchedValues.jobUrl;
+    const notesValue = watchedValues.notes || '';
 
     // Load draft data on mount
     useEffect(() => {
@@ -183,7 +184,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
         }
     }, [getValues, attachments, isDraftLoaded, todayLocal]);
 
-    // Auto-save on form changes - optimized approach
+    // Extract individual fields from watched values
+    const company = watchedValues.company;
+    const position = watchedValues.position;
+    const location = watchedValues.location;
+    const salary = watchedValues.salary;
+    const jobSource = watchedValues.jobSource;
+
+    // Single auto-save effect for all form changes
     useEffect(() => {
         if (!isDraftLoaded) return;
 
@@ -200,32 +208,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSuccess }) => {
                 clearTimeout(autoSaveTimerRef.current);
             }
         };
-    }, [jobUrl, notesValue, attachments, saveDraft, isDraftLoaded]);
-
-    // Watch individual form fields for auto-save (more efficient)
-    const company = watch('company');
-    const position = watch('position');
-    const location = watch('location');
-    const salary = watch('salary');
-    const jobSource = watch('jobSource');
-
-    useEffect(() => {
-        if (!isDraftLoaded) return;
-
-        if (autoSaveTimerRef.current) {
-            clearTimeout(autoSaveTimerRef.current);
-        }
-
-        autoSaveTimerRef.current = setTimeout(() => {
-            saveDraft();
-        }, AUTO_SAVE_DELAY);
-
-        return () => {
-            if (autoSaveTimerRef.current) {
-                clearTimeout(autoSaveTimerRef.current);
-            }
-        };
-    }, [company, position, location, salary, jobSource, saveDraft, isDraftLoaded]);
+    }, [watchedValues, attachments, saveDraft, isDraftLoaded]);
 
     const clearDraft = useCallback(() => {
         try {

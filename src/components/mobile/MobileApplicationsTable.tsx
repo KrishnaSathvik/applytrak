@@ -19,6 +19,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { Application, Attachment } from '../../types';
 import { Modal } from '../ui/Modal';
+import { getAttachmentSignedUrl } from '../../services/databaseService';
 
 
 
@@ -196,8 +197,14 @@ const ResumeModalContent: React.FC<ResumeModalContentProps> = ({ application }) 
       setDownloadingId(attachment.id || attachment.name);
       
       if (attachment.storagePath) {
-        // For cloud-stored attachments, we'd need to get a signed URL
-        alert('Cloud-stored attachments download is not yet implemented in this view.');
+        // For cloud-stored attachments, get a signed URL and download
+        const url = await getAttachmentSignedUrl(attachment.storagePath, 300);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = attachment.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         setDownloadingId(null);
         return;
       }
@@ -242,9 +249,9 @@ const ResumeModalContent: React.FC<ResumeModalContentProps> = ({ application }) 
   const handleView = async (attachment: Attachment) => {
     try {
       if (attachment.storagePath) {
-        // For cloud-stored attachments, we'd need to get a signed URL
-        // For now, show a message that this needs to be implemented
-        alert('Cloud-stored attachments viewing is not yet implemented in this view.');
+        // For cloud-stored attachments, get a signed URL
+        const url = await getAttachmentSignedUrl(attachment.storagePath, 300);
+        window.open(url, '_blank', 'noopener,noreferrer');
         return;
       }
       
