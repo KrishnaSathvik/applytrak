@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Preferences - ApplyTrak</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 24px;
+            color: #111;
+            background-color: #f8fafc;
+            margin: 0;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            margin: 0 0 12px;
+            color: #1f2937;
+        }
+        .subtitle {
+            margin: 0 0 24px;
+            color: #6b7280;
+        }
+        .preference {
+            margin: 16px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .preference strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #1f2937;
+            font-size: 16px;
+        }
+        .preference span {
+            color: #6b7280;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 12px;
+        }
+        .preference a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: white;
+            border: 1px solid #d1d5db;
+            margin-right: 8px;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+        .preference a:hover {
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+        }
+        .separator {
+            color: #9ca3af;
+            margin: 0 8px;
+        }
+        .back-link {
+            margin-top: 32px;
+            text-align: center;
+        }
+        .back-link a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 12px 24px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .back-link a:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        .footer {
+            margin-top: 16px;
+            color: #6b7280;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📧 Manage Email Preferences</h2>
+        <p class="subtitle">Choose what you want to receive from ApplyTrak:</p>
+
+        <div class="preference">
+            <strong>📊 Weekly Goals Report</strong>
+            <span>Progress updates and goal tracking to keep you motivated</span>
+            <a href="#" onclick="togglePreference('weekly_goals', false)">Turn off</a>
+            <span class="separator">•</span>
+            <a href="#" onclick="togglePreference('weekly_goals', true)">Turn on</a>
+        </div>
+
+        <div class="preference">
+            <strong>💡 Weekly Tips & Insights</strong>
+            <span>Personalized job search advice and industry insights</span>
+            <a href="#" onclick="togglePreference('weekly_tips', false)">Turn off</a>
+            <span class="separator">•</span>
+            <a href="#" onclick="togglePreference('weekly_tips', true)">Turn on</a>
+        </div>
+
+        <div class="preference">
+            <strong>📈 Monthly Analytics Report</strong>
+            <span>Comprehensive performance insights and progress tracking</span>
+            <a href="#" onclick="togglePreference('monthly_analytics', false)">Turn off</a>
+            <span class="separator">•</span>
+            <a href="#" onclick="togglePreference('monthly_analytics', true)">Turn on</a>
+        </div>
+
+        <div class="preference">
+            <strong>🎉 Milestone Celebrations</strong>
+            <span>Achievement notifications and motivation to keep going</span>
+            <a href="#" onclick="togglePreference('milestone_emails', false)">Turn off</a>
+            <span class="separator">•</span>
+            <a href="#" onclick="togglePreference('milestone_emails', true)">Turn on</a>
+        </div>
+
+        <div class="preference">
+            <strong>⏰ Inactivity Reminders</strong>
+            <span>Gentle nudges to stay active in your job search</span>
+            <a href="#" onclick="togglePreference('inactivity_reminders', false)">Turn off</a>
+            <span class="separator">•</span>
+            <a href="#" onclick="togglePreference('inactivity_reminders', true)">Turn on</a>
+        </div>
+
+        <div class="back-link">
+            <a href="https://www.applytrak.com">← Back to ApplyTrak</a>
+        </div>
+        
+        <div class="footer">
+            Changes apply immediately. You can update these preferences anytime.
+        </div>
+    </div>
+
+    <script>
+        // Get the external ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const eid = urlParams.get('eid');
+        
+        function togglePreference(preference, value) {
+            if (!eid) {
+                alert('Invalid link. Please use the link from your email.');
+                return;
+            }
+            
+            // Call the Supabase function to update preferences
+            const url = `https://ihlaenwiyxtmkehfoesg.supabase.co/functions/v1/email-preferences?eid=${encodeURIComponent(eid)}&${preference}=${value}`;
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/html'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Show success message
+                    const button = event.target;
+                    const originalText = button.textContent;
+                    button.textContent = '✓ Saved';
+                    button.style.background = '#10b981';
+                    button.style.color = 'white';
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '';
+                        button.style.color = '';
+                    }, 2000);
+                } else {
+                    throw new Error('Failed to update preference');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to update preference. Please try again.');
+            });
+        }
+        
+        // Show a message if no eid is provided
+        if (!eid) {
+            document.querySelector('.container').innerHTML = `
+                <h2>❌ Invalid Link</h2>
+                <p>This link is missing required information. Please use the link from your email.</p>
+                <div class="back-link">
+                    <a href="https://www.applytrak.com">← Back to ApplyTrak</a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
