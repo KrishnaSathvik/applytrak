@@ -271,7 +271,7 @@ export async function getCurrentUserId(): Promise<number> {
  * This allows same filenames across different applications while maintaining organization.
  */
 export async function uploadAttachment(
-    _internalUserId: number, // Keep parameter for API compatibility but use auth UID instead
+    internalUserId: number,
     file: File,
     applicationId?: string, // Optional: group files by application
     fileIndex = 0
@@ -281,11 +281,7 @@ export async function uploadAttachment(
     
     if (!supabase) throw new Error('Supabase client not initialized');
     
-    // Get the current auth UID for RLS policy compliance
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-    
-    // Create a more organized folder structure using auth UID
+    // Create a more organized folder structure using internal user ID
     const timestamp = isoStamp();
     const uniqueId = randomToken();
     
@@ -293,7 +289,7 @@ export async function uploadAttachment(
     // Otherwise, use a general uploads folder
     const baseFolder = applicationId ? `applications/${applicationId}` : 'uploads';
     const uniqueFolder = `${timestamp}-${uniqueId}-${fileIndex}`;
-    const storagePath = `${user.id}/${baseFolder}/${uniqueFolder}/${safeName}`;
+    const storagePath = `${internalUserId}/${baseFolder}/${uniqueFolder}/${safeName}`;
 
     if (!supabase) throw new Error('Supabase client not initialized');
     const {error} = await supabase.storage
@@ -369,20 +365,16 @@ export async function deleteAttachmentFromCloud(att: Attachment): Promise<void> 
  * If you persist uploads in DB, prefer listing from DB instead.
  */
 export async function listUserAttachments(
-    _internalUserId: number // Keep parameter for API compatibility but use auth UID instead
+    internalUserId: number
 ): Promise<{ path: string; name: string; isFolder: boolean }[]> {
     const results: { path: string; name: string; isFolder: boolean }[] = [];
 
     if (!supabase) throw new Error('Supabase client not initialized');
 
-    // Get the current auth UID for RLS policy compliance
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    // list top-level entries under <authUid>/
+    // list top-level entries under <internalUserId>/
     const {data: top, error: topErr} = await supabase.storage
         .from("attachments")
-        .list(`${user.id}`, {limit: 100});
+        .list(`${internalUserId}`, {limit: 100});
 
     if (topErr) throw topErr;
 
@@ -391,7 +383,7 @@ export async function listUserAttachments(
 
     for (const f of filesTop) {
         results.push({
-            path: `${user.id}/${f.name}`,
+            path: `${internalUserId}/${f.name}`,
             name: f.name!,
             isFolder: false,
         });
@@ -399,7 +391,7 @@ export async function listUserAttachments(
 
     // walk each subfolder and list files
     for (const folder of folders) {
-        const folderPath = `${user.id}/${folder.name}`;
+        const folderPath = `${internalUserId}/${folder.name}`;
         const {data: children, error} = await supabase.storage
             .from("attachments")
             .list(folderPath, {limit: 100});
