@@ -1640,10 +1640,10 @@ export const useAppStore = create<AppState>()(
                         try {
                             const applications = await databaseService.getApplications();
                             
-                            // Sort applications by createdAt in descending order (most recently added first)
+                            // Sort applications by dateApplied in descending order (most recent applications first)
                             const sortedApplications = applications.sort((a, b) => {
-                                const dateA = new Date(a.createdAt);
-                                const dateB = new Date(b.createdAt);
+                                const dateA = new Date(a.dateApplied);
+                                const dateB = new Date(b.dateApplied);
                                 return dateB.getTime() - dateA.getTime();
                             });
                             
@@ -1701,11 +1701,11 @@ export const useAppStore = create<AppState>()(
                                 }
                                 
                                 // Add new application and maintain sorting by createdAt (most recently added first)
-                                const updatedApplications = [newApplication, ...state.applications].sort((a, b) => {
-                                    const dateA = new Date(a.createdAt);
-                                    const dateB = new Date(b.createdAt);
-                                    return dateB.getTime() - dateA.getTime();
-                                });
+                        const updatedApplications = [newApplication, ...state.applications].sort((a, b) => {
+                            const dateA = new Date(a.dateApplied);
+                            const dateB = new Date(b.dateApplied);
+                            return dateB.getTime() - dateA.getTime();
+                        });
                                 
                                 const filteredApplications = state.ui.searchQuery
                                     ? updatedApplications.filter(app => {
@@ -1761,13 +1761,13 @@ export const useAppStore = create<AppState>()(
                             await databaseService.updateApplication(id, updates);
                             set(state => {
                                 // Update application and maintain sorting by createdAt (most recently added first)
-                                const applications = state.applications.map(app =>
-                                    app.id === id ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
-                                ).sort((a, b) => {
-                                    const dateA = new Date(a.createdAt);
-                                    const dateB = new Date(b.createdAt);
-                                    return dateB.getTime() - dateA.getTime();
-                                });
+                        const applications = state.applications.map(app =>
+                            app.id === id ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
+                        ).sort((a, b) => {
+                            const dateA = new Date(a.dateApplied);
+                            const dateB = new Date(b.dateApplied);
+                            return dateB.getTime() - dateA.getTime();
+                        });
                                 
                                 const filteredApplications = state.ui.searchQuery
                                     ? applications.filter(app => {
@@ -1955,8 +1955,8 @@ export const useAppStore = create<AppState>()(
                                         updatedAt: new Date().toISOString()
                                     } : app
                                 ).sort((a, b) => {
-                                    const dateA = new Date(a.createdAt);
-                                    const dateB = new Date(b.createdAt);
+                                    const dateA = new Date(a.dateApplied);
+                                    const dateB = new Date(b.dateApplied);
                                     return dateB.getTime() - dateA.getTime();
                                 });
                                 
@@ -2118,16 +2118,16 @@ export const useAppStore = create<AppState>()(
 
                             if (addedApplications.length > 0) {
                                 set(state => {
-                                    // Combine existing and new applications, then sort by createdAt (most recent first)
+                                    // Combine existing and new applications, then sort by dateApplied (most recent first)
                                     const allApplications = [...addedApplications, ...state.applications].sort((a, b) => {
-                                        const dateA = new Date(a.createdAt);
-                                        const dateB = new Date(b.createdAt);
+                                        const dateA = new Date(a.dateApplied);
+                                        const dateB = new Date(b.dateApplied);
                                         return dateB.getTime() - dateA.getTime();
                                     });
                                     
                                     const allFilteredApplications = [...addedApplications, ...state.filteredApplications].sort((a, b) => {
-                                        const dateA = new Date(a.createdAt);
-                                        const dateB = new Date(b.createdAt);
+                                        const dateA = new Date(a.dateApplied);
+                                        const dateB = new Date(b.dateApplied);
                                         return dateB.getTime() - dateA.getTime();
                                     });
                                     

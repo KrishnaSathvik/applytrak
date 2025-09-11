@@ -11,7 +11,7 @@ const MAX_DISPLAYED_APPLICATIONS = 10;
 
 interface BulkOperationsProps {
     selectedIds: string[];
-    applications: Application[];
+    allApplications: Application[]; // All applications for bulk operations across all pages
     onSelectionChange: (newSelectedIds: string[]) => void;
     className?: string;
 }
@@ -28,7 +28,7 @@ interface ProcessingState {
 
 const BulkOperations: React.FC<BulkOperationsProps> = ({
                                                            selectedIds,
-                                                           applications,
+                                                           allApplications,
                                                            onSelectionChange,
                                                            className = ''
                                                        }) => {
@@ -52,10 +52,10 @@ const BulkOperations: React.FC<BulkOperationsProps> = ({
 
     const [newStatus, setNewStatus] = useState<ApplicationStatus>('Applied');
 
-    // Memoized computed values
+    // Memoized computed values - use allApplications for bulk operations
     const selectedApplications = useMemo(() =>
-            applications.filter(app => selectedIds.includes(app.id)),
-        [applications, selectedIds]
+            allApplications.filter(app => selectedIds.includes(app.id)),
+        [allApplications, selectedIds]
     );
 
     const statusCounts = useMemo(() =>

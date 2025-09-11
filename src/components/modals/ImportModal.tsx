@@ -14,6 +14,8 @@ import {
     Loader2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { Application } from '../../types';
+import { Button } from '../ui/Button';
 import * as XLSX from 'xlsx';
 
 interface ImportModalProps {
@@ -24,8 +26,9 @@ interface ImportModalProps {
 const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
     const { bulkAddApplications } = useAppStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'preview' | 'success' | 'error'>('idle');
     const [importedCount, setImportedCount] = useState(0);
+    const [importPreview, setImportPreview] = useState<Application[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [fileName, setFileName] = useState('');
     const [importSummary, setImportSummary] = useState<{total: number; withNotes: number; withAttachments: number} | null>(null);
@@ -118,35 +121,28 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                     };
                 }).filter(app => app.company && app.position);
             } else {
-                // Handle CSV files
-                const text = await file.text();
-                const lines = text.split('\n');
-                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                // Handle CSV files using enhanced import function
+                const { importFromCSV } = await import('../../utils/exportImport');
+                const result = await importFromCSV(file);
                 
-                for (let i = 1; i < lines.length; i++) {
-                    if (lines[i].trim()) {
-                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                        const app: any = {};
-                        headers.forEach((header, index) => {
-                            app[header.toLowerCase()] = values[index] || '';
-                        });
-                        
-                        if (app.company && app.position) {
-                            applications.push({
-                                company: app.company,
-                                position: app.position,
-                                dateApplied: app.dateapplied || app.date || new Date().toISOString().split('T')[0],
-                                type: app.type || 'Remote',
-                                status: app.status || 'Applied',
-                                location: app.location || '',
-                                salary: app.salary || '',
-                                jobSource: app.source || app.jobsource || '',
-                                jobUrl: app.url || app.joburl || '',
-                                notes: app.notes || '',
-                                attachments: [] // CSV doesn't support attachments, so empty array
-                            });
-                        }
-                    }
+                applications = result.applications.map(app => ({
+                    company: app.company || '',
+                    position: app.position || '',
+                    dateApplied: app.dateApplied || new Date().toISOString().split('T')[0],
+                    type: app.type || 'Remote',
+                    status: app.status || 'Applied',
+                    employmentType: app.employmentType || 'Full-time',
+                    location: app.location || '',
+                    salary: app.salary || '',
+                        jobSource: (app.jobSource && app.jobSource !== '-') ? app.jobSource : '',
+                        jobUrl: (app.jobUrl && app.jobUrl !== '-') ? app.jobUrl : '',
+                    notes: app.notes || '',
+                    attachments: app.attachments || []
+                }));
+                
+                // Log any warnings from the import
+                if (result.warnings && result.warnings.length > 0) {
+                    console.warn('Import warnings:', result.warnings);
                 }
             }
             
@@ -158,12 +154,14 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                 totalApplications: applications.length,
                 sampleApplication: applications[0],
                 fieldsWithNotes: applications.filter(app => app.notes && app.notes.trim()).length,
-                fieldsWithAttachments: applications.filter(app => app.attachments && app.attachments.length > 0).length
+                fieldsWithAttachments: applications.filter(app => app.attachments && app.attachments.length > 0).length,
+                sampleJobUrl: applications[0]?.jobUrl,
+                sampleJobSource: applications[0]?.jobSource
             });
             
             if (applications.length > 0) {
-                await bulkAddApplications(applications);
-                setImportedCount(applications.length);
+                // Set preview data instead of importing immediately
+                setImportPreview(applications);
                 
                 // Count fields with data
                 const withNotes = applications.filter(app => app.notes && app.notes.trim()).length;
@@ -176,7 +174,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                     withAttachments
                 });
                 
-                setImportStatus('success');
+                setImportStatus('preview');
             } else {
                 setErrorMessage('No valid applications found in the file. Please check the file format.');
                 setImportStatus('error');
@@ -188,9 +186,30 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
         }
     };
 
+    const confirmImport = async () => {
+        if (importPreview.length === 0) return;
+
+        setImportStatus('loading');
+        try {
+            await bulkAddApplications(importPreview);
+            setImportedCount(importPreview.length);
+            setImportStatus('success');
+            
+            // Auto-close modal after successful import
+            setTimeout(() => {
+                handleClose();
+            }, 1500); // Close after 1.5 seconds to show success message
+        } catch (error) {
+            console.error('Import confirmation error:', error);
+            setErrorMessage('Failed to import applications. Please try again.');
+            setImportStatus('error');
+        }
+    };
+
     const resetModal = () => {
         setImportStatus('idle');
         setImportedCount(0);
+        setImportPreview([]);
         setErrorMessage('');
         setFileName('');
         setImportSummary(null);
@@ -358,29 +377,123 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                         </div>
                     )}
 
-                    {importStatus === 'success' && (
-                        <div className="text-center py-12">
-                            <div className="p-6 rounded-3xl bg-gradient-to-r from-green-500 to-emerald-600 w-fit mx-auto mb-6">
-                                <CheckCircle className="h-16 w-16 text-white"/>
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                                Import Successful!
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-6">
-                                Successfully imported {importedCount} applications from {fileName}
-                            </p>
-                            {importSummary && (
-                                <div className="text-sm text-gray-500 dark:text-gray-400 mb-6 space-y-1">
-                                    <p>📝 Applications with notes: {importSummary.withNotes}</p>
-                                    <p>📎 Applications with attachments: {importSummary.withAttachments}</p>
+                    {importStatus === 'preview' && (
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-500 to-purple-600 w-fit mx-auto mb-6">
+                                    <CheckCircle className="h-16 w-16 text-white"/>
                                 </div>
-                            )}
-                            <button
-                                onClick={handleClose}
-                                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                            >
-                                Done
-                            </button>
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                    Import Preview
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    Found {importPreview.length} applications ready to import
+                                </p>
+                            </div>
+
+                            {/* Preview Table - Show only first 5 applications */}
+                            <div className="glass rounded-lg">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-800">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left font-medium">Company</th>
+                                            <th className="px-4 py-3 text-left font-medium">Position</th>
+                                            <th className="px-4 py-3 text-left font-medium">Date</th>
+                                            <th className="px-4 py-3 text-left font-medium">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {importPreview.slice(0, 5).map((app, index) => (
+                                            <tr key={index} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                <td className="px-4 py-3 font-medium">{app.company}</td>
+                                                <td className="px-4 py-3">{app.position}</td>
+                                                <td className="px-4 py-3">{new Date(app.dateApplied).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                                                        app.status === 'Applied' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                                                        app.status === 'Interview' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                                        app.status === 'Offer' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                                                        'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                                    }`}>
+                                                        {app.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
+                                {/* Show count if more than 5 applications */}
+                                {importPreview.length > 5 && (
+                                    <div className="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
+                                        ... and {importPreview.length - 5} more applications
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setImportStatus('idle')}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={confirmImport}
+                                    className="btn btn-primary btn-md"
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Import {importPreview.length} Applications
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {importStatus === 'success' && (
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <div className="p-6 rounded-3xl bg-gradient-to-r from-green-500 to-emerald-600 w-fit mx-auto mb-6">
+                                    <CheckCircle className="h-16 w-16 text-white"/>
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                                    Import Complete!
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    Successfully imported {importedCount} applications from {fileName}
+                                </p>
+                            </div>
+
+                            {/* Success Summary */}
+                            <div className="glass rounded-lg p-6">
+                                <div className="grid grid-cols-2 gap-4 text-center">
+                                    <div>
+                                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                            {importedCount}
+                                        </div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                            Applications Added
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                            {importSummary?.withNotes || 0}
+                                        </div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                            With Notes
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Auto-close message */}
+                            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+                                This window will close automatically...
+                            </div>
                         </div>
                     )}
 

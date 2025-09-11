@@ -895,6 +895,7 @@ const NotesIcon: React.FC<NotesIconProps> = memo(({
 // Main Component with Performance Optimization
 const MobileResponsiveApplicationTable: React.FC = () => {
     const {
+        applications,
         filteredApplications,
         ui,
         setSearchQuery,
@@ -1074,17 +1075,33 @@ const MobileResponsiveApplicationTable: React.FC = () => {
 
     const handleSelectAll = useCallback(() => {
         const allCurrentIds = paginationData.paginatedApplications.map(app => app.id);
-        const allSelected = allCurrentIds.every(id => selectedIds.includes(id));
+        const allCurrentPageSelected = allCurrentIds.every(id => selectedIds.includes(id));
+        
+        // Check if ALL applications across all pages are selected
+        const allApplicationIds = currentApplications.map(app => app.id);
+        const allApplicationsSelected = allApplicationIds.every(id => selectedIds.includes(id));
 
-        if (allSelected) {
-            setSelectedIds(prev => prev.filter(id => !allCurrentIds.includes(id)));
+        console.log('🔄 Select All clicked:', {
+            currentPage: currentPage,
+            allCurrentIds: allCurrentIds.length,
+            allApplicationIds: allApplicationIds.length,
+            currentSelectedIds: selectedIds.length,
+            allCurrentPageSelected: allCurrentPageSelected,
+            allApplicationsSelected: allApplicationsSelected
+        });
+
+        if (allApplicationsSelected) {
+            // Deselect ALL applications across all pages
+            setSelectedIds([]);
+            console.log('❌ Deselecting ALL applications');
         } else {
-            setSelectedIds(prev => {
-                const filtered = prev.filter(id => !allCurrentIds.includes(id));
-                return [...filtered, ...allCurrentIds];
+            // Select ALL applications across all pages
+            setSelectedIds(allApplicationIds);
+            console.log('✅ Selecting ALL applications:', { 
+                total: allApplicationIds.length
             });
         }
-    }, [paginationData.paginatedApplications, selectedIds]);
+    }, [paginationData.paginatedApplications, selectedIds, currentPage, currentApplications]);
 
 
 
@@ -1276,7 +1293,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
             {/* Bulk Operations */}
             <BulkOperations
                 selectedIds={selectedIds}
-                applications={currentApplications}
+                allApplications={applications} // Pass all applications for bulk operations across all pages
                 onSelectionChange={setSelectedIds}
             />
 
@@ -1315,6 +1332,7 @@ const MobileResponsiveApplicationTable: React.FC = () => {
                         getCompanyColor={getCompanyColorOptimized}
                         handleEditClick={handleEditClick}
                         handleDocumentAction={handleDocumentAction}
+                        allApplications={currentApplications}
                         updateApplication={updateApplication}
                     />
                 )
@@ -1722,7 +1740,7 @@ const ApplicationCard: React.FC<CardProps> = memo(({
 });
 
 // Desktop Table View Component
-const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void }> = memo(({
+const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: () => void; allApplications: Application[] }> = memo(({
                                                                                                           applications,
                                                                                                           selectedIds,
                                                                                                           onToggleSelection,
@@ -1735,7 +1753,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                                                                                                           onSelectAll,
                                                                                                           getCompanyColor,
                                                                                                           handleEditClick,
-                                                                                                          updateApplication
+                                                                                                          updateApplication,
+                                                                                                          allApplications
                                                                                                       }) => {
     if (applications.length === 0) {
         return (
@@ -1764,7 +1783,8 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
         );
     }
 
-    const allCurrentPageSelected = applications.length > 0 && applications.every(app => selectedIds.includes(app.id));
+    // Check if ALL applications across all pages are selected (not just current page)
+    const allApplicationsSelected = allApplications.length > 0 && allApplications.every((app: Application) => selectedIds.includes(app.id));
 
     return (
         <div
@@ -1778,7 +1798,7 @@ const DesktopTableView: React.FC<ViewProps & { startIndex: number; onSelectAll: 
                         <th className="w-10 px-2 py-2 text-center">
                             <input
                                 type="checkbox"
-                                checked={allCurrentPageSelected}
+                                checked={allApplicationsSelected}
                                 onChange={onSelectAll}
                                 className="w-3 h-3 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
                                 style={{ 

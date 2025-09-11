@@ -139,10 +139,12 @@ const formatDate = (dateString: string): string => {
 // Enhanced date parsing for various formats
 const parseDateString = (dateString: string): string => {
     if (!dateString || !dateString.trim()) {
+        console.log('Empty date string, using today:', new Date().toISOString().split('T')[0]);
         return new Date().toISOString().split('T')[0];
     }
 
     const cleanDate = dateString.trim();
+    console.log('Parsing date:', cleanDate);
     
     try {
         // Handle various date formats
@@ -168,6 +170,7 @@ const parseDateString = (dateString: string): string => {
             if (format.test(cleanDate)) {
                 const date = new Date(cleanDate);
                 if (!isNaN(date.getTime())) {
+                    console.log('Date parsed successfully:', date.toISOString().split('T')[0]);
                     return date.toISOString().split('T')[0];
                 }
             }
@@ -176,12 +179,15 @@ const parseDateString = (dateString: string): string => {
         // Try direct parsing
         const date = new Date(cleanDate);
         if (!isNaN(date.getTime())) {
+            console.log('Date parsed directly:', date.toISOString().split('T')[0]);
             return date.toISOString().split('T')[0];
         }
         
         // If all else fails, return today's date
+        console.log('Date parsing failed, using today:', new Date().toISOString().split('T')[0]);
         return new Date().toISOString().split('T')[0];
-    } catch {
+    } catch (error) {
+        console.log('Date parsing error:', error, 'using today:', new Date().toISOString().split('T')[0]);
         return new Date().toISOString().split('T')[0];
     }
 };
@@ -769,6 +775,7 @@ export const importFromJSON = async (file: File): Promise<ImportResult> => {
 
 // Enhanced CSV Import
 export const importFromCSV = async (file: File): Promise<ImportResult> => {
+    console.log('🚀 CSV IMPORT STARTED - File:', file.name);
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
 
@@ -785,6 +792,12 @@ export const importFromCSV = async (file: File): Promise<ImportResult> => {
                 
                 // Get sample data for intelligent detection
                 const sampleData = lines.slice(1, 6).map(line => parseCSVLine(line));
+                
+                console.log('🔍 DEBUG: About to map CSV columns');
+                console.log('🔍 DEBUG: Original headers:', parseCSVLine(lines[0]));
+                console.log('🔍 DEBUG: Lowercase headers:', headers);
+                console.log('🔍 DEBUG: Sample data:', sampleData[0]);
+                
                 const columnIndexes = mapCSVColumns(headers, sampleData);
 
                 if (columnIndexes.company === -1 || columnIndexes.position === -1) {
@@ -868,9 +881,16 @@ const parseCSVLine = (line: string): string[] => {
 const mapCSVColumns = (headers: string[], sampleData?: string[][]): Record<keyof typeof CSV_COLUMN_MAPPING, number> => {
     const result = {} as Record<keyof typeof CSV_COLUMN_MAPPING, number>;
 
+    // Debug logging
+    console.log('CSV Headers:', headers);
+    console.log('Sample Data:', sampleData?.[0]);
+
     // First try exact/fuzzy matching
     for (const [key, possibleNames] of Object.entries(CSV_COLUMN_MAPPING)) {
         result[key as keyof typeof CSV_COLUMN_MAPPING] = findColumnIndex(headers, possibleNames);
+        if (result[key as keyof typeof CSV_COLUMN_MAPPING] !== -1) {
+            console.log(`Mapped "${headers[result[key as keyof typeof CSV_COLUMN_MAPPING]]}" to ${key} (index ${result[key as keyof typeof CSV_COLUMN_MAPPING]})`);
+        }
     }
 
     // If we have sample data, use intelligent detection for missing columns
@@ -881,10 +901,12 @@ const mapCSVColumns = (headers: string[], sampleData?: string[][]): Record<keyof
         for (const [key, index] of Object.entries(intelligentMapping)) {
             if (result[key as keyof typeof CSV_COLUMN_MAPPING] === -1 && index !== -1) {
                 result[key as keyof typeof CSV_COLUMN_MAPPING] = index;
+                console.log(`Intelligently mapped "${headers[index]}" to ${key} (index ${index})`);
             }
         }
     }
 
+    console.log('Final mapping:', result);
     return result;
 };
 
@@ -1011,6 +1033,20 @@ const createApplicationFromCSVRow = (
         const index = columnIndexes[key];
         return index !== -1 ? (values[index]?.trim() || '') : '';
     };
+
+    // Debug logging
+    if (rowIndex <= 2) { // Log first 3 rows for debugging
+        console.log(`Row ${rowIndex} Debug:`, {
+            values: values,
+            columnIndexes: columnIndexes,
+            positionValue: getValue('position'),
+            dateValue: getValue('dateApplied'),
+            companyValue: getValue('company'),
+            jobUrlValue: getValue('jobUrl'),
+            jobSourceValue: getValue('jobSource'),
+            salaryValue: getValue('salary')
+        });
+    }
 
     return {
         id: `imported-${Date.now()}-${rowIndex}`,
