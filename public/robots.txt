@@ -1,40 +1,34 @@
+# Robots.txt for ApplyTrak
+# https://applytrak.com/robots.txt
+
 User-agent: *
 Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+
+# Allow important pages
+Allow: /
+Allow: /marketing
+Allow: /applications
+Allow: /goals
+Allow: /analytics
+Allow: /profile
+Allow: /features
+Allow: /diagnostics
 
 # Sitemap location
 Sitemap: https://applytrak.com/sitemap.xml
 
-# Block access to sensitive areas
-Disallow: /admin/
-Disallow: /api/
-Disallow: /_next/
-Disallow: /.env
-Disallow: /build/
-Disallow: /node_modules/
-
-# Allow search engines to crawl all public content
+# Crawl delay (optional - be respectful to search engines)
 Crawl-delay: 1
 
 # Additional directives for better SEO
+# Host directive (if you have multiple domains)
 # Host: https://applytrak.com
-# Clean-param: utm_source&utm_medium&utm_campaign
 
-# Allow specific bots
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Slurp
-Allow: /
-
-# Block unwanted bots
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
+# Clean URLs - no trailing slashes for consistency
+# This helps with duplicate content issues

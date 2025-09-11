@@ -230,7 +230,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
   return (
     <form onSubmit={handleSubmit(onSubmit as any)} className="mobile-space-y-6">
       {/* Company and Position */}
-      <div className="mobile-grid-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="mobile-form-group">
           <label className="mobile-form-label">Company *</label>
           <input
@@ -257,7 +257,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
       </div>
 
       {/* Date Applied and Job Type */}
-      <div className="mobile-grid-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="mobile-form-group">
           <label className="mobile-form-label">Date Applied *</label>
           <input
@@ -272,7 +272,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
 
         <div className="mobile-form-group">
           <label className="mobile-form-label">Job Type</label>
-          <select {...register('type')} className="mobile-form-select">
+          <select {...register('type')} className="mobile-form-select min-w-0">
             <option value="Remote">Remote</option>
             <option value="Onsite">Onsite</option>
             <option value="Hybrid">Hybrid</option>
@@ -292,7 +292,7 @@ const MobileApplicationForm: React.FC<MobileApplicationFormProps> = ({ onSuccess
       </div>
 
       {/* Location and Salary */}
-      <div className="mobile-grid-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="mobile-form-group">
           <label className="mobile-form-label">Location</label>
           <input

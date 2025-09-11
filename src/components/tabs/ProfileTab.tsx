@@ -1,14 +1,12 @@
 // src/components/tabs/ProfileTab.tsx
 import React, { useState } from 'react';
-import { User, Settings, Shield, Download, Bell, Database, Check, X, Trash2, Eye, Lock, Cloud, BarChart3, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { User, Settings, Shield, Bell, Check, X, Trash2, Eye, Lock, Cloud, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { exportToJSON, exportToCSV } from '../../utils/exportImport';
 
 const ProfileTab: React.FC = () => {
     const {
     auth, 
-    applications,
     openPrivacySettings,
     showToast,
     signOut
@@ -89,32 +87,6 @@ const ProfileTab: React.FC = () => {
     setNewDisplayName('');
   };
 
-  const handleExportData = async (format: 'json' | 'csv') => {
-    try {
-      if (format === 'json') {
-        await exportToJSON(applications);
-        showToast({
-          type: 'success',
-          message: 'Data exported to JSON successfully!',
-          duration: 3000
-        });
-      } else {
-        await exportToCSV(applications);
-        showToast({
-          type: 'success',
-          message: 'Data exported to CSV successfully!',
-          duration: 3000
-        });
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      showToast({
-        type: 'error',
-        message: 'Failed to export data. Please try again.',
-        duration: 5000
-      });
-    }
-  };
 
   const handleSignOut = () => {
     signOut();
@@ -449,59 +421,6 @@ const ProfileTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Data Management - Enhanced */}
-      <div className="glass-card">
-        <div className="flex items-center mb-6">
-          <Database className="h-6 w-6 text-blue-600 mr-3" />
-          <h2 className="text-xl font-semibold text-gray-900">Data Management</h2>
-        </div>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button 
-              onClick={() => handleExportData('json')}
-              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center">
-                <Download className="h-5 w-5 text-blue-600 mr-3" />
-                <div>
-                  <div className="font-medium text-gray-900">Export to JSON</div>
-                  <div className="text-sm text-gray-600">Complete data with metadata</div>
-                </div>
-              </div>
-              <span className="text-blue-600">→</span>
-            </button>
-            
-            <button 
-              onClick={() => handleExportData('csv')}
-              className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center">
-                <Download className="h-5 w-5 text-green-600 mr-3" />
-                <div>
-                  <div className="font-medium text-gray-900">Export to CSV</div>
-                  <div className="text-sm text-gray-600">Excel & Google Sheets compatible</div>
-                </div>
-              </div>
-              <span className="text-green-600">→</span>
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-            <div className="flex items-center">
-              <BarChart3 className="h-5 w-5 text-blue-600 mr-3" />
-              <div>
-                <div className="font-medium text-gray-900">Data Summary</div>
-                <div className="text-sm text-gray-600">
-                  {applications.length} applications tracked
-                </div>
-              </div>
-            </div>
-            <span className="text-blue-600 text-sm font-medium">
-              {applications.length} total
-            </span>
-          </div>
-        </div>
-      </div>
 
 
 

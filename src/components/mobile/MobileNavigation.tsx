@@ -75,9 +75,6 @@ const MobileNavigation: React.FC = () => {
             <span className="mobile-text-xs mobile-font-medium">
               {item.label}
             </span>
-            {isActive && (
-              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full" />
-            )}
           </button>
         );
       })}

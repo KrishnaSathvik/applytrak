@@ -14,6 +14,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import * as XLSX from 'xlsx';
 
 interface ImportModalProps {
     isOpen: boolean;
@@ -79,6 +80,43 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                         attachments: app.attachments || app.Attachments || []
                     }));
                 }
+            } else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                // Handle Excel files
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (jsonData.length < 2) {
+                    throw new Error('Excel file must have at least a header row and one data row');
+                }
+                
+                const headers = jsonData[0] as string[];
+                const dataRows = jsonData.slice(1) as any[][];
+                
+                applications = dataRows.map(row => {
+                    const app: any = {};
+                    headers.forEach((header, index) => {
+                        if (header && row[index] !== undefined) {
+                            app[header.toLowerCase().trim()] = row[index];
+                        }
+                    });
+                    
+                    return {
+                        company: app.company || app.Company || '',
+                        position: app.position || app.Position || '',
+                        dateApplied: app.dateapplied || app.dateapplied || app.date || app.Date || new Date().toISOString().split('T')[0],
+                        type: app.type || app.Type || 'Remote',
+                        status: app.status || app.Status || 'Applied',
+                        location: app.location || app.Location || '',
+                        salary: app.salary || app.Salary || '',
+                        jobSource: app.jobSource || app.source || app.Source || app.jobsource || '',
+                        jobUrl: app.jobUrl || app.url || app.Url || app.joburl || '',
+                        notes: app.notes || app.Notes || '',
+                        attachments: app.attachments || app.Attachments || []
+                    };
+                }).filter(app => app.company && app.position);
             } else {
                 // Handle CSV files
                 const text = await file.text();
@@ -176,7 +214,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                             Import Applications
                         </h2>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">
-                            Import your job applications from JSON or CSV files
+                            Import your job applications from JSON, CSV, or Excel files
                         </p>
                     </div>
                     <button
@@ -208,7 +246,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                                     </div>
                                 </header>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white group-hover:scale-110 transition-transform duration-200">
@@ -228,7 +266,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
 
                                     <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
                                         <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white group-hover:scale-110 transition-transform duration-200">
+                                            <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white group-hover:scale-110 transition-transform duration-200">
                                                 <FileSpreadsheet className="h-6 w-6"/>
                                             </div>
                                             <div>
@@ -237,7 +275,24 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                                                     Spreadsheet exports with proper columns
                                                 </div>
                                                 <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
-                                                    ✓ Excel & Google Sheets compatible
+                                                    ✓ Universal compatibility
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-5 border border-white/30 dark:border-gray-700/30 group hover:scale-105 transition-transform duration-200">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white group-hover:scale-110 transition-transform duration-200">
+                                                <Database className="h-6 w-6"/>
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-gray-900 dark:text-gray-100">Excel Files</div>
+                                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                    Native Excel format support
+                                                </div>
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1">
+                                                    ✓ .xlsx & .xls supported
                                                 </div>
                                             </div>
                                         </div>
@@ -268,7 +323,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose }) => {
                                         Choose File to Import
                                     </p>
                                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                                        JSON or CSV files accepted • Maximum 50MB
+                                        JSON, CSV, or Excel files accepted • Maximum 50MB
                                     </p>
                                     <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-500">
                                         <div className="flex items-center gap-1">

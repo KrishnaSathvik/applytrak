@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun, LogIn, UserPlus } from 'lucide-react';
+import { Moon, Sun, User } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 
@@ -16,22 +16,28 @@ const MobileHeader: React.FC = () => {
     setTheme(newTheme);
   };
 
-  const handleLogin = () => {
+  const handleAuth = () => {
     openAuthModal('login');
   };
 
-  const handleSignup = () => {
-    openAuthModal('signup');
+  const handleLogoClick = () => {
+    // Navigate to home page by setting the selected tab to home
+    useAppStore.getState().setSelectedTab('home');
   };
 
   return (
     <header className="mobile-header">
       <div className="mobile-flex mobile-items-center mobile-gap-4">
-        <ApplyTrakLogo size="sm" className="transition-transform duration-300 hover:scale-110" showText={false} />
-        <h1 className="mobile-header-title">ApplyTrak</h1>
+        <button 
+          onClick={handleLogoClick}
+          className="mobile-flex mobile-items-center mobile-gap-2 hover:opacity-80 transition-opacity"
+        >
+          <ApplyTrakLogo size="sm" className="transition-transform duration-300 hover:scale-110" showText={false} />
+          <h1 className="mobile-header-title">ApplyTrak</h1>
+        </button>
       </div>
       
-      <div className="mobile-header-actions">
+      <div className="mobile-flex mobile-items-center mobile-gap-3">
         {/* Theme Toggle */}
         <button
           onClick={handleThemeToggle}
@@ -45,24 +51,15 @@ const MobileHeader: React.FC = () => {
           )}
         </button>
 
-        {/* Authentication Buttons */}
+        {/* Integrated Auth Button */}
         {!auth.isAuthenticated && (
-          <>
-            <button
-              onClick={handleLogin}
-              className="btn btn-secondary mobile-flex mobile-items-center mobile-gap-2"
-            >
-              <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign In</span>
-            </button>
-            <button
-              onClick={handleSignup}
-              className="btn btn-primary mobile-flex mobile-items-center mobile-gap-2"
-            >
-              <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign Up</span>
-            </button>
-          </>
+          <button
+            onClick={handleAuth}
+            className="btn btn-primary mobile-flex mobile-items-center mobile-gap-2"
+          >
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Sign In</span>
+          </button>
         )}
 
         {/* User Info for authenticated users */}

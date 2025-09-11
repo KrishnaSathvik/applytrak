@@ -518,6 +518,7 @@ textarea:focus {
   background-size: 16px;
   padding-right: 40px;
   cursor: pointer;
+  min-width: 0;
 }
 
 /* Dark mode styles for mobile form select */

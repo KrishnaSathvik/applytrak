@@ -2,6 +2,7 @@
 import React, {useEffect} from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { Analytics } from "@vercel/analytics/react";
+import { HelmetProvider } from 'react-helmet-async';
 import {useAppStore} from './store/useAppStore';
 import ResponsiveLayout from './components/layout/ResponsiveLayout';
 import {initializeDatabase} from './services/databaseService';
@@ -11,6 +12,11 @@ import {Application} from './types';
 import {initializeAdminRoutes} from './utils/adminRoute';
 // verifyDatabaseAdmin import removed - no longer needed after removing auto-redirect
 import PrivacySettingsModal from './components/modals/PrivacySettingsModal';
+
+// Analytics and SEO imports
+import { initializeGA, trackPageView, trackUserInteraction } from './services/googleAnalyticsService';
+import PageSEO from './components/seo/PageSEO';
+import { OrganizationStructuredData, SoftwareApplicationStructuredData } from './components/seo/StructuredData';
 
 import './styles/globals.css';
 
@@ -126,7 +132,16 @@ const App: React.FC = () => {
         if (process.env.NODE_ENV === 'development') {
             console.log('Route changed to:', currentRoute);
         }
-    }, [currentRoute]);
+        
+        // Track page views for Google Analytics
+        trackPageView(currentRoute, document.title);
+        
+        // Track tab switches for analytics
+        if (currentRoute === '/' || currentRoute === '') {
+            const currentTab = ui?.selectedTab || 'home';
+            trackUserInteraction.tabSwitched(currentTab);
+        }
+    }, [currentRoute, ui?.selectedTab]);
 
     // ============================================================================
     // PRIVACY SETTINGS & ANALYTICS INITIALIZATION - NEW
@@ -222,6 +237,12 @@ const App: React.FC = () => {
             try {
                 if (process.env.NODE_ENV === 'development') {
                     console.log('Starting ApplyTrak initialization...');
+                }
+
+                // Initialize Google Analytics
+                initializeGA();
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Google Analytics initialized');
                 }
 
                 // Initialize Database System
@@ -471,13 +492,18 @@ const App: React.FC = () => {
     // MAIN APPLICATION RENDER
     // ============================================================================
     return (
-        <React.Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-            </div>
-        }>
-            <ErrorBoundary>
-                <Routes>
+        <HelmetProvider>
+            <React.Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                    <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                </div>
+            }>
+                <ErrorBoundary>
+                    {/* Global SEO and Structured Data */}
+                    <OrganizationStructuredData />
+                    <SoftwareApplicationStructuredData />
+                    
+                    <Routes>
                     {/* Admin Routes */}
                     <Route path="/admin" element={
                         <React.Suspense fallback={
@@ -485,6 +511,7 @@ const App: React.FC = () => {
                 <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
         }>
+                            <PageSEO page="admin" />
                             <AdminPage/>
                         </React.Suspense>
                     } />
@@ -496,6 +523,7 @@ const App: React.FC = () => {
                 <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
         }>
+                            <PageSEO page="home" additionalProps={{ title: "Diagnostics - ApplyTrak", description: "System diagnostics and troubleshooting for ApplyTrak" }} />
                             <DiagnosticsPage/>
                         </React.Suspense>
                     } />
@@ -509,10 +537,12 @@ const App: React.FC = () => {
                 <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
         }>
+                                <PageSEO page="marketing" />
                                 <MarketingPage/>
                             </React.Suspense>
                         ) : (
                             <ResponsiveLayout>
+                                    <PageSEO page={ui?.selectedTab as any || 'home'} />
                                     {ui?.selectedTab === 'home' && <HomeTab/>}
                                     {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
                                     {ui?.selectedTab === 'goals' && <GoalsTab/>}
@@ -550,6 +580,7 @@ const App: React.FC = () => {
                 <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
         }>
+                                <PageSEO page="admin" />
                                 <AdminDashboard/>
                             </React.Suspense>
                         ) : ui?.showMarketingPage ? (
@@ -558,10 +589,12 @@ const App: React.FC = () => {
                 <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
         }>
+                                <PageSEO page="marketing" />
                                 <MarketingPage/>
                             </React.Suspense>
                         ) : (
                             <ResponsiveLayout>
+                                    <PageSEO page={ui?.selectedTab as any || 'home'} />
                                     {ui?.selectedTab === 'home' && <HomeTab/>}
                                     {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
                                     {ui?.selectedTab === 'goals' && <GoalsTab/>}
@@ -594,6 +627,7 @@ const App: React.FC = () => {
             </ErrorBoundary>
             <Analytics />
         </React.Suspense>
+        </HelmetProvider>
     );
 };
 

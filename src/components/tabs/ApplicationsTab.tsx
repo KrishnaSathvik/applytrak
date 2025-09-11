@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, Download } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import MobileResponsiveApplicationTable from '../tables/MobileResponsiveApplicationTable';
 import ApplicationForm from '../forms/ApplicationForm';
 import ImportModal from '../modals/ImportModal';
 import EditApplicationModal from '../modals/EditApplicationModal';
+import DataExportModal from '../modals/DataExportModal';
 
 const ApplicationsTab: React.FC = () => {
   const { 
@@ -14,10 +15,15 @@ const ApplicationsTab: React.FC = () => {
   } = useAppStore();
   
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
 
   const handleQuickImport = () => {
     setShowImportModal(true);
+  };
+
+  const handleQuickExport = () => {
+    setShowExportModal(true);
   };
 
   const handleFormSuccess = () => {
@@ -54,6 +60,13 @@ const ApplicationsTab: React.FC = () => {
             >
               <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="text-xs sm:text-sm">Import</span>
+            </button>
+            <button
+              onClick={handleQuickExport}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg font-semibold transition-colors flex items-center justify-center min-h-[36px] sm:min-h-[40px]"
+            >
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Export</span>
             </button>
           </div>
         </div>
@@ -98,6 +111,12 @@ const ApplicationsTab: React.FC = () => {
       <ImportModal 
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
+      />
+
+      {/* Export Modal */}
+      <DataExportModal 
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
       />
 
       {/* Edit Application Modal */}
