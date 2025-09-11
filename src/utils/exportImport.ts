@@ -444,6 +444,7 @@ const extractApplicationsArray = (data: any): any[] => {
 };
 
 const validateApplications = (applications: any[]): ImportResult => {
+    console.log(`[Validation] Starting validation of ${applications.length} applications`);
     const validApplications: Application[] = [];
     const warnings: string[] = [];
     const reasons: Record<string, number> = {};
@@ -454,10 +455,13 @@ const validateApplications = (applications: any[]): ImportResult => {
             validApplications.push(validatedApp);
         } catch (error) {
             const msg = (error as Error).message || 'Unknown validation error';
+            console.warn(`[Validation] Application ${index + 1} failed:`, msg, app);
             warnings.push(`Application ${index + 1}: ${msg}`);
             reasons[msg] = (reasons[msg] || 0) + 1;
         }
     });
+    
+    console.log(`[Validation] Results: ${validApplications.length} valid, ${warnings.length} warnings`);
 
     if (validApplications.length === 0) {
         const topReasons = Object.entries(reasons)
@@ -496,6 +500,7 @@ export const importFromJSON = async (file: File): Promise<ImportResult> => {
                 console.log('[Import] first raw keys:', rawApps[0] ? Object.keys(rawApps[0]) : '(none)');
 
                 if (!rawApps.length) {
+                    console.error('[Import] No applications found in file. Data structure:', data);
                     throw new Error(
                         'Invalid JSON format. Expected an array of applications or an object containing one (e.g., "applications").'
                     );

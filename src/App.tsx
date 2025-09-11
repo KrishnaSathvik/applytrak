@@ -471,6 +471,26 @@ const App: React.FC = () => {
     }, [auth.isAuthenticated, ui?.selectedTab, setSelectedTab]);
 
     // ============================================================================
+    // TOAST EVENT LISTENER FOR DEBUGGING
+    // ============================================================================
+    React.useEffect(() => {
+        const handleToastEvent = (event: CustomEvent) => {
+            const { type, message, duration } = event.detail;
+            showToast({
+                type,
+                message,
+                duration: duration || 3000
+            });
+        };
+
+        window.addEventListener('showToast', handleToastEvent as EventListener);
+        
+        return () => {
+            window.removeEventListener('showToast', handleToastEvent as EventListener);
+        };
+    }, [showToast]);
+
+    // ============================================================================
     // LOADING STATE HANDLING
     // ============================================================================
     if (ui?.isLoading && applications.length === 0 && !isOnAdminRoute && !isAdminDashboardOpen) {

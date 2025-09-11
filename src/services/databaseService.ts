@@ -1218,12 +1218,46 @@ const syncToCloud = async (
                     };
 
                     console.log('📝 Mapped update data:', updateData);
+                    console.log('🔍 Update query - ID:', data.id, 'UserID:', userDbId);
                     result = await client
                         .from(table)
                         .update(updateData)
                         .eq('id', data.id)
                         .eq('userid', userDbId)
                         .select();
+                    console.log('✅ Update result:', result);
+                    
+                    if (result.data && result.data.length === 0) {
+                        console.warn('⚠️ Update query returned 0 rows - application may not exist in cloud or user mismatch');
+                        console.log('🔍 Checking if application exists in cloud...');
+                        const checkResult = await client
+                            .from(table)
+                            .select('id, userid, company, position')
+                            .eq('id', data.id);
+                        console.log('🔍 Application check result:', checkResult);
+                        
+                        // Show warning toast
+                        if (typeof window !== 'undefined' && window.dispatchEvent) {
+                            window.dispatchEvent(new CustomEvent('showToast', {
+                                detail: {
+                                    type: 'warning',
+                                    message: '⚠️ Update failed: Application not found in cloud database',
+                                    duration: 5000
+                                }
+                            }));
+                        }
+                    } else if (result.data && result.data.length > 0) {
+                        // Show success toast for cloud update
+                        if (typeof window !== 'undefined' && window.dispatchEvent) {
+                            window.dispatchEvent(new CustomEvent('showToast', {
+                                detail: {
+                                    type: 'success',
+                                    message: '☁️ Application updated in cloud database',
+                                    duration: 3000
+                                }
+                            }));
+                        }
+                    }
                 } else {
                     const updateData = {...data};
                     delete (updateData as any).userid;
@@ -1467,11 +1501,37 @@ class BackgroundSyncManager {
                         return;
                     }
                     
-                    await db.applications.clear();
-                    await db.applications.bulkAdd(mappedApps);
-                    dataCache.set('applications', mappedApps);
+                    // Smart sync: only update if cloud data is newer or if it's a new record
+                    console.log(`🔄 Background sync: smart syncing ${mappedApps.length} applications (was ${currentCount})`);
                     
-                    console.log(`🔄 Background sync: cleared and added ${mappedApps.length} applications (was ${currentCount})`);
+                    let updatedCount = 0;
+                    let addedCount = 0;
+                    
+                    for (const cloudApp of mappedApps) {
+                        const existingApp = currentApps.find(app => app.id === cloudApp.id);
+                        
+                        if (!existingApp) {
+                            // New application from cloud
+                            await db.applications.add(cloudApp);
+                            addedCount++;
+                        } else {
+                            // Compare timestamps - only update if cloud is newer
+                            const cloudUpdated = new Date(cloudApp.updatedAt || cloudApp.createdAt || 0);
+                            const localUpdated = new Date(existingApp.updatedAt || existingApp.createdAt || 0);
+                            
+                            if (cloudUpdated > localUpdated) {
+                                await db.applications.put(cloudApp);
+                                updatedCount++;
+                            }
+                            // If local is newer, keep local version (don't overwrite)
+                        }
+                    }
+                    
+                    console.log(`📊 Background sync: ${addedCount} added, ${updatedCount} updated`);
+                    
+                    // Refresh cache with current local data
+                    const refreshedApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+                    dataCache.set('applications', refreshedApps);
                 }
 
                 console.log(`✅ Background sync completed for ${table}: ${cloudData.length} records`);
@@ -1580,12 +1640,18 @@ export const databaseService: DatabaseService = {
                             return sortedLocalApps;
                         }
 
-                        await db.applications.clear();
-                        await db.applications.bulkAdd(mappedApps);
-                        dataCache.set(cacheKey, mappedApps);
+                        // Use smart sync for initial sync too
+                        let addedCount = 0;
+                        for (const cloudApp of mappedApps) {
+                            await db.applications.put(cloudApp);
+                            addedCount++;
+                        }
+                        
+                        const refreshedApps = await db.applications.orderBy('dateApplied').reverse().toArray();
+                        dataCache.set(cacheKey, refreshedApps);
 
-                        console.log(`☁️ Initial cloud sync successful: ${mappedApps.length} applications (was ${currentCount})`);
-                        return mappedApps;
+                        console.log(`☁️ Initial cloud sync successful: ${addedCount} applications added`);
+                        return refreshedApps;
                     }
                 } catch (cloudError: any) {
                     console.warn(`⚠️ Initial cloud sync failed:`, cloudError.message);
@@ -1664,22 +1730,59 @@ export const databaseService: DatabaseService = {
             dataCache.invalidate('applications');
 
             if (isAuthenticated()) {
-                syncToCloud('applications', {
+                console.log('🔄 Syncing update to cloud for application:', updated.id);
+                console.log('📋 Update data being sent:', {
                     id: updated.id,
                     company: updated.company,
                     position: updated.position,
-                    dateApplied: updated.dateApplied,
-                    status: updated.status,
-                    type: updated.type,
-                    location: updated.location,
-                    salary: updated.salary,
-                    jobSource: updated.jobSource,
-                    jobUrl: updated.jobUrl,
-                    notes: updated.notes,
-                    attachments: updated.attachments,
-                    createdAt: updated.createdAt,
-                    updatedAt: updated.updatedAt
-                }, 'update').catch(err => console.warn('Cloud sync failed:', err));
+                    status: updated.status
+                });
+                
+                try {
+                    await syncToCloud('applications', {
+                        id: updated.id,
+                        company: updated.company,
+                        position: updated.position,
+                        dateApplied: updated.dateApplied,
+                        status: updated.status,
+                        type: updated.type,
+                        location: updated.location,
+                        salary: updated.salary,
+                        jobSource: updated.jobSource,
+                        jobUrl: updated.jobUrl,
+                        notes: updated.notes,
+                        attachments: updated.attachments,
+                        createdAt: updated.createdAt,
+                        updatedAt: updated.updatedAt
+                    }, 'update');
+                    console.log('✅ Cloud sync successful for update');
+                    
+                    // Show success toast
+                    if (typeof window !== 'undefined' && window.dispatchEvent) {
+                        window.dispatchEvent(new CustomEvent('showToast', {
+                            detail: {
+                                type: 'success',
+                                message: '✅ Application updated and synced to cloud',
+                                duration: 3000
+                            }
+                        }));
+                    }
+                } catch (err) {
+                    console.error('❌ Cloud sync failed for update:', err);
+                    
+                    // Show error toast
+                    if (typeof window !== 'undefined' && window.dispatchEvent) {
+                        window.dispatchEvent(new CustomEvent('showToast', {
+                            detail: {
+                                type: 'error',
+                                message: '❌ Failed to sync update to cloud: ' + (err as Error).message,
+                                duration: 5000
+                            }
+                        }));
+                    }
+                }
+            } else {
+                console.log('⚠️ Not authenticated, skipping cloud sync for update');
             }
 
             return updated;

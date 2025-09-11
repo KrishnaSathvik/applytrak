@@ -2061,6 +2061,9 @@ export const useAppStore = create<AppState>()(
                             let errorCount = 0;
                             const addedApplications: Application[] = [];
 
+                            console.log(`🔄 Starting bulk import of ${applications.length} applications`);
+                            console.log('📋 Sample application data:', applications[0]);
+                            
                             for (const appData of applications) {
                                 try {
                                     // Check for duplicates before adding
@@ -2075,14 +2078,17 @@ export const useAppStore = create<AppState>()(
                                         continue; // Skip duplicate
                                     }
                                     
+                                    console.log('✅ Adding application:', appData.company, appData.position);
                                     const newApplication = await databaseService.addApplication(appData);
                                     addedApplications.push(newApplication);
                                     successCount++;
                                 } catch (error) {
                                     errorCount++;
-                                    console.error('Failed to add application:', error);
+                                    console.error('❌ Failed to add application:', error, 'Data:', appData);
                                 }
                             }
+                            
+                            console.log(`📊 Import results: ${successCount} success, ${errorCount} errors`);
 
                             if (addedApplications.length > 0) {
                                 set(state => ({
