@@ -1427,6 +1427,10 @@ class BackgroundSyncManager {
         return BackgroundSyncManager.instance;
     }
 
+    isSyncInProgress(table: string): boolean {
+        return this.syncInProgress.has(table);
+    }
+
     async backgroundSync(table: string): Promise<void> {
         if (this.syncInProgress.has(table)) {
             console.log(`⏳ Background sync for ${table} already in progress`);
@@ -1452,9 +1456,22 @@ class BackgroundSyncManager {
 
                 if (table === 'applications') {
                     const mappedApps = mapApplicationsData(cloudData);
+                    
+                    // Check if we already have the same data to prevent unnecessary sync
+                    const currentApps = await db.applications.toArray();
+                    const currentCount = currentApps.length;
+                    const newCount = mappedApps.length;
+                    
+                    if (currentCount === newCount && currentCount > 0) {
+                        console.log(`⏭️ Background sync: same count (${currentCount}), skipping sync to prevent duplicates`);
+                        return;
+                    }
+                    
                     await db.applications.clear();
                     await db.applications.bulkAdd(mappedApps);
                     dataCache.set('applications', mappedApps);
+                    
+                    console.log(`🔄 Background sync: cleared and added ${mappedApps.length} applications (was ${currentCount})`);
                 }
 
                 console.log(`✅ Background sync completed for ${table}: ${cloudData.length} records`);
@@ -1517,9 +1534,14 @@ export const databaseService: DatabaseService = {
                 console.log('📋 Using cached applications data');
 
                 if (isAuthenticated() && isOnlineWithSupabase()) {
-                    backgroundSyncManager.backgroundSync('applications').catch(err =>
-                        console.warn('Background sync failed:', err)
-                    );
+                    // Only trigger background sync if not already in progress
+                    if (!backgroundSyncManager.isSyncInProgress('applications')) {
+                        backgroundSyncManager.backgroundSync('applications').catch(err =>
+                            console.warn('Background sync failed:', err)
+                        );
+                    } else {
+                        console.log('⏳ Background sync already in progress, skipping');
+                    }
                 }
 
                 return cachedApps;
@@ -1548,11 +1570,21 @@ export const databaseService: DatabaseService = {
                     if (cloudApps && cloudApps.length > 0) {
                         const mappedApps = mapApplicationsData(cloudApps);
 
+                        // Check if we already have the same data to prevent unnecessary sync
+                        const currentApps = await db.applications.toArray();
+                        const currentCount = currentApps.length;
+                        const newCount = mappedApps.length;
+                        
+                        if (currentCount === newCount && currentCount > 0) {
+                            console.log(`⏭️ Initial sync: same count (${currentCount}), skipping sync to prevent duplicates`);
+                            return sortedLocalApps;
+                        }
+
                         await db.applications.clear();
                         await db.applications.bulkAdd(mappedApps);
                         dataCache.set(cacheKey, mappedApps);
 
-                        console.log(`☁️ Initial cloud sync successful: ${mappedApps.length} applications`);
+                        console.log(`☁️ Initial cloud sync successful: ${mappedApps.length} applications (was ${currentCount})`);
                         return mappedApps;
                     }
                 } catch (cloudError: any) {
@@ -1560,9 +1592,14 @@ export const databaseService: DatabaseService = {
                 }
             } else {
                 console.log('⚡ Local data exists - starting background sync...');
-                backgroundSyncManager.backgroundSync('applications').catch(err =>
-                    console.warn('Background sync failed:', err)
-                );
+                // Only trigger background sync if not already in progress
+                if (!backgroundSyncManager.isSyncInProgress('applications')) {
+                    backgroundSyncManager.backgroundSync('applications').catch(err =>
+                        console.warn('Background sync failed:', err)
+                    );
+                } else {
+                    console.log('⏳ Background sync already in progress, skipping');
+                }
             }
 
             return sortedLocalApps;

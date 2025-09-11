@@ -185,6 +185,7 @@ export interface AppState {
     updateApplication: (id: string, updates: Partial<Application>) => Promise<void>;
     deleteApplication: (id: string) => Promise<void>;
     deleteApplications: (ids: string[]) => Promise<void>;
+    removeDuplicateApplications: () => Promise<void>;
     updateApplicationStatus: (ids: string[], status: ApplicationStatus) => Promise<void>;
     bulkDeleteApplications: (ids: string[]) => Promise<void>;
     bulkUpdateApplications: (ids: string[], updates: Partial<Application>) => Promise<void>;
@@ -1679,6 +1680,18 @@ export const useAppStore = create<AppState>()(
                         try {
                             const newApplication = await databaseService.addApplication(applicationData);
                             set(state => {
+                                // Check for duplicates before adding
+                                const existingApp = state.applications.find(app => 
+                                    app.company === newApplication.company && 
+                                    app.position === newApplication.position && 
+                                    app.dateApplied === newApplication.dateApplied
+                                );
+                                
+                                if (existingApp) {
+                                    console.warn('⚠️ Duplicate application detected, skipping add:', newApplication);
+                                    return state; // Don't add duplicate
+                                }
+                                
                                 const updatedApplications = [newApplication, ...state.applications];
                                 const filteredApplications = state.ui.searchQuery
                                     ? updatedApplications.filter(app => {
@@ -1956,6 +1969,69 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
+                    removeDuplicateApplications: async () => {
+                        try {
+                            const { applications } = get();
+                            const uniqueApplications: Application[] = [];
+                            const seen = new Set<string>();
+                            const duplicatesToDelete: string[] = [];
+
+                            for (const app of applications) {
+                                const key = `${app.company}|${app.position}|${app.dateApplied}`;
+                                if (seen.has(key)) {
+                                    duplicatesToDelete.push(app.id);
+                                    console.log('🗑️ Marking duplicate for deletion:', app);
+                                } else {
+                                    seen.add(key);
+                                    uniqueApplications.push(app);
+                                }
+                            }
+
+                            if (duplicatesToDelete.length > 0) {
+                                console.log(`🧹 Found ${duplicatesToDelete.length} duplicate applications, removing...`);
+                                
+                                // Delete duplicates from database
+                                await databaseService.deleteApplications(duplicatesToDelete);
+                                
+                                // Update store
+                                set(state => ({
+                                    ...state,
+                                    applications: uniqueApplications,
+                                    filteredApplications: state.ui.searchQuery
+                                        ? uniqueApplications.filter(app => {
+                                            const searchFields = [
+                                                app.company,
+                                                app.position,
+                                                app.location,
+                                                app.jobSource
+                                            ].filter(Boolean).join(' ').toLowerCase();
+                                            return searchFields.includes(state.ui.searchQuery.toLowerCase());
+                                        })
+                                        : uniqueApplications
+                                }));
+
+                                get().showToast({
+                                    type: 'success',
+                                    message: `Removed ${duplicatesToDelete.length} duplicate application${duplicatesToDelete.length > 1 ? 's' : ''}`,
+                                    duration: 3000
+                                });
+                            } else {
+                                get().showToast({
+                                    type: 'info',
+                                    message: 'No duplicate applications found',
+                                    duration: 2000
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Failed to remove duplicates:', error);
+                            get().showToast({
+                                type: 'error',
+                                message: 'Failed to remove duplicate applications',
+                                duration: 3000
+                            });
+                        }
+                    },
+
                     bulkAddApplications: async (applications) => {
                         const {auth, applications: existingApplications} = get();
                         
@@ -1987,6 +2063,18 @@ export const useAppStore = create<AppState>()(
 
                             for (const appData of applications) {
                                 try {
+                                    // Check for duplicates before adding
+                                    const existingApp = existingApplications.find(app => 
+                                        app.company === appData.company && 
+                                        app.position === appData.position && 
+                                        app.dateApplied === appData.dateApplied
+                                    );
+                                    
+                                    if (existingApp) {
+                                        console.warn('⚠️ Duplicate application detected in bulk add, skipping:', appData);
+                                        continue; // Skip duplicate
+                                    }
+                                    
                                     const newApplication = await databaseService.addApplication(appData);
                                     addedApplications.push(newApplication);
                                     successCount++;
