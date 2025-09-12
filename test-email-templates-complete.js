@@ -52,7 +52,7 @@ const runTests = async () => {
     const testData = {
         email: 'krishnasathvikm@gmail.com', // Your email for testing
         name: 'Krishna',
-        logoUrl: 'https://ihlaenwiyxtmkehfoesg.supabase.co/storage/v1/object/public/assets/logo-new.png' // Your new logo
+        logoUrl: 'https://www.applytrak.com/logo.png' // Your logo
     };
 
     // Test all email functions

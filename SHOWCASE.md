@@ -40,8 +40,11 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 - **File Attachments**: Upload and manage resumes, cover letters, documents (50MB limit)
 - **Status Workflow**: Applied → Interview → Offer → Rejected progression
 - **Smart Search**: Real-time search across all application fields
-- **Bulk Operations**: Select and manage multiple applications simultaneously
-- **Import/Export**: JSON, CSV, and PDF export with bulk import capabilities
+- **Enhanced Bulk Operations**: Select and manage multiple applications across all pages simultaneously
+- **Cross-Page Selection**: "Select All" functionality works across entire application dataset
+- **Universal Import System**: Intelligent CSV, Excel, and JSON import with automatic field mapping
+- **Import Preview**: Preview imported applications before confirming with sample data display
+- **Enhanced Export**: JSON, CSV, and PDF export with comprehensive data formatting
 
 ### 🎯 **Goal Setting & Progress Tracking**
 - **Flexible Goals**: Set total, weekly, and monthly application targets
@@ -71,6 +74,8 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 - **Glassmorphism Design**: Beautiful frosted glass effects and modern aesthetics
 - **Dark/Light Themes**: Auto-detecting system theme with manual toggle
 - **Responsive Design**: Perfect experience on desktop, tablet, and mobile
+- **Mobile-First UI**: Optimized mobile header with proper icon alignment and safe area support
+- **Enhanced Mobile Navigation**: Improved bottom navigation positioning with gesture bar compatibility
 - **Micro-Animations**: Smooth transitions and delightful interactions
 - **Accessibility**: WCAG 2.1 compliant with keyboard navigation
 - **Loading States**: Skeleton screens and progress indicators
@@ -78,7 +83,9 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 ### 💾 **Data Management**
 - **Local Storage**: Secure IndexedDB storage with Dexie.js
 - **Cloud Backup**: Automatic Supabase cloud synchronization
-- **Export/Import**: JSON, CSV, and PDF export capabilities
+- **Universal Import System**: Intelligent CSV, Excel, and JSON import with automatic field mapping and data validation
+- **Import Preview**: Preview imported applications with sample data before confirming import
+- **Enhanced Export**: JSON, CSV, and PDF export capabilities with comprehensive data formatting
 - **Data Migration**: Seamless local-to-cloud migration on signup
 - **Backup & Recovery**: Automatic backups with manual recovery options
 - **Privacy Controls**: Granular privacy settings and data deletion
@@ -184,6 +191,9 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 | **Dexie.js** | Local Database | Latest | IndexedDB wrapper, offline-first |
 | **Recharts** | Data Visualization | Latest | Responsive charts, animations |
 | **Lucide React** | Icons | Latest | Consistent, customizable icons |
+| **XLSX** | Excel Processing | Latest | Excel file parsing and generation |
+| **Lodash** | Utility Functions | Latest | Debouncing and data manipulation |
+| **jsPDF** | PDF Generation | Latest | PDF export and document generation |
 
 ### **Backend Technologies**
 | Technology | Purpose | Key Features |
@@ -200,6 +210,144 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 | **GitHub Actions** | CI/CD | Automated testing, deployment |
 | **ESLint/Prettier** | Code Quality | Consistent code formatting |
 | **TypeScript** | Type Safety | Compile-time error checking |
+
+---
+
+## 🔄 **Universal Import System**
+
+### **Intelligent Data Import**
+ApplyTrak features a sophisticated import system that can handle any CSV, Excel, or JSON format with automatic field mapping and data validation.
+
+#### **Key Features**
+- **Smart Field Mapping**: Automatically detects and maps columns to application fields
+- **Flexible Format Support**: Handles any CSV format with intelligent column detection
+- **Multiple File Types**: Supports CSV, Excel (.xlsx), and JSON file formats
+- **Data Validation**: Validates and normalizes imported data automatically
+- **Import Preview**: Preview first 5 applications before confirming import
+- **Error Handling**: Clear error messages and data validation feedback
+
+#### **Supported Field Mappings**
+- **Company**: company, company name, employer, organization, firm, corporation, business, corp, inc, llc, ltd, enterprise
+- **Position**: position, job title, title, role, job, position title, job position, role title, job role, position name
+- **Date Applied**: date applied, applied date, application date, date, applied, application date, date applied, applied on
+- **Status**: status, application status, state, current status, job status, application state
+- **Type**: type, work type, job type, employment type, work arrangement, job arrangement, work mode
+- **Location**: location, city, address, place, work location, job location, office location, remote location
+- **Salary**: salary, compensation, pay, wage, income, remuneration, compensation range, salary range
+- **Job Source**: source, job source, where found, application source, found via, source platform
+- **Job URL**: url, link, job link, application url, job posting url, application link, posting url
+- **Notes**: notes, comments, description, remarks, additional notes, job description, application notes
+
+#### **Data Processing Pipeline**
+```
+File Upload → Format Detection → Column Mapping → Data Validation → Preview → Import
+     ↓              ↓                ↓              ↓            ↓        ↓
+  CSV/Excel/JSON → Parse Headers → Map Fields → Normalize Data → Show Sample → Bulk Add
+```
+
+#### **Import Preview System**
+- **Sample Display**: Shows first 5 applications with Company, Position, Date Applied, and Status columns
+- **Data Validation**: Validates and normalizes data automatically with comprehensive field mapping
+- **Summary Cards**: Displays total applications count and applications with notes/attachments
+- **Confirmation Flow**: Modern glass-effect UI with auto-close functionality after successful import
+- **Error Recovery**: Clear error messages with retry options and detailed validation feedback
+- **Status Badges**: Color-coded status indicators (Applied, Interview, Offer, Rejected)
+
+---
+
+## 🔄 **Enhanced Bulk Operations**
+
+### **Cross-Page Application Management**
+ApplyTrak's enhanced bulk operations system allows users to select and manage applications across all pages, not just the current page view.
+
+#### **Key Features**
+- **Cross-Page Selection**: "Select All" works across entire application dataset
+- **Bulk Actions**: Delete, update status, or modify multiple applications simultaneously
+- **Smart Selection**: Maintains selection state across page navigation
+- **Visual Feedback**: Clear indicators showing selected applications count
+- **Confirmation Dialogs**: Safe bulk operations with confirmation prompts
+
+#### **Supported Bulk Actions**
+- **Bulk Delete**: Remove multiple applications with confirmation
+- **Status Updates**: Change status for multiple applications at once
+- **Bulk Export**: Export selected applications to various formats
+- **Bulk Import**: Import multiple applications with preview system
+
+#### **Selection System**
+```
+Current Page Selection → Cross-Page Selection → Bulk Actions → Confirmation → Execution
+        ↓                      ↓                ↓             ↓            ↓
+   Page-specific → All Applications → Action Menu → Safety Check → Apply Changes
+```
+
+---
+
+## 📱 **Mobile UI Enhancements**
+
+### **Optimized Mobile Experience**
+ApplyTrak features comprehensive mobile UI improvements for better usability and visual alignment.
+
+#### **Header Improvements**
+- **Icon Alignment**: Perfectly centered dark/light theme toggle icons
+- **Size Optimization**: Properly sized buttons and icons for mobile touch targets
+- **Visual Balance**: Better alignment between logo, theme toggle, and user avatar
+- **Touch-Friendly**: Optimized button sizes for mobile interaction
+
+#### **Navigation Enhancements**
+- **Bottom Navigation**: Improved positioning with safe area support
+- **Gesture Bar Compatibility**: Proper spacing to avoid interference with mobile gesture bars
+- **Safe Area Insets**: Dynamic padding based on device safe areas
+- **Responsive Spacing**: Adaptive spacing for different mobile screen sizes
+
+#### **Profile Page Optimization**
+- **Simplified Navigation**: Removed Data Management section for cleaner mobile experience
+- **Consistent Design**: Matches desktop profile page structure
+- **Touch Optimization**: Larger touch targets and improved spacing
+- **Visual Hierarchy**: Clear section separation and improved readability
+
+#### **Technical Implementation**
+- **CSS Safe Areas**: Uses `env(safe-area-inset-bottom)` for proper positioning
+- **Dynamic Padding**: Responsive padding that adapts to device capabilities
+- **Flexbox Centering**: Proper icon alignment using flexbox centering
+- **Mobile-First CSS**: Optimized styles for mobile devices first
+
+---
+
+## 📧 **Email Notification System**
+
+### **Comprehensive Email Automation**
+ApplyTrak features a sophisticated email notification system with multiple automated email types and user preference management.
+
+#### **Email Types**
+- **Welcome Emails**: Sent after email verification with onboarding guidance
+- **Weekly Goals**: Progress reports and goal tracking reminders (Sundays at 9 AM UTC)
+- **Weekly Tips**: Job search tips and insights (Wednesdays at 10 AM UTC)
+- **Monthly Analytics**: Comprehensive performance reports (1st of every month at 8 AM UTC)
+- **Milestone Celebrations**: Achievement notifications for every 10 applications or 5 interviews
+- **Inactivity Reminders**: Re-engagement campaigns for users inactive for 7, 14, or 30 days
+
+#### **Email Features**
+- **Beautiful Templates**: Professional HTML templates with responsive design
+- **Personalization**: Dynamic content based on user data and activity
+- **Preference Management**: Users can customize which emails they receive
+- **One-Click Settings**: Direct links to email preference management
+- **Analytics Integration**: Email content includes user-specific data and insights
+
+#### **Technical Implementation**
+- **Supabase Edge Functions**: Serverless email processing
+- **Resend API**: Reliable email delivery service
+- **PostgreSQL Cron Jobs**: Automated scheduling with pg_cron extension
+- **User Preferences**: Granular control over email types and frequency
+- **Email Preferences Page**: Dedicated page for managing notification settings
+
+#### **Scheduled Automation**
+```
+Weekly Goals    → Every Sunday at 9 AM UTC
+Weekly Tips     → Every Wednesday at 10 AM UTC
+Monthly Analytics → 1st of every month at 8 AM UTC
+Milestone Check → Every day at 12 PM UTC
+Inactivity Reminders → Every day at 11 AM UTC
+```
 
 ---
 
@@ -230,6 +378,9 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 - **Bundle Size**: ~500KB (optimized)
 - **Cross-Device Sync**: < 1 second for real-time updates
 - **File Upload**: 50MB support with progress tracking
+- **Import Processing**: < 5 seconds for 100+ applications
+- **Bulk Operations**: < 2 seconds for cross-page selections
+- **Mobile Rendering**: < 200ms for UI updates
 
 ---
 
@@ -377,11 +528,14 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 ## 📊 **Project Statistics**
 
 ### **Development Metrics**
-- **Lines of Code**: 15,000+ lines of TypeScript/React
-- **Components**: 50+ reusable React components
-- **Services**: 10+ service modules for different functionalities
-- **Types**: 100+ TypeScript interfaces and types
+- **Lines of Code**: 18,000+ lines of TypeScript/React
+- **Components**: 60+ reusable React components
+- **Services**: 12+ service modules for different functionalities
+- **Types**: 120+ TypeScript interfaces and types
 - **Tests**: Comprehensive test coverage for critical paths
+- **Import System**: Universal CSV/Excel/JSON processing with intelligent mapping
+- **Bulk Operations**: Cross-page selection and management system
+- **Mobile Components**: Optimized mobile UI components with safe area support
 
 ### **Performance Metrics**
 - **Bundle Size**: ~500KB (optimized and compressed)
@@ -400,13 +554,17 @@ ApplyTrak is a comprehensive job application tracking platform designed for mode
 - **Cross-Device Sync**: Perfect synchronization across all devices
 - **File Management**: 50MB file support with secure storage
 - **Data Migration**: Seamless local-to-cloud migration
+- **Universal Import**: Intelligent CSV/Excel/JSON import with field mapping
+- **Enhanced Bulk Operations**: Cross-page selection and bulk actions
+- **Import Preview**: Sample data preview before confirming imports
+- **Mobile UI**: Optimized mobile header and navigation positioning
+- **Email Notifications**: Comprehensive automated email system with welcome, weekly goals, tips, analytics, milestones, and inactivity reminders
 
 ---
 
 ## 🔮 **Future Roadmap**
 
 ### **Phase 1: Enhanced Features** (Next 3 months)
-- **Email Notifications**: Automated reminders and updates
 - **Advanced Analytics**: Machine learning insights
 - **API Access**: REST API for third-party integrations
 - **Mobile App**: React Native implementation

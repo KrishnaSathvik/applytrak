@@ -6,27 +6,21 @@ import {
   LogOut, 
   Shield, 
   Bell, 
-  Download, 
-  Upload,
   Edit,
   Save,
   X,
   CheckCircle,
-  AlertCircle
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { exportToJSON, importFromJSON } from '../../utils/exportImport';
 
 const MobileProfileTab: React.FC = () => {
   const { 
     auth, 
     signOut, 
-    showToast,
-    applications,
-    handleImport
+    showToast
   } = useAppStore();
 
-  const [activeSection, setActiveSection] = useState<'profile' | 'settings' | 'data'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'settings'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     displayName: auth.user?.display_name || '',
@@ -71,52 +65,6 @@ const MobileProfileTab: React.FC = () => {
     }
   };
 
-  const handleExportData = async () => {
-    try {
-      await exportToJSON(applications);
-      showToast({
-        type: 'success',
-        message: 'Data exported successfully',
-        duration: 3000
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      showToast({
-        type: 'error',
-        message: 'Failed to export data',
-        duration: 3000
-      });
-    }
-  };
-
-  const handleImportData = () => {
-    // Trigger file input
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        try {
-          const result = await importFromJSON(file);
-          await handleImport(result.applications);
-          showToast({
-            type: 'success',
-            message: 'Data imported successfully',
-            duration: 3000
-          });
-        } catch (error) {
-          console.error('Import error:', error);
-          showToast({
-            type: 'error',
-            message: 'Failed to import data',
-            duration: 3000
-          });
-        }
-      }
-    };
-    input.click();
-  };
 
 
 
@@ -179,16 +127,6 @@ const MobileProfileTab: React.FC = () => {
             }`}
           >
             Settings
-          </button>
-          <button
-            onClick={() => setActiveSection('data')}
-            className={`flex-1 p-3 rounded-lg text-sm font-medium transition-colors ${
-              activeSection === 'data'
-                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
-          >
-            Data
           </button>
         </div>
       </div>
@@ -361,79 +299,6 @@ const MobileProfileTab: React.FC = () => {
         </div>
       )}
 
-      {/* Data Section */}
-      {activeSection === 'data' && (
-        <div className="mobile-space-y-4">
-          {/* Data Summary */}
-          <div className="card">
-            <h2 className="mobile-text-lg mobile-font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Your Data
-            </h2>
-            
-            <div className="mobile-grid-2">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
-                <div className="mobile-text-2xl mobile-font-bold text-blue-600 dark:text-blue-400 mb-1">
-                  {applications.length}
-                </div>
-                <div className="mobile-text-sm text-blue-800 dark:text-blue-200">
-                  Applications
-                </div>
-              </div>
-              
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-                <div className="mobile-text-2xl mobile-font-bold text-green-600 dark:text-green-400 mb-1">
-                  {applications.filter(app => app.attachments && app.attachments.length > 0).length}
-                </div>
-                <div className="mobile-text-sm text-green-800 dark:text-green-200">
-                  With Files
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Data Actions */}
-          <div className="card">
-            <h2 className="mobile-text-lg mobile-font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Data Management
-            </h2>
-            
-            <div className="mobile-space-y-3">
-              <button
-                onClick={handleExportData}
-                className="w-full btn btn-secondary mobile-flex mobile-items-center mobile-justify-center mobile-gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export Data
-              </button>
-              
-              <button
-                onClick={handleImportData}
-                className="w-full btn btn-secondary mobile-flex mobile-items-center mobile-justify-center mobile-gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Import Data
-              </button>
-            </div>
-          </div>
-
-          {/* Data Info */}
-          <div className="card">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="mobile-flex mobile-items-start mobile-gap-3">
-                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                <div>
-                  <div className="mobile-text-sm mobile-font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                    Data Security
-                  </div>
-                  <div className="mobile-text-xs text-blue-800 dark:text-blue-200">
-                    Your data is encrypted and stored securely. You can export your data at any time or delete your account if needed.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

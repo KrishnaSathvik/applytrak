@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SB_URL")!;
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY")!;
-const LOGO_URL = Deno.env.get("APPLYTRAK_LOGO_URL") || "https://ihlaenwiyxtmkehfoesg.supabase.co/storage/v1/object/public/assets/logo.png?cb=" + Date.now();
+const LOGO_URL = Deno.env.get("APPLYTRAK_LOGO_URL") || "https://www.applytrak.com/logo.png";
 const CTA_URL = Deno.env.get("APPLYTRAK_APP_URL") || "https://applytrak.com";
 const PREFS_ENDPOINT =
     Deno.env.get("APPLYTRAK_PREFS_ENDPOINT") || `${SUPABASE_URL}/functions/v1/email-preferences`;
@@ -70,7 +70,12 @@ function renderWelcomeHTML({ name, logoUrl, ctaUrl, settingsUrl }: {
     <tr><td align="center">
       <table role="presentation" class="container" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr><td class="header">
+          <!--[if mso]>
           <div style="width:56px; height:56px; background:linear-gradient(135deg, #10b981 0%, #6366f1 100%); color:#ffffff; font-family:'Geist',Arial,sans-serif; font-size:20px; font-weight:700; line-height:56px; text-align:center; border-radius:8px; margin:0 auto 12px; display:block;">AT</div>
+          <![endif]-->
+          <!--[if !mso]><!-->
+          <img src="${logoUrl}" width="56" height="56" class="logo" alt="ApplyTrak logo" style="display:block; margin:0 auto 12px; border-radius:8px; border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic;" title="ApplyTrak Logo">
+          <!--<![endif]-->
           <p class="brand">ApplyTrak</p>
           <p class="tagline">Your job search, organized and optimized</p>
         </td></tr>

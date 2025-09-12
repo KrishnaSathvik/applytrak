@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SB_URL")!;
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY")!;
-const LOGO_URL = Deno.env.get("APPLYTRAK_LOGO_URL") || "https://ihlaenwiyxtmkehfoesg.supabase.co/storage/v1/object/public/assets/logo.png?cb=" + Date.now();
+const LOGO_URL = Deno.env.get("APPLYTRAK_LOGO_URL") || "https://www.applytrak.com/logo.png";
 const CTA_URL = Deno.env.get("APPLYTRAK_APP_URL") || "https://applytrak.com";
 const PREFS_ENDPOINT =
     Deno.env.get("APPLYTRAK_PREFS_ENDPOINT") || `${SUPABASE_URL}/functions/v1/email-preferences`;
