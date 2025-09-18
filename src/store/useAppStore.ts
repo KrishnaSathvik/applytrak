@@ -363,6 +363,9 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
     }).length;
     const monthlyProgress = Math.min((monthlyApplications / goals.monthlyGoal) * 100, 100);
 
+    // Calculate daily streak
+    const dailyStreak = calculateDailyStreak(applications);
+
     return {
         totalGoal: goals.totalGoal,
         weeklyGoal: goals.weeklyGoal,
@@ -370,11 +373,77 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
         totalProgress,
         weeklyProgress,
         monthlyProgress,
-        weeklyStreak: 0,
+        dailyStreak,
         totalApplications,
         weeklyApplications,
         monthlyApplications
     };
+};
+
+// Calculate consecutive days with at least one application
+const calculateDailyStreak = (applications: Application[]): number => {
+    if (applications.length === 0) return 0;
+
+    // Get unique dates when applications were submitted
+    const applicationDates = new Set(
+        applications.map(app => {
+            const date = new Date(app.dateApplied);
+            return date.toDateString(); // Use toDateString() to normalize to YYYY-MM-DD format
+        })
+    );
+
+    // Convert to sorted array of dates
+    const sortedDates = Array.from(applicationDates)
+        .map(dateStr => new Date(dateStr))
+        .sort((a, b) => b.getTime() - a.getTime()); // Most recent first
+
+    if (sortedDates.length === 0) return 0;
+
+    // Calculate streak starting from today/yesterday
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let streak = 0;
+    let currentDate = new Date(today);
+
+    // Check if we have applications today or yesterday to start the streak
+    const hasToday = sortedDates.some(date => 
+        date.getTime() === today.getTime()
+    );
+    const hasYesterday = sortedDates.some(date => 
+        date.getTime() === yesterday.getTime()
+    );
+
+    if (!hasToday && !hasYesterday) {
+        // No recent applications, streak is 0
+        return 0;
+    }
+
+    // Start counting from the most recent day with applications
+    if (hasToday) {
+        currentDate = new Date(today);
+    } else if (hasYesterday) {
+        currentDate = new Date(yesterday);
+    }
+
+    // Count consecutive days backwards
+    for (let i = 0; i < sortedDates.length; i++) {
+        const appDate = new Date(sortedDates[i]);
+        appDate.setHours(0, 0, 0, 0);
+
+        if (appDate.getTime() === currentDate.getTime()) {
+            streak++;
+            currentDate.setDate(currentDate.getDate() - 1);
+        } else if (appDate.getTime() < currentDate.getTime()) {
+            // Gap found, streak ends
+            break;
+        }
+    }
+
+    return streak;
 };
 
 // Removed unused calculateAnalytics function
@@ -534,7 +603,7 @@ export const useAppStore = create<AppState>()(
                         totalProgress: 0,
                         weeklyProgress: 0,
                         monthlyProgress: 0,
-                        weeklyStreak: 0,
+                        dailyStreak: 0,
                         totalApplications: 0,
                         weeklyApplications: 0,
                         monthlyApplications: 0
@@ -1700,7 +1769,7 @@ export const useAppStore = create<AppState>()(
                                     return state; // Don't add duplicate
                                 }
                                 
-                                // Add new application and maintain sorting by createdAt (most recently added first)
+                                // Add new application and maintain sorting by dateApplied (most recent applications first)
                         const updatedApplications = [newApplication, ...state.applications].sort((a, b) => {
                             const dateA = new Date(a.dateApplied);
                             const dateB = new Date(b.dateApplied);
@@ -1760,7 +1829,7 @@ export const useAppStore = create<AppState>()(
                         try {
                             await databaseService.updateApplication(id, updates);
                             set(state => {
-                                // Update application and maintain sorting by createdAt (most recently added first)
+                                // Update application and maintain sorting by dateApplied (most recent applications first)
                         const applications = state.applications.map(app =>
                             app.id === id ? {...app, ...updates, updatedAt: new Date().toISOString()} : app
                         ).sort((a, b) => {
@@ -1948,7 +2017,7 @@ export const useAppStore = create<AppState>()(
                         try {
                             await databaseService.bulkUpdateApplications(ids, updates);
                             set(state => {
-                                // Update applications and maintain sorting by createdAt (most recently added first)
+                                // Update applications and maintain sorting by dateApplied (most recent applications first)
                                 const applications = state.applications.map(app =>
                                     ids.includes(app.id) ? {
                                         ...app, ...updates,

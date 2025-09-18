@@ -5,7 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const ProfileTab: React.FC = () => {
-    const {
+  const {
     auth, 
     openPrivacySettings,
     showToast,

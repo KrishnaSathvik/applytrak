@@ -252,34 +252,36 @@ const GoalsTab: React.FC = () => {
 
           {/* Streak & Achievements */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Weekly Streak */}
+            {/* Daily Streak */}
             <div className="glass-card">
               <div className="flex items-center mb-4">
                 <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400 mr-2" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Weekly Streak</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Daily Streak</h3>
               </div>
               <div className="text-center py-6">
                 <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-400 mb-2">
-                  {goalProgress.weeklyStreak}
+                  {goalProgress.dailyStreak}
                 </div>
-                <div className="text-gray-600 dark:text-gray-300 mb-4">Weeks in a row</div>
-                {goalProgress.weeklyStreak > 0 ? (
+                <div className="text-gray-600 dark:text-gray-300 mb-4">Days in a row</div>
+                {goalProgress.dailyStreak > 0 ? (
                   <div className="space-y-2">
                     <div className="text-sm text-green-600 dark:text-green-400 font-medium">
                       🔥 Amazing consistency!
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {goalProgress.weeklyStreak === 1 
-                        ? 'First week down!' 
-                        : goalProgress.weeklyStreak >= 5 
+                      {goalProgress.dailyStreak === 1 
+                        ? 'First day down!' 
+                        : goalProgress.dailyStreak >= 7 
                         ? 'You\'re unstoppable!' 
-                        : 'Keep the momentum going!'
+                        : goalProgress.dailyStreak >= 3
+                        ? 'Great momentum!'
+                        : 'Keep it going!'
                       }
                     </div>
                   </div>
                 ) : (
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Start your streak this week!
+                    Start your streak today!
                   </div>
                 )}
               </div>
@@ -332,16 +334,16 @@ const GoalsTab: React.FC = () => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.weeklyStreak >= 3 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                      goalProgress.dailyStreak >= 7 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                     }`}>
-                      {goalProgress.weeklyStreak >= 3 ? '✓' : '3'}
+                      {goalProgress.dailyStreak >= 7 ? '✓' : '7'}
                     </div>
                     <div>
                       <div className="font-medium text-gray-900 dark:text-gray-100">Streak Master</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">Maintain a 3+ week streak</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">Maintain a 7+ day streak</div>
                     </div>
                   </div>
-                  {goalProgress.weeklyStreak >= 3 && (
+                  {goalProgress.dailyStreak >= 7 && (
                     <span className="text-purple-600 dark:text-purple-400 text-sm font-medium">Unlocked!</span>
                   )}
                 </div>

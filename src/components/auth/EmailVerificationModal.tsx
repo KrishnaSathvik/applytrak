@@ -17,12 +17,33 @@ async function sendWelcomeEmail(email: string, name?: string) {
         }
         
         console.log('Sending welcome email to:', email);
+        
+        // Try to get auth token, but don't fail if not available
+        let authToken = null;
+        try {
+            if (supabase) {
+                const { data: { session } } = await supabase.auth.getSession();
+                authToken = session?.access_token;
+            }
+        } catch (error) {
+            console.warn('Could not get auth token:', error);
+        }
+        
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 4000);
+        const timer = setTimeout(() => controller.abort(), 8000); // Increased timeout
+        
+        const headers: Record<string, string> = { 
+            'Content-Type': 'application/json'
+        };
+        
+        // Add auth token if available, otherwise the function should work without it
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
         
         const response = await fetch(`${FUNCTIONS_BASE}/welcome-email`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ email, name }),
             signal: controller.signal
         });
@@ -30,12 +51,13 @@ async function sendWelcomeEmail(email: string, name?: string) {
         clearTimeout(timer);
         
         if (response.ok) {
-            console.log('Welcome email sent successfully');
+            console.log('✅ Welcome email sent successfully');
         } else {
-            console.warn('Failed to send welcome email:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.warn('❌ Failed to send welcome email:', response.status, response.statusText, errorText);
         }
     } catch (error) {
-        console.warn('Error sending welcome email:', error);
+        console.warn('❌ Error sending welcome email:', error);
     }
 }
 
@@ -66,19 +88,22 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state change in verification modal:', event, session?.user?.email);
             
-            if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+            if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at && session.user.email === email) {
                 console.log('Email verified! User signed in automatically');
                 setVerificationStatus('verified');
                 await handleVerificationComplete();
-            } else if (event === 'TOKEN_REFRESHED' && session?.user?.email_confirmed_at) {
+            } else if (event === 'TOKEN_REFRESHED' && session?.user?.email_confirmed_at && session.user.email === email) {
                 console.log('Email verified via token refresh! User signed in automatically');
                 setVerificationStatus('verified');
                 await handleVerificationComplete();
+            } else if (event === 'SIGNED_OUT') {
+                console.log('User signed out during verification');
+                setVerificationStatus('pending');
             }
         });
 
         return () => subscription.unsubscribe();
-    }, [isOpen, verificationStatus]);
+    }, [isOpen, verificationStatus, email]);
 
     // Resend countdown timer
     useEffect(() => {
@@ -119,35 +144,109 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
 
     const handleVerificationComplete = async () => {
         try {
-            showToast({
-                type: 'success',
-                message: 'Email verified! Welcome to ApplyTrak! 🎉',
-                duration: 5000
-            });
-
-            // Sync local applications to cloud after email verification
-            try {
-                const { syncLocalApplicationsToCloud } = useAppStore.getState();
-                await syncLocalApplicationsToCloud();
-            } catch (error) {
-                console.error('Failed to sync local applications:', error);
+            console.log('🔄 Handling verification complete...');
+            
+            // Wait a moment for auth state to propagate
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Check current session
+            const { data: { session }, error: sessionError } = supabase ? await supabase.auth.getSession() : { data: { session: null }, error: null };
+            
+            if (sessionError) {
+                console.error('Error getting session after verification:', sessionError);
             }
 
-            // Send welcome email after successful email verification
-            try {
-                const { auth } = useAppStore.getState();
-                const userDisplayName = auth.user?.display_name || undefined;
-                await sendWelcomeEmail(email, userDisplayName);
-            } catch (error) {
-                console.error('Failed to send welcome email:', error);
-            }
+            if (session?.user?.email_confirmed_at && session.user.email === email) {
+                console.log('✅ User is now signed in after email verification');
+                
+                showToast({
+                    type: 'success',
+                    message: 'Email verified! Welcome to ApplyTrak! 🎉',
+                    duration: 5000
+                });
 
-            // Close modal and complete verification
-            onVerificationComplete();
-            onClose();
+                // Sync local applications to cloud after email verification
+                try {
+                    const { syncLocalApplicationsToCloud } = useAppStore.getState();
+                    await syncLocalApplicationsToCloud();
+                } catch (error) {
+                    console.error('Failed to sync local applications:', error);
+                }
+
+                // Send welcome email after successful email verification
+                try {
+                    const userDisplayName = session.user.user_metadata?.full_name || 
+                                          session.user.user_metadata?.display_name ||
+                                          session.user.email?.split('@')[0] || 
+                                          undefined;
+                    await sendWelcomeEmail(email, userDisplayName);
+                } catch (error) {
+                    console.error('Failed to send welcome email:', error);
+                }
+
+                // Close modal and complete verification
+                onVerificationComplete();
+                onClose();
+            } else {
+                // User is not signed in yet, try to refresh the session
+                console.log('⏳ User not signed in yet, trying to refresh session...');
+                
+                try {
+                    const { data: { session: refreshedSession }, error: refreshError } = supabase ? await supabase.auth.refreshSession() : { data: { session: null }, error: null };
+                    
+                    if (refreshError) {
+                        console.error('Error refreshing session:', refreshError);
+                    }
+                    
+                    if (refreshedSession?.user?.email_confirmed_at && refreshedSession.user.email === email) {
+                        console.log('✅ User signed in after session refresh');
+                        showToast({
+                            type: 'success',
+                            message: 'Email verified! Welcome to ApplyTrak! 🎉',
+                            duration: 5000
+                        });
+                        
+                        // Send welcome email
+                        try {
+                            const userDisplayName = refreshedSession.user.user_metadata?.full_name || 
+                                                  refreshedSession.user.user_metadata?.display_name ||
+                                                  refreshedSession.user.email?.split('@')[0] || 
+                                                  undefined;
+                            await sendWelcomeEmail(email, userDisplayName);
+                        } catch (error) {
+                            console.error('Failed to send welcome email:', error);
+                        }
+                        
+                        onVerificationComplete();
+                        onClose();
+                    } else {
+                        console.log('❌ User still not signed in after refresh, showing manual login message');
+                        showToast({
+                            type: 'info',
+                            message: 'Email verified! Please sign in to continue.',
+                            duration: 5000
+                        });
+                        onVerificationComplete();
+                        onClose();
+                    }
+                } catch (refreshError) {
+                    console.error('Error refreshing session:', refreshError);
+                    showToast({
+                        type: 'info',
+                        message: 'Email verified! Please sign in to continue.',
+                        duration: 5000
+                    });
+                    onVerificationComplete();
+                    onClose();
+                }
+            }
         } catch (error) {
             console.error('Error in verification complete:', error);
-            // Still close modal even if there's an error
+            showToast({
+                type: 'error',
+                message: 'Email verified but there was an issue signing you in. Please try signing in manually.',
+                duration: 5000
+            });
             onVerificationComplete();
             onClose();
         }

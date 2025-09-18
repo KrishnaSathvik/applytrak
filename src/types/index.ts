@@ -81,7 +81,11 @@ export const mapSupabaseUserToAppUser = (user: User | null): AppUser | null => {
         id: user.id,
         external_id: user.id, // Supabase user ID becomes external_id
         email: user.email,
-        display_name: user.user_metadata?.display_name || user.email
+        display_name: user.user_metadata?.full_name || 
+                     user.user_metadata?.display_name || 
+                     user.user_metadata?.name ||
+                     user.email?.split('@')[0] ||
+                     'User'
     };
 };
 
@@ -143,7 +147,7 @@ export interface GoalProgress {
     totalProgress: number;
     weeklyProgress: number;
     monthlyProgress: number;
-    weeklyStreak: number;
+    dailyStreak: number;
     totalApplications: number;
     weeklyApplications: number;
     monthlyApplications: number;

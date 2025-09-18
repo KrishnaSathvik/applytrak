@@ -10,6 +10,7 @@ import {
   Save,
   X,
   CheckCircle,
+  Trash2,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -17,11 +18,14 @@ const MobileProfileTab: React.FC = () => {
   const { 
     auth, 
     signOut, 
-    showToast
+    showToast,
+    openPrivacySettings
   } = useAppStore();
 
   const [activeSection, setActiveSection] = useState<'profile' | 'settings'>('profile');
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteType, setDeleteType] = useState<'account' | 'data' | null>(null);
   const [editForm, setEditForm] = useState({
     displayName: auth.user?.display_name || '',
     email: auth.user?.email || ''
@@ -63,6 +67,70 @@ const MobileProfileTab: React.FC = () => {
         duration: 3000
       });
     }
+  };
+
+  const handleDeleteAccount = () => {
+    setDeleteType('account');
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteData = () => {
+    setDeleteType('data');
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      // Import privacy service to delete all user data
+      const { privacyService } = await import('../../services/privacyService');
+      
+      const isAccountDeletion = deleteType === 'account';
+      const actionText = isAccountDeletion ? 'account and all data' : 'all your data';
+      
+      showToast({
+        type: 'info',
+        message: `Deleting ${actionText}...`,
+        duration: 2000
+      });
+
+      // Delete all user data (both account and data deletion do the same thing)
+      await privacyService.deleteAllUserData(String(auth.user?.id));
+
+      showToast({
+        type: 'success',
+        message: `${isAccountDeletion ? 'Account' : 'Data'} deleted successfully. You will be signed out.`,
+        duration: 3000
+      });
+
+      // Sign out and reload after a delay
+      setTimeout(async () => {
+        await signOut();
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error(`Failed to delete ${deleteType}:`, error);
+      showToast({
+        type: 'error',
+        message: `Failed to delete ${deleteType === 'account' ? 'account' : 'data'}. Please try again or contact support.`,
+        duration: 5000
+      });
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeleteType(null);
+    }
+  };
+
+  const handlePrivacySettings = () => {
+    openPrivacySettings();
+  };
+
+  const handleNotificationSettings = () => {
+    showToast({
+      type: 'info',
+      message: 'Notification settings coming soon! For now, you can manage email preferences in Privacy Settings.',
+      duration: 4000
+    });
   };
 
 
@@ -256,7 +324,10 @@ const MobileProfileTab: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <button className="btn btn-secondary mobile-text-sm">
+                <button 
+                  onClick={handlePrivacySettings}
+                  className="btn btn-secondary mobile-text-sm"
+                >
                   Manage
                 </button>
               </div>
@@ -273,7 +344,10 @@ const MobileProfileTab: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <button className="btn btn-secondary mobile-text-sm">
+                <button 
+                  onClick={handleNotificationSettings}
+                  className="btn btn-secondary mobile-text-sm"
+                >
                   Configure
                 </button>
               </div>
@@ -289,10 +363,65 @@ const MobileProfileTab: React.FC = () => {
             <div className="mobile-space-y-3">
               <button
                 onClick={handleSignOut}
-                className="w-full btn btn-secondary mobile-flex mobile-items-center mobile-justify-center mobile-gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                className="w-full btn btn-secondary mobile-flex mobile-items-center mobile-justify-center mobile-gap-2 text-gray-600 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 <LogOut className="h-4 w-4" />
                 Sign Out
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                className="w-full btn btn-secondary mobile-flex mobile-items-center mobile-justify-center mobile-gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Account
+              </button>
+              <button
+                onClick={handleDeleteData}
+                className="w-full btn btn-secondary mobile-flex mobile-items-center mobile-justify-center mobile-gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete My Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <Trash2 className={`h-6 w-6 mr-3 ${deleteType === 'account' ? 'text-red-600' : 'text-orange-600'}`} />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {deleteType === 'account' ? 'Delete Account' : 'Delete My Data'}
+              </h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {deleteType === 'account' 
+                ? 'Are you sure you want to delete your account? This will permanently remove your account and all associated data. This action cannot be undone.'
+                : 'Are you sure you want to delete all your data? This will permanently remove all your job applications, goals, and analytics data. Your account will remain but be empty. This action cannot be undone.'
+              }
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={confirmDelete}
+                className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors ${
+                  deleteType === 'account' 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-orange-600 hover:bg-orange-700'
+                }`}
+              >
+                {deleteType === 'account' ? 'Delete Account' : 'Delete My Data'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteType(null);
+                }}
+                className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>

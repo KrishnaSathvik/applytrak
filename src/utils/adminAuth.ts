@@ -281,7 +281,7 @@ export const verifyDatabaseAdminWithFallback = async (
         // Primary query by external_id
         const queryPromise = client
             .from('users')
-                    .select('id, externalid, email, adminpermissions, display_name')
+                    .select('id, externalid, email, permissions, display_name')
         .eq('externalid', authUserId)
             .maybeSingle(); // Use maybeSingle to handle no results gracefully
 
@@ -299,7 +299,7 @@ export const verifyDatabaseAdminWithFallback = async (
                 try {
                     const emailQueryPromise = client
                         .from('users')
-                        .select('id, externalid, email, adminpermissions, display_name')
+                        .select('id, externalid, email, permissions, display_name')
                         .eq('email', userEmail)
                         .maybeSingle();
 
