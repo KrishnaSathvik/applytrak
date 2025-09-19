@@ -369,13 +369,21 @@ const calculateGoalProgress = async (applications: Application[], goals: Goals, 
         try {
             const client = initializeSupabase();
             if (client) {
-                const { data: userMetrics } = await client
-                    .from('user_metrics')
-                    .select('daily_streak')
-                    .eq('userid', userId)
-                    .single();
+                // Convert UUID to numeric database ID
+                const userDbId = await authService.getUserDbId();
                 
-                dailyStreak = userMetrics?.daily_streak || 0;
+                if (userDbId) {
+                    const { data: userMetrics } = await client
+                        .from('user_metrics')
+                        .select('daily_streak')
+                        .eq('userid', userDbId)
+                        .single();
+                    
+                    dailyStreak = userMetrics?.daily_streak || 0;
+                } else {
+                    console.warn('Could not get user database ID, falling back to calculation');
+                    dailyStreak = calculateDailyStreak(applications);
+                }
             }
         } catch (error) {
             console.warn('Failed to fetch streak from user_metrics, falling back to calculation:', error);

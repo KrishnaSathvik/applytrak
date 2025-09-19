@@ -3,6 +3,9 @@ import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
 // @ts-ignore - Deno import, works in Supabase Edge Functions
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// @ts-ignore - Deno global, available in Supabase Edge Functions
+declare const Deno: any;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -446,9 +449,11 @@ async function getWeeklyDigestData(userId: number, supabaseClient: any): Promise
         }
     });
     
-    const topPerformingSource = Object.keys(sourceCounts).reduce((a, b) => 
-        sourceCounts[a] > sourceCounts[b] ? a : b, null
-    );
+    const topPerformingSource = Object.keys(sourceCounts).length > 0 
+        ? Object.keys(sourceCounts).reduce((a, b) => 
+            sourceCounts[a] > sourceCounts[b] ? a : b
+          )
+        : null;
 
     // Get monthly analytics
     const monthStart = new Date();
@@ -488,13 +493,17 @@ async function getWeeklyDigestData(userId: number, supabaseClient: any): Promise
         timeCounts[timeSlot] = (timeCounts[timeSlot] || 0) + 1;
     });
     
-    const bestPerformingDay = Object.keys(dayCounts).reduce((a, b) => 
-        dayCounts[a] > dayCounts[b] ? a : b, null
-    );
+    const bestPerformingDay = Object.keys(dayCounts).length > 0 
+        ? Object.keys(dayCounts).reduce((a, b) => 
+            dayCounts[a] > dayCounts[b] ? a : b
+          )
+        : null;
     
-    const bestPerformingTime = Object.keys(timeCounts).reduce((a, b) => 
-        timeCounts[a] > timeCounts[b] ? a : b, null
-    );
+    const bestPerformingTime = Object.keys(timeCounts).length > 0 
+        ? Object.keys(timeCounts).reduce((a, b) => 
+            timeCounts[a] > timeCounts[b] ? a : b
+          )
+        : null;
 
     // Weekly tips
     const tips = [
@@ -545,7 +554,7 @@ async function getWeeklyDigestData(userId: number, supabaseClient: any): Promise
         followUpsSent,
         successRate,
         averageResponseTime,
-        topPerformingSource,
+        topPerformingSource: topPerformingSource || 'N/A',
         
         // Achievements
         achievementsUnlocked: weeklyAchievements?.map(ua => ua.achievements) || [],
@@ -564,8 +573,8 @@ async function getWeeklyDigestData(userId: number, supabaseClient: any): Promise
         applicationsThisMonth,
         applicationsLastMonth,
         monthlyGrowth,
-        bestPerformingDay,
-        bestPerformingTime
+        bestPerformingDay: bestPerformingDay || 'N/A',
+        bestPerformingTime: bestPerformingTime || 'N/A'
     };
 }
 
