@@ -5,14 +5,14 @@ import { createClient } from "@supabase/supabase-js";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SB_URL")!;
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY")!;
-const LOGO_URL = Deno.env.get("APPLYTRAK_LOGO_URL") || "https://www.applytrak.com/logo.png";
+const LOGO_URL = "https://applytrak.com/logo192.png";
 const CTA_URL = Deno.env.get("APPLYTRAK_APP_URL") || "https://applytrak.com";
 const PREFS_ENDPOINT =
     Deno.env.get("APPLYTRAK_PREFS_ENDPOINT") || `${SUPABASE_URL}/functions/v1/email-preferences`;
 
 const supabase = createClient(SUPABASE_URL, SB_SERVICE_ROLE_KEY);
 
-// Enhanced welcome email template with analytics design
+// Welcome email template matching achievements design
 function renderWelcomeHTML({ name, logoUrl, ctaUrl, settingsUrl }: {
     name: string; logoUrl: string; ctaUrl: string; settingsUrl: string;
 }) {
@@ -25,36 +25,33 @@ function renderWelcomeHTML({ name, logoUrl, ctaUrl, settingsUrl }: {
     body { margin:0; padding:0; background:linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
     .wrap { width:100%; table-layout:fixed; background:linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding:32px 0; }
     .container { max-width:600px; margin:0 auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); border:1px solid #e2e8f0; }
-    .header { background:linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); text-align:center; padding:32px 24px; position:relative; }
+    .header { background:linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); text-align:center; padding:32px 24px; position:relative; }
     .header::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>'); opacity:0.3; }
     .logo { display:block; margin:0 auto 12px; position:relative; z-index:1; }
-    .brand { font:700 24px/1.2 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#ffffff; margin:0; position:relative; z-index:1; }
-    .tagline { font:400 14px/1.4 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:rgba(255,255,255,0.9); margin:4px 0 0; position:relative; z-index:1; }
-    .content { padding:32px 24px; font:400 16px/1.6 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a; }
-    .h1 { font:700 28px/1.2 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a; margin:0 0 16px; }
-    .h2 { font:600 20px/1.3 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#0f172a; margin:24px 0 12px; }
+    .brand { font:700 24px/1.2 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#ffffff; margin:0; position:relative; z-index:1; }
+    .tagline { font:400 14px/1.4 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:rgba(255,255,255,0.9); margin:4px 0 0; position:relative; z-index:1; }
+    .content { padding:32px 24px; font:400 16px/1.6 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#374151; }
+    .h1 { font:700 28px/1.2 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#111827; margin:0 0 16px; }
+    .h2 { font:600 20px/1.3 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#1f2937; margin:24px 0 12px; }
     .ul { padding-left:20px; margin:16px 0; }
     .li { margin:8px 0; color:#4b5563; }
     .cta-wrap { text-align:center; padding:16px 0 8px; }
     .cta {
-      display:inline-block; background:linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color:#fff !important;
+      display:inline-block; background:linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color:#fff !important;
       text-decoration:none; padding:16px 32px; border-radius:12px;
-      font:600 16px/1 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; 
-      box-shadow:0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1);
-      transition:all 0.2s ease;
+      font:600 16px/1 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+      box-shadow:0 4px 6px -1px rgba(245, 158, 11, 0.2), 0 2px 4px -1px rgba(245, 158, 11, 0.1);
     }
-    .cta:hover { transform:translateY(-1px); box-shadow:0 8px 15px -3px rgba(59, 130, 246, 0.3), 0 4px 6px -2px rgba(59, 130, 246, 0.15); }
     .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0; }
-    .stat-card { background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border:1px solid #e2e8f0; border-radius:12px; padding:20px; text-align:center; }
-    .stat-number { font:700 24px/1 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#3b82f6; margin:0 0 4px; }
-    .stat-label { font:500 14px/1.2 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#475569; margin:0; }
-    .tip { background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border:1px solid #3b82f6; border-radius:12px; padding:20px; margin-top:24px; position:relative; }
+    .stat-card { background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; text-align:center; box-shadow:0 1px 3px 0 rgba(0,0,0,0.1); }
+    .stat-number { font:700 24px/1 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#f59e0b; margin:0 0 4px; }
+    .stat-label { font:500 14px/1.2 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#475569; margin:0; }
+    .tip { background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border:1px solid #0ea5e9; border-radius:12px; padding:20px; margin-top:24px; position:relative; }
     .tip::before { content:'💡'; position:absolute; top:-8px; left:20px; background:#fff; padding:0 8px; font-size:16px; }
-    .tip-title { font:600 16px/1.3 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#1e40af; margin:0 0 8px; }
-    .tip-text { font:400 14px/1.5 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; color:#1e40af; margin:0; }
-    .footer { background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color:#64748b; font:400 13px/1.5 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; text-align:center; padding:24px; border-top:1px solid #e2e8f0; }
-    .footer a { color:#3b82f6; text-decoration:none; font-weight:500; }
-    .footer a:hover { text-decoration:underline; }
+    .tip-title { font:600 16px/1.3 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#1e40af; margin:0 0 8px; }
+    .tip-text { font:400 14px/1.5 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#1e40af; margin:0; }
+    .footer { background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); color:#64748b; font:400 13px/1.5 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; text-align:center; padding:24px; border-top:1px solid #e2e8f0; }
+    .footer a { color:#0ea5e9; text-decoration:none; font-weight:500; }
     .emoji { font-size:18px; }
     @media (max-width: 600px) {
       .wrap { padding:16px; }
@@ -70,12 +67,7 @@ function renderWelcomeHTML({ name, logoUrl, ctaUrl, settingsUrl }: {
     <tr><td align="center">
       <table role="presentation" class="container" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr><td class="header">
-          <!--[if mso]>
-          <div style="width:56px; height:56px; background:linear-gradient(135deg, #10b981 0%, #6366f1 100%); color:#ffffff; font-family:'Geist',Arial,sans-serif; font-size:20px; font-weight:700; line-height:56px; text-align:center; border-radius:8px; margin:0 auto 12px; display:block;">AT</div>
-          <![endif]-->
-          <!--[if !mso]><!-->
-          <img src="${logoUrl}" width="56" height="56" class="logo" alt="ApplyTrak logo" style="display:block; margin:0 auto 12px; border-radius:8px; border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic;" title="ApplyTrak Logo">
-          <!--<![endif]-->
+          <img src="${logoUrl}" width="56" height="56" class="logo" alt="ApplyTrak logo" style="display:block;">
           <p class="brand">ApplyTrak</p>
           <p class="tagline">Your job search, organized and optimized</p>
         </td></tr>
@@ -112,14 +104,12 @@ function renderWelcomeHTML({ name, logoUrl, ctaUrl, settingsUrl }: {
           </div>
         </td></tr>
         <tr><td class="footer">
-          <div style="margin-bottom:12px;">
-            <strong>ApplyTrak</strong> · Built for job seekers like you
-          </div>
-          <div>
+          <p><strong>ApplyTrak</strong> · Built for job seekers like you</p>
+          <p style="margin-top:16px;">
             <a href="${settingsUrl}">Email preferences</a> · 
             <a href="${ctaUrl}">Open app</a> · 
             <a href="mailto:support@applytrak.com">Get help</a>
-          </div>
+          </p>
         </td></tr>
       </table>
     </td></tr>
@@ -129,7 +119,18 @@ function renderWelcomeHTML({ name, logoUrl, ctaUrl, settingsUrl }: {
 }
 
 serve(async (req) => {
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { 
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+            }
+        })
+    }
+
     try {
+        // Skip authentication check for this welcome email function
+        // This function is designed to work without authentication for welcome emails
         const { email, name } = await req.json();
 
         // get external_id for one-click settings link
@@ -159,7 +160,7 @@ serve(async (req) => {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                from: "ApplyTrak <onboarding@resend.dev>",
+                from: "ApplyTrak <onboarding@applytrak.com>",
                 to: email,
                 subject: "Welcome to ApplyTrak! 🎉 Your job search just got smarter",
                 html,
