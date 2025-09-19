@@ -44,37 +44,37 @@ const MobileAchievementsTab: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
-  // Load achievements on mount and check existing applications
-  useEffect(() => {
-    if (auth.user?.id) {
-      const userId = String(auth.user.id);
-      loadAchievements(userId);
-      // Check existing applications for achievements
-      if (applications.length > 0) {
-        checkExistingApplications(
-          userId,
-          applications,
-          goalProgress.dailyStreak,
-          goalProgress.weeklyProgress,
-          goalProgress.monthlyProgress
-        );
-      }
-    }
-  }, [loadAchievements, checkExistingApplications, applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, auth.user?.id]);
+        // Load achievements on mount and check existing applications
+        useEffect(() => {
+            if (auth.user?.id) {
+                const userId = String(auth.user.id);
+                loadAchievements(userId);
+                // Check existing applications for achievements
+                if (applications.length > 0) {
+                    checkExistingApplications(
+                        userId,
+                        applications,
+                        goalProgress.dailyStreak,
+                        goalProgress.weeklyProgress,
+                        goalProgress.monthlyProgress
+                    );
+                }
+            }
+        }, [loadAchievements, checkExistingApplications, applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, auth.user?.id]);
 
-  // Check achievements when applications change
-  useEffect(() => {
-    if (auth.user?.id && applications.length > 0) {
-      const userId = String(auth.user.id);
-      checkExistingApplications(
-        userId,
-        applications,
-        goalProgress.dailyStreak,
-        goalProgress.weeklyProgress,
-        goalProgress.monthlyProgress
-      );
-    }
-  }, [applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, checkExistingApplications, auth.user?.id]);
+        // Check achievements when applications change
+        useEffect(() => {
+            if (auth.user?.id && applications.length > 0) {
+                const userId = String(auth.user.id);
+                checkExistingApplications(
+                    userId,
+                    applications,
+                    goalProgress.dailyStreak,
+                    goalProgress.weeklyProgress,
+                    goalProgress.monthlyProgress
+                );
+            }
+        }, [applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, checkExistingApplications, auth.user?.id]);
 
   // Apply search filter to filtered achievements
   const searchFilteredAchievements = useMemo(() => {

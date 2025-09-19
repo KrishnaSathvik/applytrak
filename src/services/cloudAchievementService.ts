@@ -75,14 +75,14 @@ class CloudAchievementService {
 
       if (error) {
         console.error('Error loading user achievements:', error);
-        return [];
+        throw new Error(`Failed to load achievements: ${error.message}`);
       }
 
       this.achievements = data.map(this.mapCloudAchievementToAchievement);
       return this.achievements;
     } catch (error) {
       console.error('Error loading user achievements:', error);
-      return [];
+      throw new Error(`Failed to load achievements: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -98,7 +98,7 @@ class CloudAchievementService {
 
       if (error) {
         console.error('Error loading user stats:', error);
-        return this.getDefaultStats();
+        throw new Error(`Failed to load user stats: ${error.message}`);
       }
 
       if (data && data.length > 0) {
@@ -107,7 +107,7 @@ class CloudAchievementService {
           totalXP: stats.total_xp || 0,
           unlockedAchievements: stats.achievements_unlocked || 0,
           currentLevel: stats.current_level || 1,
-          totalAchievements: 0, // Will be calculated
+          totalAchievements: this.achievements.length, // Use actual achievements count
           xpToNextLevel: 0, // Will be calculated
           achievementsByCategory: {} as Record<AchievementCategory, number>, // Will be calculated
           recentUnlocks: [], // Will be calculated
@@ -118,10 +118,10 @@ class CloudAchievementService {
         return this.userStats;
       }
 
-      return this.getDefaultStats();
+      throw new Error('No user stats found');
     } catch (error) {
       console.error('Error loading user stats:', error);
-      return this.getDefaultStats();
+      throw new Error(`Failed to load user stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -415,7 +415,7 @@ class CloudAchievementService {
       totalXP: 0,
       unlockedAchievements: 0,
       currentLevel: 1,
-      totalAchievements: 0,
+      totalAchievements: this.achievements.length,
       xpToNextLevel: 100,
       achievementsByCategory: {} as Record<AchievementCategory, number>,
       recentUnlocks: [],
@@ -425,9 +425,11 @@ class CloudAchievementService {
   }
 
   private calculateUserLevel(totalXP: number): UserLevel {
-    const level = Math.floor(totalXP / 100) + 1;
-    const xpForCurrentLevel = totalXP % 100;
-    const xpForNextLevel = 100 - xpForCurrentLevel;
+    // More reasonable level calculation: Level = sqrt(XP/50) + 1
+    // This gives: Level 1 (0-49 XP), Level 2 (50-99 XP), Level 3 (100-149 XP), etc.
+    const level = Math.floor(Math.sqrt(totalXP / 50)) + 1;
+    const xpForCurrentLevel = totalXP % 50;
+    const xpForNextLevel = 50 - xpForCurrentLevel;
 
     return {
       level,
@@ -454,6 +456,8 @@ class CloudAchievementService {
     if (level <= 20) return '#8B5CF6'; // Purple
     return '#EF4444'; // Red
   }
+
+
 }
 
 export default CloudAchievementService;

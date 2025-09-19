@@ -326,7 +326,7 @@ const Header: React.FC = () => {
                         >
                             Analytics
                         </button>
-                        {auth.isAuthenticated && (
+                        {(auth.isAuthenticated || process.env.NODE_ENV === 'development') && (
                             <button
                                 onClick={() => {
                                     handleTabClick('achievements');

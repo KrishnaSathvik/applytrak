@@ -14,7 +14,8 @@ import {
   TrendingUp,
   Zap,
   Medal,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle
 } from 'lucide-react';
 import { useCloudAchievementStore, useFilteredAchievements } from '../../store/useCloudAchievementStore';
 import { useAppStore } from '../../store/useAppStore';
@@ -28,6 +29,7 @@ const AchievementsTab: React.FC = () => {
     selectedCategory,
     filter,
     isLoading,
+    error,
     loadAchievements,
     checkExistingApplications,
     setSelectedCategory,
@@ -42,37 +44,37 @@ const AchievementsTab: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Load achievements on mount and check existing applications
-  useEffect(() => {
-    if (auth.user?.id) {
-      const userId = String(auth.user.id);
-      loadAchievements(userId);
-      // Check existing applications for achievements
-      if (applications.length > 0) {
-        checkExistingApplications(
-          userId,
-          applications,
-          goalProgress.dailyStreak,
-          goalProgress.weeklyProgress,
-          goalProgress.monthlyProgress
-        );
-      }
-    }
-  }, [loadAchievements, checkExistingApplications, applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, auth.user?.id]);
+        // Load achievements on mount and check existing applications
+        useEffect(() => {
+            if (auth.user?.id) {
+                const userId = String(auth.user.id);
+                loadAchievements(userId);
+                // Check existing applications for achievements
+                if (applications.length > 0) {
+                    checkExistingApplications(
+                        userId,
+                        applications,
+                        goalProgress.dailyStreak,
+                        goalProgress.weeklyProgress,
+                        goalProgress.monthlyProgress
+                    );
+                }
+            }
+        }, [loadAchievements, checkExistingApplications, applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, auth.user?.id]);
 
-  // Check achievements when applications change
-  useEffect(() => {
-    if (auth.user?.id && applications.length > 0) {
-      const userId = String(auth.user.id);
-      checkExistingApplications(
-        userId,
-        applications,
-        goalProgress.dailyStreak,
-        goalProgress.weeklyProgress,
-        goalProgress.monthlyProgress
-      );
-    }
-  }, [applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, checkExistingApplications, auth.user?.id]);
+        // Check achievements when applications change
+        useEffect(() => {
+            if (auth.user?.id && applications.length > 0) {
+                const userId = String(auth.user.id);
+                checkExistingApplications(
+                    userId,
+                    applications,
+                    goalProgress.dailyStreak,
+                    goalProgress.weeklyProgress,
+                    goalProgress.monthlyProgress
+                );
+            }
+        }, [applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, checkExistingApplications, auth.user?.id]);
 
   // Apply search filter to filtered achievements
   const searchFilteredAchievements = useMemo(() => {
@@ -158,6 +160,36 @@ const AchievementsTab: React.FC = () => {
             <p className="text-gray-600 text-lg">
               Preparing your achievement collection...
             </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="glass-card bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200/30 dark:border-red-700/30">
+          <div className="text-center py-12">
+            <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="h-12 w-12 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Unable to Load Achievements
+            </h1>
+            <p className="text-gray-600 text-lg mb-4">
+              {error}
+            </p>
+            <button
+              onClick={() => {
+                if (auth.user?.id) {
+                  loadAchievements(String(auth.user.id));
+                }
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
