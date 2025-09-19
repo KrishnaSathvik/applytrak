@@ -71,6 +71,14 @@ export const useCloudAchievementStore = create<CloudAchievementState>()((set, ge
   // Check existing applications for achievements
   checkExistingApplications: async (userId: string, applications: Application[], dailyStreak: number, weeklyProgress: number, monthlyProgress: number) => {
     try {
+      console.log('🏆 Checking existing applications for achievements...', {
+        userId,
+        applicationsCount: applications.length,
+        dailyStreak,
+        weeklyProgress,
+        monthlyProgress
+      });
+      
       const cloudService = CloudAchievementService.getInstance();
       
       // Check for newly unlocked achievements
@@ -81,6 +89,11 @@ export const useCloudAchievementStore = create<CloudAchievementState>()((set, ge
         weeklyProgress,
         monthlyProgress
       );
+
+      console.log('🏆 Achievement check completed:', {
+        newlyUnlocked: newlyUnlocked.length,
+        achievements: newlyUnlocked.map(a => a.name)
+      });
 
       // Reload achievements and stats
       await get().loadAchievements(userId);

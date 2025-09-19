@@ -58,7 +58,7 @@ const AchievementsTab: React.FC = () => {
         );
       }
     }
-  }, [loadAchievements, checkExistingApplications, applications.length, auth.user?.id]);
+  }, [loadAchievements, checkExistingApplications, applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, auth.user?.id]);
 
   // Check achievements when applications change
   useEffect(() => {
@@ -72,7 +72,7 @@ const AchievementsTab: React.FC = () => {
         goalProgress.monthlyProgress
       );
     }
-  }, [applications.length, checkExistingApplications, auth.user?.id]);
+  }, [applications, goalProgress.dailyStreak, goalProgress.weeklyProgress, goalProgress.monthlyProgress, checkExistingApplications, auth.user?.id]);
 
   // Apply search filter to filtered achievements
   const searchFilteredAchievements = useMemo(() => {

@@ -133,50 +133,78 @@ class CloudAchievementService {
     weeklyProgress: number,
     monthlyProgress: number
   ): Promise<Achievement[]> {
+    console.log('🔍 CloudAchievementService.checkAchievements called with:', {
+      userId,
+      applicationsCount: applications.length,
+      dailyStreak,
+      weeklyProgress,
+      monthlyProgress,
+      currentAchievementsCount: this.achievements.length
+    });
+
     const newlyUnlocked: Achievement[] = [];
 
     // Load current achievements if not already loaded
     if (this.achievements.length === 0) {
+      console.log('📥 Loading achievements from cloud...');
       await this.loadUserAchievements(userId);
+      console.log('📥 Loaded achievements:', this.achievements.length);
     }
 
     for (const achievement of this.achievements) {
       if (achievement.unlocked) {
+        console.log(`✅ Achievement "${achievement.name}" already unlocked, skipping`);
         continue; // Already unlocked
       }
 
       let isUnlocked = false;
 
-      switch (achievement.category) {
-        case 'milestone':
-          isUnlocked = this.checkMilestoneAchievement(achievement, applications);
-          break;
-        case 'streak':
-          isUnlocked = this.checkStreakAchievement(achievement, dailyStreak);
-          break;
-        case 'goal':
-          isUnlocked = this.checkGoalAchievement(achievement, weeklyProgress, monthlyProgress);
-          break;
-        case 'time':
-          isUnlocked = this.checkTimeAchievement(achievement, applications);
-          break;
-        case 'quality':
-          isUnlocked = this.checkQualityAchievement(achievement, applications);
-          break;
-        case 'special':
-          isUnlocked = this.checkSpecialAchievement(achievement, applications);
-          break;
+      try {
+        switch (achievement.category) {
+          case 'milestone':
+            isUnlocked = this.checkMilestoneAchievement(achievement, applications);
+            break;
+          case 'streak':
+            isUnlocked = this.checkStreakAchievement(achievement, dailyStreak);
+            break;
+          case 'goal':
+            isUnlocked = this.checkGoalAchievement(achievement, weeklyProgress, monthlyProgress);
+            break;
+          case 'time':
+            isUnlocked = this.checkTimeAchievement(achievement, applications);
+            break;
+          case 'quality':
+            isUnlocked = this.checkQualityAchievement(achievement, applications);
+            break;
+          case 'special':
+            isUnlocked = this.checkSpecialAchievement(achievement, applications);
+            break;
+          default:
+            console.log(`⚠️ Unknown achievement category: ${achievement.category}`);
+            continue;
+        }
+      } catch (error) {
+        console.error(`❌ Error checking achievement "${achievement.name}":`, error);
+        continue; // Skip this achievement if there's an error
       }
 
+      console.log(`🔍 Checking "${achievement.name}" (${achievement.category}): ${isUnlocked ? 'UNLOCKED!' : 'locked'}`);
+
       if (isUnlocked) {
+        console.log(`🎉 Unlocking achievement: ${achievement.name}`);
         // Unlock achievement in database
         const success = await this.unlockAchievement(userId, achievement.id);
         if (success) {
           achievement.unlocked = true;
           newlyUnlocked.push(achievement);
+          console.log(`✅ Successfully unlocked: ${achievement.name}`);
+        } else {
+          console.error(`❌ Failed to unlock: ${achievement.name}`);
         }
       }
     }
+
+    console.log(`🏆 Achievement check complete. Newly unlocked: ${newlyUnlocked.length}`);
 
     // Reload user stats after unlocking achievements
     if (newlyUnlocked.length > 0) {
@@ -238,7 +266,7 @@ class CloudAchievementService {
 
   // Private helper methods (same as original achievementService)
   private checkMilestoneAchievement(achievement: Achievement, applications: Application[]): boolean {
-    const requirement = achievement.requirements[0];
+    const requirement = achievement.requirements?.[0];
     
     if (achievement.id === 'first_interview') {
       return applications.some(app => 
@@ -253,13 +281,13 @@ class CloudAchievementService {
         app.status?.toLowerCase().includes('accepted')
       );
     } else {
-      return applications.length >= requirement.value;
+      return applications.length >= (requirement?.value || 0);
     }
   }
 
   private checkStreakAchievement(achievement: Achievement, dailyStreak: number): boolean {
-    const requirement = achievement.requirements[0];
-    return dailyStreak >= requirement.value;
+    const requirement = achievement.requirements?.[0];
+    return dailyStreak >= (requirement?.value || 0);
   }
 
   private checkGoalAchievement(achievement: Achievement, weeklyProgress: number, monthlyProgress: number): boolean {
