@@ -280,14 +280,37 @@ class CloudAchievementService {
         app.status?.toLowerCase().includes('offer') || 
         app.status?.toLowerCase().includes('accepted')
       );
+    } else if (achievement.id === 'first_application') {
+      return applications.length >= 1;
+    } else if (achievement.id === 'ten_applications') {
+      return applications.length >= 10;
+    } else if (achievement.id === 'fifty_applications') {
+      return applications.length >= 50;
+    } else if (achievement.id === 'hundred_applications') {
+      return applications.length >= 100;
+    } else if (achievement.id === 'five_hundred_applications') {
+      return applications.length >= 500;
+    } else if (achievement.id === 'thousand_applications') {
+      return applications.length >= 1000;
     } else {
-      return applications.length >= (requirement?.value || 0);
+      // Fallback to requirement value, but only if it exists
+      return requirement?.value ? applications.length >= requirement.value : false;
     }
   }
 
   private checkStreakAchievement(achievement: Achievement, dailyStreak: number): boolean {
     const requirement = achievement.requirements?.[0];
-    return dailyStreak >= (requirement?.value || 0);
+    
+    if (achievement.id === 'three_day_streak') {
+      return dailyStreak >= 3;
+    } else if (achievement.id === 'week_streak') {
+      return dailyStreak >= 7;
+    } else if (achievement.id === 'month_streak') {
+      return dailyStreak >= 30;
+    } else {
+      // Fallback to requirement value, but only if it exists
+      return requirement?.value ? dailyStreak >= requirement.value : false;
+    }
   }
 
   private checkGoalAchievement(achievement: Achievement, weeklyProgress: number, monthlyProgress: number): boolean {
