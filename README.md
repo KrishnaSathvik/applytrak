@@ -38,6 +38,17 @@ A modern, enterprise-grade job application tracking system built with React, Typ
 - **Milestone Tracking**: Celebrate achievements and maintain motivation
 - **Performance Metrics**: Detailed insights into job search effectiveness
 
+### 🏆 **Achievement System** *(NEW!)*
+- **26+ Achievements**: Unlock badges for milestones, streaks, goals, and special accomplishments
+- **XP & Leveling System**: Earn experience points and level up as you progress
+- **Real-Time Unlocking**: Achievements unlock instantly when requirements are met
+- **Category System**: Milestone, Streak, Goal, Time, Quality, and Special achievements
+- **Tier System**: Bronze, Silver, Gold, Platinum, Diamond, and Legendary tiers
+- **FAANG Hunter**: Special achievement for applying to top tech companies
+- **Achievement Collector**: Unlock multiple achievements to earn collector status
+- **Visual Feedback**: Green styling for unlocked achievements with lock/unlock icons
+- **Retroactive Recognition**: Existing applications automatically unlock eligible achievements
+
 ### 🔄 **Real-Time Synchronization**
 - **Instant Updates**: PostgreSQL change notifications for real-time sync
 - **Cross-Device Sync**: Perfect synchronization across mobile and desktop
@@ -408,6 +419,7 @@ For feature requests, please open an issue with the "enhancement" label.
 - [x] **Automatic Migration** - Seamless local-to-cloud data migration
 - [x] **Multi-Device Admin** - Cross-device admin dashboard functionality
 - [x] **Email Notifications** - Comprehensive automated email system with welcome, weekly goals, tips, analytics, milestones, and inactivity reminders
+- [x] **Achievement System** - 26+ achievements with XP, leveling, real-time unlocking, and retroactive recognition
 
 ### 🚧 **In Development**
 - [ ] **Advanced Analytics** - Machine learning insights

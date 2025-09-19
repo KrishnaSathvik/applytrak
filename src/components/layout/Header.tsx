@@ -129,8 +129,8 @@ const Header: React.FC = () => {
     };
 
     // Tab navigation handlers
-    const handleTabClick = (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
-        setSelectedTab(tab);
+    const handleTabClick = (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'achievements' | 'profile' | 'features') => {
+        setSelectedTab(tab as any);
     };
 
     return (
@@ -194,6 +194,18 @@ const Header: React.FC = () => {
                             >
                                 Analytics
                             </button>
+                            {auth.isAuthenticated && (
+                                <button
+                                    onClick={() => handleTabClick('achievements')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        ui.selectedTab === 'achievements'
+                                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                    }`}
+                                >
+                                    Achievements
+                                </button>
+                            )}
                             <button
                                 onClick={() => handleTabClick('features')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -314,6 +326,21 @@ const Header: React.FC = () => {
                         >
                             Analytics
                         </button>
+                        {auth.isAuthenticated && (
+                            <button
+                                onClick={() => {
+                                    handleTabClick('achievements');
+                                    setMobileMenuOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 min-h-[48px] flex items-center ${
+                                    ui.selectedTab === 'achievements'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                Achievements
+                            </button>
+                        )}
                         {auth.isAuthenticated && (
                             <button
                                 onClick={() => {

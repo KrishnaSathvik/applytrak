@@ -4,8 +4,6 @@ import {
   Mail, 
   Calendar, 
   LogOut, 
-  Shield, 
-  Bell, 
   Edit,
   Save,
   X,
@@ -18,8 +16,7 @@ const MobileProfileTab: React.FC = () => {
   const { 
     auth, 
     signOut, 
-    showToast,
-    openPrivacySettings
+    showToast
   } = useAppStore();
 
   const [activeSection, setActiveSection] = useState<'profile' | 'settings'>('profile');
@@ -121,17 +118,6 @@ const MobileProfileTab: React.FC = () => {
     }
   };
 
-  const handlePrivacySettings = () => {
-    openPrivacySettings();
-  };
-
-  const handleNotificationSettings = () => {
-    showToast({
-      type: 'info',
-      message: 'Notification settings coming soon! For now, you can manage email preferences in Privacy Settings.',
-      duration: 4000
-    });
-  };
 
 
 
@@ -305,54 +291,6 @@ const MobileProfileTab: React.FC = () => {
       {/* Settings Section */}
       {activeSection === 'settings' && (
         <div className="mobile-space-y-4">
-          {/* Privacy Settings */}
-          <div className="card">
-            <h2 className="mobile-text-lg mobile-font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Privacy & Security
-            </h2>
-            
-            <div className="mobile-space-y-4">
-              <div className="mobile-flex mobile-items-center mobile-justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="mobile-flex mobile-items-center mobile-gap-3">
-                  <Shield className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <div className="mobile-text-sm mobile-font-medium text-gray-900 dark:text-gray-100">
-                      Data Privacy
-                    </div>
-                    <div className="mobile-text-xs text-gray-500">
-                      Control how your data is used
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={handlePrivacySettings}
-                  className="btn btn-secondary mobile-text-sm"
-                >
-                  Manage
-                </button>
-              </div>
-
-              <div className="mobile-flex mobile-items-center mobile-justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="mobile-flex mobile-items-center mobile-gap-3">
-                  <Bell className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <div className="mobile-text-sm mobile-font-medium text-gray-900 dark:text-gray-100">
-                      Notifications
-                    </div>
-                    <div className="mobile-text-xs text-gray-500">
-                      Email and push notifications
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleNotificationSettings}
-                  className="btn btn-secondary mobile-text-sm"
-                >
-                  Configure
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* Account Actions */}
           <div className="card">

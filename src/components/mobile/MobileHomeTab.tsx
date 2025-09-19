@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, X, Target, BarChart3, Upload, Star, Zap, Shield, Award } from 'lucide-react';
+import { CheckCircle, X, Target, BarChart3, Upload, Star, Zap, Shield, Award, Trophy } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 import ImportModal from '../modals/ImportModal';
@@ -209,7 +209,44 @@ const MobileHomeTab: React.FC = () => {
               </ul>
             </div>
             
-            {/* Feature 2: Analytics */}
+            {/* Feature 2: Achievement System - NEW! */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                  <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Achievement System</h3>
+                  <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-pulse">
+                    NEW
+                  </span>
+                </div>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
+                Unlock achievements as you progress through your job search journey! Earn XP, level up, and unlock 
+                special badges for milestones like applying to FAANG companies, maintaining streaks, and reaching goals.
+              </p>
+              <ul className="space-y-2">
+                <li className="flex items-center text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">26+ achievements to unlock</span>
+                </li>
+                <li className="flex items-center text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">XP & leveling system</span>
+                </li>
+                <li className="flex items-center text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Real-time achievement unlocking</span>
+                </li>
+                <li className="flex items-center text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700 dark:text-gray-300">Special FAANG Hunter achievement</span>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Feature 3: Analytics */}
             <div className="glass-card p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">

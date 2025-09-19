@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Award, Trophy, Star, TrendingUp, Settings, BarChart3, Clock } from 'lucide-react';
+import { Target, Award, Star, TrendingUp, Settings, BarChart3, Clock } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 const GoalsTab: React.FC = () => {
@@ -107,7 +107,7 @@ const GoalsTab: React.FC = () => {
             Goal Setting & Progress
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg mb-4">
-            Set targets, track progress, and celebrate your achievements
+            Set targets, track progress, and achieve your career goals
           </p>
         </div>
       </div>
@@ -287,68 +287,6 @@ const GoalsTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Achievements */}
-            <div className="glass-card">
-              <div className="flex items-center mb-4">
-                <Trophy className="h-6 w-6 text-orange-600 dark:text-orange-400 mr-2" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Achievements</h3>
-              </div>
-              <div className="space-y-4">
-                {/* First Application */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.totalApplications > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                    }`}>
-                      {goalProgress.totalApplications > 0 ? '✓' : '1'}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100">First Application</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">Submit your first job application</div>
-                    </div>
-                  </div>
-                  {goalProgress.totalApplications > 0 && (
-                    <span className="text-green-600 dark:text-green-400 text-sm font-medium">Unlocked!</span>
-                  )}
-                </div>
-
-                {/* Weekly Goal Achiever */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.weeklyProgress >= 100 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                    }`}>
-                      {goalProgress.weeklyProgress >= 100 ? '✓' : '5'}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100">Weekly Goal Achiever</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">Meet your weekly application target</div>
-                    </div>
-                  </div>
-                  {goalProgress.weeklyProgress >= 100 && (
-                    <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">Unlocked!</span>
-                  )}
-                </div>
-
-                {/* Streak Master */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      goalProgress.dailyStreak >= 7 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                    }`}>
-                      {goalProgress.dailyStreak >= 7 ? '✓' : '7'}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-gray-100">Streak Master</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">Maintain a 7+ day streak</div>
-                    </div>
-                  </div>
-                  {goalProgress.dailyStreak >= 7 && (
-                    <span className="text-purple-600 dark:text-purple-400 text-sm font-medium">Unlocked!</span>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Tips & Motivation */}

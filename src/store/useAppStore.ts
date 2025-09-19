@@ -83,7 +83,7 @@ export interface UIState {
     searchQuery: string;
     isLoading: boolean;
     error: string | null;
-    selectedTab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features';
+    selectedTab: 'home' | 'applications' | 'goals' | 'analytics' | 'achievements' | 'profile' | 'features';
     showMarketingPage: boolean;
     analytics: {
         consentModalOpen: boolean;
@@ -1811,6 +1811,30 @@ export const useAppStore = create<AppState>()(
                                 get().calculateProgress();
                                 get().checkMilestones();
 
+                                // Check achievements after adding application
+                                const { applications, goalProgress } = get();
+                                try {
+                                    const { useAchievementStore } = require('../store/useAchievementStore');
+                                    const achievementStore = useAchievementStore.getState();
+                                    const newlyUnlocked = achievementStore.checkAchievements(
+                                        applications,
+                                        goalProgress.dailyStreak,
+                                        goalProgress.weeklyProgress,
+                                        goalProgress.monthlyProgress
+                                    );
+                                    
+                                    // Show achievement notifications
+                                    newlyUnlocked.forEach((achievement: any) => {
+                                        get().showToast({
+                                            type: 'success',
+                                            message: `🎉 Achievement Unlocked: ${achievement.name}! +${achievement.xpReward} XP`,
+                                            duration: 5000
+                                        });
+                                    });
+                                } catch (error) {
+                                    console.error('Failed to check achievements:', error);
+                                }
+
                                 const {ui} = get();
                                 if (ui.admin?.dashboardOpen && ui.admin?.authenticated) {
                                     console.log('Auto-refreshing admin dashboard...');
@@ -2316,6 +2340,31 @@ export const useAppStore = create<AppState>()(
                             set(state => ({...state, goals: newGoals}));
                             optimizedCache.invalidatePattern('goal-');
                             get().calculateProgress();
+                            
+                            // Check achievements after updating goals
+                            const { applications, goalProgress } = get();
+                            try {
+                                const { useAchievementStore } = require('../store/useAchievementStore');
+                                const achievementStore = useAchievementStore.getState();
+                                const newlyUnlocked = achievementStore.checkAchievements(
+                                    applications,
+                                    goalProgress.dailyStreak,
+                                    goalProgress.weeklyProgress,
+                                    goalProgress.monthlyProgress
+                                );
+                                
+                                // Show achievement notifications
+                                newlyUnlocked.forEach((achievement: any) => {
+                                    get().showToast({
+                                        type: 'success',
+                                        message: `🎉 Achievement Unlocked: ${achievement.name}! +${achievement.xpReward} XP`,
+                                        duration: 5000
+                                    });
+                                });
+                            } catch (error) {
+                                console.error('Failed to check achievements:', error);
+                            }
+                            
                             get().showToast({
                                 type: 'success',
                                 message: 'Goals updated successfully!'
@@ -2387,7 +2436,7 @@ export const useAppStore = create<AppState>()(
                         set(state => ({...state, ui: {...state.ui, error}}));
                     },
 
-                            setSelectedTab: (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'profile' | 'features') => {
+                            setSelectedTab: (tab: 'home' | 'applications' | 'goals' | 'analytics' | 'achievements' | 'profile' | 'features') => {
             set(state => ({...state, ui: {...state.ui, selectedTab: tab}}));
         },
 

@@ -28,6 +28,7 @@ import './styles/globals.css';
 // New Tab Components
 const ApplicationsTab = React.lazy(() => import('./components/tabs/ApplicationsTab'));
 const GoalsTab = React.lazy(() => import('./components/tabs/GoalsTab'));
+const AchievementsTab = React.lazy(() => import('./components/tabs/AchievementsTab'));
 const ProfileTab = React.lazy(() => import('./components/tabs/ProfileTab'));
 const FeaturesPricingTab = React.lazy(() => import('./components/tabs/FeaturesPricingTab'));
 
@@ -570,6 +571,7 @@ const App: React.FC = () => {
                                     {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
                                     {ui?.selectedTab === 'goals' && <GoalsTab/>}
                                     {ui?.selectedTab === 'analytics' && <AnalyticsDashboard/>}
+                                    {ui?.selectedTab === 'achievements' && auth.isAuthenticated && <AchievementsTab/>}
                                     {ui?.selectedTab === 'profile' && auth.isAuthenticated && <ProfileTab/>}
                                     {ui?.selectedTab === 'features' && <FeaturesPricingTab/>}
 
@@ -622,6 +624,7 @@ const App: React.FC = () => {
                                     {ui?.selectedTab === 'applications' && <ApplicationsTab/>}
                                     {ui?.selectedTab === 'goals' && <GoalsTab/>}
                                     {ui?.selectedTab === 'analytics' && <AnalyticsDashboard/>}
+                                    {ui?.selectedTab === 'achievements' && auth.isAuthenticated && <AchievementsTab/>}
                                     {ui?.selectedTab === 'profile' && auth.isAuthenticated && <ProfileTab/>}
                                     {ui?.selectedTab === 'features' && <FeaturesPricingTab/>}
 

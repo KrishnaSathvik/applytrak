@@ -7,7 +7,8 @@ import {
     BarChart3, 
     Target, 
     Upload, 
-    Users
+    Users,
+    Trophy
 } from 'lucide-react';
 
 const MobileFeaturesTab: React.FC = () => {
@@ -112,6 +113,34 @@ const MobileFeaturesTab: React.FC = () => {
                                 <span className="flex items-center gap-1">
                                     <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                                     Streak tracking
+                                </span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                                Achievement System
+                                <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-pulse">
+                                    NEW
+                                </span>
+                            </h4>
+                            <p className="text-gray-700 dark:text-gray-300 mb-3">
+                                Unlock achievements as you progress through your job search journey! Earn XP, level up, and unlock 
+                                special badges for milestones like applying to FAANG companies, maintaining streaks, and reaching goals.
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                                <span className="flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
+                                    26+ achievements
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
+                                    XP & leveling system
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
+                                    Real-time unlocking
                                 </span>
                             </div>
                         </div>

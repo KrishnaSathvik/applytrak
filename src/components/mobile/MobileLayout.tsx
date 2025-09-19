@@ -11,6 +11,7 @@ import ToastContainer from '../ui/ToastContainer';
 // Import mobile tab components
 import MobileHomeTab from './MobileHomeTab';
 import MobileAnalyticsTab from './MobileAnalyticsTab';
+import MobileAchievementsTab from './MobileAchievementsTab';
 import MobileProfileTab from './MobileProfileTab';
 
 import MobileAuthModal from './MobileAuthModal';
@@ -20,7 +21,7 @@ interface MobileLayoutProps {
 }
 
 const MobileLayout: React.FC<MobileLayoutProps> = () => {
-  const { ui, modals } = useAppStore();
+  const { ui, modals, auth } = useAppStore();
   const [showScrollTop, setShowScrollTop] = useState(false);
   
 
@@ -49,6 +50,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = () => {
         return <MobileGoalsTab />;
       case 'analytics':
         return <MobileAnalyticsTab />;
+      case 'achievements':
+        return auth.isAuthenticated ? <MobileAchievementsTab /> : <MobileHomeTab />;
       case 'profile':
         return <MobileProfileTab />;
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, X, Target, BarChart3, Upload, Github, Heart, Mail, MessageSquare, Star, Zap, Shield, Award } from 'lucide-react';
+import { CheckCircle, X, Target, BarChart3, Upload, Github, Heart, Mail, MessageSquare, Star, Zap, Shield, Award, Trophy } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import ApplyTrakLogo from '../ui/ApplyTrakLogo';
 import ImportModal from '../modals/ImportModal';
@@ -226,7 +226,77 @@ const MarketingPage: React.FC = () => {
               </div>
             </div>
             
-            {/* Feature 2: Analytics */}
+            {/* Feature 2: Achievement System - NEW! */}
+            <div className="flex flex-col lg:flex-row items-center gap-12">
+              <div className="lg:w-1/2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <Trophy className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-bold">Achievement System</h3>
+                    <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full font-bold animate-pulse">
+                      NEW
+                    </span>
+                  </div>
+                </div>
+                <p className="text-gray-600 mb-6 text-lg leading-relaxed">
+                  Unlock achievements as you progress through your job search journey! Earn XP, level up, and unlock 
+                  special badges for milestones like applying to FAANG companies, maintaining streaks, and reaching goals.
+                </p>
+                <ul className="space-y-3">
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span>26+ achievements to unlock</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span>XP & leveling system</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span>Real-time achievement unlocking</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    <span>Special FAANG Hunter achievement</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="lg:w-1/2">
+                <div className="bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg p-8">
+                  <div className="text-center mb-4">
+                    <Trophy className="h-16 w-16 text-yellow-600 mx-auto mb-3" />
+                    <h4 className="text-lg font-semibold text-gray-800 mb-2">Achievement Progress</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">First Steps</span>
+                      <span className="text-sm font-semibold text-green-600">✓ Unlocked</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Getting Started</span>
+                      <span className="text-sm font-semibold text-green-600">✓ Unlocked</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">FAANG Hunter</span>
+                      <span className="text-sm font-semibold text-orange-600">2/5</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-orange-600 h-2 rounded-full" style={{width: '40%'}}></div>
+                    </div>
+                    <div className="text-center pt-2">
+                      <span className="text-xs text-yellow-600 font-medium">🏆 Level 3 - Job Seeker</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-xs text-gray-500">150 XP Total</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Feature 3: Analytics */}
             <div className="flex flex-col lg:flex-row-reverse items-center gap-12">
               <div className="lg:w-1/2">
                 <div className="flex items-center gap-3 mb-4">
