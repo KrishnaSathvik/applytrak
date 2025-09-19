@@ -9,7 +9,7 @@ const checkSupabaseData = async () => {
   try {
     // Try to access the Supabase client from the app
     const supabaseUrl = 'https://ihlaenwiyxtmkehfoesg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
     
     // Create a simple fetch request to check applications
     const response = await fetch(`${supabaseUrl}/rest/v1/applications?select=*`, {

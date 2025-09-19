@@ -3349,4 +3349,7 @@ export {recoveryUtils} from './recoveryUtils';
 // Export the database instance for direct access if needed
 export {db};
 
+// Export initializeSupabase function
+export {initializeSupabase};
+
 export default databaseService;

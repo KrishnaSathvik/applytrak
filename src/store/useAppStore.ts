@@ -18,7 +18,7 @@ import {
     mapSupabaseUserToAppUser,
     mapSupabaseSession
 } from '../types';
-import {authService, databaseService, supabase} from '../services/databaseService';
+import {authService, databaseService, supabase, initializeSupabase} from '../services/databaseService';
 import {analyticsService} from '../services/analyticsService';
 import realtimeAdminService from '../services/realtimeAdminService';
 import {feedbackService} from '../services/feedbackService';
@@ -341,7 +341,7 @@ const createOptimizedCache = () => {
 
 const optimizedCache = createOptimizedCache();
 
-const calculateGoalProgress = (applications: Application[], goals: Goals): GoalProgress => {
+const calculateGoalProgress = async (applications: Application[], goals: Goals, userId?: string): Promise<GoalProgress> => {
     const now = new Date();
     const totalApplications = applications.length;
     const totalProgress = Math.min((totalApplications / goals.totalGoal) * 100, 100);
@@ -363,8 +363,29 @@ const calculateGoalProgress = (applications: Application[], goals: Goals): GoalP
     }).length;
     const monthlyProgress = Math.min((monthlyApplications / goals.monthlyGoal) * 100, 100);
 
-    // Calculate daily streak
-    const dailyStreak = calculateDailyStreak(applications);
+    // Get daily streak from user_metrics table instead of calculating from applications
+    let dailyStreak = 0;
+    if (userId) {
+        try {
+            const client = initializeSupabase();
+            if (client) {
+                const { data: userMetrics } = await client
+                    .from('user_metrics')
+                    .select('daily_streak')
+                    .eq('userid', userId)
+                    .single();
+                
+                dailyStreak = userMetrics?.daily_streak || 0;
+            }
+        } catch (error) {
+            console.warn('Failed to fetch streak from user_metrics, falling back to calculation:', error);
+            // Fallback to calculation if database read fails
+            dailyStreak = calculateDailyStreak(applications);
+        }
+    } else {
+        // Fallback to calculation if no userId
+        dailyStreak = calculateDailyStreak(applications);
+    }
 
     return {
         totalGoal: goals.totalGoal,
@@ -385,10 +406,13 @@ const calculateDailyStreak = (applications: Application[]): number => {
     if (applications.length === 0) return 0;
 
     // Get unique dates when applications were submitted
+    // Parse dateApplied as local date to avoid timezone issues
     const applicationDates = new Set(
         applications.map(app => {
-            const date = new Date(app.dateApplied);
-            return date.toDateString(); // Use toDateString() to normalize to YYYY-MM-DD format
+            // Parse the date string as local date (YYYY-MM-DD format)
+            const [year, month, day] = app.dateApplied.split('-').map(Number);
+            const date = new Date(year, month - 1, day); // month is 0-indexed
+            return date.toDateString();
         })
     );
 
@@ -2388,9 +2412,10 @@ export const useAppStore = create<AppState>()(
                         }
                     },
 
-                    calculateProgress: () => {
-                        const {applications, goals} = get();
-                        const goalProgress = calculateGoalProgress(applications, goals);
+                    calculateProgress: async () => {
+                        const {applications, goals, auth} = get();
+                        const userId = auth.user?.id?.toString();
+                        const goalProgress = await calculateGoalProgress(applications, goals, userId);
                         set(state => ({...state, goalProgress}));
                     },
 

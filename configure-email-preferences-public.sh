@@ -28,7 +28,7 @@ echo "🔍 Checking current function configuration..."
 
 # Get function details
 FUNCTION_URL="https://ihlaenwiyxtmkehfoesg.supabase.co/functions/v1/email-preferences"
-SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDQyOTU0MywiZXhwIjoyMDcwMDA1NTQzfQ.jZMxPrFq1yiwRHSrJhlyfkAWeA7IIRgsmRG4UkFh-Fg"
+SERVICE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 
 echo "📊 Testing function access..."
 
@@ -39,7 +39,7 @@ curl -s -o /dev/null -w "Status: %{http_code}\n" "$FUNCTION_URL?eid=4485394f-5d8
 # Test with auth (should work)
 echo "🧪 Test 2: With authentication (should work):"
 curl -s -o /dev/null -w "Status: %{http_code}\n" "$FUNCTION_URL?eid=4485394f-5d84-4c2e-a77b-0f4bf34b302b" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Mjk1NDMsImV4cCI6MjA3MDAwNTU0M30.rkubJuDwXZN411f341hHvoUejy8Bj2BdjsDrZsceV_o"
+  -H "Authorization: Bearer $REACT_APP_SUPABASE_ANON_KEY"
 
 echo ""
 echo "📋 Manual Configuration Steps:"

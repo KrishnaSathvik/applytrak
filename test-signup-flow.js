@@ -2,7 +2,7 @@
 // This script tests the actual signup flow to verify email verification and welcome emails work
 
 const SUPABASE_URL = 'https://ihlaenwiyxtmkehfoesg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2MzI0MDAsImV4cCI6MjA1MTIwODQwMH0.test';
+const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 console.log('🧪 TESTING COMPLETE SIGNUP FLOW');
 console.log('================================');

@@ -20,7 +20,7 @@ echo "👤 User name: $USER_NAME"
 # Call the welcome email function
 curl -X POST "$FUNCTIONS_BASE/welcome-email" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Mjk1NDMsImV4cCI6MjA3MDAwNTU0M30.rkubJuDwXZN411f341hHvoUejy8Bj2BdjsDrZsceV_o" \
+  -H "Authorization: Bearer $REACT_APP_SUPABASE_ANON_KEY" \
   -d "{
     \"email\": \"$USER_EMAIL\",
     \"name\": \"$USER_NAME\"

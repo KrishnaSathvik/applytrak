@@ -15,3 +15,14 @@ coverage/
 .env
 .vercel
 .env*.local
+
+# Security - Prevent secrets from being committed
+*secret*
+*key*
+*password*
+*token*
+*credential*
+*service_role*
+*service-role*
+*SUPABASE_SERVICE_ROLE_KEY*
+*eyJ*

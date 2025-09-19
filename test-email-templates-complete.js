@@ -6,7 +6,7 @@
 // 3. Run: node test-email-templates-complete.js
 
 const SUPABASE_URL = 'https://ihlaenwiyxtmkehfoesg.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlobGFlbndpeXh0bWtlaGZvZXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0Mjk1NDMsImV4cCI6MjA3MDAwNTU0M30.rkubJuDwXZN411f341hHvoUejy8Bj2BdjsDrZsceV_o';
+const ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 const testEmail = async (functionName, data) => {
     try {
