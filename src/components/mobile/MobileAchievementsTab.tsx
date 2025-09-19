@@ -17,14 +17,13 @@ import {
   ChevronDown,
   ChevronRight
 } from 'lucide-react';
-import { useAchievementStore } from '../../store/useAchievementStore';
+import { useCloudAchievementStore, useFilteredAchievements } from '../../store/useCloudAchievementStore';
 import { useAppStore } from '../../store/useAppStore';
 import AchievementCard from '../achievements/AchievementCard';
 import { AchievementCategory, ACHIEVEMENT_CATEGORIES } from '../../types/achievements';
 
 const MobileAchievementsTab: React.FC = () => {
   const {
-    achievements,
     userStats,
     userLevel,
     selectedCategory,
@@ -33,12 +32,13 @@ const MobileAchievementsTab: React.FC = () => {
     loadAchievements,
     checkExistingApplications,
     setSelectedCategory,
-    setFilter,
-    getFilteredAchievements,
-    refreshStats
-  } = useAchievementStore();
+    setFilter
+  } = useCloudAchievementStore();
 
-  const { applications, goalProgress } = useAppStore();
+  const { applications, goalProgress, auth } = useAppStore();
+  
+  // Use helper hooks for filtered data
+  const filteredAchievements = useFilteredAchievements();
   
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,34 +46,46 @@ const MobileAchievementsTab: React.FC = () => {
 
   // Load achievements on mount and check existing applications
   useEffect(() => {
-    loadAchievements();
-    // Check existing applications for achievements
-    if (applications.length > 0) {
+    if (auth.user?.id) {
+      const userId = String(auth.user.id);
+      loadAchievements(userId);
+      // Check existing applications for achievements
+      if (applications.length > 0) {
+        checkExistingApplications(
+          userId,
+          applications,
+          goalProgress.dailyStreak,
+          goalProgress.weeklyProgress,
+          goalProgress.monthlyProgress
+        );
+      }
+    }
+  }, [loadAchievements, checkExistingApplications, applications.length, auth.user?.id]);
+
+  // Check achievements when applications change
+  useEffect(() => {
+    if (auth.user?.id && applications.length > 0) {
+      const userId = String(auth.user.id);
       checkExistingApplications(
+        userId,
         applications,
         goalProgress.dailyStreak,
         goalProgress.weeklyProgress,
         goalProgress.monthlyProgress
       );
     }
-  }, [loadAchievements, checkExistingApplications, applications.length]);
+  }, [applications.length, checkExistingApplications, auth.user?.id]);
 
-  // Refresh stats when applications change
-  useEffect(() => {
-    refreshStats();
-  }, [applications.length, refreshStats]);
-
-  // Get filtered achievements
-  const filteredAchievements = useMemo(() => {
-    return getFilteredAchievements().filter(achievement => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return achievement.name.toLowerCase().includes(query) ||
-               achievement.description.toLowerCase().includes(query);
-      }
-      return true;
-    });
-  }, [getFilteredAchievements, searchQuery]);
+  // Apply search filter to filtered achievements
+  const searchFilteredAchievements = useMemo(() => {
+    if (!searchQuery) return filteredAchievements;
+    
+    const query = searchQuery.toLowerCase();
+    return filteredAchievements.filter(achievement => 
+      achievement.name.toLowerCase().includes(query) ||
+      achievement.description.toLowerCase().includes(query)
+    );
+  }, [filteredAchievements, searchQuery]);
 
   // Get achievements by category
   const achievementsByCategory = useMemo(() => {
@@ -86,12 +98,12 @@ const MobileAchievementsTab: React.FC = () => {
       special: 0
     };
 
-    achievements.forEach(achievement => {
+    filteredAchievements.forEach(achievement => {
       categories[achievement.category]++;
     });
 
     return categories;
-  }, [achievements]);
+  }, [filteredAchievements]);
 
   // Get unlocked achievements by category
   const unlockedByCategory = useMemo(() => {
@@ -104,14 +116,14 @@ const MobileAchievementsTab: React.FC = () => {
       special: 0
     };
 
-    achievements.forEach(achievement => {
+    filteredAchievements.forEach(achievement => {
       if (achievement.unlocked) {
         categories[achievement.category]++;
       }
     });
 
     return categories;
-  }, [achievements]);
+  }, [filteredAchievements]);
 
   const handleCategorySelect = (category: AchievementCategory | 'all') => {
     setSelectedCategory(category);
@@ -272,7 +284,7 @@ const MobileAchievementsTab: React.FC = () => {
                 onClick={() => handleCategorySelect('all')}
                 className="w-full mobile-text-left mobile-p-3 mobile-text-sm mobile-font-medium text-gray-900 dark:text-gray-100 hover:mobile-bg-gray-50 dark:hover:mobile-bg-gray-700 mobile-border-b mobile-border-gray-200 dark:mobile-border-gray-700"
               >
-                All ({achievements.length})
+                All ({filteredAchievements.length})
               </button>
               
               {Object.entries(ACHIEVEMENT_CATEGORIES).map(([key, config]) => {
@@ -353,7 +365,7 @@ const MobileAchievementsTab: React.FC = () => {
           {selectedCategory === 'all' ? 'All Achievements' : ACHIEVEMENT_CATEGORIES[selectedCategory as AchievementCategory]?.name}
         </h2>
         
-        {filteredAchievements.length === 0 ? (
+        {searchFilteredAchievements.length === 0 ? (
           <div className="card mobile-text-center mobile-py-8">
             <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-3" />
             <h3 className="mobile-text-sm mobile-font-semibold text-gray-900 dark:text-gray-100 mb-2">No Achievements Found</h3>
@@ -363,7 +375,7 @@ const MobileAchievementsTab: React.FC = () => {
           </div>
         ) : (
           <div className="mobile-space-y-3">
-            {filteredAchievements.map((achievement) => (
+            {searchFilteredAchievements.map((achievement) => (
               <AchievementCard
                 key={achievement.id}
                 achievement={achievement}

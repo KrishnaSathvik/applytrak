@@ -276,26 +276,26 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'resume_optimizer',
     name: 'Resume Optimizer',
-    description: 'Update your resume 3 times',
+    description: 'Add attachments to 10 applications',
     category: 'quality',
     tier: 'gold',
     rarity: 'rare',
     icon: 'FileEdit',
     xpReward: 40,
     unlocked: false,
-    requirements: [{ type: 'quality', value: 3, description: 'Update resume 3 times' }]
+    requirements: [{ type: 'quality', value: 10, description: 'Add attachments to 10 applications' }]
   },
   {
     id: 'remote_seeker',
     name: 'Remote Seeker',
-    description: 'Apply to 5 remote positions',
+    description: 'Apply to 10 remote positions',
     category: 'quality',
     tier: 'silver',
     rarity: 'uncommon',
     icon: 'Home',
     xpReward: 25,
     unlocked: false,
-    requirements: [{ type: 'quality', value: 5, description: 'Apply to 5 remote positions' }]
+    requirements: [{ type: 'quality', value: 10, description: 'Apply to 10 remote positions' }]
   },
 
 
@@ -327,14 +327,14 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'note_taker',
     name: 'Note Taker',
-    description: 'Add notes to 3 applications',
+    description: 'Add notes to 10 applications',
     category: 'quality',
     tier: 'bronze',
     rarity: 'common',
     icon: 'FileText',
     xpReward: 30,
     unlocked: false,
-    requirements: [{ type: 'quality', value: 3, description: 'Add notes to 3 applications' }]
+    requirements: [{ type: 'quality', value: 10, description: 'Add notes to 10 applications' }]
   }
 ];
 
@@ -509,13 +509,14 @@ export class AchievementService {
       const withCoverLetter = applications.filter(app => app.notes && app.notes.length > 50).length;
       return withCoverLetter >= 5;
     } else if (achievement.id === 'remote_seeker') {
-      const remoteApps = applications.filter(app => 
-        app.location && app.location.toLowerCase().includes('remote')
-      ).length;
-      return remoteApps >= 5;
+      const remoteApps = applications.filter(app => app.type === 'Remote').length;
+      return remoteApps >= 10;
+    } else if (achievement.id === 'resume_optimizer') {
+      const withAttachments = applications.filter(app => app.attachments && app.attachments.length > 0).length;
+      return withAttachments >= 10;
     } else if (achievement.id === 'note_taker') {
       const withNotes = applications.filter(app => app.notes && app.notes.trim().length > 0).length;
-      return withNotes >= 3;
+      return withNotes >= 10;
     }
 
     return false;

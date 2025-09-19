@@ -23,9 +23,9 @@ import {
 // ============================================================================
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const MIN_SYNC_INTERVAL = 2 * 60 * 1000; // 2 minutes
-const QUERY_TIMEOUT = 30000; // 30 seconds
-const MAX_RETRIES = 2;
+const MIN_SYNC_INTERVAL = 30 * 1000; // 30 seconds (reduced from 2 minutes)
+const QUERY_TIMEOUT = 15000; // 15 seconds (reduced from 30 seconds)
+const MAX_RETRIES = 3; // Increased retries
 // chunked cloud sync helpers
 const IMPORT_BATCH_SIZE = 50;
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -1241,27 +1241,9 @@ const syncToCloud = async (
                             .eq('id', data.id);
                         console.log('🔍 Application check result:', checkResult);
                         
-                        // Show warning toast
-                        if (typeof window !== 'undefined' && window.dispatchEvent) {
-                            window.dispatchEvent(new CustomEvent('showToast', {
-                                detail: {
-                                    type: 'warning',
-                                    message: '⚠️ Update failed: Application not found in cloud database',
-                                    duration: 5000
-                                }
-                            }));
-                        }
+                        // Silent warning - no toast notification
                     } else if (result.data && result.data.length > 0) {
-                        // Show success toast for cloud update
-                        if (typeof window !== 'undefined' && window.dispatchEvent) {
-                            window.dispatchEvent(new CustomEvent('showToast', {
-                                detail: {
-                                    type: 'success',
-                                    message: '☁️ Application updated in cloud database',
-                                    duration: 3000
-                                }
-                            }));
-                        }
+                        // Silent success - no toast notification
                     }
                 } else {
                     const updateData = {...data};
@@ -1744,6 +1726,9 @@ export const databaseService: DatabaseService = {
                 });
                 
                 try {
+                    // Force immediate sync for critical updates (status changes)
+                    const isStatusUpdate = updates.status && updates.status !== updated.status;
+                    
                     await syncToCloud('applications', {
                         id: updated.id,
                         company: updated.company,
@@ -1762,29 +1747,18 @@ export const databaseService: DatabaseService = {
                     }, 'update');
                     console.log('✅ Cloud sync successful for update');
                     
-                    // Show success toast
-                    if (typeof window !== 'undefined' && window.dispatchEvent) {
-                        window.dispatchEvent(new CustomEvent('showToast', {
-                            detail: {
-                                type: 'success',
-                                message: '✅ Application updated and synced to cloud',
-                                duration: 3000
-                            }
-                        }));
+                    // Trigger immediate background sync for status updates
+                    if (isStatusUpdate) {
+                        console.log('🔄 Triggering immediate background sync for status update');
+                        setTimeout(() => {
+                            backgroundSyncManager.backgroundSync('applications');
+                        }, 1000); // Small delay to avoid race conditions
                     }
+                    
+                    // Silent sync - no toast notification
                 } catch (err) {
                     console.error('❌ Cloud sync failed for update:', err);
-                    
-                    // Show error toast
-                    if (typeof window !== 'undefined' && window.dispatchEvent) {
-                        window.dispatchEvent(new CustomEvent('showToast', {
-                            detail: {
-                                type: 'error',
-                                message: '❌ Failed to sync update to cloud: ' + (err as Error).message,
-                                duration: 5000
-                            }
-                        }));
-                    }
+                    // Silent error - no toast notification
                 }
             } else {
                 console.log('⚠️ Not authenticated, skipping cloud sync for update');

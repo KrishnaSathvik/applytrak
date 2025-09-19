@@ -1812,27 +1812,30 @@ export const useAppStore = create<AppState>()(
                                 get().checkMilestones();
 
                                 // Check achievements after adding application
-                                const { applications, goalProgress } = get();
-                                try {
-                                    const { useAchievementStore } = require('../store/useAchievementStore');
-                                    const achievementStore = useAchievementStore.getState();
-                                    const newlyUnlocked = achievementStore.checkAchievements(
+                                const { applications, goalProgress, auth } = get();
+                                // Check achievements asynchronously (non-blocking)
+                                if (auth.user?.id) {
+                                    const { useCloudAchievementStore } = require('../store/useCloudAchievementStore');
+                                    const achievementStore = useCloudAchievementStore.getState();
+                                    const userId = String(auth.user.id);
+                                    achievementStore.checkAchievements(
+                                        userId,
                                         applications,
                                         goalProgress.dailyStreak,
                                         goalProgress.weeklyProgress,
                                         goalProgress.monthlyProgress
-                                    );
-                                    
-                                    // Show achievement notifications
-                                    newlyUnlocked.forEach((achievement: any) => {
-                                        get().showToast({
-                                            type: 'success',
-                                            message: `🎉 Achievement Unlocked: ${achievement.name}! +${achievement.xpReward} XP`,
-                                            duration: 5000
+                                    ).then((newlyUnlocked: any[]) => {
+                                        // Show achievement notifications
+                                        newlyUnlocked.forEach((achievement: any) => {
+                                            get().showToast({
+                                                type: 'success',
+                                                message: `🎉 Achievement Unlocked: ${achievement.name}! +${achievement.xpReward} XP`,
+                                                duration: 5000
+                                            });
                                         });
+                                    }).catch((error: any) => {
+                                        console.error('Failed to check achievements:', error);
                                     });
-                                } catch (error) {
-                                    console.error('Failed to check achievements:', error);
                                 }
 
                                 const {ui} = get();
@@ -2342,27 +2345,30 @@ export const useAppStore = create<AppState>()(
                             get().calculateProgress();
                             
                             // Check achievements after updating goals
-                            const { applications, goalProgress } = get();
-                            try {
-                                const { useAchievementStore } = require('../store/useAchievementStore');
-                                const achievementStore = useAchievementStore.getState();
-                                const newlyUnlocked = achievementStore.checkAchievements(
+                            const { applications, goalProgress, auth } = get();
+                            // Check achievements asynchronously (non-blocking)
+                            if (auth.user?.id) {
+                                const { useCloudAchievementStore } = require('../store/useCloudAchievementStore');
+                                const achievementStore = useCloudAchievementStore.getState();
+                                const userId = String(auth.user.id);
+                                achievementStore.checkAchievements(
+                                    userId,
                                     applications,
                                     goalProgress.dailyStreak,
                                     goalProgress.weeklyProgress,
                                     goalProgress.monthlyProgress
-                                );
-                                
-                                // Show achievement notifications
-                                newlyUnlocked.forEach((achievement: any) => {
-                                    get().showToast({
-                                        type: 'success',
-                                        message: `🎉 Achievement Unlocked: ${achievement.name}! +${achievement.xpReward} XP`,
-                                        duration: 5000
+                                ).then((newlyUnlocked: any[]) => {
+                                    // Show achievement notifications
+                                    newlyUnlocked.forEach((achievement: any) => {
+                                        get().showToast({
+                                            type: 'success',
+                                            message: `🎉 Achievement Unlocked: ${achievement.name}! +${achievement.xpReward} XP`,
+                                            duration: 5000
+                                        });
                                     });
+                                }).catch((error: any) => {
+                                    console.error('Failed to check achievements:', error);
                                 });
-                            } catch (error) {
-                                console.error('Failed to check achievements:', error);
                             }
                             
                             get().showToast({

@@ -16,14 +16,13 @@ import {
   Medal,
   ChevronDown
 } from 'lucide-react';
-import { useAchievementStore } from '../../store/useAchievementStore';
+import { useCloudAchievementStore, useFilteredAchievements } from '../../store/useCloudAchievementStore';
 import { useAppStore } from '../../store/useAppStore';
 import AchievementCard from '../achievements/AchievementCard';
 import { AchievementCategory, ACHIEVEMENT_CATEGORIES } from '../../types/achievements';
 
 const AchievementsTab: React.FC = () => {
   const {
-    achievements,
     userStats,
     userLevel,
     selectedCategory,
@@ -32,56 +31,59 @@ const AchievementsTab: React.FC = () => {
     loadAchievements,
     checkExistingApplications,
     setSelectedCategory,
-    setFilter,
-    getFilteredAchievements,
-    refreshStats
-  } = useAchievementStore();
+    setFilter
+  } = useCloudAchievementStore();
 
-  const { applications, goalProgress } = useAppStore();
+  const { applications, goalProgress, auth } = useAppStore();
+  
+  // Use helper hooks for filtered data
+  const filteredAchievements = useFilteredAchievements();
   
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Load achievements on mount and check existing applications
   useEffect(() => {
-    loadAchievements();
-    // Check existing applications for achievements
-    if (applications.length > 0) {
+    if (auth.user?.id) {
+      const userId = String(auth.user.id);
+      loadAchievements(userId);
+      // Check existing applications for achievements
+      if (applications.length > 0) {
+        checkExistingApplications(
+          userId,
+          applications,
+          goalProgress.dailyStreak,
+          goalProgress.weeklyProgress,
+          goalProgress.monthlyProgress
+        );
+      }
+    }
+  }, [loadAchievements, checkExistingApplications, applications.length, auth.user?.id]);
+
+  // Check achievements when applications change
+  useEffect(() => {
+    if (auth.user?.id && applications.length > 0) {
+      const userId = String(auth.user.id);
       checkExistingApplications(
+        userId,
         applications,
         goalProgress.dailyStreak,
         goalProgress.weeklyProgress,
         goalProgress.monthlyProgress
       );
     }
-  }, [loadAchievements, checkExistingApplications, applications.length]);
+  }, [applications.length, checkExistingApplications, auth.user?.id]);
 
-  // Refresh stats when applications change
-  useEffect(() => {
-    refreshStats();
-  }, [applications.length, refreshStats]);
-
-  // Get filtered achievements
-  const filteredAchievements = useMemo(() => {
-    const allAchievements = getFilteredAchievements();
+  // Apply search filter to filtered achievements
+  const searchFilteredAchievements = useMemo(() => {
+    if (!searchQuery) return filteredAchievements;
     
-    console.log('🔍 All achievements from store:', achievements.length);
-    console.log('🔍 Filtered achievements from getFilteredAchievements:', allAchievements.length);
-    console.log('🔍 Current filter:', filter);
-    console.log('🔍 Selected category:', selectedCategory);
-    
-    const filtered = allAchievements.filter(achievement => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return achievement.name.toLowerCase().includes(query) ||
-               achievement.description.toLowerCase().includes(query);
-      }
-      return true;
-    });
-    
-    console.log('🔍 Final filtered achievements:', filtered.length);
-    return filtered;
-  }, [getFilteredAchievements, searchQuery, achievements.length, filter, selectedCategory]);
+    const query = searchQuery.toLowerCase();
+    return filteredAchievements.filter(achievement => 
+      achievement.name.toLowerCase().includes(query) ||
+      achievement.description.toLowerCase().includes(query)
+    );
+  }, [filteredAchievements, searchQuery]);
 
   // Get achievements by category
   const achievementsByCategory = useMemo(() => {
@@ -94,12 +96,12 @@ const AchievementsTab: React.FC = () => {
       special: 0
     };
 
-    achievements.forEach(achievement => {
+    filteredAchievements.forEach(achievement => {
       categories[achievement.category]++;
     });
 
     return categories;
-  }, [achievements]);
+  }, [filteredAchievements]);
 
   // Get unlocked achievements by category
   const unlockedByCategory = useMemo(() => {
@@ -112,14 +114,14 @@ const AchievementsTab: React.FC = () => {
       special: 0
     };
 
-    achievements.forEach(achievement => {
+    filteredAchievements.forEach(achievement => {
       if (achievement.unlocked) {
         categories[achievement.category]++;
       }
     });
 
     return categories;
-  }, [achievements]);
+  }, [filteredAchievements]);
 
   const handleCategorySelect = (category: AchievementCategory | 'all') => {
     setSelectedCategory(category);
@@ -268,7 +270,7 @@ const AchievementsTab: React.FC = () => {
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
-            All ({achievements.length})
+            All ({filteredAchievements.length})
           </button>
           
           {Object.entries(ACHIEVEMENT_CATEGORIES).map(([key, config]) => {
@@ -351,7 +353,7 @@ const AchievementsTab: React.FC = () => {
           {selectedCategory === 'all' ? 'All Achievements' : ACHIEVEMENT_CATEGORIES[selectedCategory as AchievementCategory]?.name}
         </h2>
         
-        {filteredAchievements.length === 0 ? (
+        {searchFilteredAchievements.length === 0 ? (
           <div className="glass-card text-center py-12">
             <Trophy className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Achievements Found</h3>
@@ -361,7 +363,7 @@ const AchievementsTab: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredAchievements.map((achievement) => (
+            {searchFilteredAchievements.map((achievement) => (
               <AchievementCard
                 key={achievement.id}
                 achievement={achievement}

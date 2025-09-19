@@ -27,14 +27,14 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
 
   return (
     <div 
-      className={`glass-card cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg ${
+      className={`glass-card cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg h-[140px] ${
         achievement.unlocked 
           ? 'border-2 border-green-300 dark:border-green-600 bg-green-100/80 dark:bg-green-900/30' 
           : 'border-2 border-gray-200 dark:border-gray-700'
       } ${className}`}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center justify-between p-4 h-full">
         {/* Left side - Icon and Info */}
         <div className="flex items-center space-x-4">
           {/* Achievement Icon */}
@@ -49,9 +49,9 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
           </div>
 
           {/* Achievement Info */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
-              <h3 className={`font-semibold ${
+              <h3 className={`font-semibold truncate ${
                 achievement.unlocked 
                   ? 'text-gray-900 dark:text-gray-100' 
                   : 'text-gray-600 dark:text-gray-400'
@@ -60,7 +60,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
               </h3>
               
               {/* Tier Badge */}
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
                 achievement.unlocked 
                   ? `${tierConfig.textColor} bg-opacity-20` 
                   : 'text-gray-400 bg-gray-100 dark:bg-gray-700'
@@ -69,7 +69,7 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
               </span>
             </div>
             
-            <p className={`text-sm ${
+            <p className={`text-sm line-clamp-2 ${
               achievement.unlocked 
                 ? 'text-gray-600 dark:text-gray-300' 
                 : 'text-gray-500 dark:text-gray-500'
@@ -96,18 +96,13 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
         </div>
 
         {/* Right side - Status and XP */}
-        <div className="text-right">
+        <div className="text-right flex flex-col justify-center">
           {achievement.unlocked ? (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <span className="text-green-600 dark:text-green-400 text-sm font-medium">
                 ✓ Unlocked
               </span>
-              {achievement.unlockedAt && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {new Date(achievement.unlockedAt).toLocaleDateString()}
-                </p>
-              )}
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center justify-end space-x-1">
                 <Star className="h-4 w-4 text-yellow-500" />
                 <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
                   +{achievement.xpReward} XP
@@ -115,11 +110,11 @@ const AchievementCard: React.FC<AchievementCardProps> = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <span className="text-gray-400 dark:text-gray-500 text-sm">
                 Locked
               </span>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center justify-end space-x-1">
                 <Star className="h-4 w-4 text-gray-400" />
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   +{achievement.xpReward} XP
